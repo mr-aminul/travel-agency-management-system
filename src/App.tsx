@@ -1,0 +1,57 @@
+import { Suspense, lazy } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from '@/lib/auth'
+
+const AuthenticatedLayout = lazy(() => import('@/layout/AuthenticatedLayout'))
+const ComponentsPage = lazy(() => import('@/pages/ComponentsPage'))
+const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
+const DummyPage = lazy(() => import('@/pages/DummyPage'))
+const HomePage = lazy(() => import('@/pages/HomePage'))
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
+const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
+
+function RouteFallback() {
+  return <div className="pd-route-fallback" aria-busy="true" aria-live="polite" />
+}
+
+function CatchAllRedirect() {
+  const { status } = useAuth()
+  return (
+    <Navigate to={status === 'authenticated' ? '/' : '/login'} replace />
+  )
+}
+
+/** Matches Vite `base` (`/` locally, `/platform/` in production builds). */
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
+
+function App() {
+  return (
+    <BrowserRouter basename={routerBasename}>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<AuthenticatedLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="clients" element={<DummyPage title="Clients" />} />
+            <Route path="cases" element={<Navigate to="manpower" replace />} />
+            <Route path="cases/manpower" element={<DummyPage title="Manpower" />} />
+            <Route path="cases/student" element={<DummyPage title="Student" />} />
+            <Route path="cases/hajj-umrah" element={<DummyPage title="Hajj/Umrah" />} />
+            <Route path="cases/leisure" element={<DummyPage title="Leisure" />} />
+            <Route path="cases/ticketing" element={<DummyPage title="Ticketing" />} />
+            <Route path="finance" element={<DummyPage title="Finance" />} />
+            <Route path="documents" element={<DummyPage title="Documents" />} />
+            <Route path="reporting" element={<DummyPage title="Reporting" />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="profile" element={<DummyPage title="My profile" />} />
+            <Route path="components" element={<ComponentsPage />} />
+          </Route>
+          <Route path="*" element={<CatchAllRedirect />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  )
+}
+
+export default App

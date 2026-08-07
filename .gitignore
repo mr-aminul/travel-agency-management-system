@@ -1,0 +1,23 @@
+# Dependencies
+node_modules
+
+# Build
+dist
+*.local
+
+# Vercel
+.vercel
+
+# Env (keep examples tracked)
+.env
+.env.local
+.env.deploy
+.env.*.local
+!.env.example
+!.env.deploy.example
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.log
+*.tsbuildinfo

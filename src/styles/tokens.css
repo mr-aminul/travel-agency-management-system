@@ -1,0 +1,57 @@
+@import './theme.css';
+
+:root {
+  /* Bridge: primary chrome = darkest (readable on neon seeds) */
+  --primary: var(--color-sidebar);
+  --primary-foreground: var(--color-on-sidebar);
+  --secondary: var(--color-theme-subtle);
+  --secondary-foreground: var(--color-text-primary);
+  --accent: var(--color-brand-light);
+  --accent-foreground: var(--color-brand);
+  --destructive: var(--color-red);
+  --ring: var(--color-sidebar);
+  --background: var(--color-surface);
+  --foreground: var(--color-text-primary);
+
+  /* App aliases used by layout — follow surface/text tokens (flip in .dark) */
+  --color-bg: var(--color-surface);
+  --color-bg-muted: var(--color-muted-bg);
+  --color-text: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-sec);
+  --color-border: var(--color-divider);
+  --color-danger: var(--color-red);
+
+  /* Legacy primary names → active-nav accent (seed) */
+  --color-primary: var(--color-active-nav);
+  --color-primary-dark: var(--color-theme-darker);
+  --color-primary-contrast: var(--color-on-active-nav);
+
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --text-body: 1rem;
+
+  --radius-button: 12px;
+  --radius-card-lg: 20px;
+
+  --shadow-low: 0 1px 3px color-mix(in srgb, var(--color-theme) 12%, transparent);
+  --shadow-deep: rgba(9, 14, 21, 0.16) 0px 5px 40px 0px;
+  --shadow-filter: drop-shadow(0 8px 20px color-mix(in srgb, black 22%, transparent));
+}
+
+/*
+ * Dark elevation — black-only shadows vanish on dark canvases.
+ * A hairline rim restores edge separation; soft depth still sits underneath.
+ */
+.dark {
+  --shadow-low:
+    0 0 0 1px color-mix(in srgb, white 8%, transparent),
+    0 1px 3px color-mix(in srgb, black 55%, transparent),
+    0 6px 16px color-mix(in srgb, black 32%, transparent);
+  --shadow-deep:
+    0 0 0 1px color-mix(in srgb, white 10%, transparent),
+    0 10px 36px color-mix(in srgb, black 58%, transparent),
+    0 2px 10px color-mix(in srgb, black 40%, transparent);
+  --shadow-filter:
+    drop-shadow(0 0 0.5px color-mix(in srgb, white 22%, transparent))
+    drop-shadow(0 10px 22px color-mix(in srgb, black 55%, transparent));
+}
