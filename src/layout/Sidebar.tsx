@@ -219,7 +219,14 @@ export function Sidebar({
     : isManual
       ? !expanded
       : !hovered
-  const { name, subtitle, icon: BrandIcon, logoUrl } = brand
+  const {
+    name,
+    subtitle,
+    icon: BrandIcon,
+    logoUrl,
+    isCustomLogo,
+    preserveSubtitleCase,
+  } = brand
   const spaceIndex = name.indexOf(' ')
   const nameFirst = spaceIndex === -1 ? name : name.slice(0, spaceIndex)
   const nameRest = spaceIndex === -1 ? '' : name.slice(spaceIndex + 1)
@@ -258,7 +265,15 @@ export function Sidebar({
           closeMobile()
         }}
       >
-        <div className="pd-app-logo pd-app-logo--sm">
+        <div
+          className={[
+            'pd-app-logo',
+            'pd-app-logo--sm',
+            isCustomLogo && 'pd-app-logo--photo',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
           {logoUrl ? (
             <img src={logoUrl} alt="" />
           ) : (
@@ -279,7 +294,16 @@ export function Sidebar({
             ) : null}
           </div>
           {subtitle && (
-            <div className="pd-sidebar-brand__subtitle">{subtitle}</div>
+            <div
+              className={[
+                'pd-sidebar-brand__subtitle',
+                preserveSubtitleCase && 'pd-sidebar-brand__subtitle--powered',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              {subtitle}
+            </div>
           )}
         </div>
         {isMobile && (

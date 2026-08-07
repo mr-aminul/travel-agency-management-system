@@ -340,6 +340,13 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   white-space: nowrap;
 }
 
+.pd-sidebar-brand__subtitle--powered {
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-size: 0.625rem;
+  font-weight: 500;
+}
+
 .pd-sidebar-brand__close {
   position: absolute;
   top: 0.625rem;

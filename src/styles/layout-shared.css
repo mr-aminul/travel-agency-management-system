@@ -17,6 +17,10 @@
   display: block;
 }
 
+.pd-app-logo--photo img {
+  object-fit: cover;
+}
+
 .pd-app-logo--sm {
   width: 2.125rem;
   height: 2.125rem;

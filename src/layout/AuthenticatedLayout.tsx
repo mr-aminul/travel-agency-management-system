@@ -1,8 +1,10 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { AppLayout } from './AppLayout'
+import { useAgencyProfile } from './useAgencyProfile'
 import { useAuth } from '@/lib/auth'
+import { resolveBrandDisplay } from '@/lib/agencyProfile'
 import { layoutConfig } from '@/config/layout'
 import { queryClient } from '@/lib/queryClient'
 import '@/styles/layout-shell.css'
@@ -14,6 +16,26 @@ import '@fontsource/inter/latin-700.css'
 export default function AuthenticatedLayout() {
   const navigate = useNavigate()
   const { status, user, signOut } = useAuth()
+  const agencyProfile = useAgencyProfile()
+
+  const brand = useMemo(() => {
+    const resolved = resolveBrandDisplay(
+      agencyProfile,
+      layoutConfig.brand.logoUrl,
+    )
+    return {
+      ...layoutConfig.brand,
+      name: resolved.name,
+      subtitle: resolved.subtitle,
+      logoUrl: resolved.logoUrl,
+      isCustomLogo: resolved.isCustomLogo,
+      preserveSubtitleCase: resolved.hasCustomName,
+    }
+  }, [agencyProfile])
+
+  useEffect(() => {
+    document.title = brand.name
+  }, [brand.name])
 
   const handleSignOut = useCallback(async () => {
     queryClient.clear()
@@ -29,6 +51,7 @@ export default function AuthenticatedLayout() {
     <QueryClientProvider client={queryClient}>
       <AppLayout
         {...layoutConfig}
+        brand={brand}
         userName={user.name}
         profileSubtext={user.email}
         onSignOut={handleSignOut}
