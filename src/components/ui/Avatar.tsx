@@ -2,7 +2,7 @@ import type { HTMLAttributes } from 'react'
 import { nameInitials } from '@/layout/utils'
 import { cx } from '@/lib/cx'
 
-export type AvatarSize = 'sm' | 'md' | 'lg'
+export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl'
 
 export type AvatarProps = HTMLAttributes<HTMLSpanElement> & {
   name?: string | null

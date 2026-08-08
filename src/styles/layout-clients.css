@@ -1,0 +1,600 @@
+/* Clients — list + detail (OneTrack theme) */
+
+.pd-clients {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.pd-clients__toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
+}
+
+.pd-clients__filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  min-width: 0;
+  padding-top: 0.4rem;
+}
+
+.pd-clients__filter {
+  min-width: 11rem;
+}
+
+.pd-clients__clear {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.pd-clients__clear:hover {
+  color: var(--color-text);
+}
+
+.pd-clients__toolbar-end {
+  display: flex;
+  align-items: flex-end;
+  flex: 0 0 auto;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pd-clients__search {
+  flex: 1 1 auto;
+  min-width: 12rem;
+  width: auto;
+}
+
+.pd-clients__toolbar-end .pd-btn {
+  align-self: flex-end;
+  min-height: 2.25rem;
+}
+
+.pd-clients__row {
+  cursor: pointer;
+}
+
+.pd-clients__identity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.pd-clients__identity-text {
+  min-width: 0;
+}
+
+.pd-clients__name {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.3;
+}
+
+.pd-clients__meta {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.35;
+}
+
+.pd-clients__services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.pd-clients__balance {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+}
+
+.pd-clients__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* New client modal */
+
+.pd-modal.pd-clients-modal {
+  max-width: 40rem;
+  width: min(40rem, calc(100vw - 2rem));
+}
+
+.pd-clients-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pd-clients-form__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-height: min(60vh, 28rem);
+  overflow-y: auto;
+  padding-inline-end: 0.25rem;
+}
+
+.pd-clients-form__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pd-clients-form__heading {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.pd-clients-form__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.pd-clients-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem 1rem;
+  padding-top: 0.4rem;
+}
+
+.pd-clients-form__full {
+  grid-column: 1 / -1;
+}
+
+.pd-clients-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+  border-top: 0.0625rem solid var(--color-border);
+}
+
+/* Detail */
+
+.pd-client-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.pd-client-detail__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.pd-client-detail__back:hover {
+  color: var(--color-theme);
+}
+
+.pd-client-detail__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.125rem 1.25rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.875rem;
+  background: var(--color-surface-raised, var(--color-bg));
+  box-shadow: var(--shadow-low);
+  transition:
+    border-color 0.18s cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.pd-client-detail__header.is-editing {
+  border-color: color-mix(in srgb, var(--color-theme) 35%, var(--color-border));
+  box-shadow:
+    var(--shadow-low),
+    0 0 0 0.1875rem color-mix(in srgb, var(--color-theme) 10%, transparent);
+}
+
+.pd-client-detail__header-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1 1 14rem;
+}
+
+.pd-client-detail__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.625rem;
+}
+
+.pd-client-detail__name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  line-height: 1.15;
+}
+
+.pd-client-detail__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.5rem;
+  min-width: 0;
+}
+
+.pd-client-detail__contact {
+  display: inline-flex;
+  align-items: stretch;
+  min-height: 1.875rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  overflow: hidden;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.pd-client-detail__contact:hover {
+  background: var(--color-neutral-hover);
+  border-color: color-mix(in srgb, var(--color-border) 70%, var(--color-text-muted));
+}
+
+.pd-client-detail__contact-value {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.625rem;
+  color: inherit;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.pd-client-detail__contact-copy {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-inline-start: 0.0625rem solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.pd-client-detail__contact-copy:hover {
+  color: var(--color-theme);
+  background: color-mix(in srgb, var(--color-theme) 8%, transparent);
+}
+
+.pd-client-detail__contact-copy:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-theme) 55%, transparent);
+  outline-offset: -2px;
+}
+
+.pd-client-detail__meta-sep {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.pd-client-detail__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+}
+
+.pd-client-detail__overview {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pd-payments {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pd-payments__toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pd-payments__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  max-width: 32rem;
+  line-height: 1.4;
+}
+
+.pd-payments__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  padding: 1rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-bg);
+}
+
+.pd-payments__form .pd-btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.pd-client-detail__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.pd-client-detail__stat {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.875rem;
+  background: var(--color-surface-raised, var(--color-bg));
+  box-shadow: var(--shadow-low);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.pd-client-detail__stat:hover {
+  border-color: color-mix(in srgb, var(--color-theme) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-theme-subtle) 55%, var(--color-bg));
+}
+
+.pd-client-detail__stat:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-theme) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.pd-client-detail__stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: 0.625rem;
+  background: var(--color-theme-subtle);
+  color: var(--color-theme);
+}
+
+.pd-client-detail__stat-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.pd-client-detail__stat-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.pd-client-detail__stat-value {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-client-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.pd-client-detail__section {
+  padding: 1.125rem 1.25rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.875rem;
+  background: var(--color-surface-raised, var(--color-bg));
+  box-shadow: var(--shadow-low);
+}
+
+.pd-client-detail__section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 0.0625rem solid var(--color-border);
+  font-family: var(--font-heading);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.pd-client-detail__section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  background: var(--color-theme-subtle);
+  color: var(--color-theme);
+}
+
+.pd-client-detail__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.125rem;
+  margin: 0;
+}
+
+.pd-client-detail__field {
+  min-width: 0;
+}
+
+.pd-client-detail__fields dt {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.pd-client-detail__field-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  border-radius: 0.35rem;
+  background: var(--color-muted-bg);
+  color: var(--color-text-secondary);
+}
+
+.pd-client-detail__fields dd {
+  margin: 0;
+  padding-inline-start: 1.65rem;
+  font-size: 0.9375rem;
+  font-weight: 550;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.pd-client-detail__field-full {
+  grid-column: 1 / -1;
+}
+
+.pd-client-detail__link {
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.pd-client-detail__link:hover {
+  color: var(--color-theme);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.pd-client-detail__empty {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .pd-client-detail__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-payments__form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .pd-clients__search {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .pd-clients__toolbar-end {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .pd-clients-form__grid,
+  .pd-client-detail__grid,
+  .pd-client-detail__fields {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-client-detail__header {
+    align-items: flex-start;
+  }
+
+  .pd-client-detail__header-actions {
+    width: 100%;
+    margin-inline-start: 0;
+  }
+
+  .pd-client-detail__fields dd {
+    padding-inline-start: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-client-detail__back,
+  .pd-client-detail__header,
+  .pd-client-detail__link,
+  .pd-client-detail__contact,
+  .pd-client-detail__contact-copy {
+    transition: none;
+  }
+}

@@ -3,12 +3,15 @@ import { cx } from '@/lib/cx'
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label?: string
+  /** `outlined` (default) = notched label on the control border. */
+  labelVariant?: 'default' | 'outlined'
   hint?: string
   error?: string
 }
 
 export function Input({
   label,
+  labelVariant = 'outlined',
   hint,
   error,
   id,
@@ -21,9 +24,17 @@ export function Input({
   const hintId = hint ? `${inputId}-hint` : undefined
   const errorId = error ? `${inputId}-error` : undefined
   const describedBy = [errorId, hintId].filter(Boolean).join(' ') || undefined
+  const outlined = Boolean(label) && labelVariant === 'outlined'
 
   return (
-    <div className={cx('pd-field', error && 'pd-field--error', className)}>
+    <div
+      className={cx(
+        'pd-field',
+        outlined && 'pd-field--outlined',
+        error && 'pd-field--error',
+        className,
+      )}
+    >
       {label ? (
         <label className="pd-field__label" htmlFor={inputId}>
           {label}

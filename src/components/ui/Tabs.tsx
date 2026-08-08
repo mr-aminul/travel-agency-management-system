@@ -1,5 +1,9 @@
 import {
+  useEffect,
+  useEffectEvent,
   useId,
+  useLayoutEffect,
+  useRef,
   useState,
   type HTMLAttributes,
   type KeyboardEvent,
@@ -9,7 +13,7 @@ import { cx } from '@/lib/cx'
 
 export type TabItem = {
   id: string
-  label: string
+  label: ReactNode
   content: ReactNode
   disabled?: boolean
 }
@@ -21,6 +25,12 @@ export type TabsProps = HTMLAttributes<HTMLDivElement> & {
   onValueChange?: (id: string) => void
 }
 
+type IndicatorStyle = {
+  left: number
+  width: number
+  ready: boolean
+}
+
 export function Tabs({
   items,
   defaultValue,
@@ -30,10 +40,17 @@ export function Tabs({
   ...props
 }: TabsProps) {
   const baseId = useId()
+  const listRef = useRef<HTMLDivElement>(null)
+  const tabRefs = useRef(new Map<string, HTMLButtonElement>())
   const firstEnabled = items.find((item) => !item.disabled)?.id
   const [uncontrolled, setUncontrolled] = useState(
     defaultValue ?? firstEnabled ?? '',
   )
+  const [indicator, setIndicator] = useState<IndicatorStyle>({
+    left: 0,
+    width: 0,
+    ready: false,
+  })
   const activeId = controlledValue ?? uncontrolled
 
   const select = (id: string) => {
@@ -42,6 +59,45 @@ export function Tabs({
   }
 
   const enabledIds = items.filter((item) => !item.disabled).map((item) => item.id)
+
+  const updateIndicator = useEffectEvent(() => {
+    const list = listRef.current
+    const tab = tabRefs.current.get(activeId)
+    if (!list || !tab) return
+
+    const listRect = list.getBoundingClientRect()
+    const tabRect = tab.getBoundingClientRect()
+    setIndicator({
+      left: tabRect.left - listRect.left + list.scrollLeft,
+      width: tabRect.width,
+      ready: true,
+    })
+  })
+
+  useLayoutEffect(() => {
+    updateIndicator()
+  }, [activeId, items])
+
+  useEffect(() => {
+    const list = listRef.current
+    if (!list) return
+
+    const onScrollOrResize = () => updateIndicator()
+    list.addEventListener('scroll', onScrollOrResize, { passive: true })
+    window.addEventListener('resize', onScrollOrResize)
+
+    const observer =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(onScrollOrResize)
+        : null
+    observer?.observe(list)
+
+    return () => {
+      list.removeEventListener('scroll', onScrollOrResize)
+      window.removeEventListener('resize', onScrollOrResize)
+      observer?.disconnect()
+    }
+  }, [])
 
   const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
     const index = enabledIds.indexOf(id)
@@ -70,12 +126,21 @@ export function Tabs({
 
   return (
     <div className={cx('pd-tabs', className)} {...props}>
-      <div className="pd-tabs__list" role="tablist" aria-label="Sections">
+      <div
+        ref={listRef}
+        className="pd-tabs__list"
+        role="tablist"
+        aria-label="Sections"
+      >
         {items.map((item) => {
           const selected = item.id === active?.id
           return (
             <button
               key={item.id}
+              ref={(node) => {
+                if (node) tabRefs.current.set(item.id, node)
+                else tabRefs.current.delete(item.id)
+              }}
               id={`${baseId}-tab-${item.id}`}
               type="button"
               role="tab"
@@ -91,6 +156,17 @@ export function Tabs({
             </button>
           )
         })}
+        <span
+          className={cx(
+            'pd-tabs__indicator',
+            indicator.ready && 'is-ready',
+          )}
+          aria-hidden
+          style={{
+            transform: `translateX(${indicator.left}px)`,
+            width: indicator.width,
+          }}
+        />
       </div>
       {items.map((item) => {
         const selected = item.id === active?.id

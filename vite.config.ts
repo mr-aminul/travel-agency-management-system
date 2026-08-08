@@ -9,12 +9,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
 const pkg = require('./package.json') as { version: string }
 
-export default defineConfig(({ command }) => ({
-  // Production (EC2): served under /platform/
-  // Local `vite`/`vite preview` stay at `/` unless VITE_BASE_PATH is set.
-  base:
-    process.env.VITE_BASE_PATH ??
-    (command === 'build' ? '/platform/' : '/'),
+export default defineConfig(() => ({
+  // Default `/` for Vercel and local builds.
+  // EC2 deploy sets VITE_BASE_PATH=/platform/ (see scripts/deploy-to-ec2.sh).
+  base: process.env.VITE_BASE_PATH ?? '/',
   plugins: [
     react(),
     {

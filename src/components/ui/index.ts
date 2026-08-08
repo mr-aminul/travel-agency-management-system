@@ -8,7 +8,7 @@ export { Textarea } from './Textarea'
 export type { TextareaProps } from './Textarea'
 
 export { Select } from './Select'
-export type { SelectProps, SelectOption } from './Select'
+export type { SelectProps, SelectOption, SelectChangeEvent } from './Select'
 
 export { Checkbox } from './Checkbox'
 export type { CheckboxProps } from './Checkbox'
@@ -30,6 +30,9 @@ export type { AvatarProps, AvatarSize } from './Avatar'
 
 export { Modal } from './Modal'
 export type { ModalProps } from './Modal'
+
+export { SideDrawer } from './SideDrawer'
+export type { SideDrawerProps } from './SideDrawer'
 
 export { ConfirmDialog } from './ConfirmDialog'
 export type { ConfirmDialogProps } from './ConfirmDialog'

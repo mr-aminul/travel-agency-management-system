@@ -46,6 +46,7 @@ export const layoutConfig: AppLayoutConfig = {
       label: 'Cases',
       icon: Folder,
       children: [
+        { path: '/cases', label: 'All cases', icon: Folder, end: true },
         { path: '/cases/manpower', label: 'Manpower', icon: Briefcase },
         { path: '/cases/student', label: 'Student', icon: GraduationCap },
         { path: '/cases/hajj-umrah', label: 'Hajj/Umrah', icon: Landmark },

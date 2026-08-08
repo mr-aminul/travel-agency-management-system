@@ -5,7 +5,9 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
+  BookOpen,
   Building2,
   Info,
   Monitor,
@@ -18,6 +20,7 @@ import {
 } from 'lucide-react'
 import '@/styles/layout-settings.css'
 import { Avatar, Button, Input, Textarea } from '@/components/ui'
+import { JOURNEY_SPINE, PRODUCT_GLOSSARY } from '@/lib/glossary'
 import {
   applyAppearance,
   applyThemeColor,
@@ -42,7 +45,7 @@ import {
 } from '@/lib/sidebarPrefs'
 import { useSidebarPrefs } from '@/layout/useSidebarPrefs'
 
-type SettingsSectionId = 'business' | 'appearance' | 'about'
+type SettingsSectionId = 'business' | 'appearance' | 'glossary' | 'about'
 
 const SETTINGS_SECTIONS: {
   id: SettingsSectionId
@@ -61,6 +64,12 @@ const SETTINGS_SECTIONS: {
     label: 'Appearance',
     description: 'Theme, dark mode, and sidebar',
     icon: Palette,
+  },
+  {
+    id: 'glossary',
+    label: 'How OneTrack works',
+    description: 'Client, case, and progress language',
+    icon: BookOpen,
   },
   {
     id: 'about',
@@ -105,9 +114,21 @@ function formatHex(hex: string): string {
   return hex.toUpperCase()
 }
 
+function isSettingsSectionId(value: string | null): value is SettingsSectionId {
+  return (
+    value === 'business' ||
+    value === 'appearance' ||
+    value === 'glossary' ||
+    value === 'about'
+  )
+}
+
 export default function SettingsPage() {
-  const [activeSection, setActiveSection] =
-    useState<SettingsSectionId>('business')
+  const [searchParams] = useSearchParams()
+  const sectionParam = searchParams.get('section')
+  const [activeSection, setActiveSection] = useState<SettingsSectionId>(() =>
+    isSettingsSectionId(sectionParam) ? sectionParam : 'business',
+  )
   const [themeMode, setThemeMode] = useState(readThemeMode)
   const [customColor, setCustomColor] = useState(readCustomThemeColor)
   const [appearance, setAppearance] = useState(readAppearance)
@@ -121,6 +142,12 @@ export default function SettingsPage() {
   const currentSection =
     SETTINGS_SECTIONS.find((section) => section.id === activeSection) ??
     SETTINGS_SECTIONS[0]
+
+  useEffect(() => {
+    if (isSettingsSectionId(sectionParam)) {
+      setActiveSection(sectionParam)
+    }
+  }, [sectionParam])
 
   useEffect(() => {
     if (!agencyStatus) return
@@ -443,6 +470,28 @@ export default function SettingsPage() {
                   })}
                 </div>
               </div>
+            </div>
+          ) : null}
+
+          {activeSection === 'glossary' ? (
+            <div className="pd-settings-stack">
+              <div className="pd-settings-row pd-settings-row--align-start">
+                <div className="pd-settings-row__copy">
+                  <span className="pd-settings-row__label">Journey spine</span>
+                  <span className="pd-settings-row__hint">{JOURNEY_SPINE}</span>
+                </div>
+              </div>
+              {PRODUCT_GLOSSARY.map((entry) => (
+                <div
+                  key={entry.term}
+                  className="pd-settings-row pd-settings-row--align-start"
+                >
+                  <div className="pd-settings-row__copy">
+                    <span className="pd-settings-row__label">{entry.term}</span>
+                    <span className="pd-settings-row__hint">{entry.meaning}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : null}
 

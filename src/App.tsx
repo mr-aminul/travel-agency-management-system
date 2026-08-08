@@ -3,6 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 
 const AuthenticatedLayout = lazy(() => import('@/layout/AuthenticatedLayout'))
+const CaseRoute = lazy(() => import('@/pages/CaseRoute'))
+const CasesPage = lazy(() => import('@/pages/CasesPage'))
+const ClientDetailPage = lazy(() => import('@/pages/ClientDetailPage'))
+const ClientsPage = lazy(() => import('@/pages/ClientsPage'))
 const ComponentsPage = lazy(() => import('@/pages/ComponentsPage'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const DummyPage = lazy(() => import('@/pages/DummyPage'))
@@ -21,7 +25,7 @@ function CatchAllRedirect() {
   )
 }
 
-/** Matches Vite `base` (`/` locally, `/platform/` in production builds). */
+/** Matches Vite `base` (`/` by default; `/platform/` when VITE_BASE_PATH is set for EC2). */
 const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
 
 function App() {
@@ -33,13 +37,10 @@ function App() {
           <Route path="/" element={<AuthenticatedLayout />}>
             <Route index element={<HomePage />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="clients" element={<DummyPage title="Clients" />} />
-            <Route path="cases" element={<Navigate to="manpower" replace />} />
-            <Route path="cases/manpower" element={<DummyPage title="Manpower" />} />
-            <Route path="cases/student" element={<DummyPage title="Student" />} />
-            <Route path="cases/hajj-umrah" element={<DummyPage title="Hajj/Umrah" />} />
-            <Route path="cases/leisure" element={<DummyPage title="Leisure" />} />
-            <Route path="cases/ticketing" element={<DummyPage title="Ticketing" />} />
+            <Route path="clients" element={<ClientsPage />} />
+            <Route path="clients/:id" element={<ClientDetailPage />} />
+            <Route path="cases" element={<CasesPage />} />
+            <Route path="cases/:id" element={<CaseRoute />} />
             <Route path="finance" element={<DummyPage title="Finance" />} />
             <Route path="documents" element={<DummyPage title="Documents" />} />
             <Route path="reporting" element={<DummyPage title="Reporting" />} />
