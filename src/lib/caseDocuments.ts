@@ -369,6 +369,9 @@ export function syncDocumentsWithProgress(item: Case): CaseDocument[] {
               ? ('approved' as const)
               : ('under_review' as const),
           detail: doc.detail || uploaded?.fileName || 'Recorded',
+          fileName: doc.fileName || uploaded?.fileName,
+          fileId: doc.fileId || uploaded?.fileId,
+          mimeType: doc.mimeType || uploaded?.mimeType,
         }
       }
       if (!unlocked) {

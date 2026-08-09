@@ -446,6 +446,8 @@ export function findStepForDocument(
 export type StepUploadValue = {
   key: string
   fileName: string
+  fileId?: string
+  mimeType?: string
 }
 
 export type StepCompletionInput = {

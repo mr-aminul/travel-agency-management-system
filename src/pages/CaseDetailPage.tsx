@@ -4,8 +4,10 @@ import {
   ArrowLeft,
   Calendar,
   CircleDot,
+  Eye,
   FileText,
   Folder,
+  GitBranch,
   LayoutDashboard,
   MapPin,
   MessageSquare,
@@ -18,7 +20,11 @@ import {
   Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { DocumentUploadModal } from '@/components/cases/DocumentUploadModal'
+import { CasePipeline } from '@/components/cases/CasePipeline'
+import {
+  DocumentUploadModal,
+  type DocumentDrawerMode,
+} from '@/components/cases/DocumentUploadModal'
 import { PaymentsList } from '@/components/payments/PaymentsList'
 import {
   Avatar,
@@ -93,18 +99,25 @@ function DocumentsChecklist({
   docs: ComplianceDocument[]
 }) {
   const [activeDoc, setActiveDoc] = useState<CaseDocument | null>(null)
+  const [drawerMode, setDrawerMode] = useState<DocumentDrawerMode>('edit')
+
+  const openDoc = (doc: CaseDocument, mode: DocumentDrawerMode) => {
+    setActiveDoc(doc)
+    setDrawerMode(mode)
+  }
 
   return (
     <>
       <ul className="pd-doc-check" aria-label="Document checklist">
         {docs.map((doc) => {
-          const canUpload = !doc.locked && doc.status !== 'approved'
-          const summary =
+          const hasRecord =
             doc.status === 'under_review' || doc.status === 'approved'
-              ? doc.detail
-              : doc.locked
-                ? 'Later'
-                : null
+          const canUpload = !doc.locked && doc.status !== 'approved'
+          const summary = hasRecord
+            ? doc.fileName || doc.detail || doc.collectionHint
+            : doc.locked
+              ? 'Later'
+              : null
 
           return (
             <li
@@ -125,11 +138,21 @@ function DocumentsChecklist({
                 </span>
               </span>
               <span className="pd-doc-check__side">
+                {hasRecord ? (
+                  <button
+                    type="button"
+                    className="pd-doc-check__upload"
+                    onClick={() => openDoc(doc, 'view')}
+                  >
+                    <Eye size={14} strokeWidth={2.25} aria-hidden />
+                    View
+                  </button>
+                ) : null}
                 {canUpload ? (
                   <button
                     type="button"
                     className="pd-doc-check__upload"
-                    onClick={() => setActiveDoc(doc)}
+                    onClick={() => openDoc(doc, 'edit')}
                   >
                     <Upload size={14} strokeWidth={2.25} aria-hidden />
                     {doc.status === 'under_review' ? 'Edit' : 'Add'}
@@ -144,7 +167,20 @@ function DocumentsChecklist({
       <DocumentUploadModal
         open={Boolean(activeDoc)}
         caseId={caseId}
-        document={activeDoc}
+        document={
+          activeDoc
+            ? (docs.find((doc) => doc.id === activeDoc.id) ?? activeDoc)
+            : null
+        }
+        mode={drawerMode}
+        onModeChange={setDrawerMode}
+        canEdit={
+          Boolean(
+            activeDoc &&
+              activeDoc.status !== 'approved' &&
+              !docs.find((doc) => doc.id === activeDoc.id)?.locked,
+          )
+        }
         onClose={() => setActiveDoc(null)}
       />
     </>
@@ -583,6 +619,11 @@ export default function CaseDetailPage() {
                 </div>
               </div>
             ),
+          },
+          {
+            id: 'pipeline',
+            label: <TabLabel icon={GitBranch}>Pipeline</TabLabel>,
+            content: <CasePipeline item={item} />,
           },
           {
             id: 'documents',

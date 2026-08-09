@@ -22,6 +22,69 @@ export type StepDef = {
   stage: CaseStage
 }
 
+/** Canonical stage order for the Pipeline tab. */
+export const CASE_PIPELINE_STAGES: CaseStage[] = [
+  'Intake',
+  'Processing',
+  'Documents',
+  'Travel',
+  'Closed',
+]
+
+export function getPipelineStageIndex(stage: CaseStage): number {
+  const index = CASE_PIPELINE_STAGES.indexOf(stage)
+  return index < 0 ? 0 : index
+}
+
+/** Stages that actually have milestones for this vertical, in journey order. */
+export function getPipelineStagesForVertical(
+  vertical: CaseVertical,
+): CaseStage[] {
+  const seen = new Set<CaseStage>()
+  const stages: CaseStage[] = []
+  for (const step of getStepDefs(vertical)) {
+    if (seen.has(step.stage)) continue
+    seen.add(step.stage)
+    stages.push(step.stage)
+  }
+  return stages
+}
+
+export function getStepsForStage(
+  vertical: CaseVertical,
+  stage: CaseStage,
+): StepDef[] {
+  return getStepDefs(vertical).filter((step) => step.stage === stage)
+}
+
+/** A step is done when recorded, passed, or the whole case is completed. */
+export function isPipelineStepComplete(item: Case, stepId: string): boolean {
+  if (item.status === 'Completed') return true
+  if (item.steps[stepId]?.completedAt) return true
+  return (
+    getStepIndex(item.vertical, stepId) <
+    getStepIndex(item.vertical, item.currentStepId)
+  )
+}
+
+/** Stage is complete only when every milestone in that stage is complete. */
+export function isPipelineStageComplete(
+  item: Case,
+  stage: CaseStage,
+): boolean {
+  if (item.status === 'Completed') return true
+  const steps = getStepsForStage(item.vertical, stage)
+  if (steps.length === 0) return false
+  return steps.every((step) => isPipelineStepComplete(item, step.id))
+}
+
+export function isPipelineStageCurrent(item: Case, stage: CaseStage): boolean {
+  if (item.status === 'Completed' || item.status === 'Cancelled') {
+    return stage === 'Closed'
+  }
+  return getStepDef(item.vertical, item.currentStepId)?.stage === stage
+}
+
 const MANPOWER_STEPS: StepDef[] = [
   { id: 'registered', label: 'Registered', icon: FilePlus2, stage: 'Intake' },
   { id: 'shortlisted', label: 'Shortlisted', icon: ListFilter, stage: 'Processing' },

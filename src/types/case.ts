@@ -27,6 +27,9 @@ export type CaseStage =
 export type CaseStepUpload = {
   key: string
   fileName: string
+  /** Points at an in-memory blob in the file store for preview. */
+  fileId?: string
+  mimeType?: string
 }
 
 /** Data captured to complete a step — required before the step can advance. */
@@ -75,6 +78,9 @@ export type CaseDocument = {
   fields?: Record<string, string>
   /** Optional attachment filename (details are the source of truth). */
   fileName?: string
+  /** Points at an in-memory blob in the file store for preview. */
+  fileId?: string
+  mimeType?: string
 }
 
 export type Case = {

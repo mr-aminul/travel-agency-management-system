@@ -17,6 +17,7 @@ import {
   summarizeStepCompletion,
   validateStepCompletion,
   type StepCompletionInput,
+  type StepUploadDef,
 } from '@/lib/caseStepRequirements'
 import { getDocumentForm } from '@/lib/caseDocumentForms'
 import { getStepIndex } from '@/lib/caseChecklist'
@@ -406,6 +407,100 @@ export type CompleteStepResult =
   | { ok: true; case: Case }
   | { ok: false; errors: Record<string, string> }
 
+function applyUploadsToDocuments(
+  documents: CaseDocument[],
+  uploadDefs: StepUploadDef[],
+  uploads: StepCompletionInput['uploads'],
+): CaseDocument[] {
+  let next = documents.map((doc) => ({ ...doc }))
+  for (const uploadDef of uploadDefs) {
+    const uploaded = uploads.find((itemUpload) => itemUpload.key === uploadDef.key)
+    if (!uploaded?.fileName.trim() || !uploadDef.documentId) continue
+    next = next.map((doc) =>
+      doc.id === uploadDef.documentId
+        ? {
+            ...doc,
+            status:
+              doc.status === 'approved'
+                ? ('approved' as CaseDocumentStatus)
+                : ('under_review' as CaseDocumentStatus),
+            detail: uploaded.fileName,
+            fileName: uploaded.fileName,
+            fileId: uploaded.fileId ?? doc.fileId,
+            mimeType: uploaded.mimeType ?? doc.mimeType,
+          }
+        : doc,
+    )
+  }
+  return next
+}
+
+/**
+ * Update a completed (or in-progress) step’s saved fields/uploads without advancing.
+ */
+export function updateCaseStep(
+  id: string,
+  stepId: string,
+  input: StepCompletionInput,
+): CompleteStepResult {
+  const item = getCaseById(id)
+  if (!item || item.status === 'Cancelled') {
+    return { ok: false, errors: { form: 'This case cannot be updated.' } }
+  }
+
+  const requirement = getStepRequirement(item.vertical, stepId)
+  if (!requirement) {
+    return {
+      ok: false,
+      errors: { form: 'No requirements defined for this step.' },
+    }
+  }
+
+  const validation = validateStepCompletion(requirement, input)
+  if (!validation.ok) return validation
+
+  const existing = item.steps[stepId]
+  if (!existing?.completedAt && stepId !== item.currentStepId) {
+    return {
+      ok: false,
+      errors: { form: 'This step has not been started yet.' },
+    }
+  }
+
+  const documents = applyUploadsToDocuments(
+    item.documents,
+    requirement.uploads,
+    input.uploads,
+  )
+  const summary = summarizeStepCompletion(requirement, input)
+  const steps = {
+    ...item.steps,
+    [stepId]: {
+      ...existing,
+      completedAt: existing?.completedAt ?? null,
+      detail: summary,
+      fields: { ...input.fields },
+      uploads: input.uploads.map((upload) => ({ ...upload })),
+    },
+  }
+
+  const departureFromFields =
+    input.fields.departureDate ||
+    input.fields.departedOn ||
+    input.fields.travelledOn ||
+    input.fields.departureConfirmedOn
+
+  const updated = updateCase(id, {
+    steps,
+    documents,
+    departureDate: departureFromFields || item.departureDate,
+  })
+
+  return updated
+    ? { ok: true, case: updated }
+    : { ok: false, errors: { form: 'Could not update step.' } }
+}
+
 /**
  * Save required fields/uploads for the current step, then advance.
  * Steps cannot be skipped — each stage needs its data first.
@@ -439,20 +534,11 @@ export function completeCurrentStep(
   const currentId = item.currentStepId
   const summary = summarizeStepCompletion(requirement, input)
 
-  let documents = item.documents.map((doc) => ({ ...doc }))
-  for (const uploadDef of requirement.uploads) {
-    const uploaded = input.uploads.find((itemUpload) => itemUpload.key === uploadDef.key)
-    if (!uploaded || !uploadDef.documentId) continue
-    documents = documents.map((doc) =>
-      doc.id === uploadDef.documentId
-        ? {
-            ...doc,
-            status: 'under_review' as CaseDocumentStatus,
-            detail: uploaded.fileName,
-          }
-        : doc,
-    )
-  }
+  const documents = applyUploadsToDocuments(
+    item.documents,
+    requirement.uploads,
+    input.uploads,
+  )
 
   const steps = {
     ...item.steps,
@@ -520,6 +606,8 @@ export type RecordCaseDocumentInput = {
   detail: string
   expiry: string | null
   fileName?: string
+  fileId?: string
+  mimeType?: string
 }
 
 /**
@@ -559,6 +647,8 @@ export function recordCaseDocument(
           expiry: input.expiry,
           fields: { ...input.fields },
           fileName: input.fileName?.trim() || undefined,
+          fileId: input.fileId ?? doc.fileId,
+          mimeType: input.mimeType ?? doc.mimeType,
         }
       : doc,
   )
@@ -571,7 +661,12 @@ export function recordCaseDocument(
       ...(record.uploads ?? []).filter(
         (file) => file.key !== collector.uploadKey,
       ),
-      { key: collector.uploadKey, fileName: marker },
+      {
+        key: collector.uploadKey,
+        fileName: marker,
+        fileId: input.fileId,
+        mimeType: input.mimeType,
+      },
     ]
     const mergedFields = {
       ...(record.fields ?? {}),
