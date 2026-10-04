@@ -1,5 +1,9 @@
+import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getCaseById, updateCase } from '@/lib/casesStore'
+import { getActiveTenantId } from '@/lib/authApi'
+import { useAuth } from '@/lib/useAuth'
+import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
 import type { CreatePaymentInput, Payment } from '@/types/payment'
 
 type Listener = () => void
@@ -7,6 +11,7 @@ type Listener = () => void
 const SEED_PAYMENTS: Payment[] = [
   {
     id: 'pay-1',
+    tenantId: TENANT_IDS.full,
     clientId: 'c-284',
     caseId: 'case-101',
     amount: 15000,
@@ -16,6 +21,7 @@ const SEED_PAYMENTS: Payment[] = [
   },
   {
     id: 'pay-2',
+    tenantId: TENANT_IDS.full,
     clientId: 'c-291',
     caseId: 'case-103',
     amount: 50000,
@@ -25,12 +31,33 @@ const SEED_PAYMENTS: Payment[] = [
   },
   {
     id: 'pay-3',
+    tenantId: TENANT_IDS.full,
     clientId: 'c-315',
     caseId: 'case-104',
     amount: 25000,
     method: 'bKash',
     note: 'Hajj package advance',
     createdAt: '2026-03-01',
+  },
+  {
+    id: 'pay-l-1',
+    tenantId: TENANT_IDS.leisure,
+    clientId: 'c-l-328',
+    caseId: 'case-l-105',
+    amount: 5000,
+    method: 'bKash',
+    note: 'Leisure package deposit',
+    createdAt: '2026-03-06',
+  },
+  {
+    id: 'pay-m-1',
+    tenantId: TENANT_IDS.manpower,
+    clientId: 'c-m-284',
+    caseId: 'case-m-101',
+    amount: 15000,
+    method: 'Bank transfer',
+    note: 'Partial package deposit',
+    createdAt: '2026-07-10',
   },
 ]
 
@@ -52,8 +79,22 @@ function getSnapshot() {
   return payments
 }
 
+function tenantId() {
+  return getActiveTenantId() || DEFAULT_TENANT_ID
+}
+
+function inActiveTenant(item: Payment) {
+  return item.tenantId === tenantId()
+}
+
 export function usePayments(): Payment[] {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  const { session } = useAuth()
+  const all = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  const activeId = session?.tenantId ?? DEFAULT_TENANT_ID
+  return useMemo(
+    () => all.filter((item) => item.tenantId === activeId),
+    [all, activeId],
+  )
 }
 
 export function usePaymentsByClientId(clientId: string): Payment[] {
@@ -65,11 +106,15 @@ export function usePaymentsByCaseId(caseId: string): Payment[] {
 }
 
 export function getPaymentsByClientId(clientId: string): Payment[] {
-  return payments.filter((item) => item.clientId === clientId)
+  return payments.filter(
+    (item) => item.clientId === clientId && inActiveTenant(item),
+  )
 }
 
 export function getPaymentsByCaseId(caseId: string): Payment[] {
-  return payments.filter((item) => item.caseId === caseId)
+  return payments.filter(
+    (item) => item.caseId === caseId && inActiveTenant(item),
+  )
 }
 
 export function createPayment(input: CreatePaymentInput): Payment {
@@ -86,6 +131,7 @@ export function createPayment(input: CreatePaymentInput): Payment {
 
   const created: Payment = {
     id: `pay-${Date.now().toString(36)}`,
+    tenantId: tenantId(),
     clientId: input.clientId,
     caseId: input.caseId,
     amount: input.amount,

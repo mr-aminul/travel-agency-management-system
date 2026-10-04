@@ -206,6 +206,8 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
 .pd-app-main {
   flex: 1 0 auto;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   padding: 1.5rem;
 }
 
@@ -965,4 +967,8 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
 
 .pd-page {
   min-height: 100%;
+  width: 100%;
+  max-width: min(100%, 80rem);
+  margin-inline: auto;
+  box-sizing: border-box;
 }

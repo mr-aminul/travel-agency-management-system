@@ -237,8 +237,8 @@
 }
 
 .pd-case-detail__name-link {
-  color: var(--color-text);
-  font-weight: 650;
+  color: inherit;
+  font: inherit;
   text-decoration: none;
 }
 
@@ -954,6 +954,10 @@
   gap: 0.5rem;
   flex-wrap: wrap;
   margin-inline-start: auto;
+}
+
+.pd-case-detail__header-actions .pd-btn {
+  text-decoration: none;
 }
 
 .pd-case-detail__icon-btn.pd-btn {

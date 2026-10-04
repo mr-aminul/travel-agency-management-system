@@ -1,3 +1,5 @@
+import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
+
 export interface AgencyProfile {
   businessName: string
   address: string
@@ -20,6 +22,35 @@ export const DEFAULT_AGENCY_PROFILE: AgencyProfile = {
   mobile: '',
   website: '',
   profilePicture: null,
+}
+
+const TENANT_DEFAULT_NAMES: Partial<Record<string, string>> = {
+  [TENANT_IDS.leisure]: 'Coastal Leisure',
+  [TENANT_IDS.manpower]: 'Horizon Manpower',
+}
+
+export function agencyProfileStorageKey(tenantId: string): string {
+  return `${AGENCY_PROFILE_KEY}:${tenantId}`
+}
+
+function emptyProfileForTenant(tenantId: string): AgencyProfile {
+  return {
+    ...DEFAULT_AGENCY_PROFILE,
+    businessName: TENANT_DEFAULT_NAMES[tenantId] ?? '',
+  }
+}
+
+function migrateLegacyProfile(tenantId: string) {
+  if (tenantId !== DEFAULT_TENANT_ID) return
+  try {
+    const legacy = localStorage.getItem(AGENCY_PROFILE_KEY)
+    const scoped = localStorage.getItem(agencyProfileStorageKey(tenantId))
+    if (legacy && !scoped) {
+      localStorage.setItem(agencyProfileStorageKey(tenantId), legacy)
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Keep profile pictures small enough for localStorage. */
@@ -54,35 +85,49 @@ export function normalizeAgencyProfile(value: unknown): AgencyProfile {
   }
 }
 
-export function readAgencyProfile(): AgencyProfile {
+export function readAgencyProfile(
+  tenantId: string = DEFAULT_TENANT_ID,
+): AgencyProfile {
+  migrateLegacyProfile(tenantId)
   try {
-    const stored = localStorage.getItem(AGENCY_PROFILE_KEY)
-    if (!stored) return { ...DEFAULT_AGENCY_PROFILE }
+    const stored = localStorage.getItem(agencyProfileStorageKey(tenantId))
+    if (!stored) return emptyProfileForTenant(tenantId)
     return normalizeAgencyProfile(JSON.parse(stored) as unknown)
   } catch {
-    return { ...DEFAULT_AGENCY_PROFILE }
+    return emptyProfileForTenant(tenantId)
   }
 }
 
-function emitAgencyProfileChange(profile: AgencyProfile) {
+function emitAgencyProfileChange(profile: AgencyProfile, tenantId: string) {
   window.dispatchEvent(
-    new CustomEvent<AgencyProfile>(AGENCY_PROFILE_EVENT, { detail: profile }),
+    new CustomEvent<AgencyProfile>(AGENCY_PROFILE_EVENT, {
+      detail: profile,
+    }),
+  )
+  window.dispatchEvent(
+    new CustomEvent<string>('agency-profile-tenant', { detail: tenantId }),
   )
 }
 
-export function saveAgencyProfile(profile: AgencyProfile): AgencyProfile {
+export function saveAgencyProfile(
+  profile: AgencyProfile,
+  tenantId: string = DEFAULT_TENANT_ID,
+): AgencyProfile {
   const next = normalizeAgencyProfile(profile)
   try {
-    localStorage.setItem(AGENCY_PROFILE_KEY, JSON.stringify(next))
+    localStorage.setItem(agencyProfileStorageKey(tenantId), JSON.stringify(next))
   } catch {
     /* ignore quota / private mode */
   }
-  emitAgencyProfileChange(next)
+  emitAgencyProfileChange(next, tenantId)
   return next
 }
 
-export function clearAgencyProfilePicture(profile: AgencyProfile): AgencyProfile {
-  return saveAgencyProfile({ ...profile, profilePicture: null })
+export function clearAgencyProfilePicture(
+  profile: AgencyProfile,
+  tenantId: string = DEFAULT_TENANT_ID,
+): AgencyProfile {
+  return saveAgencyProfile({ ...profile, profilePicture: null }, tenantId)
 }
 
 export interface ResolvedBrand {

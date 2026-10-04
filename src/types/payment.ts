@@ -1,5 +1,6 @@
 export type Payment = {
   id: string
+  tenantId: string
   clientId: string
   caseId: string
   /** Amount received (reduces case balance due). */

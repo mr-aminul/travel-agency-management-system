@@ -16,7 +16,7 @@ import type {
   CaseDocument,
   CaseDocumentIcon,
   CaseDocumentStatus,
-  CaseVertical,
+  ServiceType,
 } from '@/types/case'
 import type { Client } from '@/types/client'
 
@@ -282,7 +282,7 @@ function ticketingTemplate(): DocTemplate[] {
   ]
 }
 
-const TEMPLATES: Record<CaseVertical, () => DocTemplate[]> = {
+const TEMPLATES: Record<ServiceType, () => DocTemplate[]> = {
   Manpower: manpowerTemplate,
   Student: studentTemplate,
   'Hajj/Umrah': hajjTemplate,
@@ -316,10 +316,10 @@ function resolveClientDetail(
 }
 
 export function buildCaseDocuments(
-  vertical: CaseVertical,
+  service: ServiceType,
   client?: Client,
 ): CaseDocument[] {
-  return TEMPLATES[vertical]().map((template) => {
+  return TEMPLATES[service]().map((template) => {
     const resolved = resolveClientDetail(template, client)
     return {
       id: template.id,
@@ -336,8 +336,8 @@ export function buildCaseDocuments(
 
 function isStepUnlocked(item: Case, unlockStepId?: string): boolean {
   if (!unlockStepId) return true
-  const current = getStepIndex(item.vertical, item.currentStepId)
-  const needed = getStepIndex(item.vertical, unlockStepId)
+  const current = getStepIndex(item.service, item.currentStepId)
+  const needed = getStepIndex(item.service, unlockStepId)
   if (item.status === 'Completed') return true
   return current >= needed
 }
@@ -348,7 +348,7 @@ function isStepUnlocked(item: Case, unlockStepId?: string): boolean {
  */
 export function syncDocumentsWithProgress(item: Case): CaseDocument[] {
   return item.documents.map((doc) => {
-    const collector = findStepForDocument(item.vertical, doc.id)
+    const collector = findStepForDocument(item.service, doc.id)
     const unlockStepId = collector?.requirement.stepId ?? doc.unlockStepId
     const unlocked = isStepUnlocked(item, unlockStepId)
 
@@ -408,10 +408,10 @@ export function getCaseComplianceDocuments(
 ): ComplianceDocument[] {
   const docs = syncDocumentsWithProgress(item)
   return docs.map((doc) => {
-    const collector = findStepForDocument(item.vertical, doc.id)
+    const collector = findStepForDocument(item.service, doc.id)
     const sourceStepId = collector?.requirement.stepId ?? doc.unlockStepId
     const sourceStepLabel = sourceStepId
-      ? getStepDef(item.vertical, sourceStepId)?.label
+      ? getStepDef(item.service, sourceStepId)?.label
       : undefined
     const locked = !isStepUnlocked(item, sourceStepId)
 

@@ -11,11 +11,14 @@ import {
   LayoutDashboard,
   Palmtree,
   Settings,
+  Shield,
   Ticket,
   Users,
+  UsersRound,
   Wallet,
 } from 'lucide-react'
 import type { AppLayoutConfig, NavItem } from '@/layout/types'
+import { flattenNavItems } from '@/lib/modules'
 import { publicUrl } from '@/lib/publicUrl'
 
 export const profileNavItem: NavItem = {
@@ -47,24 +50,60 @@ export const layoutConfig: AppLayoutConfig = {
       icon: Folder,
       children: [
         { path: '/cases', label: 'All cases', icon: Folder, end: true },
-        { path: '/cases/manpower', label: 'Manpower', icon: Briefcase },
-        { path: '/cases/student', label: 'Student', icon: GraduationCap },
-        { path: '/cases/hajj-umrah', label: 'Hajj/Umrah', icon: Landmark },
-        { path: '/cases/leisure', label: 'Leisure', icon: Palmtree },
-        { path: '/cases/ticketing', label: 'Ticketing', icon: Ticket },
+        {
+          path: '/cases/manpower',
+          label: 'Manpower',
+          icon: Briefcase,
+          moduleId: 'cases.manpower',
+        },
+        {
+          path: '/cases/student',
+          label: 'Student',
+          icon: GraduationCap,
+          moduleId: 'cases.student',
+        },
+        {
+          path: '/cases/hajj-umrah',
+          label: 'Hajj/Umrah',
+          icon: Landmark,
+          moduleId: 'cases.hajjUmrah',
+        },
+        {
+          path: '/cases/leisure',
+          label: 'Leisure',
+          icon: Palmtree,
+          moduleId: 'cases.leisure',
+        },
+        {
+          path: '/cases/ticketing',
+          label: 'Ticketing',
+          icon: Ticket,
+          moduleId: 'cases.ticketing',
+        },
       ],
     },
-    { path: '/finance', label: 'Finance', icon: Wallet },
-    { path: '/documents', label: 'Documents', icon: FileText },
-    { path: '/reporting', label: 'Reporting', icon: BarChart3 },
+    { path: '/finance', label: 'Finance', icon: Wallet, moduleId: 'finance' },
+    {
+      path: '/documents',
+      label: 'Documents',
+      icon: FileText,
+      moduleId: 'documents',
+    },
+    {
+      path: '/reporting',
+      label: 'Reporting',
+      icon: BarChart3,
+      moduleId: 'reporting',
+    },
+    { path: '/hr', label: 'HR', icon: UsersRound, moduleId: 'hr' },
+    {
+      path: '/admin/tenants',
+      label: 'Businesses',
+      icon: Shield,
+      adminOnly: true,
+    },
     settingsNavItem,
   ],
-}
-
-function flattenNavItems(items: NavItem[]): NavItem[] {
-  return items.flatMap((item) =>
-    item.children?.length ? [item, ...flattenNavItems(item.children)] : [item],
-  )
 }
 
 /** Pages available in global search (nav + account pages for now). */

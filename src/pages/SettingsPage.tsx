@@ -21,6 +21,7 @@ import {
 import '@/styles/layout-settings.css'
 import { Avatar, Button, Input, Textarea } from '@/components/ui'
 import { JOURNEY_SPINE, PRODUCT_GLOSSARY } from '@/lib/glossary'
+import { getActiveTenantId } from '@/lib/authApi'
 import {
   applyAppearance,
   applyThemeColor,
@@ -53,31 +54,31 @@ const SETTINGS_SECTIONS: {
   description: string
   icon: LucideIcon
 }[] = [
-  {
-    id: 'business',
-    label: 'Business profile',
-    description: 'Agency name and contact details',
-    icon: Building2,
-  },
-  {
-    id: 'appearance',
-    label: 'Appearance',
-    description: 'Theme, dark mode, and sidebar',
-    icon: Palette,
-  },
-  {
-    id: 'glossary',
-    label: 'How OneTrack works',
-    description: 'Client, case, and progress language',
-    icon: BookOpen,
-  },
-  {
-    id: 'about',
-    label: 'About',
-    description: 'Version and app info',
-    icon: Info,
-  },
-]
+    {
+      id: 'business',
+      label: 'Business profile',
+      description: 'Agency name and contact details',
+      icon: Building2,
+    },
+    {
+      id: 'appearance',
+      label: 'Appearance',
+      description: 'Theme, dark mode, and sidebar',
+      icon: Palette,
+    },
+    {
+      id: 'glossary',
+      label: 'How OneTrack works',
+      description: 'Client, case, and progress language',
+      icon: BookOpen,
+    },
+    {
+      id: 'about',
+      label: 'About',
+      description: 'Version and app info',
+      icon: Info,
+    },
+  ]
 
 const SIDEBAR_MODE_OPTIONS: {
   value: SidebarExpandMode
@@ -85,30 +86,30 @@ const SIDEBAR_MODE_OPTIONS: {
   title: string
   icon: typeof PanelLeftOpen
 }[] = [
-  {
-    value: 'auto',
-    label: 'Auto',
-    title: 'Sidebar expands when you hover, and collapses when you leave.',
-    icon: PanelLeftOpen,
-  },
-  {
-    value: 'manual',
-    label: 'Click',
-    title:
-      'Use the button at the bottom of the sidebar to expand or collapse.',
-    icon: MousePointerClick,
-  },
-]
+    {
+      value: 'auto',
+      label: 'Auto',
+      title: 'Sidebar expands when you hover, and collapses when you leave.',
+      icon: PanelLeftOpen,
+    },
+    {
+      value: 'manual',
+      label: 'Click',
+      title:
+        'Use the button at the bottom of the sidebar to expand or collapse.',
+      icon: MousePointerClick,
+    },
+  ]
 
 const APPEARANCE_OPTIONS: {
   value: AppearanceMode
   label: string
   icon: typeof Sun
 }[] = [
-  { value: 'light', label: 'Light', icon: Sun },
-  { value: 'dark', label: 'Dark', icon: Moon },
-  { value: 'system', label: 'System', icon: Monitor },
-]
+    { value: 'light', label: 'Light', icon: Sun },
+    { value: 'dark', label: 'Dark', icon: Moon },
+    { value: 'system', label: 'System', icon: Monitor },
+  ]
 
 function formatHex(hex: string): string {
   return hex.toUpperCase()
@@ -133,11 +134,18 @@ export default function SettingsPage() {
   const [customColor, setCustomColor] = useState(readCustomThemeColor)
   const [appearance, setAppearance] = useState(readAppearance)
   const { mode: sidebarMode } = useSidebarPrefs()
-  const [agencyDraft, setAgencyDraft] = useState(readAgencyProfile)
+  const tenantId = getActiveTenantId()
+  const [agencyDraft, setAgencyDraft] = useState(() =>
+    readAgencyProfile(tenantId),
+  )
   const [agencyStatus, setAgencyStatus] = useState<string | null>(null)
   const [agencyError, setAgencyError] = useState<string | null>(null)
   const [isPictureBusy, setIsPictureBusy] = useState(false)
   const pictureInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setAgencyDraft(readAgencyProfile(tenantId))
+  }, [tenantId])
 
   const currentSection =
     SETTINGS_SECTIONS.find((section) => section.id === activeSection) ??
@@ -165,7 +173,7 @@ export default function SettingsPage() {
 
   const handleAgencySave = (event: FormEvent) => {
     event.preventDefault()
-    const saved = saveAgencyProfile(agencyDraft)
+    const saved = saveAgencyProfile(agencyDraft, tenantId)
     setAgencyDraft(saved)
     setAgencyError(null)
     setAgencyStatus('Business profile saved.')

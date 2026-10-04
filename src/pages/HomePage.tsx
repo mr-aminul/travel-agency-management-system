@@ -1,13 +1,17 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import {
   BarChart3,
   FileText,
   Folder,
   LayoutDashboard,
   Users,
+  UsersRound,
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
+import { isPathAllowed } from '@/lib/modules'
+import { useActiveTenant } from '@/lib/useActiveTenant'
+import { useAuth } from '@/lib/useAuth'
 import '@/styles/layout-home.css'
 
 type QuickLink = {
@@ -33,7 +37,7 @@ const QUICK_LINKS: QuickLink[] = [
   {
     path: '/cases',
     label: 'Cases',
-    description: 'Manpower, student, travel',
+    description: 'Open files by purpose',
     icon: Folder,
   },
   {
@@ -54,9 +58,30 @@ const QUICK_LINKS: QuickLink[] = [
     description: 'Reports & insights',
     icon: BarChart3,
   },
+  {
+    path: '/hr',
+    label: 'HR',
+    description: 'Employees & staff',
+    icon: UsersRound,
+  },
 ]
 
 export default function HomePage() {
+  const { user } = useAuth()
+  const tenant = useActiveTenant()
+
+  if (user?.role === 'platform_admin') {
+    return <Navigate to="/admin/tenants" replace />
+  }
+
+  const links = QUICK_LINKS.filter((item) =>
+    isPathAllowed(
+      item.path,
+      tenant.enabledModules,
+      user?.role ?? 'agency_user',
+    ),
+  )
+
   return (
     <div className="pd-page pd-home" aria-label="Home">
       <header className="pd-home__header">
@@ -68,7 +93,7 @@ export default function HomePage() {
       </header>
 
       <nav className="pd-home-quick" aria-label="Quick links">
-        {QUICK_LINKS.map((item) => {
+        {links.map((item) => {
           const Icon = item.icon
           return (
             <Link

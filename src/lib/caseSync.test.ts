@@ -18,9 +18,8 @@ describe('case tab sync', () => {
       idChecked: true,
     })
     const created = createCase({
-      title: 'Ticket docs',
       clientId: client.id,
-      vertical: 'Ticketing',
+      service: 'Ticketing',
     })
 
     const recorded = recordCaseDocument(created.id, 'passport', {
@@ -53,9 +52,8 @@ describe('case tab sync', () => {
       passport: 'P11223344',
     })
     const created = createCase({
-      title: 'Ticket sync',
       clientId: client.id,
-      vertical: 'Ticketing',
+      service: 'Ticketing',
       balance: 20000,
     })
 

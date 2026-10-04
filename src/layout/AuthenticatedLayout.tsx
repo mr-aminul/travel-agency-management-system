@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { AppLayout } from './AppLayout'
 import { useAgencyProfile } from './useAgencyProfile'
 import { useAuth } from '@/lib/auth'
-import { resolveBrandDisplay } from '@/lib/agencyProfile'
+import {
+  DEFAULT_BRAND_NAME,
+  resolveBrandDisplay,
+} from '@/lib/agencyProfile'
 import { layoutConfig } from '@/config/layout'
+import { filterNavItems, isPathAllowed, signedInHomePath } from '@/lib/modules'
 import { queryClient } from '@/lib/queryClient'
+import { useActiveTenant } from '@/lib/useActiveTenant'
 import '@/styles/layout-shell.css'
 
 /* Shell-only font weights — login already has Inter 400/500 + PJ 800 */
@@ -15,10 +20,33 @@ import '@fontsource/inter/latin-700.css'
 
 export default function AuthenticatedLayout() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { status, user, signOut } = useAuth()
   const agencyProfile = useAgencyProfile()
+  const tenant = useActiveTenant()
+
+  const navItems = useMemo(
+    () =>
+      filterNavItems(
+        layoutConfig.navItems,
+        tenant.enabledModules,
+        user?.role ?? 'agency_user',
+      ),
+    [tenant.enabledModules, user?.role],
+  )
 
   const brand = useMemo(() => {
+    if (user?.role === 'platform_admin') {
+      return {
+        ...layoutConfig.brand,
+        name: DEFAULT_BRAND_NAME,
+        subtitle: 'Platform',
+        logoUrl: layoutConfig.brand.logoUrl,
+        isCustomLogo: false,
+        preserveSubtitleCase: true,
+      }
+    }
+
     const resolved = resolveBrandDisplay(
       agencyProfile,
       layoutConfig.brand.logoUrl,
@@ -31,7 +59,7 @@ export default function AuthenticatedLayout() {
       isCustomLogo: resolved.isCustomLogo,
       preserveSubtitleCase: resolved.hasCustomName,
     }
-  }, [agencyProfile])
+  }, [agencyProfile, user?.role])
 
   useEffect(() => {
     document.title = brand.name
@@ -47,10 +75,15 @@ export default function AuthenticatedLayout() {
     return <Navigate to="/login" replace />
   }
 
+  if (!isPathAllowed(pathname, tenant.enabledModules, user.role)) {
+    return <Navigate to={signedInHomePath(user.role)} replace />
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <AppLayout
         {...layoutConfig}
+        navItems={navItems}
         brand={brand}
         userName={user.name}
         profileSubtext={user.email}

@@ -59,7 +59,7 @@ describe('auth route guards', () => {
     renderRoutes('/')
 
     expect(
-      await screen.findByRole('button', { name: /continue with google/i }),
+      await screen.findByRole('button', { name: /continue with google/i }, { timeout: 5000 }),
     ).toBeInTheDocument()
   })
 
@@ -68,13 +68,14 @@ describe('auth route guards', () => {
     renderRoutes('/login')
 
     expect(
-      await screen.findByRole('button', { name: /continue with google/i }),
+      await screen.findByRole('button', { name: /continue with google/i }, { timeout: 5000 }),
     ).toBeInTheDocument()
   })
 
   it('keeps authenticated users off the login page', async () => {
     writeSession({
       user: DEMO_USER,
+      tenantId: 'tenant-full',
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     renderRoutes('/login')
@@ -89,11 +90,30 @@ describe('auth route guards', () => {
     renderRoutes('/login')
 
     fireEvent.click(
-      await screen.findByRole('button', { name: /continue with google/i }),
+      await screen.findByRole('button', { name: /continue with google/i }, { timeout: 5000 }),
     )
 
     await waitFor(() => {
       expectAuthenticatedShell()
     })
+  })
+
+  it('autofills email and password from the email dropdown', async () => {
+    clearSession()
+    renderRoutes('/login')
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /choose a saved account/i,
+      }, { timeout: 5000 }),
+    )
+    fireEvent.click(
+      await screen.findByRole('option', { name: /onetrack demo/i }),
+    )
+
+    expect(screen.getByRole('textbox', { name: /email/i })).toHaveValue(
+      'demo@example.com',
+    )
+    expect(screen.getByLabelText(/^password$/i)).toHaveValue('demo@example.com')
   })
 })

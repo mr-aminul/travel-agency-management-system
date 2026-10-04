@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Badge, Button, Checkbox, Input, Select, Textarea } from '@/components/ui'
-import { getClientByPhone, normalizePhone, SERVICE_TYPE_OPTIONS } from '@/lib/clientsStore'
+import { getClientByPhone, normalizePhone, getEnabledServiceTypeOptions } from '@/lib/clientsStore'
 import type { CreateClientInput, ServiceType } from '@/types/client'
 
 type NewClientFormProps = {
@@ -9,13 +9,16 @@ type NewClientFormProps = {
 }
 
 export function NewClientForm({ onSubmit, onCancel }: NewClientFormProps) {
+  const serviceOptions = getEnabledServiceTypeOptions()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [nid, setNid] = useState('')
   const [passport, setPassport] = useState('')
   const [address, setAddress] = useState('')
-  const [primaryService, setPrimaryService] = useState<ServiceType>('Manpower')
+  const [primaryService, setPrimaryService] = useState<ServiceType>(
+    () => serviceOptions[0]?.value ?? 'Leisure',
+  )
   const [idChecked, setIdChecked] = useState(false)
   const [openFirstCase, setOpenFirstCase] = useState(true)
   const [triedSubmit, setTriedSubmit] = useState(false)
@@ -63,7 +66,7 @@ export function NewClientForm({ onSubmit, onCancel }: NewClientFormProps) {
           <p className="pd-clients-form__heading">Client (who)</p>
           <p className="pd-clients-form__hint">
             Mobile number is the unique identifier. One person across every
-            vertical — open a case next for their purpose.
+            service — open a case next for their purpose.
           </p>
 
           <div className="pd-clients-form__grid">
@@ -76,13 +79,13 @@ export function NewClientForm({ onSubmit, onCancel }: NewClientFormProps) {
               error={nameError}
             />
             <Select
-              label="Primary vertical"
+              label="Primary service"
               required
               value={primaryService}
               onChange={(event) =>
                 setPrimaryService(event.target.value as ServiceType)
               }
-              options={SERVICE_TYPE_OPTIONS}
+              options={serviceOptions}
             />
             <Input
               label="Mobile number"

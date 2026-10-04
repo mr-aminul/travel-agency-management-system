@@ -9,7 +9,7 @@ import {
 import { createClient } from '@/lib/clientsStore'
 
 describe('case progress spine', () => {
-  it('starts a new case on the first vertical step', () => {
+  it('starts a new case on the first service step', () => {
     const client = createClient({
       name: 'Test Client',
       phone: `017${Date.now().toString().slice(-8)}`,
@@ -17,9 +17,8 @@ describe('case progress spine', () => {
       idChecked: true,
     })
     const created = createCase({
-      title: 'Test manpower case',
       clientId: client.id,
-      vertical: 'Manpower',
+      service: 'Manpower',
     })
 
     expect(created.currentStepId).toBe('registered')
@@ -37,9 +36,8 @@ describe('case progress spine', () => {
       idChecked: true,
     })
     const created = createCase({
-      title: 'Canada student',
       clientId: client.id,
-      vertical: 'Student',
+      service: 'Student',
     })
 
     const blocked = completeCurrentStep(created.id, { fields: {}, uploads: [] })
@@ -55,9 +53,8 @@ describe('case progress spine', () => {
       idChecked: true,
     })
     const created = createCase({
-      title: 'Test ticket',
       clientId: client.id,
-      vertical: 'Ticketing',
+      service: 'Ticketing',
       balance: 5000,
     })
 

@@ -41,7 +41,7 @@ import {
   Textarea,
   type BadgeVariant,
 } from '@/components/ui'
-import { createCase, useCasesByClientId } from '@/lib/casesStore'
+import { createCase, getEnabledServiceOptions, useCasesByClientId } from '@/lib/casesStore'
 import {
   formatBalance,
   getClientById,
@@ -50,8 +50,8 @@ import {
   updateClient,
   useClients,
 } from '@/lib/clientsStore'
-import type { CaseVertical, CreateCaseInput } from '@/types/case'
-import type { ClientStatus, ServiceType } from '@/types/client'
+import type { ServiceType, CreateCaseInput } from '@/types/case'
+import type { ClientStatus } from '@/types/client'
 import '@/styles/layout-clients.css'
 
 const STATUS_OPTIONS = [
@@ -68,8 +68,12 @@ function statusBadgeVariant(status: ClientStatus): BadgeVariant {
   return 'neutral'
 }
 
-function primaryCaseVertical(services: ServiceType[]): CaseVertical {
-  return services[0] ?? 'Manpower'
+function primaryServiceType(services: ServiceType[]): ServiceType {
+  const enabled = getEnabledServiceOptions()
+  const fromServices = services.find((service) =>
+    enabled.some((option) => option.value === service),
+  )
+  return fromServices ?? enabled[0]?.value ?? 'Leisure'
 }
 
 function formatDate(value: string): string {
@@ -567,10 +571,10 @@ export default function ClientDetailPage() {
                 cases={clientCases}
                 label={`${client.name} cases`}
                 showClientColumn={false}
-                showVerticalColumn
+                showServiceColumn
                 defaultClientId={client.id}
                 lockClient
-                defaultVertical={primaryCaseVertical(client.services)}
+                defaultService={primaryServiceType(client.services)}
                 embedded
                 emptyTitle="No cases yet"
                 emptyDescription="Open a case for this client to track their purpose step by step."
@@ -616,7 +620,7 @@ export default function ClientDetailPage() {
         open={newCaseOpen}
         onClose={closeNewCase}
         title="Open case"
-        description="Capture why this client came — progress starts at the first vertical step."
+        description="Capture why this client came — progress starts at the first service step."
         className="pd-cases-modal"
       >
         <NewCaseForm
@@ -624,7 +628,7 @@ export default function ClientDetailPage() {
           onCancel={closeNewCase}
           defaultClientId={client.id}
           lockClient
-          defaultVertical={primaryCaseVertical(client.services)}
+          defaultService={primaryServiceType(client.services)}
         />
       </Modal>
     </div>

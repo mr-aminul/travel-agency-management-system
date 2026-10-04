@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { LogOut, Settings, UserRound } from 'lucide-react'
 import { SignOutConfirmModal } from '@/components/ConfirmModal'
 import { settingsNavItem, profileNavItem } from '@/config/layout'
+import { useAuth } from '@/lib/useAuth'
 import { nameInitials } from './utils'
 import { useHoverMenu } from './useHoverMenu'
 
@@ -21,6 +22,8 @@ export function ProfileDropdown({
     isMobile,
     closeOnEscape: true,
   })
+  const { user } = useAuth()
+  const isPlatformAdmin = user?.role === 'platform_admin'
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
   const initials = nameInitials(userName)
 
@@ -69,6 +72,8 @@ export function ProfileDropdown({
               )}
             </div>
           </div>
+          {!isPlatformAdmin ? (
+            <>
           <Link
             to={profileNavItem.path}
             className="pd-topbar__dropdown-item"
@@ -87,6 +92,8 @@ export function ProfileDropdown({
             <Settings size={14} strokeWidth={2} />
             {settingsNavItem.label}
           </Link>
+            </>
+          ) : null}
           <button
             type="button"
             className="pd-topbar__dropdown-item pd-topbar__dropdown-item--danger"

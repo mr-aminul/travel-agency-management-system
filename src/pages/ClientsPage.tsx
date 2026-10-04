@@ -18,17 +18,9 @@ import {
   TableRow,
   type BadgeVariant,
 } from '@/components/ui'
-import { createClient, formatBalance, useClients } from '@/lib/clientsStore'
+import { createClient, formatBalance, getEnabledServiceTypeOptions, useClients } from '@/lib/clientsStore'
 import type { Client, ClientStatus, CreateClientInput, ServiceType } from '@/types/client'
 import '@/styles/layout-clients.css'
-
-const SERVICE_FILTERS: { value: string; label: string }[] = [
-  { value: 'Manpower', label: 'Manpower' },
-  { value: 'Student', label: 'Student' },
-  { value: 'Hajj/Umrah', label: 'Hajj / Umrah' },
-  { value: 'Leisure', label: 'Leisure' },
-  { value: 'Ticketing', label: 'Ticketing' },
-]
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'Active', label: 'Active' },
@@ -130,14 +122,14 @@ export default function ClientsPage() {
           <div className="pd-clients__filters">
             <Select
               className="pd-clients__filter"
-              label="Vertical"
+              label="Service"
               multiple
               searchable
-              placeholder="All verticals"
-              searchPlaceholder="Search verticals…"
+              placeholder="All services"
+              searchPlaceholder="Search services…"
               value={serviceFilters}
               onChange={(event) => setServiceFilters(event.target.value)}
-              options={SERVICE_FILTERS}
+              options={getEnabledServiceTypeOptions()}
             />
             <Select
               className="pd-clients__filter"

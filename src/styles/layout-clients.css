@@ -344,6 +344,21 @@
   flex-wrap: wrap;
 }
 
+.pd-payments__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pd-payments__actions .pd-btn {
+  text-decoration: none;
+}
+
+.pd-payments__view-btn {
+  text-decoration: none;
+}
+
 .pd-payments__hint {
   margin: 0;
   font-size: 0.8125rem;
@@ -590,6 +605,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .pd-client-detail__back,
   .pd-client-detail__header,
   .pd-client-detail__link,

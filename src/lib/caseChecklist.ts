@@ -12,7 +12,7 @@ import {
   Stamp,
   Ticket,
 } from 'lucide-react'
-import type { Case, CaseStage, CaseStepRecord, CaseVertical } from '@/types/case'
+import type { Case, CaseStage, CaseStepRecord, ServiceType } from '@/types/case'
 
 export type StepDef = {
   id: string
@@ -36,13 +36,13 @@ export function getPipelineStageIndex(stage: CaseStage): number {
   return index < 0 ? 0 : index
 }
 
-/** Stages that actually have milestones for this vertical, in journey order. */
-export function getPipelineStagesForVertical(
-  vertical: CaseVertical,
+/** Stages that actually have milestones for this service, in journey order. */
+export function getPipelineStagesForService(
+  service: ServiceType,
 ): CaseStage[] {
   const seen = new Set<CaseStage>()
   const stages: CaseStage[] = []
-  for (const step of getStepDefs(vertical)) {
+  for (const step of getStepDefs(service)) {
     if (seen.has(step.stage)) continue
     seen.add(step.stage)
     stages.push(step.stage)
@@ -51,10 +51,10 @@ export function getPipelineStagesForVertical(
 }
 
 export function getStepsForStage(
-  vertical: CaseVertical,
+  service: ServiceType,
   stage: CaseStage,
 ): StepDef[] {
-  return getStepDefs(vertical).filter((step) => step.stage === stage)
+  return getStepDefs(service).filter((step) => step.stage === stage)
 }
 
 /** A step is done when recorded, passed, or the whole case is completed. */
@@ -62,8 +62,8 @@ export function isPipelineStepComplete(item: Case, stepId: string): boolean {
   if (item.status === 'Completed') return true
   if (item.steps[stepId]?.completedAt) return true
   return (
-    getStepIndex(item.vertical, stepId) <
-    getStepIndex(item.vertical, item.currentStepId)
+    getStepIndex(item.service, stepId) <
+    getStepIndex(item.service, item.currentStepId)
   )
 }
 
@@ -73,7 +73,7 @@ export function isPipelineStageComplete(
   stage: CaseStage,
 ): boolean {
   if (item.status === 'Completed') return true
-  const steps = getStepsForStage(item.vertical, stage)
+  const steps = getStepsForStage(item.service, stage)
   if (steps.length === 0) return false
   return steps.every((step) => isPipelineStepComplete(item, step.id))
 }
@@ -82,7 +82,7 @@ export function isPipelineStageCurrent(item: Case, stage: CaseStage): boolean {
   if (item.status === 'Completed' || item.status === 'Cancelled') {
     return stage === 'Closed'
   }
-  return getStepDef(item.vertical, item.currentStepId)?.stage === stage
+  return getStepDef(item.service, item.currentStepId)?.stage === stage
 }
 
 const MANPOWER_STEPS: StepDef[] = [
@@ -133,7 +133,7 @@ const TICKETING_STEPS: StepDef[] = [
   { id: 'travelled', label: 'Travelled', icon: PlaneTakeoff, stage: 'Closed' },
 ]
 
-const STEPS_BY_VERTICAL: Record<CaseVertical, StepDef[]> = {
+const STEPS_BY_SERVICE: Record<ServiceType, StepDef[]> = {
   Manpower: MANPOWER_STEPS,
   Student: STUDENT_STEPS,
   'Hajj/Umrah': HAJJ_STEPS,
@@ -141,41 +141,41 @@ const STEPS_BY_VERTICAL: Record<CaseVertical, StepDef[]> = {
   Ticketing: TICKETING_STEPS,
 }
 
-export function getStepDefs(vertical: CaseVertical): StepDef[] {
-  return STEPS_BY_VERTICAL[vertical]
+export function getStepDefs(service: ServiceType): StepDef[] {
+  return STEPS_BY_SERVICE[service]
 }
 
-export function getFirstStepId(vertical: CaseVertical): string {
-  return STEPS_BY_VERTICAL[vertical][0].id
+export function getFirstStepId(service: ServiceType): string {
+  return STEPS_BY_SERVICE[service][0].id
 }
 
 export function getStepDef(
-  vertical: CaseVertical,
+  service: ServiceType,
   stepId: string,
 ): StepDef | undefined {
-  return STEPS_BY_VERTICAL[vertical].find((step) => step.id === stepId)
+  return STEPS_BY_SERVICE[service].find((step) => step.id === stepId)
 }
 
-export function getStepIndex(vertical: CaseVertical, stepId: string): number {
-  const index = STEPS_BY_VERTICAL[vertical].findIndex((step) => step.id === stepId)
+export function getStepIndex(service: ServiceType, stepId: string): number {
+  const index = STEPS_BY_SERVICE[service].findIndex((step) => step.id === stepId)
   return index < 0 ? 0 : index
 }
 
 export function deriveStageFromStep(
-  vertical: CaseVertical,
+  service: ServiceType,
   currentStepId: string,
   status: Case['status'],
 ): CaseStage {
   if (status === 'Completed' || status === 'Cancelled') return 'Closed'
-  return getStepDef(vertical, currentStepId)?.stage ?? 'Intake'
+  return getStepDef(service, currentStepId)?.stage ?? 'Intake'
 }
 
 /** Build initial step map: first step current (not completed), rest empty. */
 export function buildInitialSteps(
-  vertical: CaseVertical,
+  service: ServiceType,
   createdAt: string,
 ): { currentStepId: string; steps: Record<string, CaseStepRecord> } {
-  const defs = getStepDefs(vertical)
+  const defs = getStepDefs(service)
   const currentStepId = defs[0].id
   const steps: Record<string, CaseStepRecord> = {}
   for (const def of defs) {
@@ -191,13 +191,13 @@ export function buildInitialSteps(
 
 /** Seed helper: mark all steps before `currentStepId` as done. */
 export function buildProgressAtStep(
-  vertical: CaseVertical,
+  service: ServiceType,
   currentStepId: string,
   createdAt: string,
   details: Record<string, string> = {},
 ): { currentStepId: string; steps: Record<string, CaseStepRecord> } {
-  const defs = getStepDefs(vertical)
-  const currentIndex = getStepIndex(vertical, currentStepId)
+  const defs = getStepDefs(service)
+  const currentIndex = getStepIndex(service, currentStepId)
   const steps: Record<string, CaseStepRecord> = {}
 
   defs.forEach((def, index) => {
@@ -222,17 +222,17 @@ export function buildProgressAtStep(
 export function getCurrentStepLabel(item: Case): string {
   if (item.status === 'Completed') return 'Completed'
   if (item.status === 'Cancelled') return 'Cancelled'
-  return getStepDef(item.vertical, item.currentStepId)?.label ?? 'Intake'
+  return getStepDef(item.service, item.currentStepId)?.label ?? 'Intake'
 }
 
 export function getNextStepDef(item: Case): StepDef | null {
   if (item.status === 'Completed' || item.status === 'Cancelled') return null
-  const defs = getStepDefs(item.vertical)
-  const index = getStepIndex(item.vertical, item.currentStepId)
+  const defs = getStepDefs(item.service)
+  const index = getStepIndex(item.service, item.currentStepId)
   return defs[index + 1] ?? null
 }
 
 export function isLastStep(item: Case): boolean {
-  const defs = getStepDefs(item.vertical)
-  return getStepIndex(item.vertical, item.currentStepId) >= defs.length - 1
+  const defs = getStepDefs(item.service)
+  return getStepIndex(item.service, item.currentStepId) >= defs.length - 1
 }

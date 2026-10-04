@@ -48,10 +48,10 @@ export function StepCompletionDrawer({
 }: StepCompletionDrawerProps) {
   const activeStepId = stepId
   const requirement = activeStepId
-    ? getStepRequirement(item.vertical, activeStepId)
+    ? getStepRequirement(item.service, activeStepId)
     : undefined
   const stepDef = activeStepId
-    ? getStepDef(item.vertical, activeStepId)
+    ? getStepDef(item.service, activeStepId)
     : undefined
 
   const [fields, setFields] = useState<Record<string, string>>({})

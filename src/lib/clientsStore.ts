@@ -1,5 +1,10 @@
+import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
+import { getActiveTenantId } from '@/lib/authApi'
+import { activeTenantAllowsService } from '@/lib/activeTenant'
+import { useAuth } from '@/lib/useAuth'
 import { publicUrl } from '@/lib/publicUrl'
+import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
 import type {
   Client,
   CreateClientInput,
@@ -14,6 +19,7 @@ const DUMMY_AVATAR_URL = publicUrl('images/client-avatar-dummy.png')
 const SEED_CLIENTS: Client[] = [
   {
     id: 'c-284',
+    tenantId: TENANT_IDS.full,
     name: 'Md. Rahim Uddin',
     phone: '01712345678',
     email: 'rahim.uddin@email.com',
@@ -30,6 +36,7 @@ const SEED_CLIENTS: Client[] = [
   },
   {
     id: 'c-291',
+    tenantId: TENANT_IDS.full,
     name: 'Farhana Akter',
     phone: '01819221100',
     email: 'farhana.akter@email.com',
@@ -45,6 +52,7 @@ const SEED_CLIENTS: Client[] = [
   },
   {
     id: 'c-302',
+    tenantId: TENANT_IDS.full,
     name: 'Jamal Haque',
     phone: '01611889900',
     address: 'Sylhet',
@@ -58,6 +66,7 @@ const SEED_CLIENTS: Client[] = [
   },
   {
     id: 'c-315',
+    tenantId: TENANT_IDS.full,
     name: 'Nusrat Jahan',
     phone: '01552334455',
     email: 'nusrat.j@email.com',
@@ -72,6 +81,7 @@ const SEED_CLIENTS: Client[] = [
   },
   {
     id: 'c-328',
+    tenantId: TENANT_IDS.full,
     name: 'Imran Hossain',
     phone: '01988776655',
     services: ['Leisure'],
@@ -80,6 +90,63 @@ const SEED_CLIENTS: Client[] = [
     status: 'Lead',
     idChecked: false,
     createdAt: '2026-03-01',
+  },
+  {
+    id: 'c-l-328',
+    tenantId: TENANT_IDS.leisure,
+    name: 'Imran Hossain',
+    phone: '01988776655',
+    services: ['Leisure'],
+    balance: 0,
+    activeCases: 0,
+    status: 'Lead',
+    idChecked: false,
+    createdAt: '2026-03-01',
+  },
+  {
+    id: 'c-l-401',
+    tenantId: TENANT_IDS.leisure,
+    name: 'Sadia Karim',
+    phone: '01755551212',
+    email: 'sadia.karim@email.com',
+    address: 'Cox’s Bazar',
+    services: ['Ticketing'],
+    balance: 0,
+    activeCases: 0,
+    status: 'Active',
+    idChecked: true,
+    createdAt: '2026-04-02',
+  },
+  {
+    id: 'c-m-284',
+    tenantId: TENANT_IDS.manpower,
+    name: 'Md. Rahim Uddin',
+    phone: '01712345678',
+    email: 'rahim.uddin@email.com',
+    address: 'Mirpur, Dhaka',
+    nid: '1990123456789',
+    passport: 'A12345678',
+    avatarUrl: DUMMY_AVATAR_URL,
+    services: ['Manpower'],
+    balance: 0,
+    activeCases: 0,
+    status: 'Active',
+    idChecked: true,
+    createdAt: '2025-11-12',
+  },
+  {
+    id: 'c-m-302',
+    tenantId: TENANT_IDS.manpower,
+    name: 'Jamal Haque',
+    phone: '01611889900',
+    address: 'Sylhet',
+    nid: '1988123456789',
+    services: ['Manpower'],
+    balance: 0,
+    activeCases: 0,
+    status: 'Deployed',
+    idChecked: true,
+    createdAt: '2025-08-20',
   },
 ]
 
@@ -101,16 +168,34 @@ function getSnapshot() {
   return clients
 }
 
+function tenantId() {
+  return getActiveTenantId() || DEFAULT_TENANT_ID
+}
+
+function inActiveTenant(client: Client) {
+  return client.tenantId === tenantId()
+}
+
+export function findClientRecord(id: string): Client | undefined {
+  return clients.find((client) => client.id === id)
+}
+
 export function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '')
 }
 
 export function useClients(): Client[] {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  const { session } = useAuth()
+  const all = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  const activeId = session?.tenantId ?? DEFAULT_TENANT_ID
+  return useMemo(
+    () => all.filter((client) => client.tenantId === activeId),
+    [all, activeId],
+  )
 }
 
 export function getClientById(id: string): Client | undefined {
-  return clients.find((client) => client.id === id)
+  return clients.find((client) => client.id === id && inActiveTenant(client))
 }
 
 export function getClientByPhone(
@@ -121,7 +206,9 @@ export function getClientByPhone(
   if (!digits) return undefined
   return clients.find(
     (client) =>
-      client.id !== excludeId && normalizePhone(client.phone) === digits,
+      inActiveTenant(client) &&
+      client.id !== excludeId &&
+      normalizePhone(client.phone) === digits,
   )
 }
 
@@ -133,9 +220,13 @@ export function createClient(input: CreateClientInput): Client {
   if (getClientByPhone(phone)) {
     throw new Error('A client with this phone number already exists.')
   }
+  if (!activeTenantAllowsService(input.primaryService)) {
+    throw new Error('This service line is not enabled for your agency.')
+  }
 
   const created: Client = {
     id: `c-${Date.now().toString(36)}`,
+    tenantId: tenantId(),
     name: input.name.trim(),
     phone,
     email: input.email?.trim() || undefined,
@@ -154,9 +245,10 @@ export function createClient(input: CreateClientInput): Client {
   return created
 }
 
-export function updateClient(
+function applyClientPatch(
   id: string,
   patch: UpdateClientInput,
+  requireActiveTenant: boolean,
 ): Client | undefined {
   let updated: Client | undefined
   const nextPatch =
@@ -175,11 +267,27 @@ export function updateClient(
 
   clients = clients.map((client) => {
     if (client.id !== id) return client
+    if (requireActiveTenant && !inActiveTenant(client)) return client
     updated = { ...client, ...nextPatch }
     return updated
   })
   if (updated) emit()
   return updated
+}
+
+export function updateClient(
+  id: string,
+  patch: UpdateClientInput,
+): Client | undefined {
+  return applyClientPatch(id, patch, true)
+}
+
+/** Used when deriving client fields from cases during seed (any tenant). */
+export function updateClientRecord(
+  id: string,
+  patch: UpdateClientInput,
+): Client | undefined {
+  return applyClientPatch(id, patch, false)
 }
 
 export function formatBalance(amount: number): string {
@@ -194,3 +302,12 @@ export const SERVICE_TYPE_OPTIONS: { value: ServiceType; label: string }[] = [
   { value: 'Leisure', label: 'Leisure' },
   { value: 'Ticketing', label: 'Ticketing' },
 ]
+
+export function getEnabledServiceTypeOptions(): {
+  value: ServiceType
+  label: string
+}[] {
+  return SERVICE_TYPE_OPTIONS.filter((option) =>
+    activeTenantAllowsService(option.value),
+  )
+}

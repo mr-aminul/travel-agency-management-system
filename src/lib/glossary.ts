@@ -13,10 +13,10 @@ export const PRODUCT_GLOSSARY: GlossaryTerm[] = [
   {
     term: 'Case',
     meaning:
-      'One purpose or engagement (e.g. Saudi manpower, Canada student). A client can have many cases across verticals.',
+      'One purpose or engagement (e.g. Saudi manpower, Canada student). A client can have many cases across services.',
   },
   {
-    term: 'Vertical',
+    term: 'Service',
     meaning:
       'The service line for a case: Manpower, Student, Hajj/Umrah, Leisure, or Ticketing. Each has its own document list.',
   },

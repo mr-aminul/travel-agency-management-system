@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
+import type { ModuleId } from '@/types/tenant'
 
 export interface NavItem {
   path: string
@@ -6,6 +7,10 @@ export interface NavItem {
   icon?: LucideIcon
   end?: boolean
   children?: NavItem[]
+  /** When set, the item is hidden unless the tenant has this module. */
+  moduleId?: ModuleId
+  /** When true, only a platform admin sees this item. */
+  adminOnly?: boolean
 }
 
 export interface BrandConfig {

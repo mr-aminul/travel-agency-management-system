@@ -1,27 +1,27 @@
 import { CasesList } from '@/components/cases/CasesList'
 import { useCases } from '@/lib/casesStore'
-import type { CaseVertical } from '@/types/case'
+import type { ServiceType } from '@/types/case'
 
 type CasesPageProps = {
-  /** When set, list is scoped to that vertical. Omit for All cases. */
-  vertical?: CaseVertical
+  /** When set, list is scoped to that service. Omit for All cases. */
+  service?: ServiceType
 }
 
-export default function CasesPage({ vertical }: CasesPageProps) {
+export default function CasesPage({ service }: CasesPageProps) {
   const allCases = useCases()
-  const cases = vertical
-    ? allCases.filter((item) => item.vertical === vertical)
+  const cases = service
+    ? allCases.filter((item) => item.service === service)
     : allCases
-  const isAllCases = !vertical
+  const isAllCases = !service
 
   return (
     <CasesList
       cases={cases}
-      label={isAllCases ? 'All cases' : `${vertical} cases`}
+      label={isAllCases ? 'All cases' : `${service} cases`}
       showClientColumn
-      showVerticalColumn={isAllCases}
-      defaultVertical={vertical}
-      lockVertical={!isAllCases}
+      showServiceColumn={isAllCases}
+      defaultService={service}
+      lockService={!isAllCases}
       syncNewWithSearchParams
     />
   )

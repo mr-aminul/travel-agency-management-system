@@ -1,7 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import { ChevronDown } from 'lucide-react'
 import { layoutConfig } from '@/config/layout'
+import { DEMO_ACCOUNTS } from '@/lib/authApi'
 import { useAuth } from '@/lib/auth'
+import { signedInHomePath } from '@/lib/modules'
 import { publicUrl } from '@/lib/publicUrl'
 import '@/styles/layout-login.css'
 
@@ -36,9 +39,35 @@ function GoogleMark() {
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { status, signInWithGoogle } = useAuth()
+  const { status, user, signInWithGoogle, signInWithPassword } = useAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
+  const emailFieldRef = useRef<HTMLDivElement>(null)
 
-  // CSS backgrounds are invisible to the preload scanner — hint the AVIF early.
+  useEffect(() => {
+    if (!isAccountMenuOpen) return
+    const handlePointer = (event: MouseEvent) => {
+      if (
+        emailFieldRef.current &&
+        !emailFieldRef.current.contains(event.target as Node)
+      ) {
+        setIsAccountMenuOpen(false)
+      }
+    }
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsAccountMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handlePointer)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('mousedown', handlePointer)
+      document.removeEventListener('keydown', handleKey)
+    }
+  }, [isAccountMenuOpen])
+
   useEffect(() => {
     const link = document.createElement('link')
     link.rel = 'preload'
@@ -52,12 +81,42 @@ export default function LoginPage() {
   }, [])
 
   if (status === 'authenticated') {
-    return <Navigate to="/" replace />
+    return (
+      <Navigate
+        to={signedInHomePath(user?.role ?? 'agency_user')}
+        replace
+      />
+    )
+  }
+
+  const goHome = (role: 'platform_admin' | 'agency_user') => {
+    navigate(signedInHomePath(role), { replace: true })
+  }
+
+  const fillAccount = (accountEmail: string) => {
+    setEmail(accountEmail)
+    setPassword(accountEmail)
+    setError(null)
+    setIsAccountMenuOpen(false)
   }
 
   const handleGoogleSignIn = async () => {
     await signInWithGoogle()
-    navigate('/', { replace: true })
+    goHome('agency_user')
+  }
+
+  const handlePasswordSignIn = async (event: FormEvent) => {
+    event.preventDefault()
+    setError(null)
+    setIsSubmitting(true)
+    try {
+      await signInWithPassword(email, password)
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : 'Could not sign in.',
+      )
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -88,8 +147,81 @@ export default function LoginPage() {
         </div>
 
         <div className="pd-login__actions">
-          <p className="pd-login__subtitle">
-            Sign in with your Google account to continue.
+          <p className="pd-login__subtitle">Sign in to continue.</p>
+
+          <form className="pd-login__form" onSubmit={handlePasswordSignIn}>
+            <div className="pd-login__field" ref={emailFieldRef}>
+              <span className="pd-login__field-label">Email</span>
+              <div className="pd-login__email-control">
+                <input
+                  type="email"
+                  name="email"
+                  aria-label="Email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="pd-login__email-menu-btn"
+                  aria-label="Choose a saved account"
+                  aria-expanded={isAccountMenuOpen}
+                  aria-haspopup="listbox"
+                  onClick={() => setIsAccountMenuOpen((open) => !open)}
+                >
+                  <ChevronDown size={16} strokeWidth={2} aria-hidden />
+                </button>
+                {isAccountMenuOpen ? (
+                  <ul className="pd-login__email-menu" role="listbox">
+                    {DEMO_ACCOUNTS.map((account) => (
+                      <li key={account.id} role="none">
+                        <button
+                          type="button"
+                          className="pd-login__email-option"
+                          role="option"
+                          onClick={() => fillAccount(account.user.email)}
+                        >
+                          <span className="pd-login__account-name">
+                            {account.label}
+                          </span>
+                          <span className="pd-login__account-meta">
+                            {account.description}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+            <label className="pd-login__field">
+              <span className="pd-login__field-label">Password</span>
+              <input
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </label>
+            {error ? (
+              <p className="pd-login__error" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <button
+              type="submit"
+              className="pd-login__submit"
+              disabled={isSubmitting}
+            >
+              Sign in
+            </button>
+          </form>
+
+          <p className="pd-login__divider">
+            <span>or</span>
           </p>
 
           <button

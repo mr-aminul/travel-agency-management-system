@@ -1,4 +1,4 @@
-import type { CaseVertical } from '@/types/case'
+import type { ServiceType } from '@/types/case'
 
 export type StepFieldType = 'text' | 'date' | 'textarea' | 'number'
 
@@ -408,7 +408,7 @@ const TICKETING: StepRequirement[] = [
   },
 ]
 
-const BY_VERTICAL: Record<CaseVertical, StepRequirement[]> = {
+const BY_SERVICE: Record<ServiceType, StepRequirement[]> = {
   Student: STUDENT,
   Manpower: MANPOWER,
   'Hajj/Umrah': HAJJ,
@@ -416,23 +416,23 @@ const BY_VERTICAL: Record<CaseVertical, StepRequirement[]> = {
   Ticketing: TICKETING,
 }
 
-export function getStepRequirements(vertical: CaseVertical): StepRequirement[] {
-  return BY_VERTICAL[vertical]
+export function getStepRequirements(service: ServiceType): StepRequirement[] {
+  return BY_SERVICE[service]
 }
 
 export function getStepRequirement(
-  vertical: CaseVertical,
+  service: ServiceType,
   stepId: string,
 ): StepRequirement | undefined {
-  return BY_VERTICAL[vertical].find((item) => item.stepId === stepId)
+  return BY_SERVICE[service].find((item) => item.stepId === stepId)
 }
 
 /** Find which step collects a given case document (via upload.documentId). */
 export function findStepForDocument(
-  vertical: CaseVertical,
+  service: ServiceType,
   documentId: string,
 ): { requirement: StepRequirement; uploadKey: string } | undefined {
-  for (const requirement of BY_VERTICAL[vertical]) {
+  for (const requirement of BY_SERVICE[service]) {
     const upload = requirement.uploads.find(
       (item) => item.documentId === documentId,
     )

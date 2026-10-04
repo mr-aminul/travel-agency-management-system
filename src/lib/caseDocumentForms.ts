@@ -17,7 +17,7 @@ export type DocumentFormDef = {
 
 /**
  * Absolute-minimum fields per document type.
- * Keyed by CaseDocument.id across verticals.
+ * Keyed by CaseDocument.id across services.
  */
 const FORMS: Record<string, DocumentFormDef> = {
   passport: {

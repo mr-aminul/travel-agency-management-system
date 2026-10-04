@@ -1,32 +1,37 @@
 import { useState, type FormEvent } from 'react'
 import { Button, Input, Select, Textarea } from '@/components/ui'
-import { CASE_VERTICAL_OPTIONS } from '@/lib/casesStore'
+import { CASE_SERVICE_OPTIONS, getEnabledServiceOptions } from '@/lib/casesStore'
 import { useClients } from '@/lib/clientsStore'
-import type { CaseVertical, CreateCaseInput } from '@/types/case'
+import type { ServiceType, CreateCaseInput } from '@/types/case'
 
 type NewCaseFormProps = {
   onSubmit: (input: CreateCaseInput) => void
   onCancel: () => void
   defaultClientId?: string
-  defaultVertical?: CaseVertical
+  defaultService?: ServiceType
   /** When true, client is locked to defaultClientId */
   lockClient?: boolean
-  /** When true, vertical is locked to defaultVertical */
-  lockVertical?: boolean
+  /** When true, service is locked to defaultService */
+  lockService?: boolean
 }
 
 export function NewCaseForm({
   onSubmit,
   onCancel,
   defaultClientId = '',
-  defaultVertical = 'Manpower',
+  defaultService,
   lockClient = false,
-  lockVertical = false,
+  lockService = false,
 }: NewCaseFormProps) {
   const clients = useClients()
+  const serviceOptions = getEnabledServiceOptions()
+  const resolvedDefault =
+    defaultService &&
+    serviceOptions.some((option) => option.value === defaultService)
+      ? defaultService
+      : (serviceOptions[0]?.value ?? 'Leisure')
   const [clientId, setClientId] = useState(defaultClientId)
-  const [title, setTitle] = useState('')
-  const [vertical, setVertical] = useState<CaseVertical>(defaultVertical)
+  const [service, setService] = useState<ServiceType>(resolvedDefault)
   const [destination, setDestination] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
   const [departureDate, setDepartureDate] = useState('')
@@ -44,19 +49,16 @@ export function NewCaseForm({
     triedSubmit && !resolvedClientId
       ? 'Select a client for this case.'
       : undefined
-  const titleError =
-    triedSubmit && !title.trim() ? 'Case title is required.' : undefined
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     setTriedSubmit(true)
-    if (!resolvedClientId || !title.trim()) return
+    if (!resolvedClientId) return
 
     const parsedBalance = Number(balance.replace(/,/g, ''))
     onSubmit({
-      title,
       clientId: resolvedClientId,
-      vertical: lockVertical ? defaultVertical : vertical,
+      service: lockService ? resolvedDefault : service,
       destination,
       assignedTo,
       departureDate: departureDate || undefined,
@@ -88,24 +90,15 @@ export function NewCaseForm({
               error={clientError}
               disabled={lockClient}
             />
-            <Input
-              className="pd-cases-form__full"
-              label="Title"
-              required
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="e.g. Saudi manpower — Al Rajhi Hospital"
-              error={titleError}
-            />
             <Select
-              label="Vertical"
+              label="Service"
               required
-              value={lockVertical ? defaultVertical : vertical}
+              value={lockService ? resolvedDefault : service}
               onChange={(event) =>
-                setVertical(event.target.value as CaseVertical)
+                setService(event.target.value as ServiceType)
               }
-              options={CASE_VERTICAL_OPTIONS}
-              disabled={lockVertical}
+              options={serviceOptions.length ? serviceOptions : CASE_SERVICE_OPTIONS}
+              disabled={lockService}
             />
             <Input
               label="Destination"

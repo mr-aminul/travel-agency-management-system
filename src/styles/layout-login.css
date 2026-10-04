@@ -140,9 +140,176 @@
   font-size: 0.8125rem;
   line-height: 1.45;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
+  text-wrap: pretty;
   color: var(--login-ink-muted);
   text-shadow: 0 1px 3px color-mix(in srgb, black 40%, transparent);
+}
+
+.pd-login__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: start;
+}
+
+.pd-login__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pd-login__field-label {
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--login-ink-muted);
+}
+
+.pd-login__email-control {
+  position: relative;
+}
+
+.pd-login__field input {
+  width: 100%;
+  height: 2.75rem;
+  padding: 0 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, white 28%, transparent);
+  background: color-mix(in srgb, black 32%, transparent);
+  color: var(--login-ink);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+
+.pd-login__email-control input {
+  padding-inline-end: 2.5rem;
+}
+
+.pd-login__email-menu-btn {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--login-ink-muted);
+  cursor: pointer;
+}
+
+.pd-login__email-menu-btn svg {
+  transition: transform 0.15s ease;
+}
+
+.pd-login__email-menu-btn[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.pd-login__email-menu-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-theme) 70%, white);
+  outline-offset: -4px;
+  border-radius: 0.75rem;
+}
+
+.pd-login__email-menu {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc(100% + 0.35rem);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in srgb, white 22%, transparent);
+  background: color-mix(in srgb, #07110e 88%, black);
+  box-shadow: 0 10px 28px color-mix(in srgb, black 45%, transparent);
+}
+
+.pd-login__email-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--login-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pd-login__email-option:hover,
+.pd-login__email-option:focus-visible {
+  background: color-mix(in srgb, white 10%, transparent);
+}
+
+.pd-login__field input:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-theme) 70%, white);
+  outline-offset: 2px;
+}
+
+.pd-login__error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #ffb4b4;
+}
+
+.pd-login__submit {
+  width: 100%;
+  height: 3.125rem;
+  margin: 0.15rem 0 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-theme, #1f8a70);
+  color: #fff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.pd-login__submit:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.pd-login__divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.35rem 0;
+  font-size: 0.75rem;
+  color: var(--login-ink-muted);
+}
+
+.pd-login__divider::before,
+.pd-login__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, white 22%, transparent);
+}
+
+.pd-login__account-name {
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.pd-login__account-meta {
+  font-size: 0.75rem;
+  color: var(--login-ink-muted);
 }
 
 .pd-login__google {

@@ -19,11 +19,11 @@ import {
 } from '@/components/ui'
 import { getCurrentStepLabel } from '@/lib/caseChecklist'
 import {
-  CASE_VERTICAL_OPTIONS,
+  CASE_SERVICE_OPTIONS,
   createCase,
 } from '@/lib/casesStore'
 import { formatBalance } from '@/lib/clientsStore'
-import type { Case, CaseStatus, CaseVertical, CreateCaseInput } from '@/types/case'
+import type { Case, CaseStatus, ServiceType, CreateCaseInput } from '@/types/case'
 import '@/styles/layout-cases.css'
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
@@ -57,22 +57,21 @@ function matchesFilters(
   item: Case,
   search: string,
   statusFilters: string[],
-  verticalFilters: string[],
+  serviceFilters: string[],
 ): boolean {
   const q = search.trim().toLowerCase()
   const matchSearch =
     !q ||
-    item.title.toLowerCase().includes(q) ||
     item.caseId.toLowerCase().includes(q) ||
     item.clientName.toLowerCase().includes(q) ||
-    item.vertical.toLowerCase().includes(q) ||
+    item.service.toLowerCase().includes(q) ||
     (item.destination?.toLowerCase().includes(q) ?? false) ||
     (item.assignedTo?.toLowerCase().includes(q) ?? false)
   const matchStatus =
     statusFilters.length === 0 || statusFilters.includes(item.status)
-  const matchVertical =
-    verticalFilters.length === 0 || verticalFilters.includes(item.vertical)
-  return matchSearch && matchStatus && matchVertical
+  const matchService =
+    serviceFilters.length === 0 || serviceFilters.includes(item.service)
+  return matchSearch && matchStatus && matchService
 }
 
 export type CasesListProps = {
@@ -81,13 +80,13 @@ export type CasesListProps = {
   label: string
   /** Show Client column (hide on client profile). */
   showClientColumn?: boolean
-  /** Show Vertical column + filter (all-cases and client profile). */
-  showVerticalColumn?: boolean
+  /** Show Service column + filter (all-cases and client profile). */
+  showServiceColumn?: boolean
   defaultClientId?: string
   lockClient?: boolean
-  /** Prefill for new-case form; URL `vertical` wins when syncing search params. */
-  defaultVertical?: CaseVertical
-  lockVertical?: boolean
+  /** Prefill for new-case form; URL `service` wins when syncing search params. */
+  defaultService?: ServiceType
+  lockService?: boolean
   /** Keep `?new=1` in the URL (cases routes). */
   syncNewWithSearchParams?: boolean
   /** Omit page chrome when embedded in a tab. */
@@ -101,11 +100,11 @@ export function CasesList({
   cases,
   label,
   showClientColumn = true,
-  showVerticalColumn = false,
+  showServiceColumn = false,
   defaultClientId,
   lockClient = false,
-  defaultVertical,
-  lockVertical = false,
+  defaultService,
+  lockService = false,
   syncNewWithSearchParams = false,
   embedded = false,
   emptyTitle = 'No cases yet',
@@ -116,7 +115,7 @@ export function CasesList({
   const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [statusFilters, setStatusFilters] = useState<string[]>([])
-  const [verticalFilters, setVerticalFilters] = useState<string[]>([])
+  const [serviceFilters, setServiceFilters] = useState<string[]>([])
   const [newCaseOpen, setNewCaseOpen] = useState(false)
 
   const resolvedClientId =
@@ -124,11 +123,11 @@ export function CasesList({
     (syncNewWithSearchParams
       ? (searchParams.get('client') ?? undefined)
       : undefined)
-  const resolvedVertical =
+  const resolvedService =
     (syncNewWithSearchParams
-      ? (searchParams.get('vertical') as CaseVertical | null)
+      ? (searchParams.get('service') as ServiceType | null)
       : null) ??
-    defaultVertical ??
+    defaultService ??
     'Manpower'
 
   useEffect(() => {
@@ -141,13 +140,13 @@ export function CasesList({
       item,
       search,
       statusFilters,
-      showVerticalColumn ? verticalFilters : [],
+      showServiceColumn ? serviceFilters : [],
     ),
   )
 
   const hasActiveFilters =
     statusFilters.length > 0 ||
-    (showVerticalColumn && verticalFilters.length > 0)
+    (showServiceColumn && serviceFilters.length > 0)
 
   const openNewCaseModal = () => {
     setNewCaseOpen(true)
@@ -176,7 +175,7 @@ export function CasesList({
   const resetFilters = () => {
     setSearch('')
     setStatusFilters([])
-    setVerticalFilters([])
+    setServiceFilters([])
   }
 
   const newCaseButton = (
@@ -189,7 +188,7 @@ export function CasesList({
   const hasQuery =
     search.trim().length > 0 ||
     statusFilters.length > 0 ||
-    (showVerticalColumn && verticalFilters.length > 0)
+    (showServiceColumn && serviceFilters.length > 0)
 
   const body =
     filtered.length === 0 ? (
@@ -217,7 +216,7 @@ export function CasesList({
           <TableRow>
             <TableHead>Case</TableHead>
             {showClientColumn && <TableHead>Client</TableHead>}
-            {showVerticalColumn && <TableHead>Vertical</TableHead>}
+            {showServiceColumn && <TableHead>Service</TableHead>}
             <TableHead>Current step</TableHead>
             <TableHead>Destination</TableHead>
             <TableHead>Balance due</TableHead>
@@ -233,20 +232,25 @@ export function CasesList({
             >
               <TableCell>
                 <div className="pd-cases__identity-text">
-                  <p className="pd-cases__name">{item.title}</p>
-                  <p className="pd-cases__meta">
-                    {item.caseId}
-                    {item.assignedTo ? ` · ${item.assignedTo}` : ''}
-                    {item.departureDate
-                      ? ` · ${formatCaseDate(item.departureDate)}`
-                      : ''}
-                  </p>
+                  <p className="pd-cases__name">{item.caseId}</p>
+                  {item.assignedTo || item.departureDate ? (
+                    <p className="pd-cases__meta">
+                      {[
+                        item.assignedTo,
+                        item.departureDate
+                          ? formatCaseDate(item.departureDate)
+                          : undefined,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  ) : null}
                 </div>
               </TableCell>
               {showClientColumn && <TableCell>{item.clientName}</TableCell>}
-              {showVerticalColumn && (
+              {showServiceColumn && (
                 <TableCell>
-                  <Badge variant="neutral">{item.vertical}</Badge>
+                  <Badge variant="neutral">{item.service}</Badge>
                 </TableCell>
               )}
               <TableCell>
@@ -283,17 +287,17 @@ export function CasesList({
 
         <div className="pd-cases__toolbar-end">
           <div className="pd-cases__filters">
-            {showVerticalColumn && (
+            {showServiceColumn && (
               <Select
                 className="pd-cases__filter"
-                label="Vertical"
+                label="Service"
                 multiple
                 searchable
-                placeholder="All verticals"
-                searchPlaceholder="Search verticals…"
-                value={verticalFilters}
-                onChange={(event) => setVerticalFilters(event.target.value)}
-                options={CASE_VERTICAL_OPTIONS}
+                placeholder="All services"
+                searchPlaceholder="Search services…"
+                value={serviceFilters}
+                onChange={(event) => setServiceFilters(event.target.value)}
+                options={CASE_SERVICE_OPTIONS}
               />
             )}
             <Select
@@ -313,7 +317,7 @@ export function CasesList({
                 className="pd-cases__clear"
                 onClick={() => {
                   setStatusFilters([])
-                  setVerticalFilters([])
+                  setServiceFilters([])
                 }}
               >
                 Clear
@@ -333,8 +337,8 @@ export function CasesList({
         description={
           lockClient
             ? 'Capture one purpose for this client.'
-            : lockVertical
-              ? `Open a ${resolvedVertical} case for a client.`
+            : lockService
+              ? `Open a ${resolvedService} case for a client.`
               : 'One case = one purpose for a client.'
         }
         className="pd-cases-modal"
@@ -344,8 +348,8 @@ export function CasesList({
           onCancel={closeNewCaseModal}
           defaultClientId={resolvedClientId}
           lockClient={lockClient}
-          defaultVertical={resolvedVertical}
-          lockVertical={lockVertical}
+          defaultService={resolvedService}
+          lockService={lockService}
         />
       </Modal>
     </div>

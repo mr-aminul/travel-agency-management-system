@@ -1,12 +1,16 @@
-import { useRef, useEffect, useState, useId } from 'react'
+import { useMemo, useRef, useEffect, useState, useId } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
-import { searchablePages } from '@/config/layout'
+import { layoutConfig } from '@/config/layout'
+import { filterNavItems, flattenNavItems } from '@/lib/modules'
+import { useActiveTenant } from '@/lib/useActiveTenant'
+import { useAuth } from '@/lib/useAuth'
+import type { NavItem } from '@/layout/types'
 
-function filterPages(query: string) {
+function filterPages(pages: NavItem[], query: string) {
   const normalized = query.trim().toLowerCase()
-  if (!normalized) return searchablePages
-  return searchablePages.filter(
+  if (!normalized) return pages
+  return pages.filter(
     (page) =>
       page.label.toLowerCase().includes(normalized) ||
       page.path.toLowerCase().includes(normalized),
@@ -14,6 +18,8 @@ function filterPages(query: string) {
 }
 
 export function TopBarSearch() {
+  const { user } = useAuth()
+  const tenant = useActiveTenant()
   const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -22,7 +28,15 @@ export function TopBarSearch() {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
 
-  const results = filterPages(query)
+  const pages = useMemo(() => {
+    const nav = filterNavItems(
+      layoutConfig.navItems,
+      tenant.enabledModules,
+      user?.role ?? 'agency_user',
+    )
+    return flattenNavItems(nav)
+  }, [tenant.enabledModules, user?.role])
+  const results = filterPages(pages, query)
 
   useEffect(() => {
     setActiveIndex(0)
@@ -43,6 +57,8 @@ export function TopBarSearch() {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
+
+  if (user?.role === 'platform_admin') return null
 
   const closeSearch = () => {
     setOpen(false)

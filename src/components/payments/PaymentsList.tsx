@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { Plus, Wallet } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Eye, FileText, Plus, Wallet } from 'lucide-react'
 import {
   Button,
   EmptyState,
@@ -59,7 +60,7 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
       : cases
   ).map((item) => ({
     value: item.id,
-    label: `${item.caseId} · ${item.title} (${formatPaymentAmount(item.balance)} due)`,
+    label: `${item.caseId} · ${item.service} (${formatPaymentAmount(item.balance)} due)`,
   }))
 
   const handleSubmit = (event: FormEvent) => {
@@ -95,19 +96,30 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
     <div className="pd-payments">
       <div className="pd-payments__toolbar">
         <p className="pd-payments__hint">Linked to this case balance.</p>
-        <Button
-          size="sm"
-          variant={recording ? 'secondary' : 'primary'}
-          onClick={() => {
-            setRecording((value) => !value)
-            setError(undefined)
-            if (caseId) setSelectedCaseId(caseId)
-          }}
-          disabled={caseOptions.length === 0}
-        >
-          <Plus size={14} strokeWidth={2.25} aria-hidden />
-          {recording ? 'Cancel' : 'Record payment'}
-        </Button>
+        <div className="pd-payments__actions">
+          {caseId ? (
+            <Link
+              to={`/cases/${caseId}/invoice`}
+              className="pd-btn pd-btn--secondary pd-btn--sm"
+            >
+              <FileText size={14} strokeWidth={2.25} aria-hidden />
+              View invoice
+            </Link>
+          ) : null}
+          <Button
+            size="sm"
+            variant={recording ? 'secondary' : 'primary'}
+            onClick={() => {
+              setRecording((value) => !value)
+              setError(undefined)
+              if (caseId) setSelectedCaseId(caseId)
+            }}
+            disabled={caseOptions.length === 0}
+          >
+            <Plus size={14} strokeWidth={2.25} aria-hidden />
+            {recording ? 'Cancel' : 'Record payment'}
+          </Button>
+        </div>
       </div>
 
       {recording ? (
@@ -171,6 +183,7 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
               <TableHead>Method</TableHead>
               <TableHead>Note</TableHead>
               <TableHead>Amount</TableHead>
+              <TableHead>Invoice</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -188,6 +201,15 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
                   <TableCell>{payment.note || '—'}</TableCell>
                   <TableCell className="pd-cases__balance">
                     {formatPaymentAmount(payment.amount)}
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      to={`/cases/${payment.caseId}/invoice?payment=${encodeURIComponent(payment.id)}`}
+                      className="pd-btn pd-btn--secondary pd-btn--sm pd-payments__view-btn"
+                    >
+                      <Eye size={14} strokeWidth={2.25} aria-hidden />
+                      View
+                    </Link>
                   </TableCell>
                 </TableRow>
               )

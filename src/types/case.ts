@@ -1,4 +1,4 @@
-export type CaseVertical =
+export type ServiceType =
   | 'Manpower'
   | 'Student'
   | 'Hajj/Umrah'
@@ -14,7 +14,7 @@ export type CaseStatus =
   | 'Cancelled'
 
 /**
- * Coarse bucket derived from the current vertical step.
+ * Coarse bucket derived from the current service step.
  * Prefer `currentStepId` as the source of truth in UI.
  */
 export type CaseStage =
@@ -85,17 +85,17 @@ export type CaseDocument = {
 
 export type Case = {
   id: string
+  tenantId: string
   caseId: string
-  title: string
   clientId: string
   clientName: string
-  vertical: CaseVertical
+  service: ServiceType
   status: CaseStatus
   /** Derived from currentStepId — kept for filters/compat. */
   stage: CaseStage
   /** Source of truth for journey position. */
   currentStepId: string
-  /** Completion records keyed by vertical step id. */
+  /** Completion records keyed by service step id. */
   steps: Record<string, CaseStepRecord>
   documents: CaseDocument[]
   destination?: string
@@ -108,9 +108,8 @@ export type Case = {
 }
 
 export type CreateCaseInput = {
-  title: string
   clientId: string
-  vertical: CaseVertical
+  service: ServiceType
   status?: CaseStatus
   destination?: string
   balance?: number
@@ -120,15 +119,24 @@ export type CreateCaseInput = {
 }
 
 export type UpdateCaseInput = Partial<
-  Omit<Case, 'id' | 'caseId' | 'createdAt' | 'clientId' | 'steps' | 'documents'>
+  Omit<
+    Case,
+    | 'id'
+    | 'tenantId'
+    | 'caseId'
+    | 'createdAt'
+    | 'clientId'
+    | 'steps'
+    | 'documents'
+  >
 > & {
   steps?: Record<string, CaseStepRecord>
   documents?: CaseDocument[]
   currentStepId?: string
 }
 
-/** Nav slug ↔ vertical */
-export const CASE_VERTICAL_SLUGS: Record<string, CaseVertical> = {
+/** Nav slug ↔ service */
+export const CASE_SERVICE_SLUGS: Record<string, ServiceType> = {
   manpower: 'Manpower',
   student: 'Student',
   'hajj-umrah': 'Hajj/Umrah',
@@ -136,15 +144,15 @@ export const CASE_VERTICAL_SLUGS: Record<string, CaseVertical> = {
   ticketing: 'Ticketing',
 }
 
-export function verticalToSlug(vertical: CaseVertical): string {
-  const entry = Object.entries(CASE_VERTICAL_SLUGS).find(
-    ([, value]) => value === vertical,
+export function serviceToSlug(service: ServiceType): string {
+  const entry = Object.entries(CASE_SERVICE_SLUGS).find(
+    ([, value]) => value === service,
   )
   return entry?.[0] ?? 'manpower'
 }
 
-export function isCaseVerticalSlug(
+export function isCaseServiceSlug(
   value: string,
-): value is keyof typeof CASE_VERTICAL_SLUGS {
-  return value in CASE_VERTICAL_SLUGS
+): value is keyof typeof CASE_SERVICE_SLUGS {
+  return value in CASE_SERVICE_SLUGS
 }

@@ -1,15 +1,12 @@
-export type ClientStatus = 'Active' | 'Deployed' | 'Lead' | 'Inactive'
+import type { ServiceType } from '@/types/case'
 
-/** Aligned with case verticals — one glossary across Clients and Cases. */
-export type ServiceType =
-  | 'Manpower'
-  | 'Student'
-  | 'Hajj/Umrah'
-  | 'Leisure'
-  | 'Ticketing'
+export type { ServiceType }
+
+export type ClientStatus = 'Active' | 'Deployed' | 'Lead' | 'Inactive'
 
 export type Client = {
   id: string
+  tenantId: string
   name: string
   phone: string
   email?: string
@@ -17,7 +14,7 @@ export type Client = {
   nid?: string
   passport?: string
   avatarUrl?: string
-  /** Verticals this client has engaged — derived from cases + intake choice. */
+  /** Services this client has engaged — derived from cases + intake choice. */
   services: ServiceType[]
   /** Sum of open case balances — derived from cases. */
   balance: number
@@ -41,4 +38,6 @@ export type CreateClientInput = {
   openFirstCase?: boolean
 }
 
-export type UpdateClientInput = Partial<Omit<Client, 'id' | 'createdAt'>>
+export type UpdateClientInput = Partial<
+  Omit<Client, 'id' | 'tenantId' | 'createdAt'>
+>

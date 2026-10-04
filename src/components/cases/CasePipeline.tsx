@@ -6,7 +6,7 @@ import {
 } from '@/components/cases/StepCompletionDrawer'
 import { cx } from '@/lib/cx'
 import {
-  getPipelineStagesForVertical,
+  getPipelineStagesForService,
   getStepDefs,
   getStepIndex,
   getStepsForStage,
@@ -50,9 +50,9 @@ export type CasePipelineProps = {
 }
 
 export function CasePipeline({ item }: CasePipelineProps) {
-  const stages = getPipelineStagesForVertical(item.vertical)
-  const steps = getStepDefs(item.vertical)
-  const currentIndex = getStepIndex(item.vertical, item.currentStepId)
+  const stages = getPipelineStagesForService(item.service)
+  const steps = getStepDefs(item.service)
+  const currentIndex = getStepIndex(item.service, item.currentStepId)
   const canEdit =
     item.status !== 'Completed' && item.status !== 'Cancelled'
   const [selectedStage, setSelectedStage] = useState<CaseStage | null>(null)
@@ -65,7 +65,7 @@ export function CasePipeline({ item }: CasePipelineProps) {
   }, [item.id])
 
   const visibleSteps = selectedStage
-    ? getStepsForStage(item.vertical, selectedStage)
+    ? getStepsForStage(item.service, selectedStage)
     : steps
 
   const openStep = (stepId: string, mode: StepDrawerMode) => {
@@ -141,7 +141,7 @@ export function CasePipeline({ item }: CasePipelineProps) {
         <ul className="pd-pipeline__milestones" aria-label="Case milestones">
           {visibleSteps.map((step) => {
             const complete = isPipelineStepComplete(item, step.id)
-            const stepIndex = getStepIndex(item.vertical, step.id)
+            const stepIndex = getStepIndex(item.service, step.id)
             const current = item.currentStepId === step.id && !complete
             const locked = canEdit && stepIndex > currentIndex
             const dateValue = milestoneDate(item, step.id)

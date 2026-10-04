@@ -1,0 +1,199 @@
+.pd-invoice-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4, 1rem);
+  padding-block: var(--spacing-4, 1rem);
+}
+
+.pd-invoice-page__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3, 0.75rem);
+  flex-wrap: wrap;
+}
+
+.pd-invoice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6, 1.5rem);
+  padding: var(--spacing-6, 1.5rem);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-lg, 0.75rem);
+  background: var(--color-bg);
+  box-sizing: border-box;
+}
+
+.pd-invoice__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-6, 1.5rem);
+  flex-wrap: wrap;
+}
+
+.pd-invoice__brand {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3, 0.75rem);
+  min-width: 12rem;
+}
+
+.pd-invoice__logo {
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  border-radius: var(--radius-md, 0.5rem);
+  border: 0.0625rem solid var(--color-border);
+}
+
+.pd-invoice__brand-text,
+.pd-invoice__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pd-invoice__agency-name,
+.pd-invoice__party-name {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.pd-invoice__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.pd-invoice__number {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.pd-invoice__muted {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.pd-invoice__meta {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.pd-invoice__meta-list {
+  margin: 0.5rem 0 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.pd-invoice__meta-list div,
+.pd-invoice__totals dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-4, 1rem);
+}
+
+.pd-invoice__meta-list dt,
+.pd-invoice__section-label,
+.pd-invoice__totals dt {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.pd-invoice__meta-list dd,
+.pd-invoice__totals dd {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pd-invoice__parties {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-6, 1.5rem);
+}
+
+.pd-invoice__section-label {
+  margin: 0 0 0.5rem;
+}
+
+.pd-invoice__amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pd-invoice__row.is-highlight td {
+  background: color-mix(in srgb, var(--color-theme) 10%, transparent);
+}
+
+.pd-invoice__totals {
+  margin-left: auto;
+  width: min(100%, 18rem);
+}
+
+.pd-invoice__totals dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pd-invoice__due dd {
+  font-size: 1.0625rem;
+}
+
+@media (max-width: 40rem) {
+  .pd-invoice__parties {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-invoice__meta {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+@media print {
+  .pd-app-shell::before,
+  .pd-app-shell::after,
+  .pd-app-sidebar,
+  .pd-topbar,
+  .pd-app-footer,
+  .pd-invoice-page__toolbar {
+    display: none !important;
+  }
+
+  .pd-app-shell,
+  .pd-app-shell__main,
+  .pd-app-content,
+  .pd-app-content-card,
+  .pd-app-main,
+  .pd-invoice-page {
+    height: auto !important;
+    overflow: visible !important;
+    background: var(--color-bg) !important;
+    box-shadow: none !important;
+    max-width: none;
+    padding: 0;
+  }
+
+  .pd-invoice {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+}

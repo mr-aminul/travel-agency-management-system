@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import {
   buildInitialSteps,
@@ -21,17 +22,25 @@ import {
 } from '@/lib/caseStepRequirements'
 import { getDocumentForm } from '@/lib/caseDocumentForms'
 import { getStepIndex } from '@/lib/caseChecklist'
-import { getClientById, updateClient } from '@/lib/clientsStore'
+import {
+  findClientRecord,
+  getClientById,
+  updateClient,
+  updateClientRecord,
+} from '@/lib/clientsStore'
+import { getActiveTenantId } from '@/lib/authApi'
+import { activeTenantAllowsService } from '@/lib/activeTenant'
+import { useAuth } from '@/lib/useAuth'
+import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
 import type {
   Case,
   CaseDocument,
   CaseDocumentStatus,
   CaseStatus,
-  CaseVertical,
+  ServiceType,
   CreateCaseInput,
   UpdateCaseInput,
 } from '@/types/case'
-import type { ServiceType } from '@/types/client'
 
 type Listener = () => void
 
@@ -46,19 +55,19 @@ function seedCase(
     documentOverrides?: Partial<Record<string, Partial<CaseDocument>>>
   },
 ): Case {
-  const client = getClientById(partial.clientId)
+  const client = findClientRecord(partial.clientId)
   const progress = buildProgressAtStep(
-    partial.vertical,
+    partial.service,
     partial.currentStepId,
     partial.createdAt,
     partial.stepDetails,
   )
   const documents = withSeedDocumentStatuses(
-    buildCaseDocuments(partial.vertical, client),
+    buildCaseDocuments(partial.service, client),
     partial.documentOverrides ?? {},
   )
   const stage = deriveStageFromStep(
-    partial.vertical,
+    partial.service,
     progress.currentStepId,
     partial.status,
   )
@@ -75,11 +84,11 @@ function seedCase(
 const SEED_CASES: Case[] = [
   seedCase({
     id: 'case-101',
+    tenantId: TENANT_IDS.full,
     caseId: 'CASE-00101',
-    title: 'Saudi manpower — Al Rajhi Hospital',
     clientId: 'c-284',
     clientName: 'Md. Rahim Uddin',
-    vertical: 'Manpower',
+    service: 'Manpower',
     status: 'In-Progress',
     currentStepId: 'medical',
     destination: 'Riyadh, Saudi Arabia',
@@ -104,11 +113,11 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-102',
+    tenantId: TENANT_IDS.full,
     caseId: 'CASE-00102',
-    title: 'Dhaka–Jeddah ticketing',
     clientId: 'c-284',
     clientName: 'Md. Rahim Uddin',
-    vertical: 'Ticketing',
+    service: 'Ticketing',
     status: 'Pending',
     currentStepId: 'request',
     destination: 'Jeddah, Saudi Arabia',
@@ -122,11 +131,11 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-103',
+    tenantId: TENANT_IDS.full,
     caseId: 'CASE-00103',
-    title: 'Canada student — Concordia University',
     clientId: 'c-291',
     clientName: 'Farhana Akter',
-    vertical: 'Student',
+    service: 'Student',
     status: 'In-Progress',
     currentStepId: 'visa',
     destination: 'Montreal, Canada',
@@ -152,11 +161,11 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-104',
+    tenantId: TENANT_IDS.full,
     caseId: 'CASE-00104',
-    title: 'Hajj 2026 — Nusrat Jahan',
     clientId: 'c-315',
     clientName: 'Nusrat Jahan',
-    vertical: 'Hajj/Umrah',
+    service: 'Hajj/Umrah',
     status: 'In-Progress',
     currentStepId: 'package',
     destination: 'Makkah, Saudi Arabia',
@@ -173,11 +182,11 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-105',
+    tenantId: TENANT_IDS.full,
     caseId: 'CASE-00105',
-    title: 'Cox’s Bazar leisure package',
     clientId: 'c-328',
     clientName: 'Imran Hossain',
-    vertical: 'Leisure',
+    service: 'Leisure',
     status: 'Pending',
     currentStepId: 'enquiry',
     destination: 'Cox’s Bazar, Bangladesh',
@@ -191,11 +200,108 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-106',
+    tenantId: TENANT_IDS.full,
     caseId: 'CASE-00106',
-    title: 'Malaysia factory — deployed',
     clientId: 'c-302',
     clientName: 'Jamal Haque',
-    vertical: 'Manpower',
+    service: 'Manpower',
+    status: 'Completed',
+    currentStepId: 'departed',
+    destination: 'Penang, Malaysia',
+    balance: 0,
+    assignedTo: 'Karim Ahmed',
+    departureDate: '2025-10-01',
+    description: 'Successfully deployed. Case closed after arrival confirmation.',
+    createdAt: '2025-08-20',
+    updatedAt: '2025-10-15',
+    stepDetails: {
+      registered: 'Registered',
+      shortlisted: 'Shortlisted',
+      interview: 'Interviewed',
+      selected: 'Selected',
+      medical: 'Medical cleared',
+      visa: 'Visa issued',
+      clearance: 'BMET cleared',
+      ticket: 'Ticket issued',
+      departed: 'Arrived in Penang',
+    },
+    documentOverrides: {
+      medical: { status: 'approved' },
+      demand: { status: 'approved' },
+      bmet: { status: 'approved' },
+    },
+  }),
+  seedCase({
+    id: 'case-l-105',
+    tenantId: TENANT_IDS.leisure,
+    caseId: 'CASE-20105',
+    clientId: 'c-l-328',
+    clientName: 'Imran Hossain',
+    service: 'Leisure',
+    status: 'Pending',
+    currentStepId: 'enquiry',
+    destination: 'Cox’s Bazar, Bangladesh',
+    balance: 22000,
+    assignedTo: 'Sadia Rahman',
+    departureDate: '2026-08-22',
+    description:
+      '3N/4D family package for 4 guests. Quote shared; awaiting deposit.',
+    createdAt: '2026-03-01',
+    updatedAt: '2026-03-05',
+  }),
+  seedCase({
+    id: 'case-l-110',
+    tenantId: TENANT_IDS.leisure,
+    caseId: 'CASE-20110',
+    clientId: 'c-l-401',
+    clientName: 'Sadia Karim',
+    service: 'Ticketing',
+    status: 'Pending',
+    currentStepId: 'request',
+    destination: 'Cox’s Bazar, Bangladesh',
+    balance: 8500,
+    assignedTo: 'Sadia Rahman',
+    departureDate: '2026-08-20',
+    description: 'Return tickets for a family of four.',
+    createdAt: '2026-04-04',
+    updatedAt: '2026-04-04',
+  }),
+  seedCase({
+    id: 'case-m-101',
+    tenantId: TENANT_IDS.manpower,
+    caseId: 'CASE-30101',
+    clientId: 'c-m-284',
+    clientName: 'Md. Rahim Uddin',
+    service: 'Manpower',
+    status: 'In-Progress',
+    currentStepId: 'medical',
+    destination: 'Riyadh, Saudi Arabia',
+    balance: 35000,
+    assignedTo: 'Karim Ahmed',
+    departureDate: '2026-09-15',
+    description:
+      'Nurse recruitment for Al Rajhi Hospital. Medical + police clearance in progress.',
+    createdAt: '2025-11-20',
+    updatedAt: '2026-08-01',
+    stepDetails: {
+      registered: 'Candidate profile verified',
+      shortlisted: 'Shortlisted for employer',
+      interview: 'Interview completed',
+      selected: 'Selected after employer interview',
+      medical: 'GAMCA medical in progress',
+    },
+    documentOverrides: {
+      medical: { status: 'under_review', detail: 'GAMCA / approved clinic' },
+      demand: { status: 'missing', detail: 'Employer authorization required' },
+    },
+  }),
+  seedCase({
+    id: 'case-m-106',
+    tenantId: TENANT_IDS.manpower,
+    caseId: 'CASE-30106',
+    clientId: 'c-m-302',
+    clientName: 'Jamal Haque',
+    service: 'Manpower',
     status: 'Completed',
     currentStepId: 'departed',
     destination: 'Penang, Malaysia',
@@ -246,8 +352,17 @@ function getSnapshot() {
   return cases
 }
 
+function tenantId() {
+  return getActiveTenantId() || DEFAULT_TENANT_ID
+}
+
+function inActiveTenant(item: Case) {
+  return item.tenantId === tenantId()
+}
+
 function nextCaseId(): string {
-  const max = cases.reduce((highest, item) => {
+  const scoped = cases.filter((item) => item.tenantId === tenantId())
+  const max = scoped.reduce((highest, item) => {
     const numeric = Number(item.caseId.replace(/\D/g, ''))
     return Number.isFinite(numeric) ? Math.max(highest, numeric) : highest
   }, 0)
@@ -259,10 +374,12 @@ function isActiveStatus(status: CaseStatus): boolean {
 }
 
 function syncClientFromCases(clientId: string) {
-  const client = getClientById(clientId)
+  const client = findClientRecord(clientId)
   if (!client) return
 
-  const clientCases = cases.filter((item) => item.clientId === clientId)
+  const clientCases = cases.filter(
+    (item) => item.clientId === clientId && item.tenantId === client.tenantId,
+  )
   const activeCases = clientCases.filter((item) =>
     isActiveStatus(item.status),
   ).length
@@ -272,7 +389,7 @@ function syncClientFromCases(clientId: string) {
   const services = Array.from(
     new Set([
       ...client.services,
-      ...clientCases.map((item) => item.vertical as ServiceType),
+      ...clientCases.map((item) => item.service),
     ]),
   )
 
@@ -287,12 +404,12 @@ function syncClientFromCases(clientId: string) {
   ) {
     const hasManpowerDeployed = clientCases.some(
       (item) =>
-        item.vertical === 'Manpower' && item.status === 'Completed',
+        item.service === 'Manpower' && item.status === 'Completed',
     )
     status = hasManpowerDeployed ? 'Deployed' : client.status === 'Lead' ? 'Lead' : 'Active'
   }
 
-  updateClient(clientId, { activeCases, services, balance, status })
+  updateClientRecord(clientId, { activeCases, services, balance, status })
 }
 
 /** Recompute derived client fields for every client touched by seed. */
@@ -304,7 +421,13 @@ function syncAllSeedClients() {
 syncAllSeedClients()
 
 export function useCases(): Case[] {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  const { session } = useAuth()
+  const all = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  const activeId = session?.tenantId ?? DEFAULT_TENANT_ID
+  return useMemo(
+    () => all.filter((item) => item.tenantId === activeId),
+    [all, activeId],
+  )
 }
 
 export function useCasesByClientId(clientId: string): Case[] {
@@ -312,15 +435,19 @@ export function useCasesByClientId(clientId: string): Case[] {
 }
 
 export function getCaseById(id: string): Case | undefined {
-  return cases.find((item) => item.id === id)
+  return cases.find((item) => item.id === id && inActiveTenant(item))
 }
 
 export function getCasesByClientId(clientId: string): Case[] {
-  return cases.filter((item) => item.clientId === clientId)
+  return cases.filter(
+    (item) => item.clientId === clientId && inActiveTenant(item),
+  )
 }
 
-export function getCasesByVertical(vertical: CaseVertical): Case[] {
-  return cases.filter((item) => item.vertical === vertical)
+export function getCasesByService(service: ServiceType): Case[] {
+  return cases.filter(
+    (item) => item.service === service && inActiveTenant(item),
+  )
 }
 
 export function createCase(input: CreateCaseInput): Case {
@@ -328,22 +455,25 @@ export function createCase(input: CreateCaseInput): Case {
   if (!client) {
     throw new Error('Client not found for new case.')
   }
+  if (!activeTenantAllowsService(input.service)) {
+    throw new Error('This service line is not enabled for your agency.')
+  }
 
   const createdAt = today()
-  const progress = buildInitialSteps(input.vertical, createdAt)
+  const progress = buildInitialSteps(input.service, createdAt)
   const status = input.status ?? 'Pending'
   const created: Case = {
     id: `case-${Date.now().toString(36)}`,
+    tenantId: tenantId(),
     caseId: nextCaseId(),
-    title: input.title.trim(),
     clientId: client.id,
     clientName: client.name,
-    vertical: input.vertical,
+    service: input.service,
     status,
-    stage: deriveStageFromStep(input.vertical, progress.currentStepId, status),
+    stage: deriveStageFromStep(input.service, progress.currentStepId, status),
     currentStepId: progress.currentStepId,
     steps: progress.steps,
-    documents: buildCaseDocuments(input.vertical, client),
+    documents: buildCaseDocuments(input.service, client),
     destination: input.destination?.trim() || undefined,
     balance: input.balance ?? 0,
     assignedTo: input.assignedTo?.trim() || undefined,
@@ -367,13 +497,12 @@ export function updateCase(
   const updatedAt = today()
 
   cases = cases.map((item) => {
-    if (item.id !== id) return item
+    if (item.id !== id || !inActiveTenant(item)) return item
     const nextStatus = patch.status ?? item.status
     const nextStepId = patch.currentStepId ?? item.currentStepId
     updated = {
       ...item,
       ...patch,
-      title: patch.title?.trim() ?? item.title,
       destination:
         patch.destination !== undefined
           ? patch.destination.trim() || undefined
@@ -389,7 +518,7 @@ export function updateCase(
       currentStepId: nextStepId,
       steps: patch.steps ?? item.steps,
       documents: patch.documents ?? item.documents,
-      stage: deriveStageFromStep(item.vertical, nextStepId, nextStatus),
+      stage: deriveStageFromStep(item.service, nextStepId, nextStatus),
       updatedAt,
     }
     updated.documents = syncDocumentsWithProgress(updated)
@@ -448,7 +577,7 @@ export function updateCaseStep(
     return { ok: false, errors: { form: 'This case cannot be updated.' } }
   }
 
-  const requirement = getStepRequirement(item.vertical, stepId)
+  const requirement = getStepRequirement(item.service, stepId)
   if (!requirement) {
     return {
       ok: false,
@@ -517,7 +646,7 @@ export function completeCurrentStep(
     return { ok: false, errors: { form: 'This case is already completed.' } }
   }
 
-  const requirement = getStepRequirement(item.vertical, item.currentStepId)
+  const requirement = getStepRequirement(item.service, item.currentStepId)
   if (!requirement) {
     return {
       ok: false,
@@ -622,11 +751,11 @@ export function recordCaseDocument(
   const item = getCaseById(caseId)
   if (!item || item.status === 'Cancelled') return undefined
 
-  const collector = findStepForDocument(item.vertical, documentId)
+  const collector = findStepForDocument(item.service, documentId)
   const unlockStepId = collector?.requirement.stepId
   if (unlockStepId) {
-    const current = getStepIndex(item.vertical, item.currentStepId)
-    const needed = getStepIndex(item.vertical, unlockStepId)
+    const current = getStepIndex(item.service, item.currentStepId)
+    const needed = getStepIndex(item.service, unlockStepId)
     if (item.status !== 'Completed' && current < needed) {
       return undefined
     }
@@ -724,10 +853,19 @@ export const CASE_STATUS_OPTIONS: { value: CaseStatus; label: string }[] = [
   { value: 'Cancelled', label: 'Cancelled' },
 ]
 
-export const CASE_VERTICAL_OPTIONS: { value: CaseVertical; label: string }[] = [
+export const CASE_SERVICE_OPTIONS: { value: ServiceType; label: string }[] = [
   { value: 'Manpower', label: 'Manpower' },
   { value: 'Student', label: 'Student' },
   { value: 'Hajj/Umrah', label: 'Hajj / Umrah' },
   { value: 'Leisure', label: 'Leisure' },
   { value: 'Ticketing', label: 'Ticketing' },
 ]
+
+export function getEnabledServiceOptions(): {
+  value: ServiceType
+  label: string
+}[] {
+  return CASE_SERVICE_OPTIONS.filter((option) =>
+    activeTenantAllowsService(option.value),
+  )
+}

@@ -53,7 +53,7 @@ import type { CaseDocument } from '@/types/case'
 import { usePaymentsByCaseId } from '@/lib/paymentsStore'
 import { formatBalance, getClientById } from '@/lib/clientsStore'
 import type { CaseDocumentStatus, CaseStatus } from '@/types/case'
-import { verticalToSlug } from '@/types/case'
+import { serviceToSlug } from '@/types/case'
 import '@/styles/layout-cases.css'
 
 function statusBadgeVariant(status: CaseStatus): BadgeVariant {
@@ -177,8 +177,8 @@ function DocumentsChecklist({
         canEdit={
           Boolean(
             activeDoc &&
-              activeDoc.status !== 'approved' &&
-              !docs.find((doc) => doc.id === activeDoc.id)?.locked,
+            activeDoc.status !== 'approved' &&
+            !docs.find((doc) => doc.id === activeDoc.id)?.locked,
           )
         }
         onClose={() => setActiveDoc(null)}
@@ -245,7 +245,6 @@ export default function CaseDetailPage() {
   const [editing, setEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
   const [draft, setDraft] = useState({
-    title: '',
     status: 'Pending' as CaseStatus,
     destination: '',
     assignedTo: '',
@@ -258,14 +257,13 @@ export default function CaseDetailPage() {
     return <Navigate to="/cases" replace />
   }
 
-  const listPath = `/cases/${verticalToSlug(item.vertical)}`
+  const listPath = `/cases/${serviceToSlug(item.service)}`
   const docs = getCaseComplianceDocuments(item)
   const missingDocs = countMissingDocuments(item)
   const currentLabel = getCurrentStepLabel(item)
 
   const startEditing = () => {
     setDraft({
-      title: item.title,
       status: item.status,
       destination: item.destination ?? '',
       assignedTo: item.assignedTo ?? '',
@@ -277,10 +275,8 @@ export default function CaseDetailPage() {
   }
 
   const finishEditing = () => {
-    if (!draft.title.trim()) return
     const parsedBalance = Number(draft.balance.replace(/,/g, ''))
     updateCase(item.id, {
-      title: draft.title.trim(),
       status: draft.status,
       destination: draft.destination,
       assignedTo: draft.assignedTo,
@@ -294,10 +290,10 @@ export default function CaseDetailPage() {
   const displayStatus = editing ? draft.status : item.status
 
   return (
-    <div className="pd-page pd-case-detail" aria-label={item.title}>
+    <div className="pd-page pd-case-detail" aria-label={`${item.clientName} ${item.service} case`}>
       <Link to={listPath} className="pd-case-detail__back">
         <ArrowLeft size={14} strokeWidth={2.25} aria-hidden />
-        {item.vertical} cases
+        {item.service} cases
       </Link>
 
       <header
@@ -314,36 +310,21 @@ export default function CaseDetailPage() {
         />
 
         <div className="pd-case-detail__header-text">
-          {editing ? (
-            <Input
-              label="Case title"
-              value={draft.title}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  title: event.target.value,
-                }))
-              }
-            />
-          ) : (
-            <div className="pd-case-detail__title-row">
-              <h1 className="pd-case-detail__name">{item.title}</h1>
-              <Badge variant="neutral">{item.vertical}</Badge>
-              <Badge variant={statusBadgeVariant(displayStatus)}>
-                {displayStatus}
-              </Badge>
-            </div>
-          )}
+          <div className="pd-case-detail__title-row">
+            <h1 className="pd-case-detail__name">
+              <Link
+                to={`/clients/${item.clientId}`}
+                className="pd-case-detail__name-link"
+              >
+                {item.clientName}
+              </Link>
+            </h1>
+            <Badge variant="neutral">{item.service}</Badge>
+            <Badge variant={statusBadgeVariant(displayStatus)}>
+              {displayStatus}
+            </Badge>
+          </div>
           <p className="pd-case-detail__client-line">
-            <Link
-              to={`/clients/${item.clientId}`}
-              className="pd-case-detail__name-link"
-            >
-              {item.clientName}
-            </Link>
-            <span className="pd-case-detail__meta-sep" aria-hidden>
-              ·
-            </span>
             <span>{item.caseId}</span>
             {item.destination ? (
               <>
@@ -354,11 +335,7 @@ export default function CaseDetailPage() {
               </>
             ) : null}
           </p>
-          {editing ? (
-            <Badge variant={statusBadgeVariant(displayStatus)}>
-              {displayStatus}
-            </Badge>
-          ) : (
+          {editing ? null : (
             <div className="pd-case-detail__meta-row">
               <span className="pd-case-detail__step-chip">
                 <CircleDot size={13} strokeWidth={2.25} aria-hidden />
@@ -383,10 +360,19 @@ export default function CaseDetailPage() {
               </Button>
             </>
           ) : (
-            <Button variant="secondary" size="sm" onClick={startEditing}>
-              <SquarePen size={14} strokeWidth={2.25} aria-hidden />
-              Edit
-            </Button>
+            <>
+              <Link
+                to={`/cases/${item.id}/invoice`}
+                className="pd-btn pd-btn--secondary pd-btn--sm"
+              >
+                <FileText size={14} strokeWidth={2.25} aria-hidden />
+                Invoice
+              </Link>
+              <Button variant="secondary" size="sm" onClick={startEditing}>
+                <SquarePen size={14} strokeWidth={2.25} aria-hidden />
+                Edit
+              </Button>
+            </>
           )}
         </div>
       </header>
