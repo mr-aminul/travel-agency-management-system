@@ -9,8 +9,11 @@ import type { CreateClientInput, ServiceType } from '@/types/client'
 
 type NewClientFormProps = {
   onSubmit: (input: CreateClientInput) => void
-  onCancel: () => void
+  onCancel?: () => void
   defaultPartnerId?: string
+  variant?: 'staff' | 'public'
+  serviceTenantId?: string
+  submitLabel?: string
 }
 
 const COUNTRY_OPTIONS = [
@@ -25,8 +28,12 @@ export function NewClientForm({
   onSubmit,
   onCancel,
   defaultPartnerId,
+  variant = 'staff',
+  serviceTenantId,
+  submitLabel = 'Register client',
 }: NewClientFormProps) {
-  const serviceOptions = useEnabledServiceOptions()
+  const isPublic = variant === 'public'
+  const serviceOptions = useEnabledServiceOptions(serviceTenantId)
   const partners = usePartners()
   const [name, setName] = useState('')
   const [fatherName, setFatherName] = useState('')
@@ -48,12 +55,14 @@ export function NewClientForm({
   const [primaryService, setPrimaryService] = useState<ServiceType>(
     () => serviceOptions[0]?.value ?? 'Leisure',
   )
-  const [idChecked, setIdChecked] = useState(false)
-  const [openFirstCase, setOpenFirstCase] = useState(true)
+  const [idChecked, setIdChecked] = useState(isPublic)
+  const [openFirstCase, setOpenFirstCase] = useState(!isPublic)
   const [triedSubmit, setTriedSubmit] = useState(false)
 
   const phoneDigits = normalizePhone(phone)
-  const existingClient = phoneDigits ? getClientByPhone(phoneDigits) : undefined
+  const existingClient = phoneDigits
+    ? getClientByPhone(phoneDigits, undefined, serviceTenantId)
+    : undefined
 
   const nameError =
     triedSubmit && !name.trim() ? 'Full name is required.' : undefined
@@ -73,7 +82,8 @@ export function NewClientForm({
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     setTriedSubmit(true)
-    if (!name.trim() || !phone.trim() || !idChecked || existingClient) return
+    if (!name.trim() || !phone.trim() || existingClient) return
+    if (!isPublic && !idChecked) return
 
     onSubmit({
       name,
@@ -87,7 +97,7 @@ export function NewClientForm({
       presentAddress: address,
       profession,
       preferredCountry,
-      partnerId: partnerId || undefined,
+      partnerId: defaultPartnerId || partnerId || undefined,
       avatarUrl,
       nid,
       passport,
@@ -95,13 +105,19 @@ export function NewClientForm({
       passportIssuedOn,
       passportPlaceOfIssue,
       primaryService,
-      idChecked,
-      openFirstCase,
+      idChecked: isPublic ? true : idChecked,
+      openFirstCase: isPublic ? false : openFirstCase,
     })
   }
 
   return (
-    <form className="pd-clients-form" onSubmit={handleSubmit} noValidate>
+    <form
+      className={
+        isPublic ? 'pd-clients-form pd-clients-form--public' : 'pd-clients-form'
+      }
+      onSubmit={handleSubmit}
+      noValidate
+    >
       <div className="pd-clients-form__scroll">
         <div className="pd-clients-form__block">
           <p className="pd-clients-form__heading">Client</p>
@@ -223,58 +239,69 @@ export function NewClientForm({
               onChange={(event) => setPreferredCountry(event.target.value)}
               options={COUNTRY_OPTIONS}
             />
-            <Select
-              label="Sub Agent"
-              value={partnerId}
-              onChange={(event) => setPartnerId(event.target.value)}
-              options={[
-                { value: '', label: 'None' },
-                ...partners.map((partner) => ({
-                  value: partner.id,
-                  label: partner.name,
-                })),
-              ]}
-            />
+            {isPublic ? null : (
+              <Select
+                label="Sub Agent"
+                value={partnerId}
+                onChange={(event) => setPartnerId(event.target.value)}
+                options={[
+                  { value: '', label: 'None' },
+                  ...partners.map((partner) => ({
+                    value: partner.id,
+                    label: partner.name,
+                  })),
+                ]}
+              />
+            )}
           </div>
         </div>
 
-        <div className="pd-clients-form__block">
-          <p className="pd-clients-form__heading">Duplicate check</p>
-          <p className="pd-clients-form__hint">
-            Confirm this mobile number is not already registered to another
-            client.
-          </p>
-          <Checkbox
-            label="I confirm this mobile number is unique"
-            checked={idChecked}
-            onChange={(event) => setIdChecked(event.target.checked)}
-          />
-          {checkError ? (
-            <p className="pd-field__error" role="alert">
-              {checkError}
-            </p>
-          ) : null}
-          {idChecked ? <Badge variant="completed">ID check cleared</Badge> : null}
-        </div>
+        {isPublic ? null : (
+          <>
+            <div className="pd-clients-form__block">
+              <p className="pd-clients-form__heading">Duplicate check</p>
+              <p className="pd-clients-form__hint">
+                Confirm this mobile number is not already registered to another
+                client.
+              </p>
+              <Checkbox
+                label="I confirm this mobile number is unique"
+                checked={idChecked}
+                onChange={(event) => setIdChecked(event.target.checked)}
+              />
+              {checkError ? (
+                <p className="pd-field__error" role="alert">
+                  {checkError}
+                </p>
+              ) : null}
+              {idChecked ? (
+                <Badge variant="completed">ID check cleared</Badge>
+              ) : null}
+            </div>
 
-        <div className="pd-clients-form__block">
-          <p className="pd-clients-form__heading">Next step</p>
-          <Checkbox
-            label="Add first service after registration"
-            checked={openFirstCase}
-            onChange={(event) => setOpenFirstCase(event.target.checked)}
-          />
-          <p className="pd-clients-form__hint">
-            Recommended — capture why they came while the conversation is fresh.
-          </p>
-        </div>
+            <div className="pd-clients-form__block">
+              <p className="pd-clients-form__heading">Next step</p>
+              <Checkbox
+                label="Add first service after registration"
+                checked={openFirstCase}
+                onChange={(event) => setOpenFirstCase(event.target.checked)}
+              />
+              <p className="pd-clients-form__hint">
+                Recommended — capture why they came while the conversation is
+                fresh.
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="pd-clients-form__footer">
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit">Register client</Button>
+        {onCancel ? (
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+        ) : null}
+        <Button type="submit">{submitLabel}</Button>
       </div>
     </form>
   )

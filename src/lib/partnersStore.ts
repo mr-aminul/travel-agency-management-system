@@ -3,11 +3,9 @@ import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
 import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
-import type { Partner, PartnerDraft, PartnerStatus } from '@/types/partner'
+import type { Partner, PartnerDraft } from '@/types/partner'
 
 type Listener = () => void
-
-const CREATED_PARTNERS_KEY = 'pd-created-partners'
 
 const SEED_PARTNERS: Partner[] = [
   {
@@ -48,72 +46,10 @@ const SEED_PARTNERS: Partner[] = [
   },
 ]
 
-function isPartnerStatus(value: unknown): value is PartnerStatus {
-  return value === 'Active' || value === 'Inactive'
-}
-
-function normalizeStoredPartner(value: unknown): Partner | undefined {
-  if (!value || typeof value !== 'object') return undefined
-  const parsed = value as Record<string, unknown>
-  if (
-    typeof parsed.id !== 'string' ||
-    typeof parsed.tenantId !== 'string' ||
-    typeof parsed.name !== 'string' ||
-    typeof parsed.phone !== 'string' ||
-    typeof parsed.createdAt !== 'string' ||
-    !isPartnerStatus(parsed.status)
-  ) {
-    return undefined
-  }
-  return {
-    id: parsed.id,
-    tenantId: parsed.tenantId,
-    name: parsed.name,
-    phone: parsed.phone,
-    email: typeof parsed.email === 'string' ? parsed.email : undefined,
-    address: typeof parsed.address === 'string' ? parsed.address : undefined,
-    licenseNumber:
-      typeof parsed.licenseNumber === 'string' ? parsed.licenseNumber : undefined,
-    branch: typeof parsed.branch === 'string' ? parsed.branch : undefined,
-    photoUrl: typeof parsed.photoUrl === 'string' ? parsed.photoUrl : undefined,
-    status: parsed.status,
-    createdAt: parsed.createdAt,
-  }
-}
-
-function loadCreatedPartners(): Partner[] {
-  try {
-    const raw = localStorage.getItem(CREATED_PARTNERS_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed
-      .map(normalizeStoredPartner)
-      .filter((item): item is Partner => item != null)
-  } catch {
-    return []
-  }
-}
-
-function persistCreatedPartners(all: Partner[]) {
-  const seedIds = new Set(SEED_PARTNERS.map((partner) => partner.id))
-  const extras = all.filter((partner) => !seedIds.has(partner.id))
-  try {
-    localStorage.setItem(CREATED_PARTNERS_KEY, JSON.stringify(extras))
-  } catch {
-    /* ignore quota / private mode */
-  }
-}
-
-function seedPartners(): Partner[] {
-  return SEED_PARTNERS.map((partner) => ({ ...partner }))
-}
-
-let partners: Partner[] = [...seedPartners(), ...loadCreatedPartners()]
+let partners: Partner[] = SEED_PARTNERS.map((partner) => ({ ...partner }))
 const listeners = new Set<Listener>()
 
 function emit() {
-  persistCreatedPartners(partners)
   listeners.forEach((listener) => listener())
 }
 
@@ -154,25 +90,15 @@ export function usePartners(): Partner[] {
   )
 }
 
-/** Public intake: lookup is not tenant-scoped. */
-export function findPartnerRecord(id: string): Partner | undefined {
-  return partners.find((partner) => partner.id === id)
-}
-
 export function getPartnerById(id: string): Partner | undefined {
   return partners.find(
     (partner) => partner.id === id && inActiveTenant(partner),
   )
 }
 
-export function resetCreatedPartners() {
-  try {
-    localStorage.removeItem(CREATED_PARTNERS_KEY)
-  } catch {
-    /* ignore */
-  }
-  partners = seedPartners()
-  listeners.forEach((listener) => listener())
+/** Public intake: resolve a sub agent without requiring a signed-in tenant. */
+export function findPartnerById(id: string): Partner | undefined {
+  return partners.find((partner) => partner.id === id)
 }
 
 export function createPartner(draft: PartnerDraft): Partner {
@@ -192,14 +118,6 @@ export function createPartner(draft: PartnerDraft): Partner {
   partners = [created, ...partners]
   emit()
   return created
-}
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event) => {
-    if (event.key !== CREATED_PARTNERS_KEY) return
-    partners = [...seedPartners(), ...loadCreatedPartners()]
-    listeners.forEach((listener) => listener())
-  })
 }
 
 export function updatePartner(

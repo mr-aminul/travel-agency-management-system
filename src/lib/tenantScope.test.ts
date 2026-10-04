@@ -77,4 +77,25 @@ describe('tenant-scoped stores', () => {
     expect(getCaseById('case-m-101')).toBeUndefined()
     expect(getCaseById('case-l-105')?.service).toBe('Leisure')
   })
+
+  it('creates a client under a partner tenant from a public intake', () => {
+    clearSession()
+    const created = createClient(
+      {
+        name: 'Public Intake Client',
+        phone: '01811119999',
+        primaryService: 'Manpower',
+        idChecked: true,
+        partnerId: 'AGT-M0001',
+      },
+      { tenantId: TENANT_IDS.manpower },
+    )
+
+    asManpower()
+    expect(getClientById(created.id)?.partnerId).toBe('AGT-M0001')
+    expect(getClientByPhone('01811119999')?.name).toBe('Public Intake Client')
+
+    asLeisure()
+    expect(getClientById(created.id)).toBeUndefined()
+  })
 })

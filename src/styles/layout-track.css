@@ -77,6 +77,20 @@
   width: min(40rem, 100%);
 }
 
+.pd-track__sheet--intake {
+  width: min(44rem, 100%);
+  margin: 0 auto auto;
+  text-align: start;
+}
+
+.pd-track__sheet--intake .pd-track__intro {
+  text-align: start;
+}
+
+.pd-track__sheet--intake .pd-clients-form {
+  color: var(--track-ink);
+}
+
 .pd-track__intro {
   display: flex;
   flex-direction: column;

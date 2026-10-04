@@ -5,18 +5,17 @@ export function publicUrl(path: string): string {
   return `${base}${normalized}`
 }
 
-/** Absolute URL for a public app route, including Vite `base`. */
-export function publicPageUrl(path: string): string {
-  const origin = typeof window === 'undefined' ? '' : window.location.origin
-  const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
-  const normalized = path.startsWith('/') ? path : `/${path}`
-  return `${origin}${base}${normalized}`
+/** Absolute URL for a public app path, including Vite `base`. */
+export function absolutePublicUrl(path: string): string {
+  const relative = publicUrl(path)
+  if (typeof window === 'undefined') return relative
+  return new URL(relative, window.location.origin).toString()
 }
 
-export function partnerIntakePath(partnerId: string): string {
-  return `/join/${encodeURIComponent(partnerId)}`
+export function partnerClientFormPath(partnerId: string): string {
+  return `join/${encodeURIComponent(partnerId)}`
 }
 
-export function partnerIntakeUrl(partnerId: string): string {
-  return publicPageUrl(partnerIntakePath(partnerId))
+export function partnerClientFormUrl(partnerId: string): string {
+  return absolutePublicUrl(partnerClientFormPath(partnerId))
 }

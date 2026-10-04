@@ -4,12 +4,14 @@ import {
   ArrowLeft,
   Calendar,
   Check,
+  ChevronDown,
   CircleDot,
   ClipboardList,
   Contact,
   Copy,
   IdCard,
   LayoutDashboard,
+  Link2,
   Mail,
   MapPin,
   Phone,
@@ -25,6 +27,7 @@ import {
   Avatar,
   Badge,
   Button,
+  DropdownMenu,
   EmptyState,
   Input,
   Select,
@@ -40,6 +43,7 @@ import {
   type BadgeVariant,
 } from '@/components/ui'
 import { getPartnerById, updatePartner, usePartners } from '@/lib/partnersStore'
+import { partnerClientFormUrl } from '@/lib/publicUrl'
 import { createCase } from '@/lib/casesStore'
 import { workDetailPath } from '@/lib/workPaths'
 import {
@@ -102,6 +106,80 @@ function TabLabel({
       <Icon size={15} strokeWidth={2.25} aria-hidden />
       {children}
     </>
+  )
+}
+
+function AddClientSplitButton({
+  partnerId,
+  size = 'sm',
+  onAddClient,
+}: {
+  partnerId: string
+  size?: 'sm' | 'md'
+  onAddClient: () => void
+}) {
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!copied) return
+    const timer = window.setTimeout(() => setCopied(false), 1500)
+    return () => window.clearTimeout(timer)
+  }, [copied])
+
+  const copyFormLink = async () => {
+    const url = partnerClientFormUrl(partnerId)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      const field = document.createElement('textarea')
+      field.value = url
+      field.setAttribute('readonly', '')
+      field.style.position = 'fixed'
+      field.style.opacity = '0'
+      document.body.appendChild(field)
+      field.select()
+      document.execCommand('copy')
+      field.remove()
+    }
+    setCopied(true)
+  }
+
+  return (
+    <div className={`pd-split-btn pd-split-btn--${size}`}>
+      <Button size={size} className="pd-split-btn__main" onClick={onAddClient}>
+        <UserPlus size={size === 'sm' ? 14 : 16} strokeWidth={2.25} aria-hidden />
+        Add Client
+      </Button>
+      <DropdownMenu
+        label="More client actions"
+        align="end"
+        items={[
+          {
+            id: 'copy-form',
+            label: copied ? 'Copied' : 'Copy Form Link',
+            icon: copied ? (
+              <Check size={14} strokeWidth={2.25} />
+            ) : (
+              <Link2 size={14} strokeWidth={2.25} />
+            ),
+            onSelect: () => {
+              void copyFormLink()
+            },
+          },
+        ]}
+        trigger={
+          <ChevronDown
+            size={size === 'sm' ? 14 : 16}
+            strokeWidth={2.25}
+            aria-hidden
+          />
+        }
+        triggerProps={{
+          'aria-label': 'Copy Form Link',
+          title: 'Copy Form Link',
+        }}
+      />
+    </div>
   )
 }
 
@@ -331,10 +409,10 @@ export default function PartnerDetailPage() {
             </>
           ) : (
             <>
-              <Button size="sm" onClick={() => setCustomerOpen(true)}>
-                <UserPlus size={14} strokeWidth={2.25} aria-hidden />
-                Add customer
-              </Button>
+              <AddClientSplitButton
+                partnerId={partner.id}
+                onAddClient={() => setCustomerOpen(true)}
+              />
               <Button variant="secondary" size="sm" onClick={startEditing}>
                 <SquarePen size={14} strokeWidth={2.25} aria-hidden />
                 Edit
@@ -600,10 +678,11 @@ export default function PartnerDetailPage() {
                   title="No customers yet"
                   description="Register a client against this sub agent to start their first case."
                   action={
-                    <Button onClick={() => setCustomerOpen(true)}>
-                      <UserPlus size={16} strokeWidth={2.25} aria-hidden />
-                      Add customer
-                    </Button>
+                    <AddClientSplitButton
+                      size="md"
+                      partnerId={partner.id}
+                      onAddClient={() => setCustomerOpen(true)}
+                    />
                   }
                 />
               ) : (
@@ -654,7 +733,7 @@ export default function PartnerDetailPage() {
       <SideDrawer
         open={customerOpen}
         onClose={() => setCustomerOpen(false)}
-        title="Add customer"
+        title="Add client"
         description="This client will be linked to this sub agent."
         className="pd-clients-drawer"
       >

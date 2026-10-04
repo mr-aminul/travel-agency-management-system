@@ -22,6 +22,7 @@ const PartnerDetailPage = lazy(() => import('@/pages/PartnerDetailPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const TrackClientPage = lazy(() => import('@/pages/TrackClientPage'))
+const PublicClientIntakePage = lazy(() => import('@/pages/PublicClientIntakePage'))
 const TenantsAdminPage = lazy(() => import('@/pages/admin/TenantsAdminPage'))
 const TenantAdminLayout = lazy(() => import('@/pages/admin/TenantAdminLayout'))
 const TenantOverviewPage = lazy(() => import('@/pages/admin/TenantOverviewPage'))
@@ -55,6 +56,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/track" element={<TrackClientPage />} />
+          <Route path="/join/:partnerId" element={<PublicClientIntakePage />} />
           <Route path="/" element={<AuthenticatedLayout />}>
             <Route index element={<HomePage />} />
             <Route path="dashboard" element={<DashboardPage />} />

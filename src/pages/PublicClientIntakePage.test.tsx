@@ -1,0 +1,63 @@
+import { afterEach, describe, expect, it } from 'vitest'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { AuthProvider } from '@/lib/AuthProvider'
+import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
+import { getClientByPhone } from '@/lib/clientsStore'
+import { TENANT_IDS } from '@/types/tenant'
+import PublicClientIntakePage from '@/pages/PublicClientIntakePage'
+
+afterEach(() => {
+  cleanup()
+  clearSession()
+})
+
+function renderIntake(partnerId: string) {
+  clearSession()
+  return render(
+    <AuthProvider>
+      <MemoryRouter initialEntries={[`/join/${partnerId}`]}>
+        <Routes>
+          <Route path="/join/:partnerId" element={<PublicClientIntakePage />} />
+        </Routes>
+      </MemoryRouter>
+    </AuthProvider>,
+  )
+}
+
+describe('public client intake', () => {
+  it('lets anyone submit a profile that lands under that sub agent', () => {
+    renderIntake('AGT-T0001')
+
+    expect(
+      screen.getByRole('heading', { name: 'Create your profile' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/Rakib Travels/)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText(/full name/i), {
+      target: { value: 'Nusrat Jahan' },
+    })
+    fireEvent.change(screen.getByLabelText(/mobile number/i), {
+      target: { value: '01822223333' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+
+    expect(
+      screen.getByRole('heading', { name: 'Details received' }),
+    ).toBeInTheDocument()
+
+    writeSession({
+      user: DEMO_USER,
+      tenantId: TENANT_IDS.full,
+      signedInAt: '2026-01-01T00:00:00.000Z',
+    })
+    const created = getClientByPhone('01822223333')
+    expect(created?.name).toBe('Nusrat Jahan')
+    expect(created?.partnerId).toBe('AGT-T0001')
+  })
+
+  it('rejects an unknown agent link', () => {
+    renderIntake('missing-agent')
+    expect(screen.getByText(/invalid or has expired/i)).toBeInTheDocument()
+  })
+})

@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
-import { activeTenantAllowsService } from '@/lib/activeTenant'
 import { getEnabledServiceOptions } from '@/lib/serviceCatalog'
+import { getTenantById, tenantAllowsService } from '@/lib/tenantsStore'
 import { BUILTIN_SERVICE_OPTIONS } from '@/types/case'
 import { useAuth } from '@/lib/useAuth'
 import { publicUrl } from '@/lib/publicUrl'
@@ -264,12 +264,13 @@ export function getClientById(id: string): Client | undefined {
 export function getClientByPhone(
   phone: string,
   excludeId?: string,
+  forTenantId = tenantId(),
 ): Client | undefined {
   const digits = normalizePhone(phone)
   if (!digits) return undefined
   return clients.find(
     (client) =>
-      inActiveTenant(client) &&
+      client.tenantId === forTenantId &&
       client.id !== excludeId &&
       normalizePhone(client.phone) === digits,
   )
@@ -296,21 +297,26 @@ export function getClientsByPartnerId(partnerId: string): Client[] {
   )
 }
 
-export function createClient(input: CreateClientInput): Client {
+export function createClient(
+  input: CreateClientInput,
+  options?: { tenantId?: string },
+): Client {
+  const assignedTenantId = options?.tenantId ?? tenantId()
   const phone = normalizePhone(input.phone)
   if (!phone) {
     throw new Error('Phone number is required.')
   }
-  if (getClientByPhone(phone)) {
+  if (getClientByPhone(phone, undefined, assignedTenantId)) {
     throw new Error('A client with this phone number already exists.')
   }
-  if (!activeTenantAllowsService(input.primaryService)) {
+  const tenant = getTenantById(assignedTenantId)
+  if (!tenant || !tenantAllowsService(tenant, input.primaryService)) {
     throw new Error('This service line is not enabled for your agency.')
   }
 
   const created: Client = {
     id: `c-${Date.now().toString(36)}`,
-    tenantId: tenantId(),
+    tenantId: assignedTenantId,
     name: input.name.trim(),
     phone,
     email: input.email?.trim() || undefined,

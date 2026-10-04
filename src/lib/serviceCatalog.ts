@@ -1,10 +1,11 @@
 import { useCustomServices } from '@/lib/customServicesStore'
-import { activeTenantAllowsService } from '@/lib/activeTenant'
+import { activeTenantAllowsService, resolveActiveTenant } from '@/lib/activeTenant'
 import { findCustomServiceBySlug, listCustomServices } from '@/lib/customServicesStore'
 import {
   isCatalogServiceHidden,
   useHiddenServices,
 } from '@/lib/hiddenServicesStore'
+import { getTenantById, tenantAllowsService } from '@/lib/tenantsStore'
 import {
   BUILTIN_SERVICE_OPTIONS,
   CASE_SERVICE_SLUGS,
@@ -12,17 +13,21 @@ import {
   type ServiceType,
 } from '@/types/case'
 
-export function getEnabledServiceOptions(): {
+export function getEnabledServiceOptions(forTenantId?: string): {
   value: ServiceType
   label: string
 }[] {
+  const tenant = forTenantId
+    ? getTenantById(forTenantId)
+    : resolveActiveTenant()
+  if (!tenant) return []
   const builtin = BUILTIN_SERVICE_OPTIONS.filter(
     (option) =>
-      activeTenantAllowsService(option.value) &&
-      !isCatalogServiceHidden(option.value),
+      tenantAllowsService(tenant, option.value) &&
+      !isCatalogServiceHidden(option.value, tenant.id),
   )
-  const custom = listCustomServices()
-    .filter((item) => !isCatalogServiceHidden(item.name))
+  const custom = listCustomServices(tenant.id)
+    .filter((item) => !isCatalogServiceHidden(item.name, tenant.id))
     .map((item) => ({
       value: item.name,
       label: item.name,
@@ -40,8 +45,8 @@ export function resolveServiceFromSlug(
   return findCustomServiceBySlug(slug)?.name
 }
 
-export function useEnabledServiceOptions() {
+export function useEnabledServiceOptions(forTenantId?: string) {
   useCustomServices()
   useHiddenServices()
-  return getEnabledServiceOptions()
+  return getEnabledServiceOptions(forTenantId)
 }
