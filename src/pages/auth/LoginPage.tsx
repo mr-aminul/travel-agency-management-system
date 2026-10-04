@@ -6,6 +6,7 @@ import { DEMO_ACCOUNTS } from '@/lib/authApi'
 import { useAuth } from '@/lib/auth'
 import { signedInHomePath } from '@/lib/modules'
 import { publicUrl } from '@/lib/publicUrl'
+import { Alert, Button, Input } from '@/components/ui'
 import '@/styles/layout-login.css'
 
 function GoogleMark() {
@@ -68,18 +69,6 @@ export default function LoginPage() {
     }
   }, [isAccountMenuOpen])
 
-  useEffect(() => {
-    const link = document.createElement('link')
-    link.rel = 'preload'
-    link.as = 'image'
-    link.href = publicUrl('images/login-plane-bg.avif')
-    link.type = 'image/avif'
-    document.head.appendChild(link)
-    return () => {
-      link.remove()
-    }
-  }, [])
-
   if (status === 'authenticated') {
     return (
       <Navigate
@@ -101,6 +90,7 @@ export default function LoginPage() {
   }
 
   const handleGoogleSignIn = async () => {
+    setError(null)
     await signInWithGoogle()
     goHome('agency_user')
   }
@@ -115,6 +105,7 @@ export default function LoginPage() {
       setError(
         caught instanceof Error ? caught.message : 'Could not sign in.',
       )
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -123,7 +114,7 @@ export default function LoginPage() {
     <div className="pd-login">
       <img
         src={publicUrl('images/logo.svg')}
-        alt="OneTrack"
+        alt={layoutConfig.brand.name}
         className="pd-login__corner-logo"
         width={86}
         height={44}
@@ -144,86 +135,12 @@ export default function LoginPage() {
             </div>
           ) : null}
           <h1 className="pd-login__title">{layoutConfig.brand.name}</h1>
+          <p className="pd-login__subtitle">
+            Welcome back — sign in to continue
+          </p>
         </div>
 
         <div className="pd-login__actions">
-          <p className="pd-login__subtitle">Sign in to continue.</p>
-
-          <form className="pd-login__form" onSubmit={handlePasswordSignIn}>
-            <div className="pd-login__field" ref={emailFieldRef}>
-              <span className="pd-login__field-label">Email</span>
-              <div className="pd-login__email-control">
-                <input
-                  type="email"
-                  name="email"
-                  aria-label="Email"
-                  autoComplete="username"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="pd-login__email-menu-btn"
-                  aria-label="Choose a saved account"
-                  aria-expanded={isAccountMenuOpen}
-                  aria-haspopup="listbox"
-                  onClick={() => setIsAccountMenuOpen((open) => !open)}
-                >
-                  <ChevronDown size={16} strokeWidth={2} aria-hidden />
-                </button>
-                {isAccountMenuOpen ? (
-                  <ul className="pd-login__email-menu" role="listbox">
-                    {DEMO_ACCOUNTS.map((account) => (
-                      <li key={account.id} role="none">
-                        <button
-                          type="button"
-                          className="pd-login__email-option"
-                          role="option"
-                          onClick={() => fillAccount(account.user.email)}
-                        >
-                          <span className="pd-login__account-name">
-                            {account.label}
-                          </span>
-                          <span className="pd-login__account-meta">
-                            {account.description}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            </div>
-            <label className="pd-login__field">
-              <span className="pd-login__field-label">Password</span>
-              <input
-                type="password"
-                name="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-              />
-            </label>
-            {error ? (
-              <p className="pd-login__error" role="alert">
-                {error}
-              </p>
-            ) : null}
-            <button
-              type="submit"
-              className="pd-login__submit"
-              disabled={isSubmitting}
-            >
-              Sign in
-            </button>
-          </form>
-
-          <p className="pd-login__divider">
-            <span>or</span>
-          </p>
-
           <button
             type="button"
             className="pd-login__google"
@@ -233,7 +150,71 @@ export default function LoginPage() {
             Continue with Google
           </button>
 
-          <p className="pd-login__hint">Authorized members only.</p>
+          <p className="pd-login__divider" role="separator" aria-label="or">
+            or
+          </p>
+
+          <form className="pd-login__form" onSubmit={handlePasswordSignIn}>
+            <div className="pd-login__email-control" ref={emailFieldRef}>
+              <Input
+                id="login-email"
+                label="Email"
+                labelVariant="default"
+                type="email"
+                autoComplete="email"
+                placeholder="name@company.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="pd-login__email-menu-btn"
+                aria-label="Choose a saved account"
+                aria-expanded={isAccountMenuOpen}
+                aria-haspopup="listbox"
+                onClick={() => setIsAccountMenuOpen((open) => !open)}
+              >
+                <ChevronDown size={16} strokeWidth={2} aria-hidden />
+              </button>
+              {isAccountMenuOpen ? (
+                <ul className="pd-login__email-menu" role="listbox">
+                  {DEMO_ACCOUNTS.map((account) => (
+                    <li key={account.id} role="none">
+                      <button
+                        type="button"
+                        className="pd-login__email-option"
+                        role="option"
+                        onClick={() => fillAccount(account.user.email)}
+                      >
+                        <span className="pd-login__account-name">
+                          {account.label}
+                        </span>
+                        <span className="pd-login__account-meta">
+                          {account.description}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+            <Input
+              id="login-password"
+              label="Password"
+              labelVariant="default"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+            {error ? <Alert variant="error">{error}</Alert> : null}
+            <Button type="submit" size="lg" loading={isSubmitting}>
+              Log in
+            </Button>
+          </form>
         </div>
       </div>
     </div>

@@ -181,24 +181,28 @@ export default function PartnersPage() {
             label: 'Total sub agents',
             value: String(stats.total),
             icon: Handshake,
+            tone: 'brand',
           },
           {
             id: 'Active',
             label: 'Active',
             value: String(stats.active),
             icon: UserCheck,
+            tone: 'success',
           },
           {
             id: 'referred',
             label: 'Referred clients',
             value: String(stats.referredClients),
             icon: Users,
+            tone: 'info',
           },
           {
             id: 'idle',
             label: 'No clients yet',
             value: String(stats.idle),
             icon: UserMinus,
+            tone: 'muted',
           },
         ]}
       />

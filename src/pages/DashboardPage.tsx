@@ -38,13 +38,25 @@ import { useEmployees } from '@/lib/employeesStore'
 import { usePayments } from '@/lib/paymentsStore'
 import { useRequests } from '@/lib/requestsStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
+import type { StatCardTone } from '@/components/StatCards'
 import '@/styles/layout-ops.css'
+
+const SERVICE_TONES: StatCardTone[] = ['brand', 'info', 'success', 'warning']
 
 type MetricTile = {
   label: string
   value: string
   filter: Exclude<DashboardFilter, 'all'>
   icon: LucideIcon
+  tone: StatCardTone
+}
+
+function dashboardTileTone(filter: Exclude<DashboardFilter, 'all'>): StatCardTone {
+  if (filter === 'pending-requests' || filter === 'outstanding') return 'warning'
+  if (filter === 'open-services' || filter === 'clients') return 'info'
+  if (filter === 'completed-services' || filter === 'collected') return 'success'
+  if (filter === 'employees') return 'muted'
+  return 'brand'
 }
 
 function statusBadgeVariant(status: string): BadgeVariant {
@@ -91,49 +103,57 @@ export default function DashboardPage() {
       value: String(metrics.pendingRequests),
       filter: 'pending-requests',
       icon: ClipboardList,
+      tone: dashboardTileTone('pending-requests'),
     },
     {
       label: 'Open services',
       value: String(metrics.openCases),
       filter: 'open-services',
       icon: Folder,
+      tone: dashboardTileTone('open-services'),
     },
     {
       label: 'Outstanding',
       value: formatBdt(metrics.outstanding),
       filter: 'outstanding',
       icon: Wallet,
+      tone: dashboardTileTone('outstanding'),
     },
     {
       label: 'Collected',
       value: formatBdt(metrics.collected),
       filter: 'collected',
       icon: Wallet,
+      tone: dashboardTileTone('collected'),
     },
     {
       label: 'Clients',
       value: String(metrics.totalClients),
       filter: 'clients',
       icon: Users,
+      tone: dashboardTileTone('clients'),
     },
     {
       label: 'Completed services',
       value: String(metrics.completedCases),
       filter: 'completed-services',
       icon: Handshake,
+      tone: dashboardTileTone('completed-services'),
     },
     {
       label: 'Employees',
       value: String(metrics.employees),
       filter: 'employees',
       icon: UsersRound,
+      tone: dashboardTileTone('employees'),
     },
     ...sortServicesByVolume(serviceOptions, metrics.serviceCounts).map(
-      (option) => ({
+      (option, index) => ({
         label: option.label,
         value: String(metrics.serviceCounts[option.value] ?? 0),
         filter: serviceDashboardFilter(option.value),
         icon: Briefcase,
+        tone: SERVICE_TONES[index % SERVICE_TONES.length],
       }),
     ),
   ]
@@ -156,11 +176,13 @@ export default function DashboardPage() {
             <button
               key={tile.label}
               type="button"
-              className={
-                isSelected
-                  ? 'pd-ops-metric-link is-selected'
-                  : 'pd-ops-metric-link'
-              }
+              className={[
+                'pd-ops-metric-link',
+                `pd-ops-metric-link--${tile.tone}`,
+                isSelected ? 'is-selected' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               aria-pressed={isSelected}
               onClick={() => selectFilter(tile.filter)}
             >

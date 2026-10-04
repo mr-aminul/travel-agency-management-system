@@ -1,3 +1,7 @@
+.pd-invoice-page.pd-page {
+  max-width: none;
+}
+
 .pd-invoice-page {
   display: flex;
   flex-direction: column;
@@ -13,47 +17,103 @@
   flex-wrap: wrap;
 }
 
+.pd-invoice-page__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2, 0.5rem);
+}
+
+.pd-invoice-page--public {
+  min-height: 100vh;
+  padding-inline: var(--spacing-4, 1rem);
+  background: color-mix(in srgb, var(--color-text) 4%, var(--color-bg));
+}
+
+.pd-invoice-page__public-label {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.pd-invoice-page__stage {
+  container-type: inline-size;
+  width: 100%;
+  overflow-x: auto;
+}
+
 .pd-invoice {
+  --invoice-scale: min(1, calc(100cqi / 210mm));
   display: flex;
   flex-direction: column;
   gap: var(--spacing-6, 1.5rem);
-  padding: var(--spacing-6, 1.5rem);
-  border: 0.0625rem solid var(--color-border);
-  border-radius: var(--radius-lg, 0.75rem);
-  background: var(--color-bg);
   box-sizing: border-box;
+  width: 210mm;
+  min-height: 297mm;
+  margin-inline: auto;
+  padding: 14mm 16mm 16mm;
+  border: 0.0625rem solid var(--color-border);
+  border-top: 0.35rem solid var(--color-theme);
+  border-radius: 0;
+  background: var(--color-white);
+  color: var(--color-text);
+  box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, var(--color-text) 12%, transparent);
+  zoom: var(--invoice-scale);
+  page: invoice;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
 
 .pd-invoice__header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: var(--spacing-6, 1.5rem);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  padding-bottom: var(--spacing-5, 1.25rem);
+  border-bottom: 0.0625rem solid var(--color-border);
 }
 
 .pd-invoice__brand {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--spacing-3, 0.75rem);
-  min-width: 12rem;
+  min-width: 0;
 }
 
 .pd-invoice__logo {
-  width: 3rem;
-  height: 3rem;
-  object-fit: cover;
+  width: 3.5rem;
+  height: 3.5rem;
+  object-fit: contain;
+  flex-shrink: 0;
   border-radius: var(--radius-md, 0.5rem);
+}
+
+.pd-invoice__logo--photo {
+  object-fit: cover;
   border: 0.0625rem solid var(--color-border);
 }
 
-.pd-invoice__brand-text,
 .pd-invoice__meta {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  width: max-content;
+  max-width: 55%;
+  text-align: right;
 }
 
-.pd-invoice__agency-name,
+.pd-invoice__agency-name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
 .pd-invoice__party-name {
   margin: 0;
   font-size: 1.0625rem;
@@ -63,16 +123,44 @@
 
 .pd-invoice__title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   color: var(--color-text);
+}
+
+.pd-invoice__meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-2, 0.5rem);
 }
 
 .pd-invoice__number {
   margin: 0;
   font-size: 0.875rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-secondary);
+}
+
+.pd-invoice__issued {
+  margin: 0.15rem 0 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pd-invoice__issued span {
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--color-text-secondary);
 }
 
@@ -83,25 +171,13 @@
   color: var(--color-text-secondary);
 }
 
-.pd-invoice__meta {
-  align-items: flex-end;
-  text-align: right;
-}
-
-.pd-invoice__meta-list {
-  margin: 0.5rem 0 0;
-  display: grid;
-  gap: 0.25rem;
-}
-
-.pd-invoice__meta-list div,
 .pd-invoice__totals dl > div {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: var(--spacing-4, 1rem);
 }
 
-.pd-invoice__meta-list dt,
 .pd-invoice__section-label,
 .pd-invoice__totals dt {
   margin: 0;
@@ -112,22 +188,49 @@
   color: var(--color-text-secondary);
 }
 
-.pd-invoice__meta-list dd,
 .pd-invoice__totals dd {
   margin: 0;
   font-size: 0.875rem;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text);
 }
 
 .pd-invoice__parties {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--spacing-6, 1.5rem);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-8, 2rem);
+  padding-bottom: var(--spacing-5, 1.25rem);
+  border-bottom: 0.0625rem solid var(--color-border);
+}
+
+.pd-invoice__party {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  max-width: 46%;
+}
+
+.pd-invoice__party .pd-invoice__party-name {
+  margin-bottom: 0.1rem;
+}
+
+.pd-invoice__party .pd-invoice__muted {
+  line-height: 1.25;
+}
+
+.pd-invoice__party--to {
+  width: max-content;
+  max-width: 46%;
+  margin-left: auto;
+  align-items: flex-end;
+  text-align: right;
 }
 
 .pd-invoice__section-label {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.2rem;
 }
 
 .pd-invoice__amount {
@@ -136,35 +239,66 @@
   white-space: nowrap;
 }
 
+.pd-invoice .pd-table-wrap {
+  overflow: hidden;
+  border-radius: var(--radius-md, 0.5rem);
+  box-shadow: none;
+}
+
+.pd-invoice .pd-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.pd-invoice .pd-table__th:first-child,
+.pd-invoice .pd-table__th:last-child {
+  border-radius: 0;
+}
+
+.pd-invoice .pd-table__th:last-child,
+.pd-invoice .pd-table__td:last-child {
+  width: 7.5rem;
+}
+
 .pd-invoice__row.is-highlight td {
   background: color-mix(in srgb, var(--color-theme) 10%, transparent);
 }
 
 .pd-invoice__totals {
   margin-left: auto;
-  width: min(100%, 18rem);
+  width: min(100%, 16.5rem);
 }
 
 .pd-invoice__totals dl {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.45rem;
+}
+
+.pd-invoice__due {
+  margin-top: 0.15rem;
+  padding-top: 0.55rem;
+  border-top: 0.125rem solid var(--color-text);
 }
 
 .pd-invoice__due dd {
-  font-size: 1.0625rem;
+  font-size: 1.125rem;
+  font-weight: 700;
 }
 
-@media (max-width: 40rem) {
-  .pd-invoice__parties {
-    grid-template-columns: 1fr;
-  }
+.pd-invoice__footnote {
+  margin: auto 0 0;
+  padding-top: var(--spacing-4, 1rem);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
 
-  .pd-invoice__meta {
-    align-items: flex-start;
-    text-align: left;
-  }
+@page invoice {
+  size: A4 portrait;
+  margin: 0;
 }
 
 @media print {
@@ -182,18 +316,23 @@
   .pd-app-content,
   .pd-app-content-card,
   .pd-app-main,
-  .pd-invoice-page {
+  .pd-invoice-page,
+  .pd-invoice-page__stage {
     height: auto !important;
     overflow: visible !important;
-    background: var(--color-bg) !important;
+    background: var(--color-white) !important;
     box-shadow: none !important;
     max-width: none;
     padding: 0;
   }
 
   .pd-invoice {
+    zoom: 1;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
     border: none;
-    border-radius: 0;
-    padding: 0;
+    border-top: 0.35rem solid var(--color-theme);
+    box-shadow: none;
   }
 }

@@ -30,6 +30,7 @@ export type CaseInvoice = {
   agencyMobile: string
   agencyWebsite: string
   agencyLogoUrl?: string
+  agencyLogoIsCustom: boolean
   clientName: string
   clientPhone: string
   clientEmail?: string
@@ -74,9 +75,10 @@ export function buildCaseInvoice(input: {
   payments: Payment[]
   client?: Client
   profile: AgencyProfile
+  defaultLogoUrl?: string
 }): CaseInvoice {
-  const { caseItem, payments, client, profile } = input
-  const brand = resolveBrandDisplay(profile)
+  const { caseItem, payments, client, profile, defaultLogoUrl } = input
+  const brand = resolveBrandDisplay(profile, defaultLogoUrl)
   const paidTotal = payments.reduce((sum, item) => sum + item.amount, 0)
   const packageTotal = caseServiceFee(caseItem, paidTotal)
   const balanceDue = caseBalanceDue(caseItem, paidTotal)
@@ -109,6 +111,7 @@ export function buildCaseInvoice(input: {
     agencyMobile: profile.mobile.trim(),
     agencyWebsite: profile.website.trim(),
     agencyLogoUrl: brand.logoUrl,
+    agencyLogoIsCustom: brand.isCustomLogo,
     clientName: client?.name ?? caseItem.clientName,
     clientPhone: client?.phone ?? '',
     clientEmail: client?.email,

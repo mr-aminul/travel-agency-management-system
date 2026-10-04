@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from 'react'
-import { nameInitials } from '@/layout/utils'
+import { UserRound } from 'lucide-react'
 import { cx } from '@/lib/cx'
 
 export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl'
@@ -19,7 +19,6 @@ export function Avatar({
   className,
   ...props
 }: AvatarProps) {
-  const initials = nameInitials(name)
   const label = alt ?? name ?? 'Avatar'
 
   return (
@@ -32,9 +31,7 @@ export function Avatar({
       {src ? (
         <img className="pd-avatar__image" src={src} alt="" />
       ) : (
-        <span className="pd-avatar__initials" aria-hidden>
-          {initials}
-        </span>
+        <UserRound className="pd-avatar__icon" aria-hidden />
       )}
     </span>
   )

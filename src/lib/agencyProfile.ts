@@ -24,19 +24,50 @@ export const DEFAULT_AGENCY_PROFILE: AgencyProfile = {
   profilePicture: null,
 }
 
-const TENANT_DEFAULT_NAMES: Partial<Record<string, string>> = {
-  [TENANT_IDS.leisure]: 'Coastal Leisure',
-  [TENANT_IDS.manpower]: 'Horizon Manpower',
+export const TENANT_DEFAULT_PROFILES: Record<string, AgencyProfile> = {
+  [TENANT_IDS.leisure]: {
+    businessName: 'Coastal Leisure',
+    address: 'House 24, Road 11, Block E, Banani, Dhaka 1213',
+    mobile: '01713 882 190',
+    website: 'https://www.coastalleisure.com',
+    profilePicture: null,
+  },
+  [TENANT_IDS.manpower]: {
+    businessName: 'Horizon Manpower',
+    address: 'Suite 5B, 88 Motijheel Commercial Area, Dhaka 1000',
+    mobile: '01816 445 773',
+    website: 'https://www.horizonmanpower.com',
+    profilePicture: null,
+  },
+  [TENANT_IDS.full]: {
+    businessName: 'OneTrack Demo',
+    address: 'Level 4, Plot 11, Road 17, Gulshan 1, Dhaka 1212',
+    mobile: '01670 221 884',
+    website: 'https://www.onetrack.app',
+    profilePicture: null,
+  },
 }
 
 export function agencyProfileStorageKey(tenantId: string): string {
   return `${AGENCY_PROFILE_KEY}:${tenantId}`
 }
 
-function emptyProfileForTenant(tenantId: string): AgencyProfile {
+export function defaultProfileForTenant(tenantId: string): AgencyProfile {
+  const seeded = TENANT_DEFAULT_PROFILES[tenantId]
+  return seeded ? { ...seeded } : { ...DEFAULT_AGENCY_PROFILE }
+}
+
+function withTenantDefaults(
+  profile: AgencyProfile,
+  tenantId: string,
+): AgencyProfile {
+  const defaults = defaultProfileForTenant(tenantId)
   return {
-    ...DEFAULT_AGENCY_PROFILE,
-    businessName: TENANT_DEFAULT_NAMES[tenantId] ?? '',
+    businessName: profile.businessName || defaults.businessName,
+    address: profile.address || defaults.address,
+    mobile: profile.mobile || defaults.mobile,
+    website: profile.website || defaults.website,
+    profilePicture: profile.profilePicture,
   }
 }
 
@@ -91,10 +122,13 @@ export function readAgencyProfile(
   migrateLegacyProfile(tenantId)
   try {
     const stored = localStorage.getItem(agencyProfileStorageKey(tenantId))
-    if (!stored) return emptyProfileForTenant(tenantId)
-    return normalizeAgencyProfile(JSON.parse(stored) as unknown)
+    if (!stored) return defaultProfileForTenant(tenantId)
+    return withTenantDefaults(
+      normalizeAgencyProfile(JSON.parse(stored) as unknown),
+      tenantId,
+    )
   } catch {
-    return emptyProfileForTenant(tenantId)
+    return defaultProfileForTenant(tenantId)
   }
 }
 

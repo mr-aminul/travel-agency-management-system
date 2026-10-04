@@ -3,7 +3,6 @@ import { Pencil, Plus, Printer, Trash2 } from 'lucide-react'
 import { DocumentPaper } from '@/components/documents/DocumentPaper'
 import { DocumentTemplateForm } from '@/components/documents/DocumentTemplateForm'
 import {
-  Badge,
   Button,
   ConfirmDialog,
   EmptyState,
@@ -23,10 +22,17 @@ import {
   useDocumentTemplates,
   validateDocumentTemplateName,
 } from '@/lib/documentTemplatesStore'
-import type {
-  DocumentTemplate,
-  DocumentTemplateDraft,
+import {
+  DOCUMENT_TEMPLATE_GROUPS,
+  type DocumentTemplate,
+  type DocumentTemplateDraft,
+  type DocumentTemplateGroup,
 } from '@/types/documentTemplate'
+
+const GROUP_LABEL: Record<DocumentTemplateGroup, string> = {
+  Embassy: 'Embassy format',
+  Manpower: 'Manpower format',
+}
 import '@/styles/layout-ops.css'
 import '@/styles/layout-docs.css'
 
@@ -56,6 +62,14 @@ export default function DocumentsPage() {
 
   const selected =
     templates.find((item) => item.id === selectedId) ?? templates[0] ?? null
+
+  const grouped = useMemo(() => {
+    return DOCUMENT_TEMPLATE_GROUPS.map((group) => ({
+      group,
+      label: GROUP_LABEL[group],
+      items: templates.filter((item) => item.group === group),
+    })).filter((section) => section.items.length > 0)
+  }, [templates])
 
   const hits = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -106,35 +120,11 @@ export default function DocumentsPage() {
     <div className="pd-page pd-docs" aria-label="Documents">
       <PageHeader
         title="Documents"
-        description="Print embassy and manpower formats. Search a client onto the sheet, then print."
+        description="Pick a format on the left, add clients, then print the sheet."
         actions={
-          <>
-            {selected ? (
-              <>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setFormError(null)
-                    setComposer({ mode: 'edit', template: selected })
-                  }}
-                >
-                  <Pencil size={16} /> Edit
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setPendingDelete(selected)}
-                >
-                  <Trash2 size={16} /> Delete
-                </Button>
-                <Button onClick={() => window.print()}>
-                  <Printer size={16} /> Print
-                </Button>
-              </>
-            ) : null}
-            <Button onClick={() => setComposer({ mode: 'create' })}>
-              <Plus size={16} /> New template
-            </Button>
-          </>
+          <Button onClick={() => setComposer({ mode: 'create' })}>
+            <Plus size={16} /> New template
+          </Button>
         }
       />
 
@@ -150,69 +140,125 @@ export default function DocumentsPage() {
         />
       ) : (
         <>
-          <div className="pd-docs__chips" role="tablist" aria-label="Templates">
-            {templates.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={cx(
-                  'pd-docs__chip',
-                  item.id === selected?.id && 'is-selected',
-                )}
-                onClick={() => setSelectedId(item.id)}
-              >
-                {item.name}
-                <Badge variant="neutral">{item.group}</Badge>
-              </button>
-            ))}
-          </div>
-
-          <div className="pd-docs__toolbar">
-            <SearchField
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onClear={() => setQuery('')}
-              placeholder="Search client by name, ID, or passport"
-            />
-            <p className="pd-ops__meta">
-              {rows.length} {rows.length === 1 ? 'person' : 'people'} on the sheet
-            </p>
-          </div>
-
-          {hits.length > 0 ? (
-            <ul className="pd-docs__hits">
-              {hits.map((client) => (
-                <li key={client.id}>
-                  <button
-                    type="button"
-                    className="pd-docs__hit"
-                    onClick={() => {
-                      setPickedIds((ids) => [...ids, client.id])
-                      setQuery('')
-                    }}
-                  >
-                    <span>{client.name}</span>
-                    <span className="pd-docs__hit-meta">
-                      {[client.passport, client.profession, client.id]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </span>
-                  </button>
-                </li>
+          <div className="pd-docs__workspace">
+            <nav className="pd-docs__nav" aria-label="Print formats">
+              {grouped.map((section) => (
+                <div key={section.group} className="pd-docs__nav-group">
+                  <p className="pd-docs__nav-label">{section.label}</p>
+                  <ul className="pd-docs__nav-list">
+                    {section.items.map((item) => (
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          className={cx(
+                            'pd-docs__nav-item',
+                            item.id === selected?.id && 'is-selected',
+                          )}
+                          aria-current={
+                            item.id === selected?.id ? 'page' : undefined
+                          }
+                          onClick={() => setSelectedId(item.id)}
+                        >
+                          {item.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
-          ) : null}
+            </nav>
 
-          {selected ? (
-            <div className="pd-docs__stage">
-              <DocumentPaper
-                template={selected}
-                agencyName={agencyName}
-                date={date}
-                rows={rows}
-              />
+            <div className="pd-docs__main">
+              <div className="pd-docs__toolbar">
+                <SearchField
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onClear={() => setQuery('')}
+                  placeholder="Search client by name, ID, or passport"
+                />
+                {selected ? (
+                  <div className="pd-docs__toolbar-actions">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setFormError(null)
+                        setComposer({ mode: 'edit', template: selected })
+                      }}
+                    >
+                      <Pencil size={14} /> Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPendingDelete(selected)}
+                    >
+                      <Trash2 size={14} /> Delete
+                    </Button>
+                    <Button size="sm" onClick={() => window.print()}>
+                      <Printer size={14} /> Print
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+
+              {hits.length > 0 ? (
+                <ul className="pd-docs__hits">
+                  {hits.map((client) => (
+                    <li key={client.id}>
+                      <button
+                        type="button"
+                        className="pd-docs__hit"
+                        onClick={() => {
+                          setPickedIds((ids) => [...ids, client.id])
+                          setQuery('')
+                        }}
+                      >
+                        <span>{client.name}</span>
+                        <span className="pd-docs__hit-meta">
+                          {[client.passport, client.profession, client.id]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {rows.length > 0 ? (
+                <ul className="pd-docs__people">
+                  {rows.map((row) => (
+                    <li key={row.id}>
+                      <span>{row.name}</span>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${row.name}`}
+                        onClick={() =>
+                          setPickedIds((ids) =>
+                            ids.filter((id) => id !== row.id),
+                          )
+                        }
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {selected ? (
+                <div className="pd-docs__stage">
+                  <DocumentPaper
+                    template={selected}
+                    agencyName={agencyName}
+                    date={date}
+                    rows={rows}
+                  />
+                </div>
+              ) : null}
             </div>
-          ) : null}
+          </div>
         </>
       )}
 

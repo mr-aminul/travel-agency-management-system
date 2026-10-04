@@ -35,14 +35,33 @@ describe('case invoice page', () => {
   it('shows agency invoice totals and recorded payments', () => {
     renderInvoice('/clients/c-284/services/case-101/invoice')
 
-    expect(screen.getByRole('heading', { name: 'Invoice' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Print invoice' })).toBeInTheDocument()
     expect(screen.getByText('INV-SR-00101')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'From' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'To' })).toBeInTheDocument()
+    expect(
+      screen.getByText('Level 4, Plot 11, Road 17, Gulshan 1, Dhaka 1212'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('01670 221 884')).toBeInTheDocument()
+    expect(screen.getByText('https://www.onetrack.app')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Bill to' })).not.toBeInTheDocument()
     expect(screen.getByText('Md. Rahim Uddin')).toBeInTheDocument()
+    expect(screen.queryByText('Service')).not.toBeInTheDocument()
     expect(screen.getByText('Partial package deposit')).toBeInTheDocument()
     expect(screen.getByText('Bank transfer')).toBeInTheDocument()
     expect(screen.getByText('Partially paid')).toBeInTheDocument()
     expect(screen.getAllByText('৳ 15,000').length).toBeGreaterThan(0)
     expect(screen.getAllByText('৳ 35,000').length).toBeGreaterThan(0)
     expect(screen.getAllByText('৳ 50,000').length).toBeGreaterThan(0)
+    expect(
+      screen.getByText(
+        'This is a computer generated invoice and does not require a signature',
+      ),
+    ).toBeInTheDocument()
+
+    const logo = document.querySelector('.pd-invoice__logo')
+    expect(logo).toHaveAttribute('src', expect.stringContaining('images/logo.svg'))
+    expect(screen.getAllByText('OneTrack Demo').length).toBeGreaterThan(0)
   })
 })

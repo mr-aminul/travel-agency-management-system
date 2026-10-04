@@ -4,7 +4,6 @@ import { LogOut, Settings, UserRound } from 'lucide-react'
 import { SignOutConfirmModal } from '@/components/ConfirmModal'
 import { settingsNavItem, profileNavItem } from '@/config/layout'
 import { useAuth } from '@/lib/useAuth'
-import { nameInitials } from './utils'
 import { useHoverMenu } from './useHoverMenu'
 
 export function ProfileDropdown({
@@ -25,8 +24,6 @@ export function ProfileDropdown({
   const { user } = useAuth()
   const isPlatformAdmin = user?.role === 'platform_admin'
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
-  const initials = nameInitials(userName)
-
   const handleCloseConfirm = useCallback(() => {
     setShowSignOutConfirm(false)
   }, [])
@@ -49,7 +46,7 @@ export function ProfileDropdown({
         aria-label="Profile menu"
         aria-expanded={open}
       >
-        {initials}
+        <UserRound size={16} strokeWidth={2} aria-hidden />
       </button>
       {open && (
         <div
@@ -59,7 +56,7 @@ export function ProfileDropdown({
         >
           <div className="pd-topbar__dropdown-header">
             <span className="pd-topbar__profile-avatar pd-topbar__profile-avatar--menu">
-              {initials}
+              <UserRound size={14} strokeWidth={2} aria-hidden />
             </span>
             <div className="pd-topbar__dropdown-header-text">
               <div className="pd-topbar__dropdown-title">

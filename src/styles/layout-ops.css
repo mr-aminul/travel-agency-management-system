@@ -44,6 +44,7 @@
 }
 
 .pd-ops-metric-link {
+  --metric-fill: var(--color-theme);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -53,9 +54,9 @@
   min-width: 0;
   width: 100%;
   padding: 0.85rem 1rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid color-mix(in srgb, var(--metric-fill) 28%, var(--color-border));
   border-radius: var(--radius-card, 1rem);
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--metric-fill) 14%, var(--color-surface));
   appearance: none;
   font: inherit;
   text-align: left;
@@ -64,13 +65,34 @@
   cursor: pointer;
 }
 
+.pd-ops-metric-link--brand {
+  --metric-fill: var(--color-theme);
+}
+
+.pd-ops-metric-link--info {
+  --metric-fill: var(--color-blue);
+}
+
+.pd-ops-metric-link--success {
+  --metric-fill: var(--color-status-completed);
+}
+
+.pd-ops-metric-link--warning {
+  --metric-fill: var(--color-amber);
+}
+
+.pd-ops-metric-link--muted {
+  --metric-fill: var(--color-status-on-hold);
+}
+
 .pd-ops-metric-link:hover,
 .pd-ops-metric-link.is-selected {
-  border-color: var(--color-theme);
+  background: color-mix(in srgb, var(--metric-fill) 22%, var(--color-surface));
+  border-color: var(--metric-fill);
 }
 
 .pd-ops-metric-link.is-selected {
-  box-shadow: 0 0 0 1px var(--color-theme);
+  box-shadow: 0 0 0 1px var(--metric-fill);
 }
 
 .pd-ops-metric-link__watermark {
@@ -79,8 +101,8 @@
   bottom: -1.35rem;
   z-index: 0;
   display: flex;
-  color: var(--color-theme);
-  opacity: 0.14;
+  color: var(--metric-fill);
+  opacity: 0.18;
   pointer-events: none;
   transform: rotate(-8deg);
 }
@@ -100,7 +122,7 @@
 .pd-ops-metric-link__icon {
   display: inline-flex;
   flex-shrink: 0;
-  color: var(--color-theme);
+  color: var(--metric-fill);
 }
 
 .pd-ops-metric-link__label {

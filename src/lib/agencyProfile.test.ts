@@ -9,6 +9,7 @@ import {
   resolveBrandDisplay,
   saveAgencyProfile,
 } from '@/lib/agencyProfile'
+import { TENANT_IDS } from '@/types/tenant'
 
 const store = new Map<string, string>()
 
@@ -34,9 +35,50 @@ Object.defineProperty(globalThis, 'window', {
 })
 
 describe('agencyProfile', () => {
-  it('defaults to an empty business profile', () => {
+  it('seeds demo workspaces with invoice contact details', () => {
     store.clear()
-    expect(readAgencyProfile()).toEqual(DEFAULT_AGENCY_PROFILE)
+    expect(readAgencyProfile(TENANT_IDS.leisure)).toEqual({
+      businessName: 'Coastal Leisure',
+      address: 'House 24, Road 11, Block E, Banani, Dhaka 1213',
+      mobile: '01713 882 190',
+      website: 'https://www.coastalleisure.com',
+      profilePicture: null,
+    })
+    expect(readAgencyProfile(TENANT_IDS.manpower)).toEqual({
+      businessName: 'Horizon Manpower',
+      address: 'Suite 5B, 88 Motijheel Commercial Area, Dhaka 1000',
+      mobile: '01816 445 773',
+      website: 'https://www.horizonmanpower.com',
+      profilePicture: null,
+    })
+    expect(readAgencyProfile()).toEqual({
+      businessName: 'OneTrack Demo',
+      address: 'Level 4, Plot 11, Road 17, Gulshan 1, Dhaka 1212',
+      mobile: '01670 221 884',
+      website: 'https://www.onetrack.app',
+      profilePicture: null,
+    })
+  })
+
+  it('fills blank stored contact fields from the tenant defaults', () => {
+    store.clear()
+    saveAgencyProfile(
+      {
+        businessName: 'Coastal Leisure',
+        address: '',
+        mobile: '',
+        website: '',
+        profilePicture: null,
+      },
+      TENANT_IDS.leisure,
+    )
+    expect(readAgencyProfile(TENANT_IDS.leisure)).toEqual({
+      businessName: 'Coastal Leisure',
+      address: 'House 24, Road 11, Block E, Banani, Dhaka 1213',
+      mobile: '01713 882 190',
+      website: 'https://www.coastalleisure.com',
+      profilePicture: null,
+    })
   })
 
   it('persists and trims business fields', () => {

@@ -1,7 +1,129 @@
+.pd-docs.pd-page {
+  max-width: none;
+}
+
 .pd-docs {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.pd-docs__workspace {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.pd-docs__nav {
+  position: sticky;
+  top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.85rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card, 1rem);
+  background: var(--color-surface);
+}
+
+.pd-docs__nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pd-docs__nav-label {
+  margin: 0;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.pd-docs__nav-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pd-docs__nav-item {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pd-docs__nav-item:hover {
+  background: color-mix(in srgb, var(--color-theme) 10%, transparent);
+}
+
+.pd-docs__nav-item.is-selected {
+  background: color-mix(in srgb, var(--color-theme) 16%, transparent);
+  color: var(--color-theme);
+}
+
+.pd-docs__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.pd-docs__toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pd-docs__people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-docs__people li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.35rem 0.25rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.pd-docs__people button {
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pd-docs__people button:hover {
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  color: var(--color-text);
 }
 
 .pd-docs__toolbar {
@@ -53,33 +175,6 @@
 .pd-docs__hit-meta {
   color: var(--color-text-secondary);
   font-size: 0.8125rem;
-}
-
-.pd-docs__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.pd-docs__chip {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-surface);
-  color: inherit;
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.pd-docs__chip.is-selected {
-  border-color: var(--color-theme);
-  box-shadow: 0 0 0 1px var(--color-theme);
 }
 
 .pd-docs__stage {
@@ -263,9 +358,10 @@
   .pd-topbar,
   .pd-app-footer,
   .pd-page-header,
+  .pd-docs__nav,
   .pd-docs__toolbar,
-  .pd-docs__chips,
-  .pd-docs__hits {
+  .pd-docs__hits,
+  .pd-docs__people {
     display: none !important;
   }
 
@@ -299,6 +395,14 @@
 }
 
 @media (max-width: 800px) {
+  .pd-docs__workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-docs__nav {
+    position: static;
+  }
+
   .pd-paper {
     padding: 1.25rem;
   }

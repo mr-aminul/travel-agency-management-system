@@ -1,11 +1,14 @@
 import type { LucideIcon } from 'lucide-react'
 import '@/styles/layout-ops.css'
 
+export type StatCardTone = 'brand' | 'info' | 'success' | 'warning' | 'muted'
+
 export type StatCardItem = {
   id: string
   label: string
   value: string
   icon: LucideIcon
+  tone?: StatCardTone
 }
 
 type StatCardsProps = {
@@ -26,9 +29,14 @@ export function StatCards({
       {cards.map((card) => {
         const Icon = card.icon
         const isSelected = selectedId === card.id
-        const className = isSelected
-          ? 'pd-ops-metric-link is-selected'
-          : 'pd-ops-metric-link'
+        const tone = card.tone ?? 'brand'
+        const className = [
+          'pd-ops-metric-link',
+          `pd-ops-metric-link--${tone}`,
+          isSelected ? 'is-selected' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')
         const body = (
           <>
             <span className="pd-ops-metric-link__watermark" aria-hidden="true">

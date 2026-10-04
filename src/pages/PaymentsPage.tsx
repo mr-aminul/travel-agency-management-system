@@ -78,24 +78,28 @@ export default function PaymentsPage() {
             label: 'Total payments',
             value: String(stats.total),
             icon: Receipt,
+            tone: 'brand',
           },
           {
             id: 'collected',
             label: 'Collected',
             value: formatBdt(stats.collected),
             icon: Banknote,
+            tone: 'success',
           },
           {
             id: 'clients',
             label: 'Paying clients',
             value: String(stats.payingClients),
             icon: Users,
+            tone: 'info',
           },
           {
             id: 'due',
             label: 'Outstanding',
             value: formatBdt(stats.outstanding),
             icon: Wallet,
+            tone: 'warning',
           },
         ]}
       />

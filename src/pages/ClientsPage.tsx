@@ -215,24 +215,28 @@ export default function ClientsPage() {
             label: 'Total clients',
             value: String(stats.total),
             icon: Users,
+            tone: 'brand',
           },
           {
             id: 'Active',
             label: 'Active',
             value: String(stats.active),
             icon: UserPlus,
+            tone: 'info',
           },
           {
             id: 'Deployed',
             label: 'Deployed',
             value: String(stats.deployed),
             icon: UserCheck,
+            tone: 'success',
           },
           {
             id: 'due',
             label: 'Outstanding',
             value: formatBdt(stats.outstanding),
             icon: Wallet,
+            tone: 'warning',
           },
         ]}
       />

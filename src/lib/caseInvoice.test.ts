@@ -82,6 +82,35 @@ describe('case invoice', () => {
     expect(invoice.payments.map((item) => item.id)).toEqual(['pay-b', 'pay-a'])
     expect(invoice.issuedOn).toBe('2026-01-15')
     expect(invoice.clientPhone).toBe('01700000000')
+    expect(invoice.agencyLogoUrl).toBeUndefined()
+    expect(invoice.agencyLogoIsCustom).toBe(false)
+  })
+
+  it('uses the default brand logo when the agency has not uploaded one', () => {
+    const invoice = buildCaseInvoice({
+      caseItem,
+      payments,
+      client,
+      profile: DEFAULT_AGENCY_PROFILE,
+      defaultLogoUrl: '/images/logo.svg',
+    })
+    expect(invoice.agencyLogoUrl).toBe('/images/logo.svg')
+    expect(invoice.agencyLogoIsCustom).toBe(false)
+  })
+
+  it('prefers the agency profile picture over the default logo', () => {
+    const invoice = buildCaseInvoice({
+      caseItem,
+      payments,
+      client,
+      profile: {
+        ...DEFAULT_AGENCY_PROFILE,
+        profilePicture: 'data:image/jpeg;base64,abc',
+      },
+      defaultLogoUrl: '/images/logo.svg',
+    })
+    expect(invoice.agencyLogoUrl).toBe('data:image/jpeg;base64,abc')
+    expect(invoice.agencyLogoIsCustom).toBe(true)
   })
 
   it('marks an invoice paid when the service fee is fully collected', () => {

@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:8001.
+Open http://localhost:8003.
 
 ```bash
 cp .env.example .env   # optional; VITE_API_BASE_URL empty = same-origin /api
@@ -38,7 +38,7 @@ That builds with `base: /platform/`, uploads to `/var/www/platform`, reloads ngi
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Local Vite (:8001) |
+| `npm run dev` | Local Vite (:8003) |
 | `npm run build` | Production build (`/platform/` base) |
 | `npm run deploy:ec2` | Build + ship to EC2 `/platform` |
 | `npm test` | Vitest |

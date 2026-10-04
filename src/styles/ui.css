@@ -694,8 +694,6 @@
   border-radius: 50%;
   background: color-mix(in srgb, var(--color-theme) 14%, var(--color-bg-muted));
   color: var(--color-theme);
-  font-weight: 700;
-  letter-spacing: 0.02em;
   overflow: hidden;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-theme) 22%, transparent);
 }
@@ -703,25 +701,21 @@
 .pd-avatar--sm {
   width: 1.625rem;
   height: 1.625rem;
-  font-size: 0.5625rem;
 }
 
 .pd-avatar--md {
   width: 2rem;
   height: 2rem;
-  font-size: 0.6875rem;
 }
 
 .pd-avatar--lg {
   width: 2.75rem;
   height: 2.75rem;
-  font-size: 0.8125rem;
 }
 
 .pd-avatar--xl {
   width: 4rem;
   height: 4rem;
-  font-size: 1.0625rem;
 }
 
 .pd-avatar__image {
@@ -731,8 +725,10 @@
   display: block;
 }
 
-.pd-avatar__initials {
-  line-height: 1;
+.pd-avatar__icon {
+  width: 55%;
+  height: 55%;
+  stroke-width: 2;
 }
 
 /* ── Modal ────────────────────────────────────────────────────────── */

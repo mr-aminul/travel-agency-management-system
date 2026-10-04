@@ -109,6 +109,8 @@ export type CasesListProps = {
   syncNewWithSearchParams?: boolean
   /** Omit page chrome when embedded in a tab. */
   embedded?: boolean
+  /** Hide search, filters, and the add-service control (overview summaries). */
+  showToolbar?: boolean
   emptyTitle?: string
   emptyDescription?: string
   emptyAction?: ReactNode
@@ -125,6 +127,7 @@ export function CasesList({
   lockService = false,
   syncNewWithSearchParams = false,
   embedded = false,
+  showToolbar = true,
   emptyTitle = 'No services yet',
   emptyDescription = 'Add a service to start tracking steps, documents, and payments.',
   emptyAction,
@@ -347,80 +350,86 @@ export function CasesList({
               label: 'Total services',
               value: String(stats.total),
               icon: Folder,
+              tone: 'brand',
             },
             {
               id: 'open',
               label: 'Open',
               value: String(stats.open),
               icon: CircleDot,
+              tone: 'info',
             },
             {
               id: 'Completed',
               label: 'Completed',
               value: String(stats.completed),
               icon: CheckCircle2,
+              tone: 'success',
             },
             {
               id: 'due',
               label: 'Outstanding',
               value: formatBdt(stats.outstanding),
               icon: Wallet,
+              tone: 'warning',
             },
           ]}
         />
       ) : null}
-      <div className="pd-cases__toolbar">
-        <SearchField
-          className="pd-cases__search"
-          placeholder="Search services…"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          onClear={() => setSearch('')}
-        />
+      {showToolbar ? (
+        <div className="pd-cases__toolbar">
+          <SearchField
+            className="pd-cases__search"
+            placeholder="Search services…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onClear={() => setSearch('')}
+          />
 
-        <div className="pd-cases__toolbar-end">
-          <div className="pd-cases__filters">
-            {showServiceColumn && (
+          <div className="pd-cases__toolbar-end">
+            <div className="pd-cases__filters">
+              {showServiceColumn && (
+                <Select
+                  className="pd-cases__filter"
+                  label="Service"
+                  multiple
+                  searchable
+                  placeholder="All services"
+                  searchPlaceholder="Search services…"
+                  value={serviceFilters}
+                  onChange={(event) => setServiceFilters(event.target.value)}
+                  options={getEnabledServiceOptions()}
+                />
+              )}
               <Select
                 className="pd-cases__filter"
-                label="Service"
+                label="Status"
                 multiple
                 searchable
-                placeholder="All services"
-                searchPlaceholder="Search services…"
-                value={serviceFilters}
-                onChange={(event) => setServiceFilters(event.target.value)}
-                options={getEnabledServiceOptions()}
+                placeholder="All statuses"
+                searchPlaceholder="Search statuses…"
+                value={statusFilters}
+                onChange={(event) => setStatusFilters(event.target.value)}
+                options={STATUS_FILTERS}
               />
-            )}
-            <Select
-              className="pd-cases__filter"
-              label="Status"
-              multiple
-              searchable
-              placeholder="All statuses"
-              searchPlaceholder="Search statuses…"
-              value={statusFilters}
-              onChange={(event) => setStatusFilters(event.target.value)}
-              options={STATUS_FILTERS}
-            />
-            {hasActiveFilters && (
-              <button
-                type="button"
-                className="pd-cases__clear"
-                onClick={() => {
-                  setStatusFilters([])
-                  setServiceFilters([])
-                  setDueOnly(false)
-                }}
-              >
-                Clear
-              </button>
-            )}
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  className="pd-cases__clear"
+                  onClick={() => {
+                    setStatusFilters([])
+                    setServiceFilters([])
+                    setDueOnly(false)
+                  }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            {newCaseButton}
           </div>
-          {newCaseButton}
         </div>
-      </div>
+      ) : null}
 
       {body}
 

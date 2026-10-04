@@ -54,9 +54,14 @@ export default defineConfig(() => ({
   },
   server: {
     host: true,
-    port: 8001,
+    port: 8003,
     strictPort: true,
     // Allow ngrok / localtunnel public hostnames during local preview
     allowedHosts: true,
+  },
+  preview: {
+    host: true,
+    port: 8003,
+    strictPort: true,
   },
 }))

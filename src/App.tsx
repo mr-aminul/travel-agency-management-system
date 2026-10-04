@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth'
 
 const AuthenticatedLayout = lazy(() => import('@/layout/AuthenticatedLayout'))
 const CaseInvoicePage = lazy(() => import('@/pages/CaseInvoicePage'))
+const PublicInvoicePage = lazy(() => import('@/pages/PublicInvoicePage'))
 const CaseDetailPage = lazy(() => import('@/pages/CaseDetailPage'))
 const CasesPage = lazy(() => import('@/pages/CasesPage'))
 const LegacyCasesRedirect = lazy(() => import('@/pages/LegacyCasesRedirect'))
@@ -57,6 +58,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/track" element={<TrackClientPage />} />
           <Route path="/join/:partnerId" element={<PublicClientIntakePage />} />
+          <Route path="/i/:token" element={<PublicInvoicePage />} />
           <Route path="/" element={<AuthenticatedLayout />}>
             <Route index element={<HomePage />} />
             <Route path="dashboard" element={<DashboardPage />} />
