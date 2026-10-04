@@ -46,11 +46,112 @@ const SEED_PARTNERS: Partner[] = [
   },
 ]
 
-let partners: Partner[] = SEED_PARTNERS.map((partner) => ({ ...partner }))
+const STORAGE_KEY = 'pd-partners-created'
+const SEED_IDS = new Set(SEED_PARTNERS.map((partner) => partner.id))
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function optionalString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed || undefined
+}
+
+function normalizeStoredPartner(value: unknown): Partner | undefined {
+  if (!isRecord(value)) return undefined
+  const id = optionalString(value.id)
+  const tenantId = optionalString(value.tenantId)
+  const name = optionalString(value.name)
+  const phone = optionalString(value.phone)
+  if (!id || !tenantId || !name || !phone) return undefined
+  return {
+    id,
+    tenantId,
+    name,
+    phone,
+    email: optionalString(value.email),
+    address: optionalString(value.address),
+    licenseNumber: optionalString(value.licenseNumber),
+    branch: optionalString(value.branch),
+    photoUrl: optionalString(value.photoUrl),
+    status: value.status === 'Inactive' ? 'Inactive' : 'Active',
+    createdAt: optionalString(value.createdAt) ?? new Date().toISOString(),
+  }
+}
+
+function readCreatedPartners(): Partner[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .map(normalizeStoredPartner)
+      .filter((partner): partner is Partner => partner != null)
+  } catch {
+    return []
+  }
+}
+
+function seedPartners(): Partner[] {
+  return SEED_PARTNERS.map((partner) => ({ ...partner }))
+}
+
+function mergeWithSeeds(created: Partner[]): Partner[] {
+  const createdIds = new Set(created.map((partner) => partner.id))
+  return [
+    ...created,
+    ...seedPartners().filter((partner) => !createdIds.has(partner.id)),
+  ]
+}
+
+function persistCreatedPartners() {
+  const created = partners.filter((partner) => !SEED_IDS.has(partner.id))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(created))
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+let partners: Partner[] = mergeWithSeeds(readCreatedPartners())
 const listeners = new Set<Listener>()
 
-function emit() {
+function emit(persist = true) {
+  if (persist) persistCreatedPartners()
   listeners.forEach((listener) => listener())
+}
+
+function hydratePartnersFromStorage() {
+  partners = mergeWithSeeds(readCreatedPartners())
+  emit(false)
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== STORAGE_KEY) return
+    hydratePartnersFromStorage()
+  })
+  window.addEventListener('focus', hydratePartnersFromStorage)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') hydratePartnersFromStorage()
+  })
+}
+
+export function resetPartners() {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    /* ignore */
+  }
+  partners = seedPartners()
+  emit(false)
+}
+
+export function reloadPartnersFromStorage() {
+  hydratePartnersFromStorage()
 }
 
 function subscribe(listener: Listener) {

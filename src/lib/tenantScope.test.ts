@@ -9,6 +9,7 @@ import {
   createClient,
   getClientById,
   getClientByPhone,
+  resetClients,
 } from '@/lib/clientsStore'
 import { createCase, getCaseById } from '@/lib/casesStore'
 import { TENANT_IDS } from '@/types/tenant'
@@ -19,6 +20,7 @@ afterEach(() => {
   clearSession()
   resetTenantEntitlements()
   resetCustomServices()
+  resetClients()
 })
 
 function asLeisure() {

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { Check } from 'lucide-react'
 import { NewClientForm } from '@/components/clients/NewClientForm'
 import { Alert } from '@/components/ui'
 import { layoutConfig } from '@/config/layout'
@@ -62,15 +63,24 @@ export default function PublicClientIntakePage() {
         decoding="async"
       />
 
-      <main className="pd-track__sheet pd-track__sheet--wide pd-track__sheet--intake">
+      <main
+        className={
+          submittedName
+            ? 'pd-track__sheet pd-track__sheet--success'
+            : 'pd-track__sheet pd-track__sheet--wide pd-track__sheet--intake'
+        }
+      >
         {submittedName ? (
-          <header className="pd-track__intro">
+          <div className="pd-track__success" role="status">
+            <span className="pd-track__success-icon" aria-hidden>
+              <Check size={28} strokeWidth={2.75} />
+            </span>
             <h1 className="pd-track__title">Details received</h1>
             <p className="pd-track__lede">
               Thank you, {submittedName}. {partner?.name ?? 'The agency'} has
               your profile and will follow up.
             </p>
-          </header>
+          </div>
         ) : (
           <>
             <header className="pd-track__intro">

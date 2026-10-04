@@ -3,13 +3,14 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { AuthProvider } from '@/lib/AuthProvider'
 import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
-import { getClientByPhone } from '@/lib/clientsStore'
+import { getClientByPhone, resetClients } from '@/lib/clientsStore'
 import { TENANT_IDS } from '@/types/tenant'
 import PublicClientIntakePage from '@/pages/PublicClientIntakePage'
 
 afterEach(() => {
   cleanup()
   clearSession()
+  resetClients()
 })
 
 function renderIntake(partnerId: string) {

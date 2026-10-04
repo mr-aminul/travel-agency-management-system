@@ -213,11 +213,165 @@ const SEED_CLIENTS: Client[] = [
   },
 ]
 
-let clients: Client[] = SEED_CLIENTS.map((client) => ({ ...client }))
+const STORAGE_KEY = 'pd-clients-created'
+const SEED_IDS = new Set(SEED_CLIENTS.map((client) => client.id))
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function optionalString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed || undefined
+}
+
+function normalizeStoredClient(value: unknown): Client | undefined {
+  if (!isRecord(value)) return undefined
+  const id = optionalString(value.id)
+  const tenantId = optionalString(value.tenantId)
+  const name = optionalString(value.name)
+  const phone = optionalString(value.phone)
+  if (!id || !tenantId || !name || !phone) return undefined
+  const services = Array.isArray(value.services)
+    ? value.services.filter((item): item is ServiceType => typeof item === 'string')
+    : []
+  const status =
+    value.status === 'Active' ||
+    value.status === 'Deployed' ||
+    value.status === 'Lead' ||
+    value.status === 'Inactive'
+      ? value.status
+      : 'Lead'
+  return {
+    id,
+    tenantId,
+    name,
+    phone,
+    email: optionalString(value.email),
+    address: optionalString(value.address),
+    banglaName: optionalString(value.banglaName),
+    fatherName: optionalString(value.fatherName),
+    motherName: optionalString(value.motherName),
+    dateOfBirth: optionalString(value.dateOfBirth),
+    gender:
+      value.gender === 'Male' || value.gender === 'Female' || value.gender === 'Other'
+        ? value.gender
+        : undefined,
+    maritalStatus:
+      value.maritalStatus === 'Single' ||
+      value.maritalStatus === 'Married' ||
+      value.maritalStatus === 'Divorced' ||
+      value.maritalStatus === 'Widowed'
+        ? value.maritalStatus
+        : undefined,
+    nationality: optionalString(value.nationality),
+    placeOfBirth: optionalString(value.placeOfBirth),
+    spouseName: optionalString(value.spouseName),
+    bloodGroup: optionalString(value.bloodGroup),
+    whatsapp: optionalString(value.whatsapp),
+    presentAddress: optionalString(value.presentAddress),
+    permanentAddress: optionalString(value.permanentAddress),
+    district: optionalString(value.district),
+    upazila: optionalString(value.upazila),
+    education: optionalString(value.education),
+    profession: optionalString(value.profession),
+    skillTrade: optionalString(value.skillTrade),
+    experience: optionalString(value.experience),
+    previousOverseasExp: optionalString(value.previousOverseasExp),
+    preferredCountry: optionalString(value.preferredCountry),
+    preferredJob: optionalString(value.preferredJob),
+    expectedSalary: optionalString(value.expectedSalary),
+    contractAmount:
+      typeof value.contractAmount === 'number' ? value.contractAmount : undefined,
+    branch: optionalString(value.branch),
+    nid: optionalString(value.nid),
+    passport: optionalString(value.passport),
+    passportExpiry: optionalString(value.passportExpiry),
+    passportIssuedOn: optionalString(value.passportIssuedOn),
+    passportPlaceOfIssue: optionalString(value.passportPlaceOfIssue),
+    avatarUrl: optionalString(value.avatarUrl),
+    partnerId: optionalString(value.partnerId),
+    services: services.length ? services : ['Leisure'],
+    balance: typeof value.balance === 'number' ? value.balance : 0,
+    activeCases: typeof value.activeCases === 'number' ? value.activeCases : 0,
+    status,
+    idChecked: value.idChecked === true,
+    createdAt: optionalString(value.createdAt) ?? new Date().toISOString().slice(0, 10),
+  }
+}
+
+function readCreatedClients(): Client[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .map(normalizeStoredClient)
+      .filter((client): client is Client => client != null)
+  } catch {
+    return []
+  }
+}
+
+function seedClients(): Client[] {
+  return SEED_CLIENTS.map((client) => ({ ...client }))
+}
+
+function mergeWithSeeds(created: Client[]): Client[] {
+  const createdIds = new Set(created.map((client) => client.id))
+  return [
+    ...created,
+    ...seedClients().filter((client) => !createdIds.has(client.id)),
+  ]
+}
+
+function persistCreatedClients() {
+  const created = clients.filter((client) => !SEED_IDS.has(client.id))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(created))
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+let clients: Client[] = mergeWithSeeds(readCreatedClients())
 const listeners = new Set<Listener>()
 
-function emit() {
+function emit(persist = true) {
+  if (persist) persistCreatedClients()
   listeners.forEach((listener) => listener())
+}
+
+function hydrateClientsFromStorage() {
+  clients = mergeWithSeeds(readCreatedClients())
+  emit(false)
+}
+
+export function reloadClientsFromStorage() {
+  hydrateClientsFromStorage()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== STORAGE_KEY) return
+    hydrateClientsFromStorage()
+  })
+  window.addEventListener('focus', hydrateClientsFromStorage)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') hydrateClientsFromStorage()
+  })
+}
+
+export function resetClients() {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    /* ignore */
+  }
+  clients = seedClients()
+  emit(false)
 }
 
 function subscribe(listener: Listener) {

@@ -42,7 +42,7 @@ import {
   Textarea,
   type BadgeVariant,
 } from '@/components/ui'
-import { getPartnerById, updatePartner, usePartners } from '@/lib/partnersStore'
+import { updatePartner, usePartners } from '@/lib/partnersStore'
 import { partnerClientFormUrl } from '@/lib/publicUrl'
 import { createCase } from '@/lib/casesStore'
 import { workDetailPath } from '@/lib/workPaths'
@@ -251,8 +251,8 @@ function ContactChip({
 export default function PartnerDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  usePartners()
-  const partner = getPartnerById(id)
+  const partners = usePartners()
+  const partner = partners.find((item) => item.id === id)
   const allClients = useClients()
   const clients = useMemo(
     () => allClients.filter((client) => client.partnerId === id),
