@@ -1,5 +1,9 @@
 import type { NavItem } from '@/layout/types'
-import type { ServiceType } from '@/types/case'
+import {
+  isBuiltinService,
+  type BuiltinServiceType,
+  type ServiceType,
+} from '@/types/case'
 import type { ModuleId, UserRole } from '@/types/tenant'
 
 export type ModuleCatalogItem = {
@@ -8,7 +12,7 @@ export type ModuleCatalogItem = {
   description: string
 }
 
-/** Pages in the agency product. Nested items are sub-pages of that subject. */
+/** Pages and templates the agency can enable. */
 export type ModuleGroup = {
   id: string
   label: string
@@ -18,32 +22,33 @@ export type ModuleGroup = {
 
 export const MODULE_GROUPS: ModuleGroup[] = [
   {
-    id: 'cases',
-    label: 'Cases',
-    description: 'Work files by purpose — same sub-pages as the Cases sidebar',
+    id: 'services',
+    label: 'Services',
+    description:
+      'Templates this agency sells. They filter Services — they are not extra sidebar pages.',
     modules: [
       {
-        id: 'cases.manpower',
+        id: 'services.manpower',
         label: 'Manpower',
-        description: 'Recruitment and overseas employment files',
+        description: 'Recruitment and overseas employment',
       },
       {
-        id: 'cases.student',
+        id: 'services.student',
         label: 'Student',
         description: 'Study-abroad files',
       },
       {
-        id: 'cases.hajjUmrah',
+        id: 'services.hajjUmrah',
         label: 'Hajj / Umrah',
         description: 'Pilgrimage packages',
       },
       {
-        id: 'cases.leisure',
+        id: 'services.leisure',
         label: 'Leisure',
         description: 'Holiday and tour packages',
       },
       {
-        id: 'cases.ticketing',
+        id: 'services.ticketing',
         label: 'Ticketing',
         description: 'Airline bookings',
       },
@@ -51,12 +56,12 @@ export const MODULE_GROUPS: ModuleGroup[] = [
   },
   {
     id: 'finance',
-    label: 'Finance',
+    label: 'Payments',
     description: 'Payments and balances workspace',
     modules: [
       {
         id: 'finance',
-        label: 'Finance',
+        label: 'Payments',
         description: 'Payments and balances workspace',
       },
     ],
@@ -86,6 +91,18 @@ export const MODULE_GROUPS: ModuleGroup[] = [
     ],
   },
   {
+    id: 'partners',
+    label: 'Sub Agents',
+    description: 'Sub agents who send clients into the pipeline',
+    modules: [
+      {
+        id: 'partners',
+        label: 'Sub Agents',
+        description: 'Sub agent directory and customer pipeline',
+      },
+    ],
+  },
+  {
     id: 'hr',
     label: 'HR',
     description: 'Employee management',
@@ -93,7 +110,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
       {
         id: 'hr',
         label: 'HR',
-        description: 'Employee management (stub)',
+        description: 'Employees and payroll',
       },
     ],
   },
@@ -105,20 +122,28 @@ export const MODULE_CATALOG: ModuleCatalogItem[] = MODULE_GROUPS.flatMap(
 
 export const ALL_MODULE_IDS: ModuleId[] = MODULE_CATALOG.map((item) => item.id)
 
-export const SERVICE_MODULE: Record<ServiceType, ModuleId> = {
-  Manpower: 'cases.manpower',
-  Student: 'cases.student',
-  'Hajj/Umrah': 'cases.hajjUmrah',
-  Leisure: 'cases.leisure',
-  Ticketing: 'cases.ticketing',
+export const SERVICE_MODULE: Record<BuiltinServiceType, ModuleId> = {
+  Manpower: 'services.manpower',
+  Student: 'services.student',
+  'Hajj/Umrah': 'services.hajjUmrah',
+  Leisure: 'services.leisure',
+  Ticketing: 'services.ticketing',
 }
 
-const SERVICE_SLUG_MODULE: Record<string, ModuleId> = {
-  manpower: 'cases.manpower',
-  student: 'cases.student',
-  'hajj-umrah': 'cases.hajjUmrah',
-  leisure: 'cases.leisure',
-  ticketing: 'cases.ticketing',
+const LEGACY_MODULE_ID: Record<string, ModuleId> = {
+  'cases.manpower': 'services.manpower',
+  'cases.student': 'services.student',
+  'cases.hajjUmrah': 'services.hajjUmrah',
+  'cases.leisure': 'services.leisure',
+  'cases.ticketing': 'services.ticketing',
+  agents: 'partners',
+}
+
+export function normalizeModuleId(value: string): ModuleId | undefined {
+  const mapped = LEGACY_MODULE_ID[value] ?? value
+  return ALL_MODULE_IDS.includes(mapped as ModuleId)
+    ? (mapped as ModuleId)
+    : undefined
 }
 
 export function moduleSet(modules: readonly ModuleId[]): Set<ModuleId> {
@@ -136,6 +161,7 @@ export function isServiceEnabled(
   modules: readonly ModuleId[],
   service: ServiceType,
 ): boolean {
+  if (!isBuiltinService(service)) return false
   return hasModule(modules, SERVICE_MODULE[service])
 }
 
@@ -148,14 +174,24 @@ export function pathAccess(pathname: string): PathAccess {
 
   if (path === '/admin' || path.startsWith('/admin/')) return 'admin'
   if (path === '/hr' || path.startsWith('/hr/')) return 'hr'
-  if (path === '/finance' || path.startsWith('/finance/')) return 'finance'
+  if (
+    path === '/partners' ||
+    path.startsWith('/partners/') ||
+    path === '/agents' ||
+    path.startsWith('/agents/')
+  ) {
+    return 'partners'
+  }
+  if (
+    path === '/payments' ||
+    path.startsWith('/payments/') ||
+    path === '/finance' ||
+    path.startsWith('/finance/')
+  ) {
+    return 'finance'
+  }
   if (path === '/documents' || path.startsWith('/documents/')) return 'documents'
   if (path === '/reporting' || path.startsWith('/reporting/')) return 'reporting'
-
-  const serviceMatch = path.match(
-    /^\/cases\/(manpower|student|hajj-umrah|leisure|ticketing)(?:\/|$)/,
-  )
-  if (serviceMatch) return SERVICE_SLUG_MODULE[serviceMatch[1]]
 
   return 'core'
 }

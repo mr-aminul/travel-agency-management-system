@@ -38,16 +38,16 @@ export default function TenantsAdminPage() {
     <div className="pd-page pd-admin" aria-label="Businesses">
       <PageHeader
         title="Businesses"
-        description="Agencies onboarded to OneTrack. Open a business to see its people and modules."
+        description="Agencies onboarded to OneTrack. Open a business to see its people."
       />
 
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Business</TableHead>
+            <TableHead>Slug</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Users</TableHead>
-            <TableHead>Modules</TableHead>
             <TableHead aria-label="Open" />
           </TableRow>
         </TableHeader>
@@ -65,27 +65,22 @@ export default function TenantsAdminPage() {
                 <TableCell>
                   <span className="pd-admin__user">
                     <Avatar name={tenant.name} size="sm" />
-                    <span className="pd-admin__user-copy">
-                      <Link
-                        className="pd-admin__business-name"
-                        to={`/admin/tenants/${tenant.id}/users`}
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {tenant.name}
-                      </Link>
-                      <span className="pd-admin__business-slug">
-                        {tenant.slug}
-                      </span>
-                    </span>
+                    <Link
+                      className="pd-admin__business-name"
+                      to={`/admin/tenants/${tenant.id}/users`}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {tenant.name}
+                    </Link>
                   </span>
                 </TableCell>
+                <TableCell className="pd-table__code">{tenant.slug}</TableCell>
                 <TableCell>
                   <Badge variant={statusBadgeVariant(tenant.status)}>
                     {tenant.status}
                   </Badge>
                 </TableCell>
                 <TableCell>{userCount}</TableCell>
-                <TableCell>{tenant.enabledModules.length}</TableCell>
                 <TableCell>
                   <ChevronRight
                     size={16}

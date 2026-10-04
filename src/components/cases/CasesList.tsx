@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Folder, Plus } from 'lucide-react'
+import { CheckCircle2, CircleDot, Folder, Plus, Wallet } from 'lucide-react'
 import { NewCaseForm } from '@/components/cases/NewCaseForm'
+import { StatCards } from '@/components/StatCards'
 import {
   Badge,
   Button,
@@ -18,11 +19,12 @@ import {
   type BadgeVariant,
 } from '@/components/ui'
 import { getCurrentStepLabel } from '@/lib/caseChecklist'
-import {
-  CASE_SERVICE_OPTIONS,
-  createCase,
-} from '@/lib/casesStore'
+import { createCase, getEnabledServiceOptions } from '@/lib/casesStore'
 import { formatBalance } from '@/lib/clientsStore'
+import { caseServiceFee } from '@/lib/caseMoney'
+import { getEmployeeDisplayName } from '@/lib/employeesStore'
+import { formatBdt } from '@/lib/dashboardMetrics'
+import { workDetailPath } from '@/lib/workPaths'
 import type { Case, CaseStatus, ServiceType, CreateCaseInput } from '@/types/case'
 import '@/styles/layout-cases.css'
 
@@ -33,6 +35,21 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'Completed', label: 'Completed' },
   { value: 'Cancelled', label: 'Cancelled' },
 ]
+
+const OPEN_STATUSES = ['Pending', 'In-Progress', 'On-Hold'] as const
+
+type ServiceStatId = 'all' | 'open' | 'Completed' | 'due'
+
+function isOpenService(item: Case): boolean {
+  return item.status !== 'Completed' && item.status !== 'Cancelled'
+}
+
+function isOpenStatusFilter(statusFilters: string[]): boolean {
+  return (
+    statusFilters.length === OPEN_STATUSES.length &&
+    OPEN_STATUSES.every((status) => statusFilters.includes(status))
+  )
+}
 
 export function caseStatusBadgeVariant(status: CaseStatus): BadgeVariant {
   if (status === 'Completed') return 'completed'
@@ -66,7 +83,8 @@ function matchesFilters(
     item.clientName.toLowerCase().includes(q) ||
     item.service.toLowerCase().includes(q) ||
     (item.destination?.toLowerCase().includes(q) ?? false) ||
-    (item.assignedTo?.toLowerCase().includes(q) ?? false)
+    (item.assignedTo?.toLowerCase().includes(q) ?? false) ||
+    getEmployeeDisplayName(item.assignedTo).toLowerCase().includes(q)
   const matchStatus =
     statusFilters.length === 0 || statusFilters.includes(item.status)
   const matchService =
@@ -107,8 +125,8 @@ export function CasesList({
   lockService = false,
   syncNewWithSearchParams = false,
   embedded = false,
-  emptyTitle = 'No cases yet',
-  emptyDescription = 'Open a case to start tracking work.',
+  emptyTitle = 'No services yet',
+  emptyDescription = 'Add a service to start tracking steps, documents, and payments.',
   emptyAction,
 }: CasesListProps) {
   const navigate = useNavigate()
@@ -117,6 +135,26 @@ export function CasesList({
   const [statusFilters, setStatusFilters] = useState<string[]>([])
   const [serviceFilters, setServiceFilters] = useState<string[]>([])
   const [newCaseOpen, setNewCaseOpen] = useState(false)
+  const [dueOnly, setDueOnly] = useState(false)
+
+  const stats = useMemo(() => {
+    let open = 0
+    let completed = 0
+    let outstanding = 0
+    for (const item of cases) {
+      if (item.status === 'Completed') completed += 1
+      if (isOpenService(item)) {
+        open += 1
+        outstanding += item.balance
+      }
+    }
+    return {
+      total: cases.length,
+      open,
+      completed,
+      outstanding,
+    }
+  }, [cases])
 
   const resolvedClientId =
     defaultClientId ??
@@ -135,18 +173,50 @@ export function CasesList({
     setNewCaseOpen(searchParams.get('new') === '1')
   }, [searchParams, syncNewWithSearchParams])
 
-  const filtered = cases.filter((item) =>
-    matchesFilters(
+  const filtered = cases.filter((item) => {
+    if (dueOnly && (!isOpenService(item) || item.balance <= 0)) return false
+    return matchesFilters(
       item,
       search,
       statusFilters,
       showServiceColumn ? serviceFilters : [],
-    ),
-  )
+    )
+  })
 
   const hasActiveFilters =
     statusFilters.length > 0 ||
+    dueOnly ||
     (showServiceColumn && serviceFilters.length > 0)
+
+  const selectedStat: ServiceStatId | undefined = dueOnly
+    ? 'due'
+    : isOpenStatusFilter(statusFilters)
+      ? 'open'
+      : statusFilters.length === 1 && statusFilters[0] === 'Completed'
+        ? 'Completed'
+        : statusFilters.length === 0
+          ? 'all'
+          : undefined
+
+  const selectStat = (id: string) => {
+    const next = id as ServiceStatId
+    if (next === selectedStat || next === 'all') {
+      setStatusFilters([])
+      setDueOnly(false)
+      return
+    }
+    if (next === 'due') {
+      setStatusFilters([])
+      setDueOnly(true)
+      return
+    }
+    setDueOnly(false)
+    if (next === 'open') {
+      setStatusFilters([...OPEN_STATUSES])
+      return
+    }
+    setStatusFilters(['Completed'])
+  }
 
   const openNewCaseModal = () => {
     setNewCaseOpen(true)
@@ -169,32 +239,34 @@ export function CasesList({
   const handleCreateCase = (input: CreateCaseInput) => {
     const created = createCase(input)
     closeNewCaseModal()
-    navigate(`/cases/${created.id}`)
+    navigate(workDetailPath(created))
   }
 
   const resetFilters = () => {
     setSearch('')
     setStatusFilters([])
     setServiceFilters([])
+    setDueOnly(false)
   }
 
   const newCaseButton = (
     <Button onClick={openNewCaseModal}>
       <Plus size={16} strokeWidth={2.25} aria-hidden />
-      New case
+      Add service
     </Button>
   )
 
   const hasQuery =
     search.trim().length > 0 ||
     statusFilters.length > 0 ||
+    dueOnly ||
     (showServiceColumn && serviceFilters.length > 0)
 
   const body =
     filtered.length === 0 ? (
       <EmptyState
         icon={Folder}
-        title={cases.length === 0 && !hasQuery ? emptyTitle : 'No cases match'}
+        title={cases.length === 0 && !hasQuery ? emptyTitle : 'No services match'}
         description={
           cases.length === 0 && !hasQuery
             ? emptyDescription
@@ -212,13 +284,15 @@ export function CasesList({
       />
     ) : (
       <Table>
-        <TableHeader>
+          <TableHeader>
           <TableRow>
-            <TableHead>Case</TableHead>
+            <TableHead>Service</TableHead>
+            <TableHead>ID</TableHead>
             {showClientColumn && <TableHead>Client</TableHead>}
-            {showServiceColumn && <TableHead>Service</TableHead>}
             <TableHead>Current step</TableHead>
             <TableHead>Destination</TableHead>
+            <TableHead>Departure</TableHead>
+            <TableHead>Service fee</TableHead>
             <TableHead>Balance due</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
@@ -228,35 +302,21 @@ export function CasesList({
             <TableRow
               key={item.id}
               className="pd-cases__row"
-              onClick={() => navigate(`/cases/${item.id}`)}
+              onClick={() => navigate(workDetailPath(item))}
             >
               <TableCell>
-                <div className="pd-cases__identity-text">
-                  <p className="pd-cases__name">{item.caseId}</p>
-                  {item.assignedTo || item.departureDate ? (
-                    <p className="pd-cases__meta">
-                      {[
-                        item.assignedTo,
-                        item.departureDate
-                          ? formatCaseDate(item.departureDate)
-                          : undefined,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
-                  ) : null}
-                </div>
+                <p className="pd-cases__name">{item.service}</p>
               </TableCell>
+              <TableCell className="pd-table__code">{item.caseId}</TableCell>
               {showClientColumn && <TableCell>{item.clientName}</TableCell>}
-              {showServiceColumn && (
-                <TableCell>
-                  <Badge variant="neutral">{item.service}</Badge>
-                </TableCell>
-              )}
               <TableCell>
                 <span className="pd-cases__step">{getCurrentStepLabel(item)}</span>
               </TableCell>
               <TableCell>{item.destination || '—'}</TableCell>
+              <TableCell>{formatCaseDate(item.departureDate)}</TableCell>
+              <TableCell className="pd-cases__balance">
+                {formatBalance(caseServiceFee(item))}
+              </TableCell>
               <TableCell className="pd-cases__balance">
                 {formatBalance(item.balance)}
               </TableCell>
@@ -276,10 +336,43 @@ export function CasesList({
       className={embedded ? 'pd-cases pd-cases--embedded' : 'pd-page pd-cases'}
       aria-label={label}
     >
+      {!embedded ? (
+        <StatCards
+          label="Service stats"
+          selectedId={selectedStat}
+          onSelect={selectStat}
+          cards={[
+            {
+              id: 'all',
+              label: 'Total services',
+              value: String(stats.total),
+              icon: Folder,
+            },
+            {
+              id: 'open',
+              label: 'Open',
+              value: String(stats.open),
+              icon: CircleDot,
+            },
+            {
+              id: 'Completed',
+              label: 'Completed',
+              value: String(stats.completed),
+              icon: CheckCircle2,
+            },
+            {
+              id: 'due',
+              label: 'Outstanding',
+              value: formatBdt(stats.outstanding),
+              icon: Wallet,
+            },
+          ]}
+        />
+      ) : null}
       <div className="pd-cases__toolbar">
         <SearchField
           className="pd-cases__search"
-          placeholder="Search cases…"
+          placeholder="Search services…"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           onClear={() => setSearch('')}
@@ -297,7 +390,7 @@ export function CasesList({
                 searchPlaceholder="Search services…"
                 value={serviceFilters}
                 onChange={(event) => setServiceFilters(event.target.value)}
-                options={CASE_SERVICE_OPTIONS}
+                options={getEnabledServiceOptions()}
               />
             )}
             <Select
@@ -318,6 +411,7 @@ export function CasesList({
                 onClick={() => {
                   setStatusFilters([])
                   setServiceFilters([])
+                  setDueOnly(false)
                 }}
               >
                 Clear
@@ -333,13 +427,13 @@ export function CasesList({
       <Modal
         open={newCaseOpen}
         onClose={closeNewCaseModal}
-        title="New case"
+        title="Add service"
         description={
           lockClient
-            ? 'Capture one purpose for this client.'
+            ? 'What does this client need?'
             : lockService
-              ? `Open a ${resolvedService} case for a client.`
-              : 'One case = one purpose for a client.'
+              ? `Add a ${resolvedService} service for a client.`
+              : 'Pick the client and the service they need.'
         }
         className="pd-cases-modal"
       >

@@ -13,10 +13,12 @@ import {
 import { createCase, getCaseById } from '@/lib/casesStore'
 import { TENANT_IDS } from '@/types/tenant'
 import { resetTenantEntitlements } from '@/lib/tenantsStore'
+import { resetCustomServices } from '@/lib/customServicesStore'
 
 afterEach(() => {
   clearSession()
   resetTenantEntitlements()
+  resetCustomServices()
 })
 
 function asLeisure() {

@@ -18,6 +18,7 @@ import {
 } from '@/lib/caseInvoice'
 import { getCaseById, useCases } from '@/lib/casesStore'
 import { getClientById } from '@/lib/clientsStore'
+import { workDetailPath } from '@/lib/workPaths'
 import { usePaymentsByCaseId } from '@/lib/paymentsStore'
 import { useAgencyProfile } from '@/layout/useAgencyProfile'
 import '@/styles/layout-invoice.css'
@@ -35,17 +36,18 @@ function statusVariant(status: 'paid' | 'partial' | 'unpaid'): BadgeVariant {
 }
 
 export default function CaseInvoicePage() {
-  const { id = '' } = useParams()
+  const { id = '', caseId = '' } = useParams()
   const [searchParams] = useSearchParams()
   const highlightedPaymentId = searchParams.get('payment') ?? undefined
   useCases()
-  const caseItem = getCaseById(id)
-  const payments = usePaymentsByCaseId(id)
+  const recordId = caseId || id
+  const caseItem = getCaseById(recordId)
+  const payments = usePaymentsByCaseId(recordId)
   const client = caseItem ? getClientById(caseItem.clientId) : undefined
   const profile = useAgencyProfile()
 
   if (!caseItem) {
-    return <Navigate to="/cases" replace />
+    return <Navigate to="/services" replace />
   }
 
   const invoice = buildCaseInvoice({
@@ -58,9 +60,9 @@ export default function CaseInvoicePage() {
   return (
     <div className="pd-page pd-invoice-page" aria-label={`Invoice ${invoice.invoiceNumber}`}>
       <div className="pd-invoice-page__toolbar">
-        <Link to={`/cases/${caseItem.id}`} className="pd-case-detail__back">
+        <Link to={workDetailPath(caseItem)} className="pd-case-detail__back">
           <ArrowLeft size={14} strokeWidth={2.25} aria-hidden />
-          Back to case
+          Back to service
         </Link>
         <Button
           size="sm"
@@ -107,8 +109,11 @@ export default function CaseInvoicePage() {
                 <dd>{formatInvoiceDate(invoice.issuedOn)}</dd>
               </div>
               <div>
-                <dt>Case</dt>
-                <dd>{invoice.caseRef}</dd>
+                <dt>Service</dt>
+                <dd>
+                  {invoice.service}
+                  {invoice.destination ? ` · ${invoice.destination}` : ''}
+                </dd>
               </div>
             </dl>
           </div>
@@ -209,7 +214,7 @@ export default function CaseInvoicePage() {
         <section className="pd-invoice__totals" aria-label="Totals">
           <dl>
             <div>
-              <dt>Package total</dt>
+              <dt>Service fee</dt>
               <dd>{formatInvoiceAmount(invoice.packageTotal)}</dd>
             </div>
             <div>

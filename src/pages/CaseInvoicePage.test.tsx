@@ -21,7 +21,10 @@ function renderInvoice(path: string) {
     <AuthProvider>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
-          <Route path="/cases/:id/invoice" element={<CaseInvoicePage />} />
+          <Route
+            path="/clients/:id/services/:caseId/invoice"
+            element={<CaseInvoicePage />}
+          />
         </Routes>
       </MemoryRouter>
     </AuthProvider>,
@@ -30,10 +33,10 @@ function renderInvoice(path: string) {
 
 describe('case invoice page', () => {
   it('shows agency invoice totals and recorded payments', () => {
-    renderInvoice('/cases/case-101/invoice')
+    renderInvoice('/clients/c-284/services/case-101/invoice')
 
     expect(screen.getByRole('heading', { name: 'Invoice' })).toBeInTheDocument()
-    expect(screen.getByText('INV-CASE-00101')).toBeInTheDocument()
+    expect(screen.getByText('INV-SR-00101')).toBeInTheDocument()
     expect(screen.getByText('Md. Rahim Uddin')).toBeInTheDocument()
     expect(screen.getByText('Partial package deposit')).toBeInTheDocument()
     expect(screen.getByText('Bank transfer')).toBeInTheDocument()

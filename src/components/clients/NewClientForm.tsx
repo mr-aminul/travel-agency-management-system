@@ -1,21 +1,50 @@
 import { useState, type FormEvent } from 'react'
-import { Badge, Button, Checkbox, Input, Select, Textarea } from '@/components/ui'
-import { getClientByPhone, normalizePhone, getEnabledServiceTypeOptions } from '@/lib/clientsStore'
+import { PartnerPhotoField } from '@/components/PartnerPhotoField'
+import { Badge, Button, Checkbox, Input, Select } from '@/components/ui'
+import { usePartners } from '@/lib/partnersStore'
+import { getClientByPhone, normalizePhone } from '@/lib/clientsStore'
+import { DESTINATION_COUNTRIES } from '@/lib/destinationCountries'
+import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 import type { CreateClientInput, ServiceType } from '@/types/client'
 
 type NewClientFormProps = {
   onSubmit: (input: CreateClientInput) => void
   onCancel: () => void
+  defaultPartnerId?: string
 }
 
-export function NewClientForm({ onSubmit, onCancel }: NewClientFormProps) {
-  const serviceOptions = getEnabledServiceTypeOptions()
+const COUNTRY_OPTIONS = [
+  { value: '', label: '—' },
+  ...DESTINATION_COUNTRIES.map((country) => ({
+    value: country,
+    label: country,
+  })),
+]
+
+export function NewClientForm({
+  onSubmit,
+  onCancel,
+  defaultPartnerId,
+}: NewClientFormProps) {
+  const serviceOptions = useEnabledServiceOptions()
+  const partners = usePartners()
   const [name, setName] = useState('')
+  const [fatherName, setFatherName] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [placeOfBirth, setPlaceOfBirth] = useState('')
+  const [gender, setGender] = useState<'Male' | 'Female' | 'Other'>('Male')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [nid, setNid] = useState('')
   const [passport, setPassport] = useState('')
+  const [passportExpiry, setPassportExpiry] = useState('')
+  const [passportIssuedOn, setPassportIssuedOn] = useState('')
+  const [passportPlaceOfIssue, setPassportPlaceOfIssue] = useState('')
   const [address, setAddress] = useState('')
+  const [profession, setProfession] = useState('')
+  const [preferredCountry, setPreferredCountry] = useState('')
+  const [partnerId, setPartnerId] = useState(defaultPartnerId ?? '')
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>()
   const [primaryService, setPrimaryService] = useState<ServiceType>(
     () => serviceOptions[0]?.value ?? 'Leisure',
   )
@@ -48,11 +77,23 @@ export function NewClientForm({ onSubmit, onCancel }: NewClientFormProps) {
 
     onSubmit({
       name,
+      fatherName,
+      dateOfBirth,
+      placeOfBirth,
+      gender,
       phone,
       email,
       address,
+      presentAddress: address,
+      profession,
+      preferredCountry,
+      partnerId: partnerId || undefined,
+      avatarUrl,
       nid,
       passport,
+      passportExpiry,
+      passportIssuedOn,
+      passportPlaceOfIssue,
       primaryService,
       idChecked,
       openFirstCase,
@@ -63,11 +104,17 @@ export function NewClientForm({ onSubmit, onCancel }: NewClientFormProps) {
     <form className="pd-clients-form" onSubmit={handleSubmit} noValidate>
       <div className="pd-clients-form__scroll">
         <div className="pd-clients-form__block">
-          <p className="pd-clients-form__heading">Client (who)</p>
+          <p className="pd-clients-form__heading">Client</p>
           <p className="pd-clients-form__hint">
             Mobile number is the unique identifier. One person across every
-            service — open a case next for their purpose.
+            service.
           </p>
+          <PartnerPhotoField
+            name={name}
+            fallbackName="Client"
+            value={avatarUrl}
+            onChange={setAvatarUrl}
+          />
 
           <div className="pd-clients-form__grid">
             <Input
@@ -87,6 +134,29 @@ export function NewClientForm({ onSubmit, onCancel }: NewClientFormProps) {
               }
               options={serviceOptions}
             />
+            <Select
+              label="Gender"
+              value={gender}
+              onChange={(event) =>
+                setGender(event.target.value as 'Male' | 'Female' | 'Other')
+              }
+              options={[
+                { value: 'Male', label: 'Male' },
+                { value: 'Female', label: 'Female' },
+                { value: 'Other', label: 'Other' },
+              ]}
+            />
+            <Input
+              label="Date of birth"
+              type="date"
+              value={dateOfBirth}
+              onChange={(event) => setDateOfBirth(event.target.value)}
+            />
+            <Input
+              label="Place of birth"
+              value={placeOfBirth}
+              onChange={(event) => setPlaceOfBirth(event.target.value)}
+            />
             <Input
               label="Mobile number"
               type="tel"
@@ -104,24 +174,66 @@ export function NewClientForm({ onSubmit, onCancel }: NewClientFormProps) {
               placeholder="client@email.com"
             />
             <Input
+              label="Father name"
+              value={fatherName}
+              onChange={(event) => setFatherName(event.target.value)}
+            />
+            <Input
+              label="Address"
+              value={address}
+              onChange={(event) => setAddress(event.target.value)}
+              placeholder="Present address"
+            />
+            <Input
               label="NID number"
               value={nid}
               onChange={(event) => setNid(event.target.value)}
-              placeholder="Optional"
             />
             <Input
               label="Passport number"
               value={passport}
               onChange={(event) => setPassport(event.target.value)}
-              placeholder="Optional"
             />
-            <Textarea
-              className="pd-clients-form__full"
-              label="Address"
-              rows={2}
-              value={address}
-              onChange={(event) => setAddress(event.target.value)}
-              placeholder="Full address"
+            <Input
+              label="Date of issue"
+              type="date"
+              value={passportIssuedOn}
+              onChange={(event) => setPassportIssuedOn(event.target.value)}
+            />
+            <Input
+              label="Date of expiry"
+              type="date"
+              value={passportExpiry}
+              onChange={(event) => setPassportExpiry(event.target.value)}
+            />
+            <Input
+              label="Place of issue"
+              value={passportPlaceOfIssue}
+              onChange={(event) => setPassportPlaceOfIssue(event.target.value)}
+            />
+            <Input
+              label="Profession"
+              value={profession}
+              onChange={(event) => setProfession(event.target.value)}
+            />
+            <Select
+              label="Preferred country"
+              value={preferredCountry}
+              searchable
+              onChange={(event) => setPreferredCountry(event.target.value)}
+              options={COUNTRY_OPTIONS}
+            />
+            <Select
+              label="Sub Agent"
+              value={partnerId}
+              onChange={(event) => setPartnerId(event.target.value)}
+              options={[
+                { value: '', label: 'None' },
+                ...partners.map((partner) => ({
+                  value: partner.id,
+                  label: partner.name,
+                })),
+              ]}
             />
           </div>
         </div>
@@ -148,7 +260,7 @@ export function NewClientForm({ onSubmit, onCancel }: NewClientFormProps) {
         <div className="pd-clients-form__block">
           <p className="pd-clients-form__heading">Next step</p>
           <Checkbox
-            label="Open first case after registration"
+            label="Add first service after registration"
             checked={openFirstCase}
             onChange={(event) => setOpenFirstCase(event.target.checked)}
           />

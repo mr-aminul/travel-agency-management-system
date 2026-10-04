@@ -14,7 +14,6 @@ import '@/styles/layout-admin.css'
 const SECTIONS = [
   { to: 'overview', label: 'Overview' },
   { to: 'users', label: 'Users' },
-  { to: 'modules', label: 'Modules' },
 ] as const
 
 function statusBadgeVariant(status: TenantStatus): BadgeVariant {

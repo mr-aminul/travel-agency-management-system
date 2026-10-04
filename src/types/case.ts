@@ -1,9 +1,32 @@
-export type ServiceType =
-  | 'Manpower'
-  | 'Student'
-  | 'Hajj/Umrah'
-  | 'Leisure'
-  | 'Ticketing'
+export const BUILTIN_SERVICE_TYPES = [
+  'Manpower',
+  'Student',
+  'Hajj/Umrah',
+  'Leisure',
+  'Ticketing',
+] as const
+
+export type BuiltinServiceType = (typeof BUILTIN_SERVICE_TYPES)[number]
+
+/** Built-in templates plus agency-defined service names. */
+export type ServiceType = BuiltinServiceType | (string & {})
+
+export const BUILTIN_SERVICE_OPTIONS: {
+  value: BuiltinServiceType
+  label: string
+}[] = [
+  { value: 'Manpower', label: 'Manpower' },
+  { value: 'Student', label: 'Student' },
+  { value: 'Hajj/Umrah', label: 'Hajj / Umrah' },
+  { value: 'Leisure', label: 'Leisure' },
+  { value: 'Ticketing', label: 'Ticketing' },
+]
+
+export function isBuiltinService(
+  service: string,
+): service is BuiltinServiceType {
+  return (BUILTIN_SERVICE_TYPES as readonly string[]).includes(service)
+}
 
 /** Operational health — not the same as journey progress. */
 export type CaseStatus =
@@ -83,7 +106,8 @@ export type CaseDocument = {
   mimeType?: string
 }
 
-export type Case = {
+/** One piece of work on a client. Generic across service templates. */
+export type ServiceRequest = {
   id: string
   tenantId: string
   caseId: string
@@ -99,7 +123,13 @@ export type Case = {
   steps: Record<string, CaseStepRecord>
   documents: CaseDocument[]
   destination?: string
+  /** Country used to pick this file’s status journey and document checklist. */
+  serviceCountry?: string
+  /** Amount charged for this service. */
+  serviceFee: number
+  /** Amount still due after payments. */
   balance: number
+  /** Employee id from HR (`EMP-…`). */
   assignedTo?: string
   departureDate?: string
   description?: string
@@ -107,12 +137,19 @@ export type Case = {
   updatedAt: string
 }
 
+/** @deprecated Use ServiceRequest */
+export type Case = ServiceRequest
+
 export type CreateCaseInput = {
   clientId: string
   service: ServiceType
   status?: CaseStatus
   destination?: string
+  serviceCountry?: string
+  /** Amount charged for this service. Balance due starts equal to this. */
+  serviceFee?: number
   balance?: number
+  /** Employee id from HR (`EMP-…`). */
   assignedTo?: string
   departureDate?: string
   description?: string
@@ -135,8 +172,8 @@ export type UpdateCaseInput = Partial<
   currentStepId?: string
 }
 
-/** Nav slug ↔ service */
-export const CASE_SERVICE_SLUGS: Record<string, ServiceType> = {
+/** Nav slug ↔ built-in service */
+export const CASE_SERVICE_SLUGS: Record<string, BuiltinServiceType> = {
   manpower: 'Manpower',
   student: 'Student',
   'hajj-umrah': 'Hajj/Umrah',
@@ -144,11 +181,20 @@ export const CASE_SERVICE_SLUGS: Record<string, ServiceType> = {
   ticketing: 'Ticketing',
 }
 
+export function slugifyServiceName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 export function serviceToSlug(service: ServiceType): string {
   const entry = Object.entries(CASE_SERVICE_SLUGS).find(
     ([, value]) => value === service,
   )
-  return entry?.[0] ?? 'manpower'
+  return entry?.[0] ?? slugifyServiceName(service)
 }
 
 export function isCaseServiceSlug(

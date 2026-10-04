@@ -7,12 +7,13 @@ import {
 import { cx } from '@/lib/cx'
 import {
   getPipelineStagesForService,
-  getStepDefs,
+  getStepDefsForCase,
   getStepIndex,
   getStepsForStage,
   isPipelineStageComplete,
   isPipelineStageCurrent,
   isPipelineStepComplete,
+  templateCountry,
 } from '@/lib/caseChecklist'
 import type { Case, CaseStage } from '@/types/case'
 
@@ -50,9 +51,10 @@ export type CasePipelineProps = {
 }
 
 export function CasePipeline({ item }: CasePipelineProps) {
-  const stages = getPipelineStagesForService(item.service)
-  const steps = getStepDefs(item.service)
-  const currentIndex = getStepIndex(item.service, item.currentStepId)
+  const country = templateCountry(item)
+  const stages = getPipelineStagesForService(item.service, country)
+  const steps = getStepDefsForCase(item)
+  const currentIndex = getStepIndex(item.service, item.currentStepId, country)
   const canEdit =
     item.status !== 'Completed' && item.status !== 'Cancelled'
   const [selectedStage, setSelectedStage] = useState<CaseStage | null>(null)
@@ -65,7 +67,7 @@ export function CasePipeline({ item }: CasePipelineProps) {
   }, [item.id])
 
   const visibleSteps = selectedStage
-    ? getStepsForStage(item.service, selectedStage)
+    ? getStepsForStage(item.service, selectedStage, country)
     : steps
 
   const openStep = (stepId: string, mode: StepDrawerMode) => {
@@ -141,7 +143,7 @@ export function CasePipeline({ item }: CasePipelineProps) {
         <ul className="pd-pipeline__milestones" aria-label="Case milestones">
           {visibleSteps.map((step) => {
             const complete = isPipelineStepComplete(item, step.id)
-            const stepIndex = getStepIndex(item.service, step.id)
+            const stepIndex = getStepIndex(item.service, step.id, country)
             const current = item.currentStepId === step.id && !complete
             const locked = canEdit && stepIndex > currentIndex
             const dateValue = milestoneDate(item, step.id)

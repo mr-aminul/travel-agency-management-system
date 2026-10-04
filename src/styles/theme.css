@@ -6,7 +6,7 @@
 
 :root {
   /* ═══ ONLY brand hex ═══ */
-  --color-theme: #0c7757;
+  --color-theme: #0c2d79;
 
   /* Scale */
   --color-theme-darkest: color-mix(in srgb, var(--color-theme) 28%, black);

@@ -1,23 +1,28 @@
-/* Settings page — loaded only with SettingsPage */
+/* Settings page — loaded only with SettingsPage
+   Frame: section rail ~16rem | content fill
+   Responsive: <=767px rail stacks as a horizontal strip; content fills the rest */
 .pd-settings {
   display: grid;
-  grid-template-columns: minmax(13.5rem, 15.5rem) minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
-  max-width: 56rem;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
   width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-width: none;
 }
 
 .pd-settings-nav {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  padding: 0.375rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  background: var(--color-surface-raised, var(--color-bg));
-  position: sticky;
-  top: 0.5rem;
+  min-height: 0;
+  padding: 0.75rem;
+  border: 0;
+  border-inline-end: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  overflow-y: auto;
 }
 
 .pd-settings-nav__item {
@@ -89,19 +94,22 @@
 .pd-settings-panel {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
   min-width: 0;
-  padding: 1.125rem 1.25rem 1.25rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
-  background: var(--color-surface-raised, var(--color-bg));
+  min-height: 0;
+  padding: 1.5rem 1.75rem 2rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow-y: auto;
 }
 
 .pd-settings-panel__header {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  padding-bottom: 0.875rem;
+  flex-shrink: 0;
+  padding-bottom: 1rem;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -119,11 +127,15 @@
   font-size: 0.8125rem;
   line-height: 1.4;
   color: var(--color-text-muted, color-mix(in srgb, var(--color-text) 62%, transparent));
-  max-width: 36rem;
+  max-width: 42rem;
 }
 
 .pd-settings-panel__body {
   min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .pd-settings-stack {
@@ -345,18 +357,452 @@
   color: var(--color-danger, #b42318);
 }
 
+.pd-settings-services {
+  display: grid;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.pd-settings-services__catalog,
+.pd-settings-services__editor {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface, var(--color-bg));
+}
+
+.pd-settings-services__catalog-head,
+.pd-settings-services__editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.pd-settings-services__catalog-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, color-mix(in srgb, var(--color-text) 62%, transparent));
+}
+
+.pd-settings-services__composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-theme) 6%, var(--color-bg));
+}
+
+.pd-settings-services__composer .pd-field--outlined .pd-field__label {
+  background: color-mix(in srgb, var(--color-theme) 6%, var(--color-bg));
+}
+
+.pd-settings-service-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0.375rem;
+  list-style: none;
+}
+
+.pd-settings-service-list > li {
+  flex: 0 0 auto;
+}
+
+.pd-settings-service-item {
+  display: flex;
+  align-items: stretch;
+  gap: 0.125rem;
+  border-radius: 0.625rem;
+}
+
+.pd-settings-service-item.is-selected {
+  background: color-mix(in srgb, var(--color-theme) 12%, transparent);
+}
+
+.pd-settings-service-item__select {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  border-radius: 0.625rem;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pd-settings-service-item__select:hover {
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.pd-settings-service-item.is-selected .pd-settings-service-item__select:hover {
+  background: transparent;
+}
+
+.pd-settings-service-item__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.pd-settings-service-item__name {
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-settings-service-item__meta {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--color-text-muted, color-mix(in srgb, var(--color-text) 62%, transparent));
+}
+
+.pd-settings-service-item__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.pd-settings-service-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.375rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  color: var(--color-text-sec);
+}
+
+.pd-settings-service-tag--custom {
+  background: color-mix(in srgb, var(--color-theme) 16%, transparent);
+  color: var(--color-theme);
+}
+
+.pd-settings-service-tag--edited {
+  background: color-mix(in srgb, var(--color-warning, #b54708) 16%, transparent);
+  color: var(--color-warning, #b54708);
+}
+
+.pd-settings-service-item__actions {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  gap: 0.125rem;
+  padding-inline-end: 0.25rem;
+}
+
+.pd-settings-service-item__actions .pd-btn {
+  min-width: 1.75rem;
+  padding-inline: 0.25rem;
+}
+
+.pd-settings-services__composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.pd-settings-services__editor-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.pd-settings-services__hidden {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: auto;
+  padding: 0.75rem 0.875rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.pd-settings-services__hidden-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, color-mix(in srgb, var(--color-text) 62%, transparent));
+}
+
+.pd-settings-services__hidden-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-settings-services__hidden-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-sec, var(--color-text));
+}
+
+.pd-settings-service-empty {
+  margin: 0;
+  padding: 1rem 0.875rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-text-muted, color-mix(in srgb, var(--color-text) 62%, transparent));
+}
+
+.pd-settings-service-empty--panel {
+  margin: auto;
+  max-width: 22rem;
+  text-align: center;
+}
+
+.pd-settings-services__editor-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.pd-settings-services__editor-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.pd-settings-services__editor-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-muted, color-mix(in srgb, var(--color-text) 62%, transparent));
+}
+
+.pd-settings-template {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.875rem 0.875rem 1rem;
+}
+
+.pd-settings-template__countries {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.pd-settings-template__country-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.pd-settings-template__country {
+  padding: 0.3125rem 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-sec);
+  font-size: 0.75rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.pd-settings-template__country.is-active {
+  border-color: color-mix(in srgb, var(--color-theme) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-theme) 12%, transparent);
+  color: var(--color-theme);
+}
+
+.pd-settings-template__add-country {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.pd-settings-template__add-country .pd-field {
+  min-width: 10rem;
+  flex: 1;
+}
+
+.pd-settings-template__panes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pd-settings-template__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 750;
+  color: var(--color-text);
+}
+
+.pd-settings-template__tab-count {
+  display: inline-flex;
+  min-width: 1.125rem;
+  justify-content: center;
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--color-theme) 14%, transparent);
+  color: var(--color-theme);
+}
+
+.pd-settings-template__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.pd-settings-template__block + .pd-settings-template__block {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.pd-settings-template__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pd-settings-template__hint {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--color-text-muted, color-mix(in srgb, var(--color-text) 62%, transparent));
+}
+
+.pd-settings-template__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-settings-template__list--steps {
+  counter-reset: none;
+}
+
+.pd-settings-template__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pd-settings-template__index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-theme) 14%, transparent);
+  color: var(--color-theme);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-settings-template__row .pd-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.pd-settings-template__row-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.pd-settings-template__row-actions .pd-btn {
+  --btn-pad-x: 0.375rem;
+}
+
+.pd-settings-template__need {
+  flex-shrink: 0;
+  padding: 0.3125rem 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-sec);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pd-settings-template__need.is-required {
+  border-color: color-mix(in srgb, var(--color-theme) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-theme) 12%, transparent);
+  color: var(--color-theme);
+}
+
+.pd-settings-template__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.pd-settings-template__footer .pd-settings-form__status {
+  margin-right: auto;
+}
+
 @media (max-width: 767px) {
   .pd-settings {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .pd-settings-nav {
-    position: static;
     flex-direction: row;
     overflow-x: auto;
+    overflow-y: hidden;
     gap: 0.375rem;
-    padding: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--color-border);
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
@@ -376,7 +822,7 @@
   }
 
   .pd-settings-panel {
-    padding: 1rem;
+    padding: 1rem 1rem 1.5rem;
   }
 
   .pd-settings-form__grid {
@@ -386,5 +832,11 @@
   .pd-settings-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 1100px) {
+  .pd-settings-services {
+    grid-template-columns: 1fr;
   }
 }

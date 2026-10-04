@@ -12,7 +12,14 @@ import {
   Stamp,
   Ticket,
 } from 'lucide-react'
-import type { Case, CaseStage, CaseStepRecord, ServiceType } from '@/types/case'
+import { getServiceTemplateOverride, resolveServiceTemplateOverride } from '@/lib/serviceTemplatesStore'
+import type {
+  BuiltinServiceType,
+  Case,
+  CaseStage,
+  CaseStepRecord,
+  ServiceType,
+} from '@/types/case'
 
 export type StepDef = {
   id: string
@@ -39,10 +46,11 @@ export function getPipelineStageIndex(stage: CaseStage): number {
 /** Stages that actually have milestones for this service, in journey order. */
 export function getPipelineStagesForService(
   service: ServiceType,
+  country?: string,
 ): CaseStage[] {
   const seen = new Set<CaseStage>()
   const stages: CaseStage[] = []
-  for (const step of getStepDefs(service)) {
+  for (const step of getStepDefs(service, country)) {
     if (seen.has(step.stage)) continue
     seen.add(step.stage)
     stages.push(step.stage)
@@ -53,17 +61,19 @@ export function getPipelineStagesForService(
 export function getStepsForStage(
   service: ServiceType,
   stage: CaseStage,
+  country?: string,
 ): StepDef[] {
-  return getStepDefs(service).filter((step) => step.stage === stage)
+  return getStepDefs(service, country).filter((step) => step.stage === stage)
 }
 
 /** A step is done when recorded, passed, or the whole case is completed. */
 export function isPipelineStepComplete(item: Case, stepId: string): boolean {
   if (item.status === 'Completed') return true
   if (item.steps[stepId]?.completedAt) return true
+  const country = templateCountry(item)
   return (
-    getStepIndex(item.service, stepId) <
-    getStepIndex(item.service, item.currentStepId)
+    getStepIndex(item.service, stepId, country) <
+    getStepIndex(item.service, item.currentStepId, country)
   )
 }
 
@@ -73,7 +83,7 @@ export function isPipelineStageComplete(
   stage: CaseStage,
 ): boolean {
   if (item.status === 'Completed') return true
-  const steps = getStepsForStage(item.service, stage)
+  const steps = getStepsForStage(item.service, stage, templateCountry(item))
   if (steps.length === 0) return false
   return steps.every((step) => isPipelineStepComplete(item, step.id))
 }
@@ -82,7 +92,8 @@ export function isPipelineStageCurrent(item: Case, stage: CaseStage): boolean {
   if (item.status === 'Completed' || item.status === 'Cancelled') {
     return stage === 'Closed'
   }
-  return getStepDef(item.service, item.currentStepId)?.stage === stage
+  return getStepDef(item.service, item.currentStepId, templateCountry(item))
+    ?.stage === stage
 }
 
 const MANPOWER_STEPS: StepDef[] = [
@@ -133,7 +144,15 @@ const TICKETING_STEPS: StepDef[] = [
   { id: 'travelled', label: 'Travelled', icon: PlaneTakeoff, stage: 'Closed' },
 ]
 
-const STEPS_BY_SERVICE: Record<ServiceType, StepDef[]> = {
+const CUSTOM_STEPS: StepDef[] = [
+  { id: 'intake', label: 'Intake', icon: FilePlus2, stage: 'Intake' },
+  { id: 'processing', label: 'In progress', icon: ClipboardList, stage: 'Processing' },
+  { id: 'documents', label: 'Documents', icon: FileCheck2, stage: 'Documents' },
+  { id: 'delivered', label: 'Delivered', icon: BadgeCheck, stage: 'Travel' },
+  { id: 'closed', label: 'Closed', icon: CheckCircle2, stage: 'Closed' },
+]
+
+const STEPS_BY_SERVICE: Record<BuiltinServiceType, StepDef[]> = {
   Manpower: MANPOWER_STEPS,
   Student: STUDENT_STEPS,
   'Hajj/Umrah': HAJJ_STEPS,
@@ -141,23 +160,67 @@ const STEPS_BY_SERVICE: Record<ServiceType, StepDef[]> = {
   Ticketing: TICKETING_STEPS,
 }
 
-export function getStepDefs(service: ServiceType): StepDef[] {
-  return STEPS_BY_SERVICE[service]
+function stageFromPosition(index: number, total: number): CaseStage {
+  if (index <= 0) return 'Intake'
+  if (index >= total - 1) return 'Closed'
+  if (index === total - 2) return 'Travel'
+  return index < Math.ceil(total / 2) ? 'Processing' : 'Documents'
 }
 
-export function getFirstStepId(service: ServiceType): string {
-  return STEPS_BY_SERVICE[service][0].id
+export function getBuiltinStepDefs(service: ServiceType): StepDef[] {
+  return STEPS_BY_SERVICE[service as BuiltinServiceType] ?? CUSTOM_STEPS
+}
+
+export function templateCountry(
+  item: Pick<Case, 'serviceCountry' | 'destination'>,
+): string | undefined {
+  return item.serviceCountry || undefined
+}
+
+export function getStepDefs(
+  service: ServiceType,
+  country?: string,
+): StepDef[] {
+  const builtin = getBuiltinStepDefs(service)
+  const override = country
+    ? resolveServiceTemplateOverride(service, country)
+    : getServiceTemplateOverride(service)
+  if (!override?.steps.length) return builtin
+  return override.steps.map((step, index, all) => {
+    const match = builtin.find((item) => item.id === step.id)
+    return {
+      id: step.id,
+      label: step.label,
+      icon: match?.icon ?? FileCheck2,
+      stage: match?.stage ?? stageFromPosition(index, all.length),
+    }
+  })
+}
+
+export function getStepDefsForCase(item: Case): StepDef[] {
+  return getStepDefs(item.service, templateCountry(item))
+}
+
+export function getFirstStepId(service: ServiceType, country?: string): string {
+  return getStepDefs(service, country)[0].id
 }
 
 export function getStepDef(
   service: ServiceType,
   stepId: string,
+  country?: string,
 ): StepDef | undefined {
-  return STEPS_BY_SERVICE[service].find((step) => step.id === stepId)
+  return getStepDefs(service, country).find((step) => step.id === stepId)
 }
 
-export function getStepIndex(service: ServiceType, stepId: string): number {
-  const index = STEPS_BY_SERVICE[service].findIndex((step) => step.id === stepId)
+export function getStepIndex(
+  service: ServiceType,
+  stepId: string,
+  country?: string,
+): number {
+  const index = getStepDefs(service, country).findIndex(
+    (step) => step.id === stepId,
+  )
   return index < 0 ? 0 : index
 }
 
@@ -165,17 +228,19 @@ export function deriveStageFromStep(
   service: ServiceType,
   currentStepId: string,
   status: Case['status'],
+  country?: string,
 ): CaseStage {
   if (status === 'Completed' || status === 'Cancelled') return 'Closed'
-  return getStepDef(service, currentStepId)?.stage ?? 'Intake'
+  return getStepDef(service, currentStepId, country)?.stage ?? 'Intake'
 }
 
 /** Build initial step map: first step current (not completed), rest empty. */
 export function buildInitialSteps(
   service: ServiceType,
   createdAt: string,
+  country?: string,
 ): { currentStepId: string; steps: Record<string, CaseStepRecord> } {
-  const defs = getStepDefs(service)
+  const defs = getStepDefs(service, country)
   const currentStepId = defs[0].id
   const steps: Record<string, CaseStepRecord> = {}
   for (const def of defs) {
@@ -195,9 +260,10 @@ export function buildProgressAtStep(
   currentStepId: string,
   createdAt: string,
   details: Record<string, string> = {},
+  country?: string,
 ): { currentStepId: string; steps: Record<string, CaseStepRecord> } {
-  const defs = getStepDefs(service)
-  const currentIndex = getStepIndex(service, currentStepId)
+  const defs = getStepDefs(service, country)
+  const currentIndex = getStepIndex(service, currentStepId, country)
   const steps: Record<string, CaseStepRecord> = {}
 
   defs.forEach((def, index) => {
@@ -222,17 +288,27 @@ export function buildProgressAtStep(
 export function getCurrentStepLabel(item: Case): string {
   if (item.status === 'Completed') return 'Completed'
   if (item.status === 'Cancelled') return 'Cancelled'
-  return getStepDef(item.service, item.currentStepId)?.label ?? 'Intake'
+  return (
+    getStepDef(item.service, item.currentStepId, templateCountry(item))
+      ?.label ?? 'Intake'
+  )
 }
 
 export function getNextStepDef(item: Case): StepDef | null {
   if (item.status === 'Completed' || item.status === 'Cancelled') return null
-  const defs = getStepDefs(item.service)
-  const index = getStepIndex(item.service, item.currentStepId)
+  const defs = getStepDefsForCase(item)
+  const index = getStepIndex(
+    item.service,
+    item.currentStepId,
+    templateCountry(item),
+  )
   return defs[index + 1] ?? null
 }
 
 export function isLastStep(item: Case): boolean {
-  const defs = getStepDefs(item.service)
-  return getStepIndex(item.service, item.currentStepId) >= defs.length - 1
+  const defs = getStepDefsForCase(item)
+  return (
+    getStepIndex(item.service, item.currentStepId, templateCountry(item)) >=
+    defs.length - 1
+  )
 }

@@ -1,6 +1,12 @@
 import { useSyncExternalStore } from 'react'
-import { ALL_MODULE_IDS, hasModule, isServiceEnabled } from '@/lib/modules'
-import type { ServiceType } from '@/types/case'
+import {
+  ALL_MODULE_IDS,
+  hasModule,
+  isServiceEnabled,
+  normalizeModuleId,
+} from '@/lib/modules'
+import { tenantHasCustomService } from '@/lib/customServicesStore'
+import { isBuiltinService, type ServiceType } from '@/types/case'
 import { TENANT_IDS, type ModuleId, type Tenant } from '@/types/tenant'
 
 type Listener = () => void
@@ -13,14 +19,14 @@ const SEED_TENANTS: Tenant[] = [
     slug: 'coastal-leisure',
     name: 'Coastal Leisure',
     status: 'active',
-    enabledModules: ['cases.leisure', 'cases.ticketing', 'finance'],
+    enabledModules: ['services.leisure', 'services.ticketing', 'finance'],
   },
   {
     id: TENANT_IDS.manpower,
     slug: 'horizon-manpower',
     name: 'Horizon Manpower',
     status: 'active',
-    enabledModules: ['cases.manpower', 'finance', 'hr'],
+    enabledModules: ['services.manpower', 'finance', 'hr', 'partners'],
   },
   {
     id: TENANT_IDS.full,
@@ -53,9 +59,11 @@ function readOverrides(): Partial<Record<string, ModuleId[]>> {
     const next: Partial<Record<string, ModuleId[]>> = {}
     for (const [id, value] of Object.entries(parsed as Record<string, unknown>)) {
       if (!Array.isArray(value)) continue
-      next[id] = value.filter((item): item is ModuleId =>
-        ALL_MODULE_IDS.includes(item as ModuleId),
-      )
+      next[id] = value
+        .map((item) =>
+          typeof item === 'string' ? normalizeModuleId(item) : undefined,
+        )
+        .filter((item): item is ModuleId => item != null)
     }
     return next
   } catch {
@@ -139,7 +147,10 @@ export function tenantAllowsService(
   tenant: Tenant,
   service: ServiceType,
 ): boolean {
-  return isServiceEnabled(tenant.enabledModules, service)
+  if (isBuiltinService(service)) {
+    return isServiceEnabled(tenant.enabledModules, service)
+  }
+  return tenantHasCustomService(tenant.id, service)
 }
 
 export function resetTenantEntitlements() {

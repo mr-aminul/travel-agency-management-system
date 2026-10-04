@@ -68,6 +68,9 @@ export function AppLayout({
       ? profileNavItem
       : (matchNavItem(pathname, navItems) ?? navItems[0])
 
+  const isFillPage =
+    pathname === '/settings' || pathname.startsWith('/settings/')
+
   return (
     <div
       className={[
@@ -87,7 +90,14 @@ export function AppLayout({
           onMobileClose={() => setIsMobileOpen(false)}
         />
         <div className="pd-app-content">
-          <div className="pd-app-content-card">
+          <div
+            className={[
+              'pd-app-content-card',
+              isFillPage ? 'pd-app-content-card--fill' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
             <TopBar
               title={currentNavItem?.label ?? 'App'}
               titleIcon={currentNavItem?.icon}
@@ -97,7 +107,14 @@ export function AppLayout({
               onMobileMenuOpen={() => setIsMobileOpen(true)}
               isMobile={isMobile}
             />
-            <main className="pd-app-main">
+            <main
+              className={[
+                'pd-app-main',
+                isFillPage ? 'pd-app-main--fill' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
               <Outlet />
             </main>
             <footer

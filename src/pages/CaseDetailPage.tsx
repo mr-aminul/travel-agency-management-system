@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   Calendar,
   CircleDot,
+  ClipboardList,
   Eye,
   FileText,
   Folder,
@@ -13,9 +13,9 @@ import {
   MessageSquare,
   NotebookPen,
   Plane,
+  Receipt,
   SquarePen,
   UserCheck,
-  UserRound,
   Upload,
   Wallet,
 } from 'lucide-react'
@@ -27,11 +27,11 @@ import {
 } from '@/components/cases/DocumentUploadModal'
 import { PaymentsList } from '@/components/payments/PaymentsList'
 import {
-  Avatar,
   Badge,
   Button,
   EmptyState,
   Input,
+  Modal,
   Select,
   Tabs,
   Textarea,
@@ -48,12 +48,20 @@ import {
   getCaseById,
   updateCase,
   useCases,
+  useCasesByClientId,
 } from '@/lib/casesStore'
 import type { CaseDocument } from '@/types/case'
 import { usePaymentsByCaseId } from '@/lib/paymentsStore'
 import { formatBalance, getClientById } from '@/lib/clientsStore'
+import { caseServiceFee, parseMoneyInput } from '@/lib/caseMoney'
+import {
+  employeeAssignmentOptions,
+  getEmployeeDisplayName,
+  useEmployees,
+} from '@/lib/employeesStore'
+import { submitStatusRequest } from '@/lib/requestsStore'
+import { clientPath, workDetailPath, workInvoicePath } from '@/lib/workPaths'
 import type { CaseDocumentStatus, CaseStatus } from '@/types/case'
-import { serviceToSlug } from '@/types/case'
 import '@/styles/layout-cases.css'
 
 function statusBadgeVariant(status: CaseStatus): BadgeVariant {
@@ -237,10 +245,12 @@ function TabLabel({
 }
 
 export default function CaseDetailPage() {
-  const { id = '' } = useParams()
+  const { id: clientId = '', caseId = '' } = useParams()
   useCases()
-  const item = getCaseById(id)
-  const casePayments = usePaymentsByCaseId(id)
+  const item = getCaseById(caseId)
+  const siblingServices = useCasesByClientId(item?.clientId ?? clientId)
+  const casePayments = usePaymentsByCaseId(caseId)
+  const employees = useEmployees()
   const client = item ? getClientById(item.clientId) : undefined
   const [editing, setEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
@@ -249,18 +259,26 @@ export default function CaseDetailPage() {
     destination: '',
     assignedTo: '',
     departureDate: '',
-    balance: '',
+    serviceFee: '',
     description: '',
   })
+  const [requestOpen, setRequestOpen] = useState(false)
+  const [requestTo, setRequestTo] = useState<CaseStatus>('In-Progress')
+  const [requestRemarks, setRequestRemarks] = useState('')
 
   if (!item) {
-    return <Navigate to="/cases" replace />
+    return <Navigate to={clientPath(clientId, 'services')} replace />
   }
 
-  const listPath = `/cases/${serviceToSlug(item.service)}`
+  if (item.clientId !== clientId) {
+    return <Navigate to={workDetailPath(item)} replace />
+  }
+
   const docs = getCaseComplianceDocuments(item)
   const missingDocs = countMissingDocuments(item)
   const currentLabel = getCurrentStepLabel(item)
+  const paidTotal = casePayments.reduce((sum, payment) => sum + payment.amount, 0)
+  const serviceFee = caseServiceFee(item, paidTotal)
 
   const startEditing = () => {
     setDraft({
@@ -268,20 +286,21 @@ export default function CaseDetailPage() {
       destination: item.destination ?? '',
       assignedTo: item.assignedTo ?? '',
       departureDate: item.departureDate ?? '',
-      balance: item.balance ? String(item.balance) : '',
+      serviceFee: serviceFee ? String(serviceFee) : '',
       description: item.description ?? '',
     })
     setEditing(true)
   }
 
   const finishEditing = () => {
-    const parsedBalance = Number(draft.balance.replace(/,/g, ''))
+    const nextFee = parseMoneyInput(draft.serviceFee)
     updateCase(item.id, {
       status: draft.status,
       destination: draft.destination,
       assignedTo: draft.assignedTo,
       departureDate: draft.departureDate || undefined,
-      balance: Number.isFinite(parsedBalance) ? parsedBalance : 0,
+      serviceFee: nextFee,
+      balance: Math.max(0, nextFee - paidTotal),
       description: draft.description,
     })
     setEditing(false)
@@ -290,11 +309,24 @@ export default function CaseDetailPage() {
   const displayStatus = editing ? draft.status : item.status
 
   return (
-    <div className="pd-page pd-case-detail" aria-label={`${item.clientName} ${item.service} case`}>
-      <Link to={listPath} className="pd-case-detail__back">
-        <ArrowLeft size={14} strokeWidth={2.25} aria-hidden />
-        {item.service} cases
-      </Link>
+    <div className="pd-case-detail pd-case-detail--nested" aria-label={item.service}>
+      {siblingServices.length > 1 ? (
+        <nav className="pd-case-detail__siblings" aria-label="Services on this client">
+          {siblingServices.map((service) => (
+            <Link
+              key={service.id}
+              to={workDetailPath(service)}
+              className={
+                service.id === item.id
+                  ? 'pd-case-detail__sibling is-active'
+                  : 'pd-case-detail__sibling'
+              }
+            >
+              {service.service}
+            </Link>
+          ))}
+        </nav>
+      ) : null}
 
       <header
         className={
@@ -303,23 +335,9 @@ export default function CaseDetailPage() {
             : 'pd-case-detail__header'
         }
       >
-        <Avatar
-          name={item.clientName}
-          src={client?.avatarUrl}
-          size="xl"
-        />
-
         <div className="pd-case-detail__header-text">
           <div className="pd-case-detail__title-row">
-            <h1 className="pd-case-detail__name">
-              <Link
-                to={`/clients/${item.clientId}`}
-                className="pd-case-detail__name-link"
-              >
-                {item.clientName}
-              </Link>
-            </h1>
-            <Badge variant="neutral">{item.service}</Badge>
+            <h2 className="pd-case-detail__name">{item.service}</h2>
             <Badge variant={statusBadgeVariant(displayStatus)}>
               {displayStatus}
             </Badge>
@@ -361,8 +379,22 @@ export default function CaseDetailPage() {
             </>
           ) : (
             <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setRequestTo(
+                    item.status === 'Pending' ? 'In-Progress' : 'Completed',
+                  )
+                  setRequestRemarks('')
+                  setRequestOpen(true)
+                }}
+              >
+                <ClipboardList size={14} strokeWidth={2.25} aria-hidden />
+                Request update
+              </Button>
               <Link
-                to={`/cases/${item.id}/invoice`}
+                to={workInvoicePath(item)}
                 className="pd-btn pd-btn--secondary pd-btn--sm"
               >
                 <FileText size={14} strokeWidth={2.25} aria-hidden />
@@ -425,6 +457,23 @@ export default function CaseDetailPage() {
                     onClick={() => setActiveTab('payments')}
                   >
                     <span className="pd-case-detail__stat-icon" aria-hidden>
+                      <Receipt size={16} strokeWidth={2.25} />
+                    </span>
+                    <div className="pd-case-detail__stat-copy">
+                      <span className="pd-case-detail__stat-label">
+                        Service fee
+                      </span>
+                      <span className="pd-case-detail__stat-value">
+                        {formatBalance(serviceFee)}
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="pd-case-detail__stat"
+                    onClick={() => setActiveTab('payments')}
+                  >
+                    <span className="pd-case-detail__stat-icon" aria-hidden>
                       <Wallet size={16} strokeWidth={2.25} />
                     </span>
                     <div className="pd-case-detail__stat-copy">
@@ -442,17 +491,6 @@ export default function CaseDetailPage() {
                   <section className="pd-case-detail__section">
                     <SectionTitle icon={Folder}>Case</SectionTitle>
                     <dl className="pd-case-detail__fields">
-                      <div className="pd-case-detail__field">
-                        <FieldLabel icon={UserRound}>Client</FieldLabel>
-                        <dd>
-                          <Link
-                            to={`/clients/${item.clientId}`}
-                            className="pd-case-detail__link"
-                          >
-                            {item.clientName}
-                          </Link>
-                        </dd>
-                      </div>
                       <div className="pd-case-detail__field">
                         <FieldLabel icon={CircleDot}>Status</FieldLabel>
                         <dd>
@@ -478,7 +516,10 @@ export default function CaseDetailPage() {
                         <FieldLabel icon={UserCheck}>Assigned to</FieldLabel>
                         <dd>
                           {editing ? (
-                            <Input
+                            <Select
+                              searchable
+                              searchPlaceholder="Search employees…"
+                              placeholder="Select employee"
                               value={draft.assignedTo}
                               onChange={(event) =>
                                 setDraft((current) => ({
@@ -486,9 +527,13 @@ export default function CaseDetailPage() {
                                   assignedTo: event.target.value,
                                 }))
                               }
+                              options={employeeAssignmentOptions(
+                                employees,
+                                draft.assignedTo,
+                              )}
                             />
                           ) : (
-                            item.assignedTo || (
+                            getEmployeeDisplayName(item.assignedTo) || (
                               <span className="pd-case-detail__empty">—</span>
                             )
                           )}
@@ -548,24 +593,32 @@ export default function CaseDetailPage() {
                         </dd>
                       </div>
                       <div className="pd-case-detail__field">
-                        <FieldLabel icon={Wallet}>Balance due</FieldLabel>
+                        <FieldLabel icon={Receipt}>Service fee</FieldLabel>
                         <dd>
                           {editing ? (
                             <Input
                               inputMode="numeric"
-                              value={draft.balance}
+                              value={draft.serviceFee}
                               onChange={(event) =>
                                 setDraft((current) => ({
                                   ...current,
-                                  balance: event.target.value,
+                                  serviceFee: event.target.value,
                                 }))
                               }
                             />
                           ) : (
                             <span className="pd-cases__balance">
-                              {formatBalance(item.balance)}
+                              {formatBalance(serviceFee)}
                             </span>
                           )}
+                        </dd>
+                      </div>
+                      <div className="pd-case-detail__field">
+                        <FieldLabel icon={Wallet}>Balance due</FieldLabel>
+                        <dd>
+                          <span className="pd-cases__balance">
+                            {formatBalance(item.balance)}
+                          </span>
                         </dd>
                       </div>
                       <div className="pd-case-detail__field">
@@ -621,7 +674,7 @@ export default function CaseDetailPage() {
                 <EmptyState
                   icon={FileText}
                   title="No documents"
-                  description="None for this case yet."
+                  description="None for this service yet."
                 />
               ),
           },
@@ -643,12 +696,66 @@ export default function CaseDetailPage() {
               <EmptyState
                 icon={MessageSquare}
                 title="No messages yet"
-                description="Messages for this case will show up here."
+                description="Messages for this service will show up here."
               />
             ),
           },
         ]}
       />
+      <Modal
+        open={requestOpen}
+        onClose={() => setRequestOpen(false)}
+        title="Request status update"
+        description="Staff or a sub agent can ask to move this service to a new status."
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setRequestOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!client?.partnerId) return
+                submitStatusRequest({
+                  partnerId: client.partnerId,
+                  clientId: item.clientId,
+                  caseId: item.id,
+                  fromStatus: item.status,
+                  toStatus: requestTo,
+                  remarks: requestRemarks.trim() || undefined,
+                })
+                setRequestOpen(false)
+              }}
+              disabled={!client?.partnerId || requestTo === item.status}
+            >
+              Submit request
+            </Button>
+          </>
+        }
+      >
+        {client?.partnerId ? (
+          <>
+            <Select
+              label="Move to"
+              value={requestTo}
+              onChange={(event) =>
+                setRequestTo(event.target.value as CaseStatus)
+              }
+              options={CASE_STATUS_OPTIONS}
+            />
+            <Textarea
+              label="Remarks"
+              rows={3}
+              value={requestRemarks}
+              onChange={(event) => setRequestRemarks(event.target.value)}
+            />
+          </>
+        ) : (
+          <EmptyState
+            title="No sub agent on this client"
+            description="Link a sub agent on the client profile before requesting a status change."
+          />
+        )}
+      </Modal>
     </div>
   )
 }

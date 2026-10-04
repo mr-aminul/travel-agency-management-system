@@ -9,9 +9,12 @@ import {
   Ticket,
 } from 'lucide-react'
 import type { BadgeVariant } from '@/components/ui'
-import { getStepDef, getStepIndex } from '@/lib/caseChecklist'
+import { getStepDef, getStepIndex, templateCountry } from '@/lib/caseChecklist'
 import { findStepForDocument } from '@/lib/caseStepRequirements'
+import { resolveServiceTemplateOverride } from '@/lib/serviceTemplatesStore'
+import type { ServiceDocumentConfig } from '@/types/serviceTemplate'
 import type {
+  BuiltinServiceType,
   Case,
   CaseDocument,
   CaseDocumentIcon,
@@ -282,12 +285,97 @@ function ticketingTemplate(): DocTemplate[] {
   ]
 }
 
-const TEMPLATES: Record<ServiceType, () => DocTemplate[]> = {
+const TEMPLATES: Record<BuiltinServiceType, () => DocTemplate[]> = {
   Manpower: manpowerTemplate,
   Student: studentTemplate,
   'Hajj/Umrah': hajjTemplate,
   Leisure: leisureTemplate,
   Ticketing: ticketingTemplate,
+}
+
+function customTemplate(): DocTemplate[] {
+  return [
+    {
+      id: 'passport',
+      name: 'Passport',
+      required: true,
+      icon: 'passport',
+      fromClient: 'passport',
+      defaultStatus: 'missing',
+      defaultDetail: 'Collect from client profile',
+    },
+    {
+      id: 'payment',
+      name: 'Payment receipt',
+      required: false,
+      icon: 'payment',
+      unlockStepId: 'documents',
+      defaultStatus: 'not_due',
+      defaultDetail: 'If a deposit or fee was collected',
+    },
+    {
+      id: 'other',
+      name: 'Supporting document',
+      required: false,
+      icon: 'other',
+      unlockStepId: 'documents',
+      defaultStatus: 'not_due',
+      defaultDetail: 'Any paper this service needs',
+    },
+  ]
+}
+
+function iconFromDocumentName(name: string): CaseDocumentIcon {
+  const value = name.toLowerCase()
+  if (value.includes('passport')) return 'passport'
+  if (value.includes('nid') || value.includes('national')) return 'nid'
+  if (value.includes('medical')) return 'medical'
+  if (value.includes('vaccine')) return 'vaccine'
+  if (value.includes('visa')) return 'visa'
+  if (value.includes('ticket')) return 'ticket'
+  if (value.includes('offer')) return 'offer'
+  if (value.includes('payment') || value.includes('deposit')) return 'payment'
+  return 'other'
+}
+
+function builtinTemplates(service: ServiceType): DocTemplate[] {
+  return (TEMPLATES[service as BuiltinServiceType] ?? customTemplate)()
+}
+
+export function getDefaultDocumentConfigs(
+  service: ServiceType,
+): ServiceDocumentConfig[] {
+  return builtinTemplates(service).map((template) => ({
+    id: template.id,
+    name: template.name,
+    required: template.required,
+    unlockStepId: template.unlockStepId,
+  }))
+}
+
+function templatesFromConfig(docs: ServiceDocumentConfig[]): DocTemplate[] {
+  return docs.map((doc) => ({
+    id: doc.id,
+    name: doc.name,
+    required: doc.required,
+    icon: iconFromDocumentName(doc.name),
+    unlockStepId: doc.unlockStepId,
+    defaultStatus: doc.unlockStepId ? 'not_due' : 'missing',
+    defaultDetail: doc.required
+      ? 'Required for this service'
+      : 'Optional for this service',
+  }))
+}
+
+function templatesFor(
+  service: ServiceType,
+  country?: string,
+): () => DocTemplate[] {
+  const override = resolveServiceTemplateOverride(service, country)
+  if (override) {
+    return () => templatesFromConfig(override.documents)
+  }
+  return () => builtinTemplates(service)
 }
 
 function resolveClientDetail(
@@ -318,8 +406,9 @@ function resolveClientDetail(
 export function buildCaseDocuments(
   service: ServiceType,
   client?: Client,
+  country?: string,
 ): CaseDocument[] {
-  return TEMPLATES[service]().map((template) => {
+  return templatesFor(service, country)().map((template) => {
     const resolved = resolveClientDetail(template, client)
     return {
       id: template.id,
@@ -336,8 +425,9 @@ export function buildCaseDocuments(
 
 function isStepUnlocked(item: Case, unlockStepId?: string): boolean {
   if (!unlockStepId) return true
-  const current = getStepIndex(item.service, item.currentStepId)
-  const needed = getStepIndex(item.service, unlockStepId)
+  const country = templateCountry(item)
+  const current = getStepIndex(item.service, item.currentStepId, country)
+  const needed = getStepIndex(item.service, unlockStepId, country)
   if (item.status === 'Completed') return true
   return current >= needed
 }
@@ -411,7 +501,7 @@ export function getCaseComplianceDocuments(
     const collector = findStepForDocument(item.service, doc.id)
     const sourceStepId = collector?.requirement.stepId ?? doc.unlockStepId
     const sourceStepLabel = sourceStepId
-      ? getStepDef(item.service, sourceStepId)?.label
+      ? getStepDef(item.service, sourceStepId, templateCountry(item))?.label
       : undefined
     const locked = !isStepUnlocked(item, sourceStepId)
 

@@ -1,4 +1,4 @@
-import type { ServiceType } from '@/types/case'
+import type { BuiltinServiceType, ServiceType } from '@/types/case'
 
 export type StepFieldType = 'text' | 'date' | 'textarea' | 'number'
 
@@ -408,7 +408,57 @@ const TICKETING: StepRequirement[] = [
   },
 ]
 
-const BY_SERVICE: Record<ServiceType, StepRequirement[]> = {
+const CUSTOM: StepRequirement[] = [
+  {
+    stepId: 'intake',
+    help: 'Record what this client needs for this service.',
+    fields: [
+      { key: 'need', label: 'What they need', type: 'textarea', required: true, placeholder: 'Describe the request' },
+      { key: 'intakeDate', label: 'Intake date', type: 'date', required: true },
+    ],
+    uploads: [
+      { key: 'passportCopy', label: 'Passport copy', required: false, documentId: 'passport' },
+    ],
+  },
+  {
+    stepId: 'processing',
+    help: 'Capture the work you have done so far.',
+    fields: [
+      { key: 'handledBy', label: 'Handled by', type: 'text', required: true },
+      { key: 'progressNotes', label: 'Progress notes', type: 'textarea', required: true },
+    ],
+    uploads: [],
+  },
+  {
+    stepId: 'documents',
+    help: 'Collect any papers this service needs.',
+    fields: [
+      { key: 'docsNotes', label: 'Document notes', type: 'textarea', required: true },
+    ],
+    uploads: [
+      { key: 'supportingDoc', label: 'Supporting document', required: false, documentId: 'other' },
+    ],
+  },
+  {
+    stepId: 'delivered',
+    help: 'Confirm the service was delivered.',
+    fields: [
+      { key: 'deliveredOn', label: 'Delivered on', type: 'date', required: true },
+      { key: 'deliveryNotes', label: 'Delivery notes', type: 'textarea', required: false },
+    ],
+    uploads: [],
+  },
+  {
+    stepId: 'closed',
+    help: 'Close the file once everything is done.',
+    fields: [
+      { key: 'closedOn', label: 'Closed on', type: 'date', required: true },
+    ],
+    uploads: [],
+  },
+]
+
+const BY_SERVICE: Record<BuiltinServiceType, StepRequirement[]> = {
   Student: STUDENT,
   Manpower: MANPOWER,
   'Hajj/Umrah': HAJJ,
@@ -416,15 +466,40 @@ const BY_SERVICE: Record<ServiceType, StepRequirement[]> = {
   Ticketing: TICKETING,
 }
 
+function requirementsFor(service: ServiceType): StepRequirement[] {
+  return BY_SERVICE[service as BuiltinServiceType] ?? CUSTOM
+}
+
+function genericRequirement(stepId: string): StepRequirement {
+  return {
+    stepId,
+    help: 'Record what was done in this step.',
+    fields: [
+      {
+        key: 'notes',
+        label: 'Notes',
+        type: 'textarea',
+        required: true,
+        placeholder: 'What happened in this step',
+      },
+      { key: 'completedOn', label: 'Date', type: 'date', required: true },
+    ],
+    uploads: [],
+  }
+}
+
 export function getStepRequirements(service: ServiceType): StepRequirement[] {
-  return BY_SERVICE[service]
+  return requirementsFor(service)
 }
 
 export function getStepRequirement(
   service: ServiceType,
   stepId: string,
-): StepRequirement | undefined {
-  return BY_SERVICE[service].find((item) => item.stepId === stepId)
+): StepRequirement {
+  return (
+    requirementsFor(service).find((item) => item.stepId === stepId) ??
+    genericRequirement(stepId)
+  )
 }
 
 /** Find which step collects a given case document (via upload.documentId). */
@@ -432,7 +507,7 @@ export function findStepForDocument(
   service: ServiceType,
   documentId: string,
 ): { requirement: StepRequirement; uploadKey: string } | undefined {
-  for (const requirement of BY_SERVICE[service]) {
+  for (const requirement of requirementsFor(service)) {
     const upload = requirement.uploads.find(
       (item) => item.documentId === documentId,
     )

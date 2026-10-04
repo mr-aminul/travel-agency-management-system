@@ -1143,14 +1143,15 @@
 .pd-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 .pd-table__th,
 .pd-table__td {
-  padding: 0.75rem 1rem;
+  padding: 0.4375rem 0.75rem;
   text-align: left;
   vertical-align: middle;
+  line-height: 1.3;
   border-right: 0.0625rem solid color-mix(in srgb, var(--color-border) 55%, transparent);
 }
 
@@ -1160,7 +1161,7 @@
 }
 
 .pd-table__th {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--color-on-theme);
@@ -1184,6 +1185,24 @@
 
 .pd-table__body .pd-table__row:hover .pd-table__td {
   background: var(--color-neutral-hover);
+}
+
+.pd-table__code {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+}
+
+.pd-table a {
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pd-table a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 /* ── Tabs ─────────────────────────────────────────────────────────── */

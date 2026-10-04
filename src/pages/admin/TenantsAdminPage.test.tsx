@@ -13,7 +13,6 @@ import TenantsAdminPage from '@/pages/admin/TenantsAdminPage'
 import TenantAdminLayout from '@/pages/admin/TenantAdminLayout'
 import TenantOverviewPage from '@/pages/admin/TenantOverviewPage'
 import TenantUsersPage from '@/pages/admin/TenantUsersPage'
-import TenantModulesPage from '@/pages/admin/TenantModulesPage'
 
 afterEach(() => {
   cleanup()
@@ -43,7 +42,7 @@ function renderAdmin(path: string) {
               <Route index element={<Navigate to="users" replace />} />
               <Route path="overview" element={<TenantOverviewPage />} />
               <Route path="users" element={<TenantUsersPage />} />
-              <Route path="modules" element={<TenantModulesPage />} />
+              <Route path="modules" element={<Navigate to="users" replace />} />
             </Route>
           </Routes>
         </Suspense>
@@ -64,7 +63,7 @@ describe('platform admin businesses', () => {
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
   })
 
-  it('opens a business to its users, with modules on a subsection', async () => {
+  it('opens a business to its users without a modules section', async () => {
     renderAdmin('/admin/tenants')
 
     fireEvent.click(await screen.findByText('Coastal Leisure'))
@@ -74,15 +73,7 @@ describe('platform admin businesses', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('leisure@example.com')).toBeInTheDocument()
     expect(screen.getByText('Farzana Rahman')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Modules' })).not.toBeInTheDocument()
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('link', { name: 'Modules' }))
-
-    expect(
-      await screen.findByRole('heading', { name: 'Cases' }),
-    ).toBeInTheDocument()
-    expect(await screen.findByRole('switch', { name: 'Leisure' })).toBeChecked()
-    expect(screen.getByRole('switch', { name: 'Manpower' })).not.toBeChecked()
-    expect(screen.getByRole('switch', { name: 'Finance' })).toBeChecked()
   })
 })

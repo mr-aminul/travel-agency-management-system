@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getCaseById, updateCase } from '@/lib/casesStore'
+import { caseBalanceDue } from '@/lib/caseMoney'
 import { getActiveTenantId } from '@/lib/authApi'
 import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
@@ -141,8 +142,13 @@ export function createPayment(input: CreatePaymentInput): Payment {
   }
 
   payments = [created, ...payments]
-  const nextBalance = Math.max(0, caseItem.balance - input.amount)
-  updateCase(caseItem.id, { balance: nextBalance })
+  const paidTotal = getPaymentsByCaseId(caseItem.id).reduce(
+    (sum, item) => sum + item.amount,
+    0,
+  )
+  updateCase(caseItem.id, {
+    balance: caseBalanceDue(caseItem, paidTotal),
+  })
   emit()
   return created
 }

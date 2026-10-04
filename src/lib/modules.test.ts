@@ -1,27 +1,40 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
 import { layoutConfig } from '@/config/layout'
 import {
   MODULE_GROUPS,
   filterNavItems,
   isPathAllowed,
+  normalizeModuleId,
   pathAccess,
 } from '@/lib/modules'
 import { TENANT_IDS } from '@/types/tenant'
-import { getTenantById, setTenantModuleEnabled, resetTenantEntitlements } from '@/lib/tenantsStore'
-import { afterEach } from 'vitest'
+import {
+  getTenantById,
+  setTenantModuleEnabled,
+  resetTenantEntitlements,
+} from '@/lib/tenantsStore'
 
 afterEach(() => {
   resetTenantEntitlements()
 })
 
 describe('module entitlements', () => {
-  it('treats case service slugs as modules and case ids as core', () => {
-    expect(pathAccess('/cases/manpower')).toBe('cases.manpower')
-    expect(pathAccess('/cases/case-101')).toBe('core')
-    expect(pathAccess('/cases/case-101/invoice')).toBe('core')
+  it('treats services urls as core', () => {
+    expect(pathAccess('/services')).toBe('core')
+    expect(pathAccess('/clients/c-284/services/case-101')).toBe('core')
+    expect(pathAccess('/clients/c-284/services/case-101/invoice')).toBe('core')
+    expect(pathAccess('/services/case-101')).toBe('core')
+    expect(pathAccess('/services/case-101/invoice')).toBe('core')
+    expect(pathAccess('/work')).toBe('core')
+    expect(pathAccess('/cases/manpower')).toBe('core')
     expect(pathAccess('/hr')).toBe('hr')
+    expect(pathAccess('/partners')).toBe('partners')
+    expect(pathAccess('/agents')).toBe('partners')
+    expect(normalizeModuleId('agents')).toBe('partners')
     expect(pathAccess('/admin/tenants')).toBe('admin')
     expect(pathAccess('/admin/tenants/tenant-leisure/users')).toBe('admin')
+    expect(pathAccess('/payments')).toBe('finance')
+    expect(pathAccess('/finance')).toBe('finance')
   })
 
   it('allows core paths and blocks disabled modules', () => {
@@ -29,12 +42,15 @@ describe('module entitlements', () => {
     expect(isPathAllowed('/clients', leisure.enabledModules, 'agency_user')).toBe(
       true,
     )
-    expect(
-      isPathAllowed('/cases/manpower', leisure.enabledModules, 'agency_user'),
-    ).toBe(false)
+    expect(isPathAllowed('/services', leisure.enabledModules, 'agency_user')).toBe(
+      true,
+    )
     expect(isPathAllowed('/hr', leisure.enabledModules, 'agency_user')).toBe(
       false,
     )
+    expect(
+      isPathAllowed('/partners', leisure.enabledModules, 'agency_user'),
+    ).toBe(false)
     expect(
       isPathAllowed('/admin/tenants', leisure.enabledModules, 'agency_user'),
     ).toBe(false)
@@ -58,7 +74,7 @@ describe('module entitlements', () => {
     expect(nav.map((item) => item.path)).toEqual(['/admin/tenants'])
   })
 
-  it('hides manpower and HR from leisure nav', () => {
+  it('hides HR and partners from leisure nav and does not list service types', () => {
     const leisure = getTenantById(TENANT_IDS.leisure)!
     const nav = filterNavItems(
       layoutConfig.navItems,
@@ -69,28 +85,31 @@ describe('module entitlements', () => {
       item.label,
       ...(item.children?.map((child) => child.label) ?? []),
     ])
-    expect(labels).toContain('Leisure')
-    expect(labels).toContain('Ticketing')
-    expect(labels).toContain('Finance')
+    expect(labels).toContain('Services')
+    expect(labels).toContain('Clients')
+    expect(labels).toContain('Payments')
     expect(labels).not.toContain('Manpower')
+    expect(labels).not.toContain('Leisure')
+    expect(labels).not.toContain('Ticketing')
     expect(labels).not.toContain('HR')
+    expect(labels).not.toContain('Sub Agents')
     expect(labels).not.toContain('Businesses')
   })
 
-  it('nests case services under Cases and keeps other modules as pages', () => {
-    const cases = MODULE_GROUPS.find((group) => group.id === 'cases')
-    expect(cases?.modules.map((module) => module.id)).toEqual([
-      'cases.manpower',
-      'cases.student',
-      'cases.hajjUmrah',
-      'cases.leisure',
-      'cases.ticketing',
+  it('lists service templates separately from workspace pages', () => {
+    const services = MODULE_GROUPS.find((group) => group.id === 'services')
+    expect(services?.modules.map((module) => module.id)).toEqual([
+      'services.manpower',
+      'services.student',
+      'services.hajjUmrah',
+      'services.leisure',
+      'services.ticketing',
     ])
     expect(
       MODULE_GROUPS.filter((group) => group.modules.length === 1).map(
         (group) => group.id,
       ),
-    ).toEqual(['finance', 'documents', 'reporting', 'hr'])
+    ).toEqual(['finance', 'documents', 'reporting', 'partners', 'hr'])
   })
 
   it('restores a module when the platform admin enables it', () => {

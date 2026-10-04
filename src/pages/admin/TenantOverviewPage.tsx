@@ -27,16 +27,6 @@ export default function TenantOverviewPage() {
             hint={`${activeUsers} active`}
           />
         </Link>
-        <Link
-          className="pd-admin__metric-link"
-          to={`/admin/tenants/${tenant.id}/modules`}
-        >
-          <MetricTile
-            label="Modules"
-            value={tenant.enabledModules.length}
-            hint="Enabled for this business"
-          />
-        </Link>
         <MetricTile
           label="Status"
           value={tenant.status === 'active' ? 'Active' : tenant.status}

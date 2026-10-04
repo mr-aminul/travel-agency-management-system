@@ -4,6 +4,7 @@ import {
   type AgencyProfile,
 } from '@/lib/agencyProfile'
 import { formatPaymentAmount } from '@/lib/paymentsStore'
+import { caseBalanceDue, caseServiceFee } from '@/lib/caseMoney'
 import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { Payment } from '@/types/payment'
@@ -77,8 +78,8 @@ export function buildCaseInvoice(input: {
   const { caseItem, payments, client, profile } = input
   const brand = resolveBrandDisplay(profile)
   const paidTotal = payments.reduce((sum, item) => sum + item.amount, 0)
-  const balanceDue = Math.max(0, caseItem.balance)
-  const packageTotal = paidTotal + balanceDue
+  const packageTotal = caseServiceFee(caseItem, paidTotal)
+  const balanceDue = caseBalanceDue(caseItem, paidTotal)
   const status: CaseInvoice['status'] =
     balanceDue <= 0 && paidTotal > 0
       ? 'paid'

@@ -35,6 +35,7 @@ type SelectPropsBase = {
   className?: string
   searchable?: boolean
   searchPlaceholder?: string
+  readOnly?: boolean
 }
 
 export type SelectProps =
@@ -70,6 +71,7 @@ export function Select(props: SelectProps) {
     name,
     searchable = false,
     searchPlaceholder = 'Search…',
+    readOnly = false,
   } = props
   const outlined = Boolean(label) && labelVariant === 'outlined'
 
@@ -247,7 +249,7 @@ export function Select(props: SelectProps) {
   }
 
   const handleTriggerKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (disabled) return
+    if (disabled || readOnly) return
 
     if (
       event.key === 'ArrowDown' ||
@@ -344,8 +346,9 @@ export function Select(props: SelectProps) {
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           aria-required={required || undefined}
+          aria-readonly={readOnly || undefined}
           onClick={() => {
-            if (!disabled) setOpen((current) => !current)
+            if (!disabled && !readOnly) setOpen((current) => !current)
           }}
           onKeyDown={handleTriggerKeyDown}
         >

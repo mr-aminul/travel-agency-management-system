@@ -9,7 +9,7 @@ import { TENANT_IDS } from '@/types/tenant'
 const caseItem: Case = {
   id: 'case-test',
   tenantId: TENANT_IDS.full,
-  caseId: 'CASE-00999',
+  caseId: 'SR-00999',
   clientId: 'c-test',
   clientName: 'Test Client',
   service: 'Manpower',
@@ -63,7 +63,7 @@ const payments: Payment[] = [
 ]
 
 describe('case invoice', () => {
-  it('builds package total from payments plus remaining balance', () => {
+  it('builds package total from the stored service fee', () => {
     const invoice = buildCaseInvoice({
       caseItem,
       payments,
@@ -71,7 +71,7 @@ describe('case invoice', () => {
       profile: DEFAULT_AGENCY_PROFILE,
     })
 
-    expect(invoice.invoiceNumber).toBe('INV-CASE-00999')
+    expect(invoice.invoiceNumber).toBe('INV-SR-00999')
     expect(invoice.paidTotal).toBe(20000)
     expect(invoice.balanceDue).toBe(20000)
     expect(invoice.packageTotal).toBe(40000)
@@ -84,18 +84,30 @@ describe('case invoice', () => {
     expect(invoice.clientPhone).toBe('01700000000')
   })
 
-  it('marks an invoice paid when nothing remains due', () => {
+  it('marks an invoice paid when the service fee is fully collected', () => {
     const invoice = buildCaseInvoice({
-      caseItem: { ...caseItem, balance: 0 },
+      caseItem: { ...caseItem, serviceFee: 20000, balance: 0 },
       payments,
       client,
       profile: DEFAULT_AGENCY_PROFILE,
     })
     expect(invoice.status).toBe('paid')
     expect(invoice.packageTotal).toBe(20000)
+    expect(invoice.balanceDue).toBe(0)
+  })
+
+  it('reconstructs the fee from payments when none was stored', () => {
+    const invoice = buildCaseInvoice({
+      caseItem: { ...caseItem, serviceFee: undefined as unknown as number, balance: 10000 },
+      payments,
+      client,
+      profile: DEFAULT_AGENCY_PROFILE,
+    })
+    expect(invoice.packageTotal).toBe(30000)
+    expect(invoice.balanceDue).toBe(10000)
   })
 
   it('uses the case reference in the invoice number', () => {
-    expect(invoiceNumberForCase(caseItem)).toBe('INV-CASE-00999')
+    expect(invoiceNumberForCase(caseItem)).toBe('INV-SR-00999')
   })
 })

@@ -8,6 +8,7 @@ import {
 import { useSearchParams } from 'react-router-dom'
 import {
   BookOpen,
+  Briefcase,
   Building2,
   Info,
   Monitor,
@@ -45,8 +46,14 @@ import {
   type SidebarExpandMode,
 } from '@/lib/sidebarPrefs'
 import { useSidebarPrefs } from '@/layout/useSidebarPrefs'
+import { ServicesSettingsSection } from '@/components/settings/ServicesSettingsSection'
 
-type SettingsSectionId = 'business' | 'appearance' | 'glossary' | 'about'
+type SettingsSectionId =
+  | 'business'
+  | 'services'
+  | 'appearance'
+  | 'glossary'
+  | 'about'
 
 const SETTINGS_SECTIONS: {
   id: SettingsSectionId
@@ -61,6 +68,12 @@ const SETTINGS_SECTIONS: {
       icon: Building2,
     },
     {
+      id: 'services',
+      label: 'Services',
+      description: 'Journeys, documents, and country variations',
+      icon: Briefcase,
+    },
+    {
       id: 'appearance',
       label: 'Appearance',
       description: 'Theme, dark mode, and sidebar',
@@ -69,7 +82,7 @@ const SETTINGS_SECTIONS: {
     {
       id: 'glossary',
       label: 'How OneTrack works',
-      description: 'Client, case, and progress language',
+      description: 'Client, service, and progress language',
       icon: BookOpen,
     },
     {
@@ -118,6 +131,7 @@ function formatHex(hex: string): string {
 function isSettingsSectionId(value: string | null): value is SettingsSectionId {
   return (
     value === 'business' ||
+    value === 'services' ||
     value === 'appearance' ||
     value === 'glossary' ||
     value === 'about'
@@ -199,7 +213,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="pd-page pd-settings" aria-label="Settings">
+    <div className="pd-settings" aria-label="Settings">
       <nav className="pd-settings-nav" aria-label="Settings sections">
         {SETTINGS_SECTIONS.map((section) => {
           const Icon = section.icon
@@ -226,12 +240,16 @@ export default function SettingsPage() {
         })}
       </nav>
 
-      <div className="pd-settings-panel">
+      <section className="pd-settings-panel" aria-labelledby="settings-panel-title">
         <header className="pd-settings-panel__header">
-          <h2 className="pd-settings-panel__title">{currentSection.label}</h2>
+          <h2 id="settings-panel-title" className="pd-settings-panel__title">
+            {currentSection.label}
+          </h2>
           <p className="pd-settings-panel__hint">
             {currentSection.id === 'business'
               ? 'Your business name replaces OneTrack in the sidebar title, with “powered by OneTrack” underneath.'
+              : currentSection.id === 'services'
+                ? 'Pick a service, then set the status journey and documents. Add a country when that destination needs its own checklist.'
               : currentSection.id === 'appearance'
                 ? 'Customize how the app looks, including theme color, dark mode, and sidebar behavior.'
                 : currentSection.description}
@@ -349,6 +367,8 @@ export default function SettingsPage() {
               </div>
             </form>
           ) : null}
+
+          {activeSection === 'services' ? <ServicesSettingsSection /> : null}
 
           {activeSection === 'appearance' ? (
             <div className="pd-settings-stack">
@@ -514,7 +534,7 @@ export default function SettingsPage() {
             </div>
           ) : null}
         </div>
-      </div>
+      </section>
     </div>
   )
 }

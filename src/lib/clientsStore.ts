@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
 import { activeTenantAllowsService } from '@/lib/activeTenant'
+import { getEnabledServiceOptions } from '@/lib/serviceCatalog'
+import { BUILTIN_SERVICE_OPTIONS } from '@/types/case'
 import { useAuth } from '@/lib/useAuth'
 import { publicUrl } from '@/lib/publicUrl'
 import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
@@ -23,10 +25,39 @@ const SEED_CLIENTS: Client[] = [
     name: 'Md. Rahim Uddin',
     phone: '01712345678',
     email: 'rahim.uddin@email.com',
+    banglaName: 'মোঃ রহিম উদ্দিন',
+    fatherName: 'Abdul Karim',
+    motherName: 'Rokeya Begum',
+    dateOfBirth: '1995-04-12',
+    gender: 'Male',
+    maritalStatus: 'Married',
+    nationality: 'Bangladeshi',
+    placeOfBirth: 'Kishoreganj',
+    spouseName: 'Ayesha Akter',
+    bloodGroup: 'B+',
+    whatsapp: '01712345678',
+    presentAddress: 'Mirpur, Dhaka',
+    permanentAddress: 'Kishoreganj',
+    district: 'Kishoreganj',
+    upazila: 'Bhairab',
+    education: 'HSC',
+    profession: 'Construction',
+    skillTrade: 'Mason',
+    experience: '5 years',
+    previousOverseasExp: 'None',
+    preferredCountry: 'Saudi Arabia',
+    preferredJob: 'Mason',
+    expectedSalary: '35000',
+    contractAmount: 180000,
+    branch: 'Dhaka',
     address: 'Mirpur, Dhaka',
     nid: '1990123456789',
     passport: 'A12345678',
+    passportExpiry: '2030-06-15',
+    passportIssuedOn: '2020-06-16',
+    passportPlaceOfIssue: 'Dhaka',
     avatarUrl: DUMMY_AVATAR_URL,
+    partnerId: 'AGT-T0001',
     services: ['Manpower', 'Ticketing'],
     balance: 0,
     activeCases: 0,
@@ -43,6 +74,7 @@ const SEED_CLIENTS: Client[] = [
     address: 'Chittagong',
     nid: '1995123456789',
     passport: 'B98765432',
+    partnerId: 'AGT-T0002',
     services: ['Student'],
     balance: 0,
     activeCases: 0,
@@ -72,6 +104,7 @@ const SEED_CLIENTS: Client[] = [
     email: 'nusrat.j@email.com',
     address: 'Uttara, Dhaka',
     passport: 'C11223344',
+    partnerId: 'AGT-T0001',
     services: ['Hajj/Umrah'],
     balance: 0,
     activeCases: 0,
@@ -123,10 +156,39 @@ const SEED_CLIENTS: Client[] = [
     name: 'Md. Rahim Uddin',
     phone: '01712345678',
     email: 'rahim.uddin@email.com',
+    banglaName: 'মোঃ রহিম উদ্দিন',
+    fatherName: 'Abdul Karim',
+    motherName: 'Rokeya Begum',
+    dateOfBirth: '1995-04-12',
+    gender: 'Male',
+    maritalStatus: 'Married',
+    nationality: 'Bangladeshi',
+    placeOfBirth: 'Kishoreganj',
+    spouseName: 'Ayesha Akter',
+    bloodGroup: 'B+',
+    whatsapp: '01712345678',
+    presentAddress: 'Mirpur, Dhaka',
+    permanentAddress: 'Kishoreganj',
+    district: 'Kishoreganj',
+    upazila: 'Bhairab',
+    education: 'HSC',
+    profession: 'Construction',
+    skillTrade: 'Mason',
+    experience: '5 years',
+    previousOverseasExp: 'None',
+    preferredCountry: 'Saudi Arabia',
+    preferredJob: 'Mason',
+    expectedSalary: '35000',
+    contractAmount: 180000,
+    branch: 'Dhaka',
     address: 'Mirpur, Dhaka',
     nid: '1990123456789',
     passport: 'A12345678',
+    passportExpiry: '2030-06-15',
+    passportIssuedOn: '2020-06-16',
+    passportPlaceOfIssue: 'Dhaka',
     avatarUrl: DUMMY_AVATAR_URL,
+    partnerId: 'AGT-M0001',
     services: ['Manpower'],
     balance: 0,
     activeCases: 0,
@@ -141,6 +203,7 @@ const SEED_CLIENTS: Client[] = [
     phone: '01611889900',
     address: 'Sylhet',
     nid: '1988123456789',
+    partnerId: 'AGT-M0001',
     services: ['Manpower'],
     balance: 0,
     activeCases: 0,
@@ -212,6 +275,27 @@ export function getClientByPhone(
   )
 }
 
+function normalizePassport(value: string): string {
+  return value.replace(/\s+/g, '').toUpperCase()
+}
+
+/** Public tracking: passport lookup is not tenant-scoped. */
+export function findClientByPassport(passport: string): Client | undefined {
+  const needle = normalizePassport(passport)
+  if (!needle) return undefined
+  return clients.find(
+    (client) =>
+      Boolean(client.passport) &&
+      normalizePassport(client.passport ?? '') === needle,
+  )
+}
+
+export function getClientsByPartnerId(partnerId: string): Client[] {
+  return clients.filter(
+    (client) => inActiveTenant(client) && client.partnerId === partnerId,
+  )
+}
+
 export function createClient(input: CreateClientInput): Client {
   const phone = normalizePhone(input.phone)
   if (!phone) {
@@ -230,9 +314,40 @@ export function createClient(input: CreateClientInput): Client {
     name: input.name.trim(),
     phone,
     email: input.email?.trim() || undefined,
-    address: input.address?.trim() || undefined,
+    address: input.address?.trim() || input.presentAddress?.trim() || undefined,
+    banglaName: input.banglaName?.trim() || undefined,
+    fatherName: input.fatherName?.trim() || undefined,
+    motherName: input.motherName?.trim() || undefined,
+    dateOfBirth: input.dateOfBirth?.trim() || undefined,
+    gender: input.gender,
+    maritalStatus: input.maritalStatus,
+    nationality: input.nationality?.trim() || undefined,
+    placeOfBirth: input.placeOfBirth?.trim() || undefined,
+    spouseName: input.spouseName?.trim() || undefined,
+    bloodGroup: input.bloodGroup?.trim() || undefined,
+    whatsapp: input.whatsapp?.trim() || undefined,
+    presentAddress:
+      input.presentAddress?.trim() || input.address?.trim() || undefined,
+    permanentAddress: input.permanentAddress?.trim() || undefined,
+    district: input.district?.trim() || undefined,
+    upazila: input.upazila?.trim() || undefined,
+    education: input.education?.trim() || undefined,
+    profession: input.profession?.trim() || undefined,
+    skillTrade: input.skillTrade?.trim() || undefined,
+    experience: input.experience?.trim() || undefined,
+    previousOverseasExp: input.previousOverseasExp?.trim() || undefined,
+    preferredCountry: input.preferredCountry?.trim() || undefined,
+    preferredJob: input.preferredJob?.trim() || undefined,
+    expectedSalary: input.expectedSalary?.trim() || undefined,
+    contractAmount: input.contractAmount,
+    branch: input.branch?.trim() || undefined,
+    partnerId: input.partnerId,
+    avatarUrl: input.avatarUrl?.trim() || undefined,
     nid: input.nid?.trim() || undefined,
     passport: input.passport?.trim() || undefined,
+    passportExpiry: input.passportExpiry?.trim() || undefined,
+    passportIssuedOn: input.passportIssuedOn?.trim() || undefined,
+    passportPlaceOfIssue: input.passportPlaceOfIssue?.trim() || undefined,
     services: [input.primaryService],
     balance: 0,
     activeCases: 0,
@@ -290,24 +405,37 @@ export function updateClientRecord(
   return applyClientPatch(id, patch, false)
 }
 
+export function renameServiceOnClients(
+  from: ServiceType,
+  to: ServiceType,
+): number {
+  if (from === to) return 0
+  let changed = 0
+  clients = clients.map((client) => {
+    if (!inActiveTenant(client)) return client
+    if (!client.services.includes(from)) return client
+    changed += 1
+    return {
+      ...client,
+      services: Array.from(
+        new Set(client.services.map((service) => (service === from ? to : service))),
+      ),
+    }
+  })
+  if (changed) emit()
+  return changed
+}
+
 export function formatBalance(amount: number): string {
   if (!amount) return '—'
   return `৳ ${amount.toLocaleString('en-BD')}`
 }
 
-export const SERVICE_TYPE_OPTIONS: { value: ServiceType; label: string }[] = [
-  { value: 'Manpower', label: 'Manpower' },
-  { value: 'Student', label: 'Student' },
-  { value: 'Hajj/Umrah', label: 'Hajj / Umrah' },
-  { value: 'Leisure', label: 'Leisure' },
-  { value: 'Ticketing', label: 'Ticketing' },
-]
+export const SERVICE_TYPE_OPTIONS = BUILTIN_SERVICE_OPTIONS
 
 export function getEnabledServiceTypeOptions(): {
   value: ServiceType
   label: string
 }[] {
-  return SERVICE_TYPE_OPTIONS.filter((option) =>
-    activeTenantAllowsService(option.value),
-  )
+  return getEnabledServiceOptions()
 }

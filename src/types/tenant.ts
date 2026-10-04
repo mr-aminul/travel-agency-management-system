@@ -7,11 +7,12 @@ export type ModuleId =
   | 'documents'
   | 'reporting'
   | 'hr'
-  | 'cases.manpower'
-  | 'cases.student'
-  | 'cases.hajjUmrah'
-  | 'cases.leisure'
-  | 'cases.ticketing'
+  | 'partners'
+  | 'services.manpower'
+  | 'services.student'
+  | 'services.hajjUmrah'
+  | 'services.leisure'
+  | 'services.ticketing'
 
 export type Tenant = {
   id: string

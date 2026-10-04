@@ -1,7 +1,21 @@
 import { useState, type FormEvent } from 'react'
 import { Button, Input, Select, Textarea } from '@/components/ui'
-import { CASE_SERVICE_OPTIONS, getEnabledServiceOptions } from '@/lib/casesStore'
+import { CASE_SERVICE_OPTIONS } from '@/lib/casesStore'
+import { parseMoneyInput } from '@/lib/caseMoney'
+import {
+  employeeAssignmentOptions,
+  useEmployees,
+} from '@/lib/employeesStore'
+import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 import { useClients } from '@/lib/clientsStore'
+import {
+  destinationCountryOptions,
+  formatDestination,
+} from '@/lib/destinationCountries'
+import {
+  listServiceCountries,
+  useServiceTemplates,
+} from '@/lib/serviceTemplatesStore'
 import type { ServiceType, CreateCaseInput } from '@/types/case'
 
 type NewCaseFormProps = {
@@ -24,7 +38,9 @@ export function NewCaseForm({
   lockService = false,
 }: NewCaseFormProps) {
   const clients = useClients()
-  const serviceOptions = getEnabledServiceOptions()
+  const employees = useEmployees()
+  useServiceTemplates()
+  const serviceOptions = useEnabledServiceOptions()
   const resolvedDefault =
     defaultService &&
     serviceOptions.some((option) => option.value === defaultService)
@@ -33,9 +49,10 @@ export function NewCaseForm({
   const [clientId, setClientId] = useState(defaultClientId)
   const [service, setService] = useState<ServiceType>(resolvedDefault)
   const [destination, setDestination] = useState('')
+  const [country, setCountry] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
   const [departureDate, setDepartureDate] = useState('')
-  const [balance, setBalance] = useState('')
+  const [serviceFee, setServiceFee] = useState('')
   const [description, setDescription] = useState('')
   const [triedSubmit, setTriedSubmit] = useState(false)
 
@@ -44,10 +61,17 @@ export function NewCaseForm({
     label: `${client.name} (${client.phone})`,
   }))
 
+  const activeService = lockService ? resolvedDefault : service
+  const countryOptions = destinationCountryOptions(
+    listServiceCountries(activeService),
+  )
+  const countryHasOwnChecklist = listServiceCountries(activeService).some(
+    (item) => item.toLowerCase() === country.trim().toLowerCase(),
+  )
   const resolvedClientId = lockClient ? defaultClientId : clientId
   const clientError =
     triedSubmit && !resolvedClientId
-      ? 'Select a client for this case.'
+      ? 'Select a client for this service.'
       : undefined
 
   const handleSubmit = (event: FormEvent) => {
@@ -55,14 +79,16 @@ export function NewCaseForm({
     setTriedSubmit(true)
     if (!resolvedClientId) return
 
-    const parsedBalance = Number(balance.replace(/,/g, ''))
+    const parsedFee = parseMoneyInput(serviceFee)
+    const serviceName = lockService ? resolvedDefault : service
     onSubmit({
       clientId: resolvedClientId,
-      service: lockService ? resolvedDefault : service,
-      destination,
+      service: serviceName,
+      serviceCountry: country.trim() || undefined,
+      destination: formatDestination(destination, country),
       assignedTo,
       departureDate: departureDate || undefined,
-      balance: Number.isFinite(parsedBalance) ? parsedBalance : 0,
+      serviceFee: parsedFee,
       description,
     })
   }
@@ -71,9 +97,9 @@ export function NewCaseForm({
     <form className="pd-cases-form" onSubmit={handleSubmit} noValidate>
       <div className="pd-cases-form__scroll">
         <div className="pd-cases-form__block">
-          <p className="pd-cases-form__heading">Purpose (case)</p>
+          <p className="pd-cases-form__heading">Service</p>
           <p className="pd-cases-form__hint">
-            One case = one reason the client came to you.
+            One service = one need this client has.
           </p>
 
           <div className="pd-cases-form__grid">
@@ -100,17 +126,34 @@ export function NewCaseForm({
               options={serviceOptions.length ? serviceOptions : CASE_SERVICE_OPTIONS}
               disabled={lockService}
             />
-            <Input
-              label="Destination"
-              value={destination}
-              onChange={(event) => setDestination(event.target.value)}
-              placeholder="City, country"
+            <Select
+              label="Country"
+              searchable
+              searchPlaceholder="Search countries…"
+              placeholder="Select country"
+              value={country}
+              onChange={(event) => setCountry(event.target.value)}
+              options={countryOptions}
+              hint={
+                countryHasOwnChecklist
+                  ? 'This country has its own status journey and documents.'
+                  : 'Used to pick a country-specific checklist when one exists.'
+              }
             />
             <Input
+              label="City / destination"
+              value={destination}
+              onChange={(event) => setDestination(event.target.value)}
+              placeholder="City or area"
+            />
+            <Select
               label="Assigned to"
+              searchable
+              searchPlaceholder="Search employees…"
+              placeholder="Select employee"
               value={assignedTo}
               onChange={(event) => setAssignedTo(event.target.value)}
-              placeholder="Staff name"
+              options={employeeAssignmentOptions(employees)}
             />
             <Input
               label="Departure date"
@@ -119,11 +162,12 @@ export function NewCaseForm({
               onChange={(event) => setDepartureDate(event.target.value)}
             />
             <Input
-              label="Balance due (৳)"
+              label="Service fee (৳)"
               inputMode="numeric"
-              value={balance}
-              onChange={(event) => setBalance(event.target.value)}
+              value={serviceFee}
+              onChange={(event) => setServiceFee(event.target.value)}
               placeholder="0"
+              hint="What you charge for this service. Balance due starts at this amount."
             />
             <Textarea
               className="pd-cases-form__full"
@@ -141,7 +185,7 @@ export function NewCaseForm({
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit">Open case</Button>
+        <Button type="submit">Add service</Button>
       </div>
     </form>
   )

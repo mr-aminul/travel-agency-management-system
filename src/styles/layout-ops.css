@@ -1,0 +1,336 @@
+.pd-ops {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.pd-ops__toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pd-ops__meta {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.pd-ops__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.pd-ops__back:hover {
+  color: var(--color-text);
+}
+
+.pd-ops__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.pd-ops__metrics--grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.pd-ops-metric-link {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card, 1rem);
+  background: var(--color-surface);
+  appearance: none;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.pd-ops-metric-link:hover,
+.pd-ops-metric-link.is-selected {
+  border-color: var(--color-theme);
+}
+
+.pd-ops-metric-link.is-selected {
+  box-shadow: 0 0 0 1px var(--color-theme);
+}
+
+.pd-ops-metric-link__watermark {
+  position: absolute;
+  right: -1.15rem;
+  bottom: -1.35rem;
+  z-index: 0;
+  display: flex;
+  color: var(--color-theme);
+  opacity: 0.14;
+  pointer-events: none;
+  transform: rotate(-8deg);
+}
+
+.pd-ops-metric-link > :not(.pd-ops-metric-link__watermark) {
+  position: relative;
+  z-index: 1;
+}
+
+.pd-ops-metric-link__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.pd-ops-metric-link__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-theme);
+}
+
+.pd-ops-metric-link__label {
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.pd-ops-metric-link__value {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  line-height: 1.1;
+}
+
+.pd-ops__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pd-ops__section-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+}
+
+.pd-ops__row-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.pd-ops__data-row {
+  cursor: pointer;
+}
+
+.pd-ops-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+.pd-ops-form--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pd-partner-photo {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.pd-partner-photo__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pd-partner-photo__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.pd-partner-photo__hint {
+  margin: 0;
+  width: 100%;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.pd-partner-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.pd-partner-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card, 1rem);
+  background: var(--color-surface);
+  text-decoration: none;
+  color: inherit;
+}
+
+.pd-partner-card:hover {
+  border-color: var(--color-theme);
+}
+
+.pd-partner-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.pd-partner-card__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.pd-partner-card__id {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.pd-partner-card__meta {
+  margin: 0.25rem 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.pd-partner-card__footer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: auto;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-theme);
+}
+
+.pd-partner-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pd-help-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.pd-help-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 1.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card, 1rem);
+  background: var(--color-surface);
+}
+
+.pd-help-card__step {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-theme);
+}
+
+.pd-help-card h3 {
+  margin: 0;
+}
+
+.pd-help-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.pd-help-card a {
+  margin-top: auto;
+  font-weight: 600;
+  color: var(--color-theme);
+  text-decoration: none;
+}
+
+.pd-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card, 1rem);
+  background: var(--color-surface);
+}
+
+.pd-profile-kv {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin: 0;
+}
+
+.pd-profile-kv dt {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.pd-profile-kv dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .pd-ops__metrics,
+  .pd-ops__metrics--grid,
+  .pd-partner-grid,
+  .pd-help-grid,
+  .pd-profile-kv {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .pd-ops__metrics,
+  .pd-ops__metrics--grid,
+  .pd-partner-grid,
+  .pd-help-grid,
+  .pd-profile-kv,
+  .pd-ops-form--2 {
+    grid-template-columns: 1fr;
+  }
+}

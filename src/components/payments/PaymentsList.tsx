@@ -14,6 +14,7 @@ import {
   TableRow,
 } from '@/components/ui'
 import { getCaseById } from '@/lib/casesStore'
+import { workInvoicePath } from '@/lib/workPaths'
 import {
   createPayment,
   formatPaymentAmount,
@@ -60,7 +61,7 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
       : cases
   ).map((item) => ({
     value: item.id,
-    label: `${item.caseId} · ${item.service} (${formatPaymentAmount(item.balance)} due)`,
+    label: `${item.service}${item.destination ? ` · ${item.destination}` : ''} (${formatPaymentAmount(item.balance)} due)`,
   }))
 
   const handleSubmit = (event: FormEvent) => {
@@ -68,7 +69,7 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
     const targetCaseId = caseId || selectedCaseId
     const parsed = Number(amount.replace(/,/g, ''))
     if (!targetCaseId) {
-      setError('Select a case for this payment.')
+      setError('Select a service for this payment.')
       return
     }
     if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -95,11 +96,11 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
   return (
     <div className="pd-payments">
       <div className="pd-payments__toolbar">
-        <p className="pd-payments__hint">Linked to this case balance.</p>
+        <p className="pd-payments__hint">Linked to this service balance.</p>
         <div className="pd-payments__actions">
           {caseId ? (
             <Link
-              to={`/cases/${caseId}/invoice`}
+              to={workInvoicePath({ id: caseId, clientId })}
               className="pd-btn pd-btn--secondary pd-btn--sm"
             >
               <FileText size={14} strokeWidth={2.25} aria-hidden />
@@ -172,14 +173,14 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
         <EmptyState
           icon={Wallet}
           title="No payments yet"
-          description="Record a payment against a case to reduce the balance due."
+          description="Record a payment against a service to reduce the balance due."
         />
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
-              {!caseId ? <TableHead>Case</TableHead> : null}
+              {!caseId ? <TableHead>Service</TableHead> : null}
               <TableHead>Method</TableHead>
               <TableHead>Note</TableHead>
               <TableHead>Amount</TableHead>
@@ -194,7 +195,7 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
                   <TableCell>{formatDate(payment.createdAt)}</TableCell>
                   {!caseId ? (
                     <TableCell>
-                      {linked ? `${linked.caseId}` : payment.caseId}
+                      {linked ? linked.service : 'Service'}
                     </TableCell>
                   ) : null}
                   <TableCell>{payment.method}</TableCell>
@@ -204,7 +205,10 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
                   </TableCell>
                   <TableCell>
                     <Link
-                      to={`/cases/${payment.caseId}/invoice?payment=${encodeURIComponent(payment.id)}`}
+                      to={workInvoicePath(
+                        { id: payment.caseId, clientId: payment.clientId },
+                        payment.id,
+                      )}
                       className="pd-btn pd-btn--secondary pd-btn--sm pd-payments__view-btn"
                     >
                       <Eye size={14} strokeWidth={2.25} aria-hidden />

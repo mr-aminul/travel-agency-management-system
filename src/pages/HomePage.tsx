@@ -1,14 +1,18 @@
 import { Link, Navigate } from 'react-router-dom'
 import {
   BarChart3,
+  ClipboardList,
   FileText,
-  Folder,
+  Handshake,
+  HelpCircle,
   LayoutDashboard,
+  UserRoundSearch,
   Users,
   UsersRound,
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
+import { HomeGlobalSearch } from '@/components/home/HomeGlobalSearch'
 import { isPathAllowed } from '@/lib/modules'
 import { useActiveTenant } from '@/lib/useActiveTenant'
 import { useAuth } from '@/lib/useAuth'
@@ -35,15 +39,15 @@ const QUICK_LINKS: QuickLink[] = [
     icon: Users,
   },
   {
-    path: '/cases',
-    label: 'Cases',
-    description: 'Open files by purpose',
-    icon: Folder,
+    path: '/services',
+    label: 'Services',
+    description: 'Open services',
+    icon: ClipboardList,
   },
   {
-    path: '/finance',
-    label: 'Finance',
-    description: 'Payments & balances',
+    path: '/payments',
+    label: 'Payments',
+    description: 'Collections & balances',
     icon: Wallet,
   },
   {
@@ -61,8 +65,26 @@ const QUICK_LINKS: QuickLink[] = [
   {
     path: '/hr',
     label: 'HR',
-    description: 'Employees & staff',
+    description: 'Employees & payroll',
     icon: UsersRound,
+  },
+  {
+    path: '/partners',
+    label: 'Sub Agents',
+    description: 'Referring agencies',
+    icon: Handshake,
+  },
+  {
+    path: '/track',
+    label: 'Track client',
+    description: 'Public passport lookup',
+    icon: UserRoundSearch,
+  },
+  {
+    path: '/help',
+    label: 'Help',
+    description: 'Everyday staff paths',
+    icon: HelpCircle,
   },
 ]
 
@@ -91,6 +113,8 @@ export default function HomePage() {
           Jump into a frequently used area to continue your work.
         </p>
       </header>
+
+      <HomeGlobalSearch />
 
       <nav className="pd-home-quick" aria-label="Quick links">
         {links.map((item) => {

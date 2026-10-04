@@ -215,6 +215,30 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   padding: 1rem;
 }
 
+.pd-app-content-card--fill {
+  overflow: hidden;
+}
+
+.pd-app-main--fill {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.pd-app-shell--mobile .pd-app-main--fill {
+  padding: 0;
+}
+
+.pd-app-main--fill > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+}
+
 .pd-app-footer {
   flex-shrink: 0;
   display: flex;

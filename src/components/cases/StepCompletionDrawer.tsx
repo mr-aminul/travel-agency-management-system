@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { FileViewer } from '@/components/cases/FileViewer'
 import { Button, Input, SideDrawer, Textarea } from '@/components/ui'
-import { getStepDef } from '@/lib/caseChecklist'
+import { getStepDef, templateCountry } from '@/lib/caseChecklist'
 import {
   getStepRequirement,
   type StepCompletionInput,
@@ -51,7 +51,7 @@ export function StepCompletionDrawer({
     ? getStepRequirement(item.service, activeStepId)
     : undefined
   const stepDef = activeStepId
-    ? getStepDef(item.service, activeStepId)
+    ? getStepDef(item.service, activeStepId, templateCountry(item))
     : undefined
 
   const [fields, setFields] = useState<Record<string, string>>({})

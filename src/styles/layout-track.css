@@ -1,0 +1,391 @@
+@import './layout-shared.css';
+
+.pd-track {
+  --track-ink: #0a0a0a;
+  --track-ink-muted: #64748b;
+  --track-panel: #ffffff;
+  --track-panel-border: #e5e7eb;
+  --track-control-bg: #ffffff;
+  --track-control-border: #e5e7eb;
+  --track-muted-bg: color-mix(in srgb, var(--color-theme) 6%, white);
+  --track-radius: var(--radius-card-lg, 1.25rem);
+  --track-control-radius: var(--radius-button, 0.75rem);
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: auto;
+  padding:
+    calc(4.5rem + env(safe-area-inset-top, 0px))
+    1.25rem
+    calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  color: var(--track-ink);
+  color-scheme: light;
+  background-color: color-mix(in srgb, var(--color-theme) 55%, #040806);
+  background-image:
+    radial-gradient(
+      48rem 34rem at 14% 10%,
+      color-mix(in srgb, var(--color-theme) 88%, #06281c) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      40rem 30rem at 90% 90%,
+      color-mix(in srgb, var(--color-theme) 70%, #041910) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--color-theme) 65%, #03140e) 0%,
+      color-mix(in srgb, var(--color-theme) 40%, #070b0f) 50%,
+      #050807 100%
+    );
+}
+
+.pd-track__corner-logo {
+  position: absolute;
+  inset-block-start: 1.25rem;
+  inset-inline-start: 1.25rem;
+  z-index: 2;
+  height: 1.625rem;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.92;
+}
+
+.pd-track__sheet {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: min(26.5rem, 100%);
+  margin: auto 0;
+  padding: 1.75rem 1.5rem 1.35rem;
+  border: 1px solid var(--track-panel-border);
+  border-radius: var(--track-radius);
+  background: var(--track-panel);
+  box-shadow:
+    0 18px 48px color-mix(in srgb, black 28%, transparent),
+    0 2px 8px color-mix(in srgb, black 12%, transparent);
+}
+
+.pd-track__sheet--wide {
+  width: min(40rem, 100%);
+}
+
+.pd-track__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.pd-track__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 2.6vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--track-ink);
+  text-wrap: balance;
+}
+
+.pd-track__lede {
+  margin: 0 auto;
+  max-width: 24rem;
+  color: var(--track-ink-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.pd-track__form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  width: 100%;
+}
+
+.pd-track__form .pd-field {
+  gap: 0.375rem;
+}
+
+.pd-track__form .pd-field__label {
+  color: var(--track-ink-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.pd-track__form .pd-field__control {
+  min-height: 2.875rem;
+  border-radius: var(--track-control-radius);
+  border-color: var(--track-control-border);
+  background: var(--track-control-bg);
+  color: var(--track-ink);
+}
+
+.pd-track__form .pd-field__control::placeholder {
+  color: #94a3b8;
+}
+
+.pd-track__form .pd-field__control:focus {
+  border-color: color-mix(in srgb, var(--color-theme) 45%, var(--track-control-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-theme) 16%, transparent);
+}
+
+.pd-track__form .pd-btn {
+  width: 100%;
+  min-height: 2.875rem;
+  border-radius: var(--track-control-radius);
+  font-weight: 600;
+}
+
+.pd-track__result {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--track-panel-border);
+}
+
+.pd-track__identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem 1.25rem;
+}
+
+.pd-track__identity-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.pd-track__name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.pd-track__meta {
+  margin: 0;
+  color: var(--track-ink-muted);
+  font-size: 0.875rem;
+}
+
+.pd-track__current {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--track-ink-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 40rem) {
+  .pd-track__current {
+    align-items: flex-end;
+  }
+}
+
+.pd-track__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.pd-track__progress-copy {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.pd-track__progress-label {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--track-ink);
+}
+
+.pd-track__progress-hint {
+  margin: 0;
+  color: var(--track-ink-muted);
+  font-size: 0.8125rem;
+}
+
+.pd-track__bar {
+  height: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-theme) 12%, #e5e7eb);
+}
+
+.pd-track__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-theme);
+}
+
+.pd-track__steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-track__step {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  gap: 0.85rem;
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+.pd-track__step:last-child {
+  padding-bottom: 0;
+}
+
+.pd-track__step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 0.8rem;
+  top: 1.85rem;
+  bottom: 0.15rem;
+  width: 2px;
+  background: var(--track-panel-border);
+}
+
+.pd-track__step--done:not(:last-child)::before,
+.pd-track__step--current:not(:last-child)::before {
+  background: color-mix(in srgb, var(--color-theme) 55%, var(--track-panel-border));
+}
+
+.pd-track__marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--track-panel-border);
+  background: var(--track-panel);
+  color: var(--track-ink-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pd-track__step--done .pd-track__marker {
+  border-color: var(--color-theme);
+  background: var(--color-theme);
+  color: var(--color-on-theme);
+}
+
+.pd-track__step--current .pd-track__marker {
+  border-color: var(--color-theme);
+  color: var(--color-theme);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-theme) 16%, transparent);
+}
+
+.pd-track__step--upcoming {
+  opacity: 0.62;
+}
+
+.pd-track__step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  padding-top: 0.15rem;
+}
+
+.pd-track__step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+
+.pd-track__step-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pd-track__step-date {
+  color: var(--track-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pd-track__step-note {
+  margin: 0;
+  color: var(--track-ink-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.pd-track__step--current .pd-track__step-note {
+  color: var(--track-ink);
+}
+
+.pd-track__privacy {
+  margin: 0;
+  color: var(--track-ink-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.pd-track__footer {
+  margin: 1.25rem 0 0;
+  color: color-mix(in srgb, white 72%, transparent);
+  font-size: 0.8125rem;
+}
+
+.pd-track__footer a {
+  color: #ffffff;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.pd-track__footer a:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 40rem) {
+  .pd-track__sheet--wide .pd-track__form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .pd-track__sheet--wide .pd-track__form .pd-btn {
+    width: auto;
+    padding-inline: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-track__step--current .pd-track__marker {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-theme) 16%, transparent);
+  }
+}

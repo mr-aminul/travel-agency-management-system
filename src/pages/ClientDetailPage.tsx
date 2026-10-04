@@ -3,6 +3,7 @@ import {
   Link,
   Navigate,
   useNavigate,
+  useOutlet,
   useParams,
   useSearchParams,
 } from 'react-router-dom'
@@ -11,7 +12,6 @@ import {
   BookUser,
   Calendar,
   Check,
-  CircleDot,
   Contact,
   Copy,
   FileText,
@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Phone,
   SquarePen,
+  UserRound,
   Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -38,10 +39,11 @@ import {
   Modal,
   Select,
   Tabs,
-  Textarea,
   type BadgeVariant,
 } from '@/components/ui'
 import { createCase, getEnabledServiceOptions, useCasesByClientId } from '@/lib/casesStore'
+import { clientPath, workDetailPath } from '@/lib/workPaths'
+import { getPartnerById } from '@/lib/partnersStore'
 import {
   formatBalance,
   getClientById,
@@ -51,15 +53,30 @@ import {
   useClients,
 } from '@/lib/clientsStore'
 import type { ServiceType, CreateCaseInput } from '@/types/case'
-import type { ClientStatus } from '@/types/client'
+import type {
+  Client,
+  ClientGender,
+  ClientMaritalStatus,
+  ClientStatus,
+} from '@/types/client'
+import { DESTINATION_COUNTRIES } from '@/lib/destinationCountries'
 import '@/styles/layout-clients.css'
 
-const STATUS_OPTIONS = [
-  { value: 'Active', label: 'Active' },
-  { value: 'Deployed', label: 'Deployed' },
-  { value: 'Lead', label: 'Lead' },
-  { value: 'Inactive', label: 'Inactive' },
-]
+const CLIENT_TABS = [
+  'overview',
+  'profile',
+  'services',
+  'documents',
+  'payments',
+  'messages',
+] as const
+
+function tabFromSearch(searchParams: URLSearchParams): string {
+  const tab = searchParams.get('tab')
+  return tab && CLIENT_TABS.includes(tab as (typeof CLIENT_TABS)[number])
+    ? tab
+    : 'overview'
+}
 
 function statusBadgeVariant(status: ClientStatus): BadgeVariant {
   if (status === 'Deployed') return 'completed'
@@ -84,6 +101,186 @@ function formatDate(value: string): string {
     month: 'short',
     year: 'numeric',
   })
+}
+
+const GENDER_OPTIONS = [
+  { value: 'Male', label: 'Male' },
+  { value: 'Female', label: 'Female' },
+  { value: 'Other', label: 'Other' },
+]
+
+const MARITAL_VALUES = ['Single', 'Married', 'Divorced', 'Widowed'] as const
+
+const MARITAL_OPTIONS = [
+  { value: '', label: '—' },
+  ...MARITAL_VALUES.map((value) => ({ value, label: value })),
+]
+
+function parseMaritalStatus(value: string): ClientMaritalStatus | undefined {
+  return MARITAL_VALUES.find((entry) => entry === value)
+}
+
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const
+
+const BLOOD_GROUP_OPTIONS = [
+  { value: '', label: '—' },
+  ...BLOOD_GROUPS.map((value) => ({ value, label: value })),
+]
+
+function countryOptions(current: string) {
+  const listed = DESTINATION_COUNTRIES as readonly string[]
+  const extra =
+    current && !listed.includes(current) ? [{ value: current, label: current }] : []
+  return [
+    { value: '', label: '—' },
+    ...extra,
+    ...listed.map((country) => ({ value: country, label: country })),
+  ]
+}
+
+type ProfileDraft = {
+  name: string
+  phone: string
+  email: string
+  address: string
+  nid: string
+  passport: string
+  fatherName: string
+  motherName: string
+  dateOfBirth: string
+  gender: ClientGender
+  maritalStatus: string
+  nationality: string
+  placeOfBirth: string
+  spouseName: string
+  bloodGroup: string
+  passportExpiry: string
+  passportIssuedOn: string
+  passportPlaceOfIssue: string
+  profession: string
+  preferredCountry: string
+  preferredJob: string
+  status: ClientStatus
+}
+
+type ProfileFieldDef = {
+  key: keyof ProfileDraft
+  label: string
+  kind?: 'text' | 'date' | 'gender' | 'marital' | 'country' | 'blood'
+  wide?: boolean
+}
+
+const PROFILE_GROUPS: { title: string; fields: ProfileFieldDef[] }[] = [
+  {
+    title: 'Person',
+    fields: [
+      { key: 'name', label: 'Full name' },
+      { key: 'dateOfBirth', label: 'Date of birth', kind: 'date' },
+      { key: 'placeOfBirth', label: 'Place of birth' },
+      { key: 'gender', label: 'Gender', kind: 'gender' },
+      { key: 'maritalStatus', label: 'Marital status', kind: 'marital' },
+      { key: 'spouseName', label: 'Spouse name' },
+      { key: 'fatherName', label: 'Father name' },
+      { key: 'motherName', label: 'Mother name' },
+      { key: 'nationality', label: 'Nationality' },
+      { key: 'bloodGroup', label: 'Blood group', kind: 'blood' },
+    ],
+  },
+  {
+    title: 'Passport',
+    fields: [
+      { key: 'passport', label: 'Passport number' },
+      { key: 'passportIssuedOn', label: 'Date of issue', kind: 'date' },
+      { key: 'passportExpiry', label: 'Date of expiry', kind: 'date' },
+      { key: 'passportPlaceOfIssue', label: 'Place of issue' },
+    ],
+  },
+  {
+    title: 'Placement',
+    fields: [
+      { key: 'profession', label: 'Profession' },
+      { key: 'preferredCountry', label: 'Preferred country', kind: 'country' },
+      { key: 'preferredJob', label: 'Preferred job' },
+    ],
+  },
+]
+
+function profileFieldValue(
+  client: Client,
+  draft: ProfileDraft,
+  editing: boolean,
+  field: ProfileFieldDef,
+): string {
+  if (editing) return String(draft[field.key] ?? '')
+  const value = client[field.key as keyof Client]
+  return typeof value === 'string' ? value : ''
+}
+
+function ProfileFieldControl({
+  field,
+  value,
+  editing,
+  onChange,
+}: {
+  field: ProfileFieldDef
+  value: string
+  editing: boolean
+  onChange: (value: string) => void
+}) {
+  if (field.kind === 'gender') {
+    return (
+      <Select
+        label={field.label}
+        value={value}
+        readOnly={!editing}
+        onChange={(event) => onChange(event.target.value)}
+        options={GENDER_OPTIONS}
+      />
+    )
+  }
+  if (field.kind === 'marital') {
+    return (
+      <Select
+        label={field.label}
+        value={value}
+        readOnly={!editing}
+        onChange={(event) => onChange(event.target.value)}
+        options={MARITAL_OPTIONS}
+      />
+    )
+  }
+  if (field.kind === 'blood') {
+    return (
+      <Select
+        label={field.label}
+        value={value}
+        readOnly={!editing}
+        onChange={(event) => onChange(event.target.value)}
+        options={BLOOD_GROUP_OPTIONS}
+      />
+    )
+  }
+  if (field.kind === 'country') {
+    return (
+      <Select
+        label={field.label}
+        value={value}
+        readOnly={!editing}
+        searchable
+        onChange={(event) => onChange(event.target.value)}
+        options={countryOptions(value)}
+      />
+    )
+  }
+  return (
+    <Input
+      label={field.label}
+      type={field.kind === 'date' ? 'date' : 'text'}
+      readOnly={!editing}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  )
 }
 
 function FieldLabel({
@@ -185,22 +382,38 @@ function ContactChip({
 
 export default function ClientDetailPage() {
   const { id = '' } = useParams()
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const serviceOutlet = useOutlet()
   useClients()
   const client = getClientById(id)
   const clientCases = useCasesByClientId(id)
-  const [activeTab, setActiveTab] = useState('overview')
+  const activeTab = serviceOutlet ? 'services' : tabFromSearch(searchParams)
   const [editing, setEditing] = useState(false)
   const [phoneError, setPhoneError] = useState<string | undefined>()
   const [newCaseOpen, setNewCaseOpen] = useState(false)
-  const [draft, setDraft] = useState({
+  const [draft, setDraft] = useState<ProfileDraft>({
     name: '',
     phone: '',
     email: '',
     address: '',
     nid: '',
     passport: '',
+    fatherName: '',
+    motherName: '',
+    dateOfBirth: '',
+    gender: 'Male' as ClientGender,
+    maritalStatus: '',
+    nationality: '',
+    placeOfBirth: '',
+    spouseName: '',
+    bloodGroup: '',
+    passportExpiry: '',
+    passportIssuedOn: '',
+    passportPlaceOfIssue: '',
+    profession: '',
+    preferredCountry: '',
+    preferredJob: '',
     status: 'Active' as ClientStatus,
   })
 
@@ -212,6 +425,19 @@ export default function ClientDetailPage() {
 
   if (!client) {
     return <Navigate to="/clients" replace />
+  }
+
+  const partner = client.partnerId ? getPartnerById(client.partnerId) : undefined
+
+  const selectTab = (tab: string) => {
+    if (serviceOutlet) {
+      navigate(clientPath(id, tab))
+      return
+    }
+    const next = new URLSearchParams(searchParams)
+    if (tab === 'overview') next.delete('tab')
+    else next.set('tab', tab)
+    setSearchParams(next, { replace: true })
   }
 
   const openNewCase = () => {
@@ -235,7 +461,7 @@ export default function ClientDetailPage() {
   const handleCreateCase = (input: CreateCaseInput) => {
     const created = createCase(input)
     closeNewCase()
-    navigate(`/cases/${created.id}`)
+    navigate(workDetailPath(created))
   }
 
   const startEditing = () => {
@@ -246,6 +472,21 @@ export default function ClientDetailPage() {
       address: client.address ?? '',
       nid: client.nid ?? '',
       passport: client.passport ?? '',
+      fatherName: client.fatherName ?? '',
+      motherName: client.motherName ?? '',
+      dateOfBirth: client.dateOfBirth ?? '',
+      gender: client.gender ?? 'Male',
+      maritalStatus: client.maritalStatus ?? '',
+      nationality: client.nationality ?? '',
+      placeOfBirth: client.placeOfBirth ?? '',
+      spouseName: client.spouseName ?? '',
+      bloodGroup: client.bloodGroup ?? '',
+      passportExpiry: client.passportExpiry ?? '',
+      passportIssuedOn: client.passportIssuedOn ?? '',
+      passportPlaceOfIssue: client.passportPlaceOfIssue ?? '',
+      profession: client.profession ?? '',
+      preferredCountry: client.preferredCountry ?? '',
+      preferredJob: client.preferredJob ?? '',
       status: client.status,
     })
     setPhoneError(undefined)
@@ -269,6 +510,21 @@ export default function ClientDetailPage() {
       address: draft.address.trim() || undefined,
       nid: draft.nid.trim() || undefined,
       passport: draft.passport.trim() || undefined,
+      fatherName: draft.fatherName.trim() || undefined,
+      motherName: draft.motherName.trim() || undefined,
+      dateOfBirth: draft.dateOfBirth.trim() || undefined,
+      gender: draft.gender,
+      maritalStatus: parseMaritalStatus(draft.maritalStatus),
+      nationality: draft.nationality.trim() || undefined,
+      placeOfBirth: draft.placeOfBirth.trim() || undefined,
+      spouseName: draft.spouseName.trim() || undefined,
+      bloodGroup: draft.bloodGroup.trim() || undefined,
+      passportExpiry: draft.passportExpiry.trim() || undefined,
+      passportIssuedOn: draft.passportIssuedOn.trim() || undefined,
+      passportPlaceOfIssue: draft.passportPlaceOfIssue.trim() || undefined,
+      profession: draft.profession.trim() || undefined,
+      preferredCountry: draft.preferredCountry.trim() || undefined,
+      preferredJob: draft.preferredJob.trim() || undefined,
       status: draft.status,
     })
     setPhoneError(undefined)
@@ -281,92 +537,54 @@ export default function ClientDetailPage() {
   const displayEmail = editing ? draft.email : client.email
 
   return (
-    <div className="pd-page pd-client-detail" aria-label={client.name}>
+    <div
+      className={
+        serviceOutlet
+          ? 'pd-page pd-client-detail is-service-open'
+          : 'pd-page pd-client-detail'
+      }
+      aria-label={client.name}
+    >
       <Link to="/clients" className="pd-client-detail__back">
         <ArrowLeft size={14} strokeWidth={2.25} aria-hidden />
         All clients
       </Link>
 
-      <header
-        className={
-          editing
-            ? 'pd-client-detail__header is-editing'
-            : 'pd-client-detail__header'
-        }
-      >
+      <header className="pd-client-detail__header">
         <Avatar name={displayName} src={client.avatarUrl} size="xl" />
         <div className="pd-client-detail__header-text">
-          {editing ? (
-            <Input
-              label="Full name"
-              value={draft.name}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, name: event.target.value }))
-              }
-            />
-          ) : (
-            <div className="pd-client-detail__title-row">
-              <h1 className="pd-client-detail__name">{client.name}</h1>
-              <Badge variant={statusBadgeVariant(displayStatus)}>
-                {displayStatus}
-              </Badge>
-            </div>
-          )}
-          {editing ? null : (
-            <div className="pd-client-detail__meta-row">
-              <ContactChip
-                href={`tel:${client.phone}`}
-                value={client.phone}
-                label="phone number"
-              />
-              {client.email ? (
-                <ContactChip
-                  href={`mailto:${client.email}`}
-                  value={client.email}
-                  label="email address"
-                />
-              ) : null}
-            </div>
-          )}
-          {editing ? (
+          <div className="pd-client-detail__title-row">
+            <h1 className="pd-client-detail__name">{displayName}</h1>
             <Badge variant={statusBadgeVariant(displayStatus)}>
               {displayStatus}
             </Badge>
-          ) : null}
+          </div>
+          <div className="pd-client-detail__meta-row">
+            <ContactChip
+              href={`tel:${displayPhone}`}
+              value={displayPhone}
+              label="phone number"
+            />
+            {displayEmail ? (
+              <ContactChip
+                href={`mailto:${displayEmail}`}
+                value={displayEmail}
+                label="email address"
+              />
+            ) : null}
+          </div>
         </div>
         <div className="pd-client-detail__header-actions">
-          {editing ? (
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setEditing(false)}
-              >
-                Cancel
-              </Button>
-              <Button size="sm" onClick={finishEditing}>
-                <Check size={14} strokeWidth={2.25} aria-hidden />
-                Save
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button size="sm" onClick={openNewCase}>
-                <Folder size={14} strokeWidth={2.25} aria-hidden />
-                Open case
-              </Button>
-              <Button variant="secondary" size="sm" onClick={startEditing}>
-                <SquarePen size={14} strokeWidth={2.25} aria-hidden />
-                Edit
-              </Button>
-            </>
-          )}
+          <Button size="sm" onClick={openNewCase}>
+            <Folder size={14} strokeWidth={2.25} aria-hidden />
+            Add service
+          </Button>
         </div>
       </header>
 
       <Tabs
         value={activeTab}
-        onValueChange={setActiveTab}
+        onValueChange={selectTab}
         items={[
           {
             id: 'overview',
@@ -377,14 +595,14 @@ export default function ClientDetailPage() {
                   <button
                     type="button"
                     className="pd-client-detail__stat"
-                    onClick={() => setActiveTab('cases')}
+                    onClick={() => selectTab('services')}
                   >
                     <span className="pd-client-detail__stat-icon" aria-hidden>
                       <Folder size={16} strokeWidth={2.25} />
                     </span>
                     <div className="pd-client-detail__stat-copy">
                       <span className="pd-client-detail__stat-label">
-                        Active cases
+                        Open services
                       </span>
                       <span className="pd-client-detail__stat-value">
                         {client.activeCases}
@@ -394,7 +612,7 @@ export default function ClientDetailPage() {
                   <button
                     type="button"
                     className="pd-client-detail__stat"
-                    onClick={() => setActiveTab('payments')}
+                    onClick={() => selectTab('payments')}
                   >
                     <span className="pd-client-detail__stat-icon" aria-hidden>
                       <Wallet size={16} strokeWidth={2.25} />
@@ -410,175 +628,271 @@ export default function ClientDetailPage() {
                   </button>
                 </div>
 
-                <div className="pd-client-detail__grid">
-                  <section className="pd-client-detail__section">
-                    <SectionTitle icon={Contact}>Contact</SectionTitle>
-                    <dl className="pd-client-detail__fields">
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={Phone}>Phone</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Input
-                              value={draft.phone}
-                              onChange={(event) => {
-                                setPhoneError(undefined)
-                                setDraft((current) => ({
-                                  ...current,
-                                  phone: event.target.value,
-                                }))
-                              }}
-                              error={phoneError}
-                            />
-                          ) : (
-                            <a
-                              href={`tel:${displayPhone}`}
-                              className="pd-client-detail__link"
-                            >
-                              {displayPhone}
-                            </a>
-                          )}
-                        </dd>
-                      </div>
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={Mail}>Email</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Input
-                              type="email"
-                              value={draft.email}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  email: event.target.value,
-                                }))
-                              }
-                            />
-                          ) : displayEmail ? (
-                            <a
-                              href={`mailto:${displayEmail}`}
-                              className="pd-client-detail__link"
-                            >
-                              {displayEmail}
-                            </a>
-                          ) : (
+                <section className="pd-client-detail__section pd-client-detail__section--compact">
+                  <div className="pd-client-detail__section-head">
+                    <SectionTitle icon={Contact}>Profile Information</SectionTitle>
+                  </div>
+                  <dl className="pd-client-detail__fields">
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={Phone}>Phone</FieldLabel>
+                      <dd>
+                        {editing ? (
+                          <Input
+                            value={draft.phone}
+                            onChange={(event) => {
+                              setPhoneError(undefined)
+                              setDraft((current) => ({
+                                ...current,
+                                phone: event.target.value,
+                              }))
+                            }}
+                            error={phoneError}
+                          />
+                        ) : (
+                          <a
+                            href={`tel:${displayPhone}`}
+                            className="pd-client-detail__link"
+                          >
+                            {displayPhone}
+                          </a>
+                        )}
+                      </dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={Mail}>Email</FieldLabel>
+                      <dd>
+                        {editing ? (
+                          <Input
+                            type="email"
+                            value={draft.email}
+                            onChange={(event) =>
+                              setDraft((current) => ({
+                                ...current,
+                                email: event.target.value,
+                              }))
+                            }
+                          />
+                        ) : displayEmail ? (
+                          <a
+                            href={`mailto:${displayEmail}`}
+                            className="pd-client-detail__link"
+                          >
+                            {displayEmail}
+                          </a>
+                        ) : (
+                          <span className="pd-client-detail__empty">—</span>
+                        )}
+                      </dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={MapPin}>Address</FieldLabel>
+                      <dd>
+                        {editing ? (
+                          <Input
+                            value={draft.address}
+                            onChange={(event) =>
+                              setDraft((current) => ({
+                                ...current,
+                                address: event.target.value,
+                              }))
+                            }
+                          />
+                        ) : (
+                          client.address || (
                             <span className="pd-client-detail__empty">—</span>
-                          )}
-                        </dd>
-                      </div>
-                      <div className="pd-client-detail__field pd-client-detail__field-full">
-                        <FieldLabel icon={MapPin}>Address</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Textarea
-                              rows={2}
-                              value={draft.address}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  address: event.target.value,
-                                }))
-                              }
-                            />
-                          ) : (
-                            client.address || (
-                              <span className="pd-client-detail__empty">—</span>
-                            )
-                          )}
-                        </dd>
-                      </div>
-                    </dl>
-                  </section>
+                          )
+                        )}
+                      </dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={IdCard}>NID</FieldLabel>
+                      <dd>
+                        {editing ? (
+                          <Input
+                            value={draft.nid}
+                            onChange={(event) =>
+                              setDraft((current) => ({
+                                ...current,
+                                nid: event.target.value,
+                              }))
+                            }
+                          />
+                        ) : (
+                          client.nid || (
+                            <span className="pd-client-detail__empty">—</span>
+                          )
+                        )}
+                      </dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={BookUser}>Passport</FieldLabel>
+                      <dd>
+                        {editing ? (
+                          <Input
+                            value={draft.passport}
+                            onChange={(event) =>
+                              setDraft((current) => ({
+                                ...current,
+                                passport: event.target.value,
+                              }))
+                            }
+                          />
+                        ) : (
+                          client.passport || (
+                            <span className="pd-client-detail__empty">—</span>
+                          )
+                        )}
+                      </dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={Calendar}>Member since</FieldLabel>
+                      <dd>{formatDate(client.createdAt)}</dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={UserRound}>Sub Agent</FieldLabel>
+                      <dd>
+                        {partner ? (
+                          <Link
+                            to={`/partners/${partner.id}`}
+                            className="pd-client-detail__link"
+                          >
+                            {partner.name}
+                          </Link>
+                        ) : (
+                          <span className="pd-client-detail__empty">—</span>
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
 
-                  <section className="pd-client-detail__section">
-                    <SectionTitle icon={IdCard}>Identity</SectionTitle>
-                    <dl className="pd-client-detail__fields">
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={IdCard}>NID</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Input
-                              value={draft.nid}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  nid: event.target.value,
-                                }))
-                              }
-                            />
-                          ) : (
-                            client.nid || (
-                              <span className="pd-client-detail__empty">—</span>
-                            )
-                          )}
-                        </dd>
-                      </div>
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={BookUser}>Passport</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Input
-                              value={draft.passport}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  passport: event.target.value,
-                                }))
-                              }
-                            />
-                          ) : (
-                            client.passport || (
-                              <span className="pd-client-detail__empty">—</span>
-                            )
-                          )}
-                        </dd>
-                      </div>
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={CircleDot}>Status</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Select
-                              value={draft.status}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  status: event.target.value as ClientStatus,
-                                }))
-                              }
-                              options={STATUS_OPTIONS}
-                            />
-                          ) : (
-                            <Badge variant={statusBadgeVariant(client.status)}>
-                              {client.status}
-                            </Badge>
-                          )}
-                        </dd>
-                      </div>
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={Calendar}>Member since</FieldLabel>
-                        <dd>{formatDate(client.createdAt)}</dd>
-                      </div>
-                    </dl>
-                  </section>
-                </div>
+                <section className="pd-client-detail__section pd-client-detail__section--compact pd-client-detail__section--services">
+                  <div className="pd-client-detail__section-head">
+                    <SectionTitle icon={Folder}>Services</SectionTitle>
+                  </div>
+                  <CasesList
+                    cases={clientCases}
+                    label={`${client.name} services`}
+                    showClientColumn={false}
+                    showServiceColumn
+                    defaultClientId={client.id}
+                    lockClient
+                    defaultService={primaryServiceType(client.services)}
+                    embedded
+                    emptyTitle="No services yet"
+                    emptyDescription="Add a service on this profile to track steps, documents, and payments."
+                  />
+                </section>
               </div>
             ),
           },
           {
-            id: 'cases',
-            label: <TabLabel icon={Folder}>Cases</TabLabel>,
+            id: 'profile',
+            label: <TabLabel icon={Contact}>Profile</TabLabel>,
             content: (
-              <CasesList
-                cases={clientCases}
-                label={`${client.name} cases`}
-                showClientColumn={false}
-                showServiceColumn
-                defaultClientId={client.id}
-                lockClient
-                defaultService={primaryServiceType(client.services)}
-                embedded
-                emptyTitle="No cases yet"
-                emptyDescription="Open a case for this client to track their purpose step by step."
-              />
+              <div className="pd-client-detail__overview">
+                <section
+                  className={
+                    editing
+                      ? 'pd-client-detail__section pd-client-detail__section--profile is-editing'
+                      : 'pd-client-detail__section pd-client-detail__section--profile'
+                  }
+                >
+                  <div className="pd-client-detail__section-head">
+                    <SectionTitle icon={Contact}>Personal information</SectionTitle>
+                    <div className="pd-client-detail__section-actions">
+                      {editing ? (
+                        <>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setEditing(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button size="sm" onClick={finishEditing}>
+                            <Check size={14} strokeWidth={2.25} aria-hidden />
+                            Save
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={startEditing}
+                        >
+                          <SquarePen size={14} strokeWidth={2.25} aria-hidden />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="pd-client-profile">
+                    {PROFILE_GROUPS.map((group) => (
+                      <div key={group.title} className="pd-client-profile__group">
+                        <h3 className="pd-client-profile__group-title">
+                          {group.title}
+                        </h3>
+                        <div className="pd-client-profile__grid">
+                          {group.fields.map((field) => (
+                            <div
+                              key={field.key}
+                              className={
+                                field.wide
+                                  ? 'pd-client-profile__field is-wide'
+                                  : 'pd-client-profile__field'
+                              }
+                            >
+                              <ProfileFieldControl
+                                field={field}
+                                value={profileFieldValue(
+                                  client,
+                                  draft,
+                                  editing,
+                                  field,
+                                )}
+                                editing={editing}
+                                onChange={(value) =>
+                                  setDraft((current) => ({
+                                    ...current,
+                                    [field.key]:
+                                      field.kind === 'gender'
+                                        ? (value as ClientGender)
+                                        : value,
+                                  }))
+                                }
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            ),
+          },
+          {
+            id: 'services',
+            label: <TabLabel icon={Folder}>Services</TabLabel>,
+            content: serviceOutlet ?? (
+              <section className="pd-client-detail__section pd-client-detail__section--compact pd-client-detail__section--services">
+                <div className="pd-client-detail__section-head">
+                  <SectionTitle icon={Folder}>Services</SectionTitle>
+                </div>
+                <CasesList
+                  cases={clientCases}
+                  label={`${client.name} services`}
+                  showClientColumn={false}
+                  showServiceColumn
+                  defaultClientId={client.id}
+                  lockClient
+                  defaultService={primaryServiceType(client.services)}
+                  embedded
+                  emptyTitle="No services yet"
+                  emptyDescription="Add a service on this profile to track steps, documents, and payments."
+                />
+              </section>
             ),
           },
           {
@@ -588,7 +902,7 @@ export default function ClientDetailPage() {
               <EmptyState
                 icon={FileText}
                 title="Identity on this profile"
-                description="NID and passport are stored on the client. Case-required documents (medical, visa, tickets) live on each case and unlock as steps advance."
+                description="NID and passport are stored on the client. Papers for a service (medical, visa, tickets) live on that service and unlock as steps advance."
               />
             ),
           },
@@ -619,8 +933,8 @@ export default function ClientDetailPage() {
       <Modal
         open={newCaseOpen}
         onClose={closeNewCase}
-        title="Open case"
-        description="Capture why this client came — progress starts at the first service step."
+        title="Add service"
+        description="What does this client need? Progress starts at the first step of that service."
         className="pd-cases-modal"
       >
         <NewCaseForm
