@@ -135,6 +135,21 @@ export function publicInvoiceUrl(invoice: CaseInvoice): string {
   return absolutePublicUrl(publicInvoicePath(invoice))
 }
 
+/** Normalize display fields so in-app and shared views render the same document. */
+export function invoiceForDocument(
+  invoice: CaseInvoice,
+  defaultLogoUrl: string,
+): CaseInvoice {
+  const agencyLogoUrl = invoice.agencyLogoUrl ?? defaultLogoUrl
+  return {
+    ...invoice,
+    agencyLogoUrl,
+    agencyLogoIsCustom: Boolean(
+      invoice.agencyLogoIsCustom && invoice.agencyLogoUrl,
+    ),
+  }
+}
+
 export async function copyText(value: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(value)

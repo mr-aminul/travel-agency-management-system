@@ -42,13 +42,7 @@ export function NewPartnerForm({ onSubmit, onCancel }: NewPartnerFormProps) {
     <form className="pd-clients-form" onSubmit={handleSubmit} noValidate>
       <div className="pd-clients-form__scroll">
         <div className="pd-clients-form__block">
-          <p className="pd-clients-form__heading">Sub Agent (who)</p>
-          <p className="pd-clients-form__hint">
-            Sub agents send clients into the agency. Register them once, then
-            attach customers from their profile.
-          </p>
-          <PartnerPhotoField name={name} value={photoUrl} onChange={setPhotoUrl} />
-          <div className="pd-clients-form__grid">
+          <PartnerPhotoField name={name} value={photoUrl} onChange={setPhotoUrl}>
             <Input
               label="Sub Agent name"
               required
@@ -57,6 +51,8 @@ export function NewPartnerForm({ onSubmit, onCancel }: NewPartnerFormProps) {
               placeholder="Agency or sub agent name"
               error={nameError}
             />
+          </PartnerPhotoField>
+          <div className="pd-clients-form__grid">
             <Input
               label="Mobile number"
               type="tel"

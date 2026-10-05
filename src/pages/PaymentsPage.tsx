@@ -14,6 +14,7 @@ import {
 import { useCases } from '@/lib/casesStore'
 import { getClientById } from '@/lib/clientsStore'
 import { formatBdt } from '@/lib/dashboardMetrics'
+import { formatDisplayDate } from '@/lib/formatDate'
 import { formatPaymentAmount, usePayments } from '@/lib/paymentsStore'
 import { workDetailPath } from '@/lib/workPaths'
 import '@/styles/layout-ops.css'
@@ -130,7 +131,7 @@ export default function PaymentsPage() {
               const caseItem = casesById.get(payment.caseId)
               return (
                 <TableRow key={payment.id}>
-                  <TableCell>{payment.createdAt}</TableCell>
+                  <TableCell>{formatDisplayDate(payment.createdAt)}</TableCell>
                   <TableCell>
                     <Link to={`/clients/${payment.clientId}`}>
                       {client?.name ?? payment.clientId}

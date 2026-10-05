@@ -12,17 +12,11 @@ import {
 import { findCasesByClientIdAnyTenant } from '@/lib/casesStore'
 import { findClientByPassport } from '@/lib/clientsStore'
 import { publicUrl } from '@/lib/publicUrl'
+import { formatDisplayDate } from '@/lib/formatDate'
 import '@/styles/layout-track.css'
 
 function formatDate(value?: string | null) {
-  if (!value) return null
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return formatDisplayDate(value, '') || null
 }
 
 export default function TrackClientPage() {

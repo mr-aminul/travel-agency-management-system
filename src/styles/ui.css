@@ -75,6 +75,69 @@
   --btn-font: 0.9375rem;
 }
 
+.pd-btn--icon {
+  width: 2.5rem;
+  min-width: 2.5rem;
+  padding: 0;
+  gap: 0;
+}
+
+.pd-btn--sm.pd-btn--icon {
+  width: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+a.pd-btn {
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.pd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: fit-content;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.pd-back:hover .pd-btn--primary {
+  background: color-mix(in srgb, var(--color-theme) 88%, white);
+}
+
+.pd-back:active .pd-btn--primary {
+  transform: translateY(0.5px);
+  box-shadow: none;
+}
+
+.pd-back:focus-visible {
+  outline: none;
+}
+
+.pd-back:focus-visible .pd-btn--primary {
+  outline: 2px solid color-mix(in srgb, var(--color-theme) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.pd-back__text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-text);
+  transition: color 0.15s ease;
+}
+
+.pd-back:hover .pd-back__text {
+  color: var(--color-theme);
+}
+
 .pd-btn--primary {
   background: var(--color-theme);
   color: var(--color-on-theme);
@@ -200,7 +263,8 @@
   transition: color 0.15s ease;
 }
 
-.pd-modal .pd-field--outlined .pd-field__label {
+.pd-modal .pd-field--outlined .pd-field__label,
+.pd-drawer .pd-field--outlined .pd-field__label {
   background: var(--color-surface-raised, var(--color-bg));
 }
 
@@ -726,9 +790,11 @@
 }
 
 .pd-avatar__icon {
+  display: block;
   width: 55%;
   height: 55%;
   stroke-width: 2;
+  flex-shrink: 0;
 }
 
 /* ── Modal ────────────────────────────────────────────────────────── */
@@ -801,15 +867,22 @@
 }
 
 .pd-drawer__panel {
+  --drawer-width: 28rem;
+  --drawer-inset: 0.5rem;
+
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  width: min(28rem, 100vw);
-  height: 100%;
-  max-height: 100dvh;
+  box-sizing: border-box;
+  width: min(var(--drawer-width), calc(100vw - (var(--drawer-inset) * 2)));
+  height: auto;
+  max-height: none;
+  align-self: stretch;
+  margin: var(--drawer-inset);
+  overflow: hidden;
   background: var(--color-surface-raised, var(--color-bg));
-  border-inline-start: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-card-lg);
   box-shadow: var(--shadow-deep);
   color: inherit;
   outline: none;
@@ -1360,20 +1433,18 @@
   box-shadow: var(--shadow-deep);
 }
 
-.pd-tooltip__content--top {
-  bottom: calc(100% + 0.375rem);
-}
-
-.pd-tooltip__content--bottom {
-  top: calc(100% + 0.375rem);
-}
-
-/* Left/right use fixed coords from JS (escape overflow clipping) */
 .pd-tooltip__content--left,
-.pd-tooltip__content--right {
+.pd-tooltip__content--right,
+.pd-tooltip__content--top,
+.pd-tooltip__content--bottom {
   left: auto;
   bottom: auto;
   transform: none;
+}
+
+.pd-tooltip__content--wide {
+  max-width: 20rem;
+  text-align: left;
 }
 
 /* ── Skeleton ─────────────────────────────────────────────────────── */
@@ -2015,7 +2086,7 @@
   justify-content: space-between;
   gap: 0.75rem;
   width: 100%;
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 1rem;
   border: none;
   background: transparent;
   color: var(--color-text);
@@ -2024,6 +2095,20 @@
   font-weight: 600;
   text-align: left;
   cursor: pointer;
+}
+
+.pd-accordion__title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  min-width: 0;
+}
+
+.pd-accordion__meta {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 .pd-accordion__trigger:hover {
@@ -2062,6 +2147,60 @@
   line-height: 1.45;
 }
 
+.pd-accordion--cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+}
+
+.pd-accordion--cards .pd-accordion__item {
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.875rem;
+  background: var(--color-surface-raised, var(--color-bg));
+  box-shadow: var(--shadow-low);
+  overflow: hidden;
+}
+
+.pd-accordion--cards .pd-accordion__item+.pd-accordion__item {
+  border-top: 0.0625rem solid var(--color-border);
+}
+
+.pd-accordion--cards .pd-accordion__title {
+  align-items: center;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.pd-accordion--cards .pd-accordion__trigger {
+  padding: 0.85rem 1.1rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.pd-accordion--cards .pd-accordion__meta {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.pd-accordion--cards .pd-accordion__item.is-open .pd-accordion__trigger,
+.pd-accordion--cards .pd-accordion__item.is-open .pd-accordion__chevron {
+  color: var(--color-text-secondary);
+}
+
+.pd-accordion--cards .pd-accordion__content {
+  padding: 0;
+  color: inherit;
+  border-top: 0.0625rem solid var(--color-divider, var(--color-border));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pd-accordion__chevron {
     transition: none;
@@ -2080,4 +2219,43 @@
   text-align: center;
   font-size: 0.8125rem;
   color: var(--color-text-muted);
+}
+
+/* ── Copyable text ────────────────────────────────────────────────── */
+
+.pd-copyable {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-align: start;
+  cursor: copy;
+}
+
+.pd-copyable:hover {
+  color: var(--color-text);
+}
+
+.pd-copyable:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-theme) 55%, transparent);
+  outline-offset: 0.125rem;
+  border-radius: 0.25rem;
+}
+
+.pd-copyable svg {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.pd-copyable:hover svg {
+  color: var(--color-theme);
 }

@@ -285,12 +285,111 @@ function ticketingTemplate(): DocTemplate[] {
   ]
 }
 
+function touristVisaTemplate(): DocTemplate[] {
+  return [
+    {
+      id: 'passport',
+      name: 'Machine Readable Passport',
+      required: true,
+      icon: 'passport',
+      defaultStatus: 'missing',
+      defaultDetail: 'Valid 6+ months',
+      fromClient: 'passport',
+    },
+    {
+      id: 'itinerary',
+      name: 'Travel itinerary',
+      required: true,
+      icon: 'itinerary',
+      unlockStepId: 'applied',
+      defaultStatus: 'not_due',
+      defaultDetail: 'Flights and hotel plan',
+    },
+    {
+      id: 'visa',
+      name: 'Tourist visa',
+      required: true,
+      icon: 'visa',
+      unlockStepId: 'visa',
+      defaultStatus: 'not_due',
+      defaultDetail: 'Embassy file',
+    },
+  ]
+}
+
+function medicalVisaTemplate(): DocTemplate[] {
+  return [
+    {
+      id: 'passport',
+      name: 'Machine Readable Passport',
+      required: true,
+      icon: 'passport',
+      defaultStatus: 'missing',
+      defaultDetail: 'Valid 6+ months',
+      fromClient: 'passport',
+    },
+    {
+      id: 'medical',
+      name: 'Hospital invitation',
+      required: true,
+      icon: 'medical',
+      unlockStepId: 'medical',
+      defaultStatus: 'not_due',
+      defaultDetail: 'Treatment letter / appointment',
+    },
+    {
+      id: 'visa',
+      name: 'Medical visa',
+      required: true,
+      icon: 'visa',
+      unlockStepId: 'visa',
+      defaultStatus: 'not_due',
+      defaultDetail: 'Embassy file',
+    },
+  ]
+}
+
+function hotelTemplate(): DocTemplate[] {
+  return [
+    {
+      id: 'id',
+      name: 'Photo ID',
+      required: true,
+      icon: 'id',
+      defaultStatus: 'missing',
+      defaultDetail: 'NID or passport',
+      fromClient: 'nid',
+    },
+    {
+      id: 'itinerary',
+      name: 'Hotel voucher',
+      required: true,
+      icon: 'itinerary',
+      unlockStepId: 'confirmed',
+      defaultStatus: 'not_due',
+      defaultDetail: 'Booking confirmation',
+    },
+    {
+      id: 'deposit',
+      name: 'Booking deposit receipt',
+      required: true,
+      icon: 'deposit',
+      unlockStepId: 'payment',
+      defaultStatus: 'not_due',
+      defaultDetail: 'Advance payment proof',
+    },
+  ]
+}
+
 const TEMPLATES: Record<BuiltinServiceType, () => DocTemplate[]> = {
-  Manpower: manpowerTemplate,
-  Student: studentTemplate,
-  'Hajj/Umrah': hajjTemplate,
-  Leisure: leisureTemplate,
-  Ticketing: ticketingTemplate,
+  'Tourist Visa': touristVisaTemplate,
+  'Student Visa': studentTemplate,
+  'Work Permit Visa': manpowerTemplate,
+  'Hajj/Umrah Visa': hajjTemplate,
+  'Medical Visa': medicalVisaTemplate,
+  'Air Ticket': ticketingTemplate,
+  'Hotel Booking': hotelTemplate,
+  'Tour Package': leisureTemplate,
 }
 
 function customTemplate(): DocTemplate[] {

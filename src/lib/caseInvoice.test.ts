@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_AGENCY_PROFILE } from '@/lib/agencyProfile'
-import { buildCaseInvoice, invoiceNumberForCase } from '@/lib/caseInvoice'
+import {
+  buildCaseInvoice,
+  formatInvoiceWebsite,
+  invoiceNumberForCase,
+} from '@/lib/caseInvoice'
 import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { Payment } from '@/types/payment'
@@ -12,7 +16,7 @@ const caseItem: Case = {
   caseId: 'SR-00999',
   clientId: 'c-test',
   clientName: 'Test Client',
-  service: 'Manpower',
+  service: 'Work Permit Visa',
   status: 'In-Progress',
   stage: 'Processing',
   currentStepId: 'medical',
@@ -32,7 +36,7 @@ const client: Client = {
   email: 'test@example.com',
   address: 'Dhaka',
   passport: 'A11111111',
-  services: ['Manpower'],
+  services: ['Work Permit Visa'],
   balance: 20000,
   activeCases: 1,
   status: 'Active',
@@ -77,7 +81,7 @@ describe('case invoice', () => {
     expect(invoice.packageTotal).toBe(40000)
     expect(invoice.status).toBe('partial')
     expect(invoice.lineDescription).toBe(
-      'Manpower package — Riyadh, Saudi Arabia',
+      'Work Permit Visa package — Riyadh, Saudi Arabia',
     )
     expect(invoice.payments.map((item) => item.id)).toEqual(['pay-b', 'pay-a'])
     expect(invoice.issuedOn).toBe('2026-01-15')
@@ -138,5 +142,15 @@ describe('case invoice', () => {
 
   it('uses the case reference in the invoice number', () => {
     expect(invoiceNumberForCase(caseItem)).toBe('INV-SR-00999')
+  })
+
+  it('strips the protocol from website display text', () => {
+    expect(formatInvoiceWebsite('https://www.onetrack.app')).toBe(
+      'www.onetrack.app',
+    )
+    expect(formatInvoiceWebsite('http://www.example.com')).toBe(
+      'www.example.com',
+    )
+    expect(formatInvoiceWebsite('www.already.clean')).toBe('www.already.clean')
   })
 })

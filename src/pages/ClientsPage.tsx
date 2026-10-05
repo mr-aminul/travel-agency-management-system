@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { LayoutGrid, Plus, Table2, UserCheck, Users, UserPlus, Wallet } from 'lucide-react'
+import { LayoutGrid, Table2, UserCheck, Users, UserPlus, Wallet } from 'lucide-react'
+import { AddClientSplitButton } from '@/components/clients/AddClientSplitButton'
 import { NewClientForm } from '@/components/clients/NewClientForm'
 import { StatCards } from '@/components/StatCards'
 import {
@@ -319,10 +320,11 @@ export default function ClientsPage() {
               </button>
             </Tooltip>
           </div>
-          <Button onClick={openNewClientModal}>
-            <Plus size={16} strokeWidth={2.25} aria-hidden />
-            New client
-          </Button>
+          <AddClientSplitButton
+            size="md"
+            label="New client"
+            onAddClient={openNewClientModal}
+          />
         </div>
       </div>
 

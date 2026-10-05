@@ -9,6 +9,7 @@ import { publicUrl } from '@/lib/publicUrl'
 import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
 import type {
   Client,
+  ClientFileRef,
   CreateClientInput,
   ServiceType,
   UpdateClientInput,
@@ -58,7 +59,7 @@ const SEED_CLIENTS: Client[] = [
     passportPlaceOfIssue: 'Dhaka',
     avatarUrl: DUMMY_AVATAR_URL,
     partnerId: 'AGT-T0001',
-    services: ['Manpower', 'Ticketing'],
+    services: ['Work Permit Visa', 'Air Ticket'],
     balance: 0,
     activeCases: 0,
     status: 'Active',
@@ -75,7 +76,7 @@ const SEED_CLIENTS: Client[] = [
     nid: '1995123456789',
     passport: 'B98765432',
     partnerId: 'AGT-T0002',
-    services: ['Student'],
+    services: ['Student Visa'],
     balance: 0,
     activeCases: 0,
     status: 'Active',
@@ -89,7 +90,7 @@ const SEED_CLIENTS: Client[] = [
     phone: '01611889900',
     address: 'Sylhet',
     nid: '1988123456789',
-    services: ['Manpower'],
+    services: ['Work Permit Visa'],
     balance: 0,
     activeCases: 0,
     status: 'Deployed',
@@ -105,7 +106,7 @@ const SEED_CLIENTS: Client[] = [
     address: 'Uttara, Dhaka',
     passport: 'C11223344',
     partnerId: 'AGT-T0001',
-    services: ['Hajj/Umrah'],
+    services: ['Hajj/Umrah Visa'],
     balance: 0,
     activeCases: 0,
     status: 'Active',
@@ -117,7 +118,7 @@ const SEED_CLIENTS: Client[] = [
     tenantId: TENANT_IDS.full,
     name: 'Imran Hossain',
     phone: '01988776655',
-    services: ['Leisure'],
+    services: ['Tour Package', 'Hotel Booking'],
     balance: 0,
     activeCases: 0,
     status: 'Lead',
@@ -125,11 +126,42 @@ const SEED_CLIENTS: Client[] = [
     createdAt: '2026-03-01',
   },
   {
+    id: 'c-340',
+    tenantId: TENANT_IDS.full,
+    name: 'Ayesha Rahman',
+    phone: '01733445566',
+    email: 'ayesha.rahman@email.com',
+    address: 'Dhanmondi, Dhaka',
+    passport: 'D44556677',
+    services: ['Tourist Visa'],
+    balance: 0,
+    activeCases: 0,
+    status: 'Active',
+    idChecked: true,
+    createdAt: '2026-06-18',
+  },
+  {
+    id: 'c-351',
+    tenantId: TENANT_IDS.full,
+    name: 'Dr. Kamal Uddin',
+    phone: '01822334455',
+    email: 'kamal.uddin@email.com',
+    address: 'Gulshan, Dhaka',
+    passport: 'E55667788',
+    nid: '1978123456789',
+    services: ['Medical Visa'],
+    balance: 0,
+    activeCases: 0,
+    status: 'Active',
+    idChecked: true,
+    createdAt: '2026-07-01',
+  },
+  {
     id: 'c-l-328',
     tenantId: TENANT_IDS.leisure,
     name: 'Imran Hossain',
     phone: '01988776655',
-    services: ['Leisure'],
+    services: ['Tour Package'],
     balance: 0,
     activeCases: 0,
     status: 'Lead',
@@ -143,7 +175,7 @@ const SEED_CLIENTS: Client[] = [
     phone: '01755551212',
     email: 'sadia.karim@email.com',
     address: 'Cox’s Bazar',
-    services: ['Ticketing'],
+    services: ['Air Ticket'],
     balance: 0,
     activeCases: 0,
     status: 'Active',
@@ -189,7 +221,7 @@ const SEED_CLIENTS: Client[] = [
     passportPlaceOfIssue: 'Dhaka',
     avatarUrl: DUMMY_AVATAR_URL,
     partnerId: 'AGT-M0001',
-    services: ['Manpower'],
+    services: ['Work Permit Visa'],
     balance: 0,
     activeCases: 0,
     status: 'Active',
@@ -204,7 +236,7 @@ const SEED_CLIENTS: Client[] = [
     address: 'Sylhet',
     nid: '1988123456789',
     partnerId: 'AGT-M0001',
-    services: ['Manpower'],
+    services: ['Work Permit Visa'],
     balance: 0,
     activeCases: 0,
     status: 'Deployed',
@@ -224,6 +256,31 @@ function optionalString(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const trimmed = value.trim()
   return trimmed || undefined
+}
+
+function optionalFileRef(value: unknown): ClientFileRef | undefined {
+  if (!isRecord(value)) return undefined
+  const fileId = optionalString(value.fileId)
+  const fileName = optionalString(value.fileName)
+  if (!fileId || !fileName) return undefined
+  return {
+    fileId,
+    fileName,
+    mimeType: optionalString(value.mimeType),
+  }
+}
+
+function optionalCustomFields(
+  value: unknown,
+): Record<string, string> | undefined {
+  if (!isRecord(value)) return undefined
+  const next: Record<string, string> = {}
+  for (const [key, entry] of Object.entries(value)) {
+    const fieldId = key.trim()
+    const text = optionalString(entry)
+    if (fieldId && text) next[fieldId] = text
+  }
+  return Object.keys(next).length ? next : undefined
 }
 
 function normalizeStoredClient(value: unknown): Client | undefined {
@@ -281,6 +338,7 @@ function normalizeStoredClient(value: unknown): Client | undefined {
     previousOverseasExp: optionalString(value.previousOverseasExp),
     preferredCountry: optionalString(value.preferredCountry),
     preferredJob: optionalString(value.preferredJob),
+    customFields: optionalCustomFields(value.customFields),
     expectedSalary: optionalString(value.expectedSalary),
     contractAmount:
       typeof value.contractAmount === 'number' ? value.contractAmount : undefined,
@@ -290,9 +348,11 @@ function normalizeStoredClient(value: unknown): Client | undefined {
     passportExpiry: optionalString(value.passportExpiry),
     passportIssuedOn: optionalString(value.passportIssuedOn),
     passportPlaceOfIssue: optionalString(value.passportPlaceOfIssue),
+    passportFile: optionalFileRef(value.passportFile),
+    nidFile: optionalFileRef(value.nidFile),
     avatarUrl: optionalString(value.avatarUrl),
     partnerId: optionalString(value.partnerId),
-    services: services.length ? services : ['Leisure'],
+    services: services.length ? services : ['Tour Package'],
     balance: typeof value.balance === 'number' ? value.balance : 0,
     activeCases: typeof value.activeCases === 'number' ? value.activeCases : 0,
     status,
@@ -498,6 +558,7 @@ export function createClient(
     previousOverseasExp: input.previousOverseasExp?.trim() || undefined,
     preferredCountry: input.preferredCountry?.trim() || undefined,
     preferredJob: input.preferredJob?.trim() || undefined,
+    customFields: optionalCustomFields(input.customFields),
     expectedSalary: input.expectedSalary?.trim() || undefined,
     contractAmount: input.contractAmount,
     branch: input.branch?.trim() || undefined,

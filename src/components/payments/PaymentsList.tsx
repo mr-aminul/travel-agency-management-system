@@ -15,6 +15,7 @@ import {
 } from '@/components/ui'
 import { getCaseById } from '@/lib/casesStore'
 import { workInvoicePath } from '@/lib/workPaths'
+import { formatDisplayDate } from '@/lib/formatDate'
 import {
   createPayment,
   formatPaymentAmount,
@@ -24,13 +25,7 @@ import {
 import type { Case } from '@/types/case'
 
 function formatDate(value: string): string {
-  const date = new Date(`${value}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return formatDisplayDate(value)
 }
 
 type PaymentsListProps = {
@@ -205,10 +200,10 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
                   </TableCell>
                   <TableCell>
                     <Link
-                      to={workInvoicePath(
-                        { id: payment.caseId, clientId: payment.clientId },
-                        payment.id,
-                      )}
+                      to={workInvoicePath({
+                        id: payment.caseId,
+                        clientId: payment.clientId,
+                      })}
                       className="pd-btn pd-btn--secondary pd-btn--sm pd-payments__view-btn"
                     >
                       <Eye size={14} strokeWidth={2.25} aria-hidden />

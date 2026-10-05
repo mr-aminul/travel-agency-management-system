@@ -1,4 +1,4 @@
-import { Avatar, PageHeader } from '@/components/ui'
+import { Avatar, CopyableText, PageHeader } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import '@/styles/layout-ops.css'
 
@@ -15,7 +15,9 @@ export default function ProfilePage() {
         <Avatar name={user?.name ?? 'Staff'} size="xl" />
         <div>
           <strong>{user?.name ?? '—'}</strong>
-          <p className="pd-ops__meta">{user?.email ?? '—'}</p>
+          <p className="pd-ops__meta">
+            {user?.email ? <CopyableText value={user.email} /> : '—'}
+          </p>
         </div>
       </div>
       <dl className="pd-profile-kv">
@@ -25,7 +27,7 @@ export default function ProfilePage() {
         </div>
         <div>
           <dt>Email</dt>
-          <dd>{user?.email ?? '—'}</dd>
+          <dd>{user?.email ? <CopyableText value={user.email} /> : '—'}</dd>
         </div>
         <div>
           <dt>Role</dt>

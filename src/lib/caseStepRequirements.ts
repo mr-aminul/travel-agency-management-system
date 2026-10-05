@@ -458,12 +458,129 @@ const CUSTOM: StepRequirement[] = [
   },
 ]
 
+const TOURIST_VISA: StepRequirement[] = [
+  {
+    stepId: 'registered',
+    help: 'Confirm who is travelling and where.',
+    fields: [
+      { key: 'destinationCountry', label: 'Destination country', type: 'text', required: true },
+      { key: 'travelDates', label: 'Travel dates', type: 'text', required: true, placeholder: 'e.g. 12–20 Nov' },
+      { key: 'purpose', label: 'Purpose of visit', type: 'textarea', required: true },
+    ],
+    uploads: [
+      { key: 'passportCopy', label: 'Passport copy', required: true, documentId: 'passport' },
+    ],
+  },
+  {
+    stepId: 'applied',
+    help: 'Lodge the tourist visa application.',
+    fields: [
+      { key: 'embassy', label: 'Embassy / VAC', type: 'text', required: true },
+      { key: 'fileNumber', label: 'File / GWF number', type: 'text', required: true },
+      { key: 'lodgedOn', label: 'Lodged on', type: 'date', required: true },
+    ],
+    uploads: [
+      { key: 'itinerary', label: 'Travel itinerary', required: true, documentId: 'itinerary' },
+    ],
+  },
+  {
+    stepId: 'visa',
+    help: 'Record visa issuance.',
+    fields: [
+      { key: 'visaNumber', label: 'Visa number', type: 'text', required: true },
+      { key: 'issuedOn', label: 'Issued on', type: 'date', required: true },
+      { key: 'expiry', label: 'Visa expiry', type: 'date', required: true },
+    ],
+    uploads: [
+      { key: 'visaCopy', label: 'Visa copy', required: true, documentId: 'visa' },
+    ],
+  },
+  {
+    stepId: 'ticket',
+    help: 'Attach the issued ticket.',
+    fields: [
+      { key: 'airline', label: 'Airline', type: 'text', required: true },
+      { key: 'pnr', label: 'PNR', type: 'text', required: true },
+      { key: 'departureDate', label: 'Departure date', type: 'date', required: true },
+    ],
+    uploads: [
+      { key: 'eticket', label: 'E-ticket', required: true },
+    ],
+  },
+  {
+    stepId: 'travelled',
+    help: 'Confirm the passenger travelled.',
+    fields: [
+      { key: 'travelledOn', label: 'Travel date', type: 'date', required: true },
+    ],
+    uploads: [],
+  },
+]
+
+const MEDICAL_VISA: StepRequirement[] = [
+  {
+    stepId: 'registered',
+    help: 'Register the patient and treatment destination.',
+    fields: [
+      { key: 'destinationCountry', label: 'Destination country', type: 'text', required: true },
+      { key: 'hospital', label: 'Hospital / clinic', type: 'text', required: true },
+      { key: 'condition', label: 'Treatment needed', type: 'textarea', required: true },
+    ],
+    uploads: [
+      { key: 'passportCopy', label: 'Passport copy', required: true, documentId: 'passport' },
+    ],
+  },
+  {
+    stepId: 'medical',
+    help: 'File the hospital invitation or appointment letter.',
+    fields: [
+      { key: 'hospital', label: 'Hospital', type: 'text', required: true },
+      { key: 'appointmentDate', label: 'Appointment date', type: 'date', required: true },
+    ],
+    uploads: [
+      { key: 'invitation', label: 'Hospital invitation', required: true, documentId: 'medical' },
+    ],
+  },
+  {
+    stepId: 'applied',
+    help: 'Lodge the medical visa application.',
+    fields: [
+      { key: 'embassy', label: 'Embassy / VAC', type: 'text', required: true },
+      { key: 'fileNumber', label: 'File number', type: 'text', required: true },
+      { key: 'lodgedOn', label: 'Lodged on', type: 'date', required: true },
+    ],
+    uploads: [],
+  },
+  {
+    stepId: 'visa',
+    help: 'Record visa issuance.',
+    fields: [
+      { key: 'visaNumber', label: 'Visa number', type: 'text', required: true },
+      { key: 'issuedOn', label: 'Issued on', type: 'date', required: true },
+    ],
+    uploads: [
+      { key: 'visaCopy', label: 'Visa copy', required: true, documentId: 'visa' },
+    ],
+  },
+  {
+    stepId: 'travelled',
+    help: 'Confirm departure for treatment.',
+    fields: [
+      { key: 'travelledOn', label: 'Travel date', type: 'date', required: true },
+    ],
+    uploads: [],
+  },
+]
+
 const BY_SERVICE: Record<BuiltinServiceType, StepRequirement[]> = {
-  Student: STUDENT,
-  Manpower: MANPOWER,
-  'Hajj/Umrah': HAJJ,
-  Leisure: LEISURE,
-  Ticketing: TICKETING,
+  'Tourist Visa': TOURIST_VISA,
+  'Student Visa': STUDENT,
+  'Work Permit Visa': MANPOWER,
+  'Hajj/Umrah Visa': HAJJ,
+  'Medical Visa': MEDICAL_VISA,
+  'Air Ticket': TICKETING,
+  'Hotel Booking': LEISURE,
+  'Tour Package': LEISURE,
 }
 
 function requirementsFor(service: ServiceType): StepRequirement[] {

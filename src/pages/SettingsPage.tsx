@@ -1,16 +1,9 @@
+import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
-  useEffect,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-} from 'react'
-import { useSearchParams } from 'react-router-dom'
-import {
-  BookOpen,
   Briefcase,
   Building2,
-  Info,
+  Contact,
   Monitor,
   Moon,
   MousePointerClick,
@@ -19,9 +12,13 @@ import {
   Sun,
   type LucideIcon,
 } from 'lucide-react'
+import '@/styles/layout-clients.css'
 import '@/styles/layout-settings.css'
-import { Avatar, Button, Input, Textarea } from '@/components/ui'
-import { JOURNEY_SPINE, PRODUCT_GLOSSARY } from '@/lib/glossary'
+import { PartnerPhotoField } from '@/components/PartnerPhotoField'
+import { Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
+import { SettingsInfo } from '@/components/settings/SettingsInfo'
+import { ServiceCatalogEditor } from '@/components/settings/ServiceCatalogEditor'
+import { ClientProfileFieldsSection } from '@/components/settings/ClientProfileFieldsSection'
 import { getActiveTenantId } from '@/lib/authApi'
 import {
   applyAppearance,
@@ -40,56 +37,48 @@ import {
   saveAgencyProfile,
   type AgencyProfile,
 } from '@/lib/agencyProfile'
-import { APP_VERSION_LABEL } from '@/lib/appVersion'
 import {
   applySidebarMode,
   type SidebarExpandMode,
 } from '@/lib/sidebarPrefs'
 import { useSidebarPrefs } from '@/layout/useSidebarPrefs'
 import { ServicesSettingsSection } from '@/components/settings/ServicesSettingsSection'
+import {
+  settingsSectionPath,
+  type SettingsSectionParam,
+} from '@/lib/workPaths'
 
-type SettingsSectionId =
-  | 'business'
-  | 'services'
-  | 'appearance'
-  | 'glossary'
-  | 'about'
+type SettingsSectionId = SettingsSectionParam
 
 const SETTINGS_SECTIONS: {
   id: SettingsSectionId
   label: string
-  description: string
+  info?: string
   icon: LucideIcon
 }[] = [
     {
       id: 'business',
       label: 'Business profile',
-      description: 'Agency name and contact details',
+      info: 'Your business name replaces OneTrack in the sidebar title, with “powered by OneTrack” underneath. Leave the name blank to keep OneTrack as the sidebar title.',
       icon: Building2,
     },
     {
+      id: 'clientFields',
+      label: 'Client fields',
+      info: 'Standard client profiles keep identity and passport. Add extra fields this agency needs, such as profession or preferred country. They appear on the client profile and new-client form.',
+      icon: Contact,
+    },
+    {
       id: 'services',
-      label: 'Services',
-      description: 'Journeys, documents, and country variations',
+      label: 'Service catalog',
+      info: 'These are the lines you sell. Open one to set the status journey and documents. New files pick up the checklist you save. Add a country when that destination needs a different journey or documents.',
       icon: Briefcase,
     },
     {
       id: 'appearance',
       label: 'Appearance',
-      description: 'Theme, dark mode, and sidebar',
+      info: 'Choose light, dark, or match the system. Theme color tints the app. Auto expands the sidebar on hover; Click uses the button at the bottom of the sidebar.',
       icon: Palette,
-    },
-    {
-      id: 'glossary',
-      label: 'How OneTrack works',
-      description: 'Client, service, and progress language',
-      icon: BookOpen,
-    },
-    {
-      id: 'about',
-      label: 'About',
-      description: 'Version and app info',
-      icon: Info,
     },
   ]
 
@@ -131,19 +120,23 @@ function formatHex(hex: string): string {
 function isSettingsSectionId(value: string | null): value is SettingsSectionId {
   return (
     value === 'business' ||
+    value === 'clientFields' ||
     value === 'services' ||
-    value === 'appearance' ||
-    value === 'glossary' ||
-    value === 'about'
+    value === 'appearance'
   )
 }
 
 export default function SettingsPage() {
+  const navigate = useNavigate()
+  const { serviceKey } = useParams()
   const [searchParams] = useSearchParams()
   const sectionParam = searchParams.get('section')
-  const [activeSection, setActiveSection] = useState<SettingsSectionId>(() =>
-    isSettingsSectionId(sectionParam) ? sectionParam : 'business',
-  )
+  const isEditor = Boolean(serviceKey)
+  const activeSection: SettingsSectionId = isEditor
+    ? 'services'
+    : isSettingsSectionId(sectionParam)
+      ? sectionParam
+      : 'business'
   const [themeMode, setThemeMode] = useState(readThemeMode)
   const [customColor, setCustomColor] = useState(readCustomThemeColor)
   const [appearance, setAppearance] = useState(readAppearance)
@@ -154,8 +147,8 @@ export default function SettingsPage() {
   )
   const [agencyStatus, setAgencyStatus] = useState<string | null>(null)
   const [agencyError, setAgencyError] = useState<string | null>(null)
-  const [isPictureBusy, setIsPictureBusy] = useState(false)
-  const pictureInputRef = useRef<HTMLInputElement>(null)
+  const [editorDirty, setEditorDirty] = useState(false)
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
 
   useEffect(() => {
     setAgencyDraft(readAgencyProfile(tenantId))
@@ -165,11 +158,21 @@ export default function SettingsPage() {
     SETTINGS_SECTIONS.find((section) => section.id === activeSection) ??
     SETTINGS_SECTIONS[0]
 
-  useEffect(() => {
-    if (isSettingsSectionId(sectionParam)) {
-      setActiveSection(sectionParam)
+  const goToHref = (href: string) => {
+    navigate(href)
+  }
+
+  const requestHref = (href: string) => {
+    if (isEditor && editorDirty) {
+      setPendingHref(href)
+      return
     }
-  }, [sectionParam])
+    goToHref(href)
+  }
+
+  const selectSection = (id: SettingsSectionId) => {
+    requestHref(settingsSectionPath(id))
+  }
 
   useEffect(() => {
     if (!agencyStatus) return
@@ -193,25 +196,6 @@ export default function SettingsPage() {
     setAgencyStatus('Business profile saved.')
   }
 
-  const handlePictureChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-
-    setIsPictureBusy(true)
-    setAgencyError(null)
-    try {
-      const dataUrl = await fileToProfilePictureDataUrl(file)
-      updateAgencyField('profilePicture', dataUrl)
-    } catch (error) {
-      setAgencyError(
-        error instanceof Error ? error.message : 'Could not use that image.',
-      )
-    } finally {
-      setIsPictureBusy(false)
-    }
-  }
-
   return (
     <div className="pd-settings" aria-label="Settings">
       <nav className="pd-settings-nav" aria-label="Settings sections">
@@ -224,94 +208,58 @@ export default function SettingsPage() {
               type="button"
               className={`pd-settings-nav__item${selected ? ' is-selected' : ''}`}
               aria-current={selected ? 'page' : undefined}
-              onClick={() => setActiveSection(section.id)}
+              onClick={() => selectSection(section.id)}
             >
               <span className="pd-settings-nav__icon" aria-hidden>
                 <Icon size={16} strokeWidth={2} />
               </span>
-              <span className="pd-settings-nav__copy">
-                <span className="pd-settings-nav__label">{section.label}</span>
-                <span className="pd-settings-nav__desc">
-                  {section.description}
-                </span>
-              </span>
+              <span className="pd-settings-nav__label">{section.label}</span>
             </button>
           )
         })}
       </nav>
 
       <section className="pd-settings-panel" aria-labelledby="settings-panel-title">
-        <header className="pd-settings-panel__header">
-          <h2 id="settings-panel-title" className="pd-settings-panel__title">
-            {currentSection.label}
-          </h2>
-          <p className="pd-settings-panel__hint">
-            {currentSection.id === 'business'
-              ? 'Your business name replaces OneTrack in the sidebar title, with “powered by OneTrack” underneath.'
-              : currentSection.id === 'services'
-                ? 'Pick a service, then set the status journey and documents. Add a country when that destination needs its own checklist.'
-              : currentSection.id === 'appearance'
-                ? 'Customize how the app looks, including theme color, dark mode, and sidebar behavior.'
-                : currentSection.description}
-          </p>
-        </header>
+        {isEditor ||
+        activeSection === 'services' ||
+        activeSection === 'clientFields' ? null : (
+          <header className="pd-settings-panel__header">
+            <h2 id="settings-panel-title" className="pd-settings-panel__title">
+              {currentSection.label}
+            </h2>
+            {currentSection.info ? (
+              <SettingsInfo
+                title={currentSection.label}
+                body={currentSection.info}
+              />
+            ) : null}
+          </header>
+        )}
 
         <div className="pd-settings-panel__body">
           {activeSection === 'business' ? (
             <form className="pd-settings-form" onSubmit={handleAgencySave}>
-              <div className="pd-settings-avatar-row">
-                <Avatar
-                  name={agencyDraft.businessName || DEFAULT_BRAND_NAME}
-                  src={agencyDraft.profilePicture}
-                  size="lg"
-                  alt="Business profile picture"
-                />
-                <div className="pd-settings-avatar-actions">
-                  <input
-                    ref={pictureInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="pd-settings-avatar-input"
-                    onChange={handlePictureChange}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    loading={isPictureBusy}
-                    onClick={() => pictureInputRef.current?.click()}
-                  >
-                    {agencyDraft.profilePicture
-                      ? 'Change photo'
-                      : 'Upload photo'}
-                  </Button>
-                  {agencyDraft.profilePicture ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        updateAgencyField('profilePicture', null)
-                      }
-                    >
-                      Remove
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-
               <div className="pd-settings-form__fields">
-                <Input
-                  label="Business name"
-                  name="businessName"
-                  autoComplete="organization"
-                  placeholder="Your travel agency name"
-                  value={agencyDraft.businessName}
-                  onChange={(e) =>
-                    updateAgencyField('businessName', e.target.value)
+                <PartnerPhotoField
+                  name={agencyDraft.businessName || DEFAULT_BRAND_NAME}
+                  fallbackName={DEFAULT_BRAND_NAME}
+                  value={agencyDraft.profilePicture ?? undefined}
+                  encodeFile={fileToProfilePictureDataUrl}
+                  onChange={(photoUrl) =>
+                    updateAgencyField('profilePicture', photoUrl ?? null)
                   }
-                  hint="Leave blank to keep OneTrack as the sidebar title."
-                />
+                >
+                  <Input
+                    label="Business name"
+                    name="businessName"
+                    autoComplete="organization"
+                    placeholder="Your travel agency name"
+                    value={agencyDraft.businessName}
+                    onChange={(e) =>
+                      updateAgencyField('businessName', e.target.value)
+                    }
+                  />
+                </PartnerPhotoField>
                 <Textarea
                   label="Address"
                   name="address"
@@ -368,7 +316,27 @@ export default function SettingsPage() {
             </form>
           ) : null}
 
-          {activeSection === 'services' ? <ServicesSettingsSection /> : null}
+          {activeSection === 'clientFields' ? (
+            <ClientProfileFieldsSection
+              title={currentSection.label}
+              info={currentSection.info ?? ''}
+            />
+          ) : null}
+
+          {activeSection === 'services' ? (
+            isEditor && serviceKey ? (
+              <ServiceCatalogEditor
+                key={serviceKey}
+                serviceKey={serviceKey}
+                onDirtyChange={setEditorDirty}
+              />
+            ) : (
+              <ServicesSettingsSection
+                title={currentSection.label}
+                info={currentSection.info ?? ''}
+              />
+            )
+          ) : null}
 
           {activeSection === 'appearance' ? (
             <div className="pd-settings-stack">
@@ -466,12 +434,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="pd-settings-row">
-                <div className="pd-settings-row__copy">
-                  <span className="pd-settings-row__label">Sidebar expand</span>
-                  <span className="pd-settings-row__hint">
-                    How the desktop sidebar opens and closes.
-                  </span>
-                </div>
+                <span className="pd-settings-row__label">Sidebar expand</span>
                 <div
                   className="pd-appearance-toggle"
                   role="radiogroup"
@@ -500,41 +463,22 @@ export default function SettingsPage() {
               </div>
             </div>
           ) : null}
-
-          {activeSection === 'glossary' ? (
-            <div className="pd-settings-stack">
-              <div className="pd-settings-row pd-settings-row--align-start">
-                <div className="pd-settings-row__copy">
-                  <span className="pd-settings-row__label">Journey spine</span>
-                  <span className="pd-settings-row__hint">{JOURNEY_SPINE}</span>
-                </div>
-              </div>
-              {PRODUCT_GLOSSARY.map((entry) => (
-                <div
-                  key={entry.term}
-                  className="pd-settings-row pd-settings-row--align-start"
-                >
-                  <div className="pd-settings-row__copy">
-                    <span className="pd-settings-row__label">{entry.term}</span>
-                    <span className="pd-settings-row__hint">{entry.meaning}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {activeSection === 'about' ? (
-            <div className="pd-settings-stack">
-              <div className="pd-settings-row">
-                <span className="pd-settings-row__label">Version</span>
-                <span className="pd-settings-version" title="Select to copy">
-                  {APP_VERSION_LABEL}
-                </span>
-              </div>
-            </div>
-          ) : null}
         </div>
       </section>
+      <ConfirmDialog
+        open={pendingHref != null}
+        onClose={() => setPendingHref(null)}
+        onConfirm={() => {
+          const href = pendingHref
+          setPendingHref(null)
+          setEditorDirty(false)
+          if (href) goToHref(href)
+        }}
+        title="Discard unsaved changes?"
+        description="The checklist or name you were editing has not been saved."
+        confirmLabel="Discard"
+        confirmVariant="danger"
+      />
     </div>
   )
 }

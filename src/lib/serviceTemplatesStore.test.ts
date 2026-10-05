@@ -33,7 +33,7 @@ describe('service template overrides', () => {
   it('lets an agency set status steps and a document checklist', () => {
     asLeisure()
     saveServiceTemplate({
-      serviceName: 'Leisure',
+      serviceName: 'Tour Package',
       steps: [
         { id: 'enquiry', label: 'Enquiry' },
         { id: 'permit', label: 'Permit' },
@@ -45,12 +45,12 @@ describe('service template overrides', () => {
       ],
     })
 
-    expect(getStepDefs('Leisure').map((step) => step.label)).toEqual([
+    expect(getStepDefs('Tour Package').map((step) => step.label)).toEqual([
       'Enquiry',
       'Permit',
       'Travelled',
     ])
-    expect(buildCaseDocuments('Leisure').map((doc) => doc.name)).toEqual([
+    expect(buildCaseDocuments('Tour Package').map((doc) => doc.name)).toEqual([
       'Passport',
       'Police clearance',
     ])
@@ -73,7 +73,7 @@ describe('service template overrides', () => {
   it('keeps a country-specific journey and checklist without replacing the default', () => {
     asLeisure()
     saveServiceTemplate({
-      serviceName: 'Leisure',
+      serviceName: 'Tour Package',
       steps: [
         { id: 'enquiry', label: 'Enquiry' },
         { id: 'quote', label: 'Quote' },
@@ -82,7 +82,7 @@ describe('service template overrides', () => {
       documents: [{ id: 'id', name: 'Photo ID', required: true }],
     })
     saveServiceTemplate({
-      serviceName: 'Leisure',
+      serviceName: 'Tour Package',
       country: 'Malaysia',
       steps: [
         { id: 'enquiry', label: 'Enquiry' },
@@ -95,40 +95,40 @@ describe('service template overrides', () => {
       ],
     })
 
-    expect(getStepDefs('Leisure').map((step) => step.id)).toEqual([
+    expect(getStepDefs('Tour Package').map((step) => step.id)).toEqual([
       'enquiry',
       'quote',
       'confirmed',
     ])
-    expect(getStepDefs('Leisure', 'Malaysia').map((step) => step.label)).toEqual([
+    expect(getStepDefs('Tour Package', 'Malaysia').map((step) => step.label)).toEqual([
       'Enquiry',
       'eNTRI / visa',
       'Travelled',
     ])
     expect(
-      getStepDefs('Leisure', 'Penang, Malaysia').map((step) => step.id),
+      getStepDefs('Tour Package', 'Penang, Malaysia').map((step) => step.id),
     ).toEqual(['enquiry', 'visa', 'travelled'])
-    expect(getStepDefs('Leisure', 'Thailand').map((step) => step.id)).toEqual([
+    expect(getStepDefs('Tour Package', 'Thailand').map((step) => step.id)).toEqual([
       'enquiry',
       'quote',
       'confirmed',
     ])
     expect(
-      buildCaseDocuments('Leisure', undefined, 'Malaysia').map((doc) => doc.name),
+      buildCaseDocuments('Tour Package', undefined, 'Malaysia').map((doc) => doc.name),
     ).toEqual(['Passport', 'eNTRI approval'])
-    expect(buildCaseDocuments('Leisure').map((doc) => doc.name)).toEqual([
+    expect(buildCaseDocuments('Tour Package').map((doc) => doc.name)).toEqual([
       'Photo ID',
     ])
 
     const client = createClient({
       name: 'Malaysia Traveller',
       phone: `015${Date.now().toString().slice(-8)}`,
-      primaryService: 'Leisure',
+      primaryService: 'Tour Package',
       idChecked: true,
     })
     const file = createCase({
       clientId: client.id,
-      service: 'Leisure',
+      service: 'Tour Package',
       serviceCountry: 'Malaysia',
       destination: 'Penang, Malaysia',
     })

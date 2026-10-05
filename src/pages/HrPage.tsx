@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import {
   Button,
   EmptyState,
@@ -19,6 +20,8 @@ import {
   formatSalary,
   useEmployees,
 } from '@/lib/employeesStore'
+import { hrEmployeePath } from '@/lib/workPaths'
+import { formatDisplayDate } from '@/lib/formatDate'
 import type { EmployeeDraft } from '@/types/employee'
 import '@/styles/layout-ops.css'
 
@@ -33,6 +36,7 @@ const emptyEmployee = (): EmployeeDraft => ({
 
 export default function HrPage() {
   const employees = useEmployees()
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<EmployeeDraft>(emptyEmployee)
@@ -58,7 +62,7 @@ export default function HrPage() {
     <div className="pd-page pd-ops" aria-label="HR">
       <PageHeader
         title="Employees"
-        description="Internal staff records and payroll amounts."
+        description="Staff directory for case assignment. Salary is the starting number for Payroll."
         actions={
           <Button onClick={() => setOpen(true)}>
             <Plus size={16} /> New employee
@@ -83,7 +87,7 @@ export default function HrPage() {
           description={
             query.trim()
               ? 'Try a different name or department.'
-              : 'Add the first employee to start the HR list.'
+              : 'Add the first employee to start the staff list.'
           }
         />
       ) : (
@@ -101,13 +105,17 @@ export default function HrPage() {
           </TableHeader>
           <TableBody>
             {filtered.map((employee) => (
-              <TableRow key={employee.id}>
+              <TableRow
+                key={employee.id}
+                className="pd-ops__data-row"
+                onClick={() => navigate(hrEmployeePath(employee.id))}
+              >
                 <TableCell>{employee.name}</TableCell>
                 <TableCell className="pd-table__code">{employee.id}</TableCell>
                 <TableCell>{employee.phone}</TableCell>
                 <TableCell>{employee.department}</TableCell>
                 <TableCell>{employee.designation}</TableCell>
-                <TableCell>{employee.joined}</TableCell>
+                <TableCell>{formatDisplayDate(employee.joined)}</TableCell>
                 <TableCell>{formatSalary(employee.salary)}</TableCell>
               </TableRow>
             ))}
@@ -127,9 +135,10 @@ export default function HrPage() {
             <Button
               onClick={() => {
                 if (!draft.name.trim()) return
-                createEmployee(draft)
+                const created = createEmployee(draft)
                 setDraft(emptyEmployee())
                 setOpen(false)
+                navigate(hrEmployeePath(created.id))
               }}
             >
               Create employee

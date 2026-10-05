@@ -7,33 +7,46 @@ import { layoutConfig } from '@/config/layout'
 import { createClient } from '@/lib/clientsStore'
 import { findPartnerById } from '@/lib/partnersStore'
 import { publicUrl } from '@/lib/publicUrl'
+import { getTenantById, resolveTenantRef } from '@/lib/tenantsStore'
 import type { CreateClientInput } from '@/types/client'
 import '@/styles/layout-track.css'
 import '@/styles/layout-clients.css'
 
 export default function PublicClientIntakePage() {
-  const { partnerId = '' } = useParams()
+  const { partnerId = '', tenantSlug: tenantFromRoute = '' } = useParams()
+  const isAgencyDirect = Boolean(tenantFromRoute)
   const partner = useMemo(
     () => (partnerId ? findPartnerById(partnerId) : undefined),
     [partnerId],
   )
   const activePartner =
     partner && partner.status !== 'Inactive' ? partner : undefined
+  const tenant = useMemo(() => {
+    if (tenantFromRoute) return resolveTenantRef(tenantFromRoute)
+    if (partner) return getTenantById(partner.tenantId)
+    return undefined
+  }, [tenantFromRoute, partner])
+  const tenantAcceptsIntake =
+    tenant != null && tenant.status !== 'suspended'
   const [submittedName, setSubmittedName] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | undefined>()
 
+  const formReady = isAgencyDirect
+    ? tenantAcceptsIntake
+    : Boolean(activePartner)
+
   const handleSubmit = (input: CreateClientInput) => {
-    if (!activePartner) return
+    if (!formReady || !tenant) return
     setSubmitError(undefined)
     try {
       const created = createClient(
         {
           ...input,
-          partnerId: activePartner.id,
+          partnerId: isAgencyDirect ? undefined : activePartner?.id,
           openFirstCase: false,
           idChecked: true,
         },
-        { tenantId: activePartner.tenantId },
+        { tenantId: tenant.id },
       )
       setSubmittedName(created.name)
     } catch (error) {
@@ -45,12 +58,19 @@ export default function PublicClientIntakePage() {
     }
   }
 
-  const unavailable =
-    !partner || partner.status === 'Inactive'
+  const unavailable = isAgencyDirect
+    ? tenantAcceptsIntake
+      ? undefined
+      : 'This registration link is invalid or has expired.'
+    : !partner || partner.status === 'Inactive'
       ? partner
         ? 'This registration link is no longer active. Ask the agency for a new one.'
         : 'This registration link is invalid or has expired.'
       : undefined
+
+  const referringName = isAgencyDirect
+    ? (tenant?.name ?? layoutConfig.brand.name)
+    : (partner?.name ?? 'The agency')
 
   return (
     <div className="pd-track">
@@ -77,22 +97,17 @@ export default function PublicClientIntakePage() {
             </span>
             <h1 className="pd-track__title">Details received</h1>
             <p className="pd-track__lede">
-              Thank you, {submittedName}. {partner?.name ?? 'The agency'} has
-              your profile and will follow up.
+              Thank you, {submittedName}. {referringName} has your profile and
+              will follow up.
             </p>
           </div>
         ) : (
           <>
             <header className="pd-track__intro">
               <h1 className="pd-track__title">Create your profile</h1>
-              <p className="pd-track__lede">
-                {partner
-                  ? `Fill this form for ${partner.name}. Your details become a client profile with this sub agent.`
-                  : 'This public form registers a new client with the referring sub agent.'}
-              </p>
             </header>
 
-            {activePartner ? (
+            {formReady ? (
               <>
                 {submitError ? (
                   <Alert variant="error" title="Could not submit">
@@ -101,8 +116,10 @@ export default function PublicClientIntakePage() {
                 ) : null}
                 <NewClientForm
                   variant="public"
-                  defaultPartnerId={activePartner.id}
-                  serviceTenantId={activePartner.tenantId}
+                  defaultPartnerId={
+                    isAgencyDirect ? undefined : activePartner?.id
+                  }
+                  serviceTenantId={tenant?.id}
                   submitLabel="Submit"
                   onSubmit={handleSubmit}
                 />

@@ -2,11 +2,29 @@
   max-width: none;
 }
 
+.pd-invoice-page-frame {
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.pd-app-main--fill > .pd-invoice-page-frame {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pd-invoice-page-frame--public {
+  min-height: 100vh;
+  background: color-mix(in srgb, var(--color-text) 4%, var(--color-bg));
+}
+
 .pd-invoice-page {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4, 1rem);
-  padding-block: var(--spacing-4, 1rem);
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--spacing-4, 1rem);
 }
 
 .pd-invoice-page__toolbar {
@@ -23,12 +41,6 @@
   gap: var(--spacing-2, 0.5rem);
 }
 
-.pd-invoice-page--public {
-  min-height: 100vh;
-  padding-inline: var(--spacing-4, 1rem);
-  background: color-mix(in srgb, var(--color-text) 4%, var(--color-bg));
-}
-
 .pd-invoice-page__public-label {
   margin: 0;
   font-size: 0.8125rem;
@@ -39,6 +51,8 @@
 .pd-invoice-page__stage {
   container-type: inline-size;
   width: 100%;
+  max-width: 210mm;
+  margin-inline: auto;
   overflow-x: auto;
 }
 
@@ -76,9 +90,11 @@
 
 .pd-invoice__brand {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--spacing-3, 0.75rem);
   min-width: 0;
+  flex: 1 1 auto;
+  max-width: 58%;
 }
 
 .pd-invoice__logo {
@@ -94,6 +110,22 @@
   border: 0.0625rem solid var(--color-border);
 }
 
+.pd-invoice__brand-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.pd-invoice__brand-details .pd-invoice__agency-name {
+  margin-bottom: 0.15rem;
+}
+
+.pd-invoice__brand-details .pd-invoice__muted {
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
 .pd-invoice__meta {
   display: flex;
   flex-direction: column;
@@ -101,7 +133,7 @@
   gap: 0.35rem;
   flex: 0 0 auto;
   width: max-content;
-  max-width: 55%;
+  max-width: 40%;
   text-align: right;
 }
 
@@ -128,13 +160,6 @@
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: var(--color-text);
-}
-
-.pd-invoice__meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-2, 0.5rem);
 }
 
 .pd-invoice__number {
@@ -171,7 +196,7 @@
   color: var(--color-text-secondary);
 }
 
-.pd-invoice__totals dl > div {
+.pd-invoice__totals dl>div {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -198,9 +223,8 @@
 
 .pd-invoice__parties {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: flex-start;
-  gap: var(--spacing-8, 2rem);
   padding-bottom: var(--spacing-5, 1.25rem);
   border-bottom: 0.0625rem solid var(--color-border);
 }
@@ -210,7 +234,7 @@
   flex-direction: column;
   gap: 0;
   min-width: 0;
-  max-width: 46%;
+  max-width: 58%;
 }
 
 .pd-invoice__party .pd-invoice__party-name {
@@ -219,14 +243,6 @@
 
 .pd-invoice__party .pd-invoice__muted {
   line-height: 1.25;
-}
-
-.pd-invoice__party--to {
-  width: max-content;
-  max-width: 46%;
-  margin-left: auto;
-  align-items: flex-end;
-  text-align: right;
 }
 
 .pd-invoice__section-label {
@@ -258,10 +274,6 @@
 .pd-invoice .pd-table__th:last-child,
 .pd-invoice .pd-table__td:last-child {
   width: 7.5rem;
-}
-
-.pd-invoice__row.is-highlight td {
-  background: color-mix(in srgb, var(--color-theme) 10%, transparent);
 }
 
 .pd-invoice__totals {
@@ -302,6 +314,7 @@
 }
 
 @media print {
+
   .pd-app-shell::before,
   .pd-app-shell::after,
   .pd-app-sidebar,
@@ -316,6 +329,7 @@
   .pd-app-content,
   .pd-app-content-card,
   .pd-app-main,
+  .pd-invoice-page-frame,
   .pd-invoice-page,
   .pd-invoice-page__stage {
     height: auto !important;

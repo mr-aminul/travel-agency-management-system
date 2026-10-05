@@ -140,13 +140,13 @@ export function validateCustomServiceName(
   if (trimmed.length < 2) return 'Give the service a name.'
   if (trimmed.length > 40) return 'Keep the name under 40 characters.'
   if (isBuiltinService(trimmed)) {
-    return 'That name is already used by a built-in service template.'
+    return 'That name is already used.'
   }
 
   const slug = slugifyServiceName(trimmed)
   if (!slug) return 'Use letters or numbers in the service name.'
   if (slug in CASE_SERVICE_SLUGS) {
-    return 'That name is too close to a built-in service template.'
+    return 'That name is too close to an existing service.'
   }
 
   const duplicate = listCustomServices(forTenantId).find(

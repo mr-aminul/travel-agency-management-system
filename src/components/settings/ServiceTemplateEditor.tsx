@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
 import { Button, ConfirmDialog, Input, Select } from '@/components/ui'
-import { getBuiltinStepDefs } from '@/lib/caseChecklist'
-import { getDefaultDocumentConfigs } from '@/lib/caseDocuments'
+import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { cx } from '@/lib/cx'
 import {
   destinationCountryOptions,
@@ -10,55 +9,15 @@ import {
 } from '@/lib/destinationCountries'
 import {
   deleteServiceTemplate,
-  getServiceTemplateOverride,
   listServiceCountries,
   nextTemplateItemId,
-  resolveServiceTemplateOverride,
   saveServiceTemplate,
   useServiceTemplates,
 } from '@/lib/serviceTemplatesStore'
+import { resolveServiceTemplate } from '@/lib/resolveServiceTemplate'
 import type { ServiceType } from '@/types/case'
-import type {
-  ServiceDocumentConfig,
-  ServiceStepConfig,
-} from '@/types/serviceTemplate'
 
 const ALL_COUNTRIES = ''
-
-function defaultsFor(service: ServiceType): {
-  steps: ServiceStepConfig[]
-  documents: ServiceDocumentConfig[]
-} {
-  return {
-    steps: getBuiltinStepDefs(service).map((step) => ({
-      id: step.id,
-      label: step.label,
-    })),
-    documents: getDefaultDocumentConfigs(service),
-  }
-}
-
-export function resolveServiceTemplate(
-  service: ServiceType,
-  country = ALL_COUNTRIES,
-): {
-  steps: ServiceStepConfig[]
-  documents: ServiceDocumentConfig[]
-  isCustomized: boolean
-  countryCount: number
-} {
-  const fallback = defaultsFor(service)
-  const override = country
-    ? resolveServiceTemplateOverride(service, country)
-    : getServiceTemplateOverride(service)
-  const exact = getServiceTemplateOverride(service, country)
-  return {
-    steps: override?.steps ?? fallback.steps,
-    documents: override?.documents ?? fallback.documents,
-    isCustomized: Boolean(exact),
-    countryCount: listServiceCountries(service).length,
-  }
-}
 
 function draftFrom(service: ServiceType, country: string) {
   const resolved = resolveServiceTemplate(service, country)
@@ -203,7 +162,7 @@ export function ServiceTemplateEditor({
       setStatus(
         isCustom
           ? 'Restored the generic custom-service checklist.'
-          : 'Restored the built-in template.',
+          : 'Restored the default checklist.',
       )
     }
   }
@@ -277,12 +236,20 @@ export function ServiceTemplateEditor({
                 'pd-settings-template__country',
                 country === item && 'is-active',
               )}
-              onClick={() => selectCountry(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
+            onClick={() => selectCountry(item)}
+          >
+            {item}
+          </button>
+        ))}
+      </div>
+      <SettingsInfo
+        title={country ? country : 'All countries'}
+        body={
+          country
+            ? `This journey and document list apply when a file’s destination is ${country}. Other countries use All countries.`
+            : 'Used when a file has no matching country variation.'
+        }
+      />
         {adding ? (
           <div className="pd-settings-template__add-country">
             <Select
@@ -339,12 +306,6 @@ export function ServiceTemplateEditor({
         )}
       </div>
 
-      <p className="pd-settings-template__hint">
-        {country
-          ? `This journey and document list apply when a file’s destination is ${country}. Other countries use All countries.`
-          : 'Used when a file has no matching country variation.'}
-      </p>
-
       <div className="pd-settings-template__panes">
         <div className="pd-settings-template__block">
           <div className="pd-settings-template__head">
@@ -354,10 +315,11 @@ export function ServiceTemplateEditor({
                 <span className="pd-settings-template__tab-count">
                   {steps.length}
                 </span>
+                <SettingsInfo
+                  title="Status journey"
+                  body="Staff move a file through these steps, in this order."
+                />
               </span>
-              <p className="pd-settings-template__hint">
-                Staff move a file through these steps, in this order.
-              </p>
             </div>
             <Button type="button" variant="ghost" size="sm" onClick={addStep}>
               <Plus size={14} /> Add
@@ -438,10 +400,11 @@ export function ServiceTemplateEditor({
                 <span className="pd-settings-template__tab-count">
                   {documents.length}
                 </span>
+                <SettingsInfo
+                  title="Documents"
+                  body="Papers this service should collect on new files."
+                />
               </span>
-              <p className="pd-settings-template__hint">
-                Papers this service should collect on new files.
-              </p>
             </div>
             <Button type="button" variant="ghost" size="sm" onClick={addDocument}>
               <Plus size={14} /> Add
@@ -552,7 +515,7 @@ export function ServiceTemplateEditor({
             ? `Remove the ${country} variation so those files use the all-countries checklist.`
             : isCustom
               ? 'Restore the generic checklist for this custom service.'
-              : 'Restore the built-in checklist for this service.'
+              : 'Restore the default checklist for this service.'
         }
         confirmLabel="Reset"
         confirmVariant="danger"

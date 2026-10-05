@@ -18,6 +18,9 @@ const PaymentsPage = lazy(() => import('@/pages/PaymentsPage'))
 const HelpPage = lazy(() => import('@/pages/HelpPage'))
 const HomePage = lazy(() => import('@/pages/HomePage'))
 const HrPage = lazy(() => import('@/pages/HrPage'))
+const HrAttendancePage = lazy(() => import('@/pages/HrAttendancePage'))
+const HrPayrollPage = lazy(() => import('@/pages/HrPayrollPage'))
+const EmployeeDetailPage = lazy(() => import('@/pages/EmployeeDetailPage'))
 const PartnersPage = lazy(() => import('@/pages/PartnersPage'))
 const PartnerDetailPage = lazy(() => import('@/pages/PartnerDetailPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
@@ -57,6 +60,13 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/track" element={<TrackClientPage />} />
+          <Route
+            path="/client-registration/:tenantSlug"
+            element={<PublicClientIntakePage />}
+          />
+          {/* Legacy agency intake links */}
+          <Route path="/register/:tenantSlug" element={<PublicClientIntakePage />} />
+          <Route path="/join/direct/:tenantSlug" element={<PublicClientIntakePage />} />
           <Route path="/join/:partnerId" element={<PublicClientIntakePage />} />
           <Route path="/i/:token" element={<PublicInvoicePage />} />
           <Route path="/" element={<AuthenticatedLayout />}>
@@ -90,7 +100,11 @@ function App() {
             <Route path="finance" element={<Navigate to="/payments" replace />} />
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="reporting" element={<DashboardPage />} />
-            <Route path="hr" element={<HrPage />} />
+            <Route path="hr" element={<Navigate to="/hr/employees" replace />} />
+            <Route path="hr/employees" element={<HrPage />} />
+            <Route path="hr/employees/:id" element={<EmployeeDetailPage />} />
+            <Route path="hr/attendance" element={<HrAttendancePage />} />
+            <Route path="hr/payroll" element={<HrPayrollPage />} />
             <Route path="help" element={<HelpPage />} />
             <Route path="admin" element={<Navigate to="/admin/tenants" replace />} />
             <Route path="admin/tenants" element={<TenantsAdminPage />} />
@@ -104,6 +118,10 @@ function App() {
               <Route path="modules" element={<Navigate to="users" replace />} />
             </Route>
             <Route path="settings" element={<SettingsPage />} />
+            <Route
+              path="settings/services/:serviceKey"
+              element={<SettingsPage />}
+            />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="components" element={<ComponentsPage />} />
           </Route>

@@ -51,14 +51,14 @@ export const DEMO_ACCOUNTS: {
     user: LEISURE_USER,
     tenantId: 'tenant-leisure',
     label: 'Coastal Leisure',
-    description: 'Leisure + ticketing + payments',
+    description: 'Tours, tickets, hotels, and payments',
   },
   {
     id: 'manpower',
     user: MANPOWER_USER,
     tenantId: 'tenant-manpower',
     label: 'Horizon Manpower',
-    description: 'Manpower + payments + HR',
+    description: 'Work permits, payments, and HR',
   },
   {
     id: 'full',

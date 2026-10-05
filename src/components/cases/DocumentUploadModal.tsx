@@ -7,7 +7,9 @@ import {
   summarizeDocumentFields,
   validateDocumentFields,
 } from '@/lib/caseDocumentForms'
-import { recordCaseDocument } from '@/lib/casesStore'
+import { recordCaseDocument, recordIdentityDocument } from '@/lib/casesStore'
+import type { IdentityKind } from '@/lib/clientDocuments'
+import { formatDisplayDate } from '@/lib/formatDate'
 import { storeFile } from '@/lib/fileStore'
 import type { CaseDocument } from '@/types/case'
 
@@ -15,7 +17,9 @@ export type DocumentDrawerMode = 'view' | 'edit'
 
 type DocumentUploadModalProps = {
   open: boolean
-  caseId: string
+  caseId?: string
+  clientId?: string
+  identityKind?: IdentityKind
   document: CaseDocument | null
   mode?: DocumentDrawerMode
   onModeChange?: (mode: DocumentDrawerMode) => void
@@ -23,11 +27,19 @@ type DocumentUploadModalProps = {
   canEdit?: boolean
 }
 
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
+function ReadOnlyField({
+  label,
+  value,
+  isDate,
+}: {
+  label: string
+  value: string
+  isDate?: boolean
+}) {
   return (
     <div className="pd-step-view__field">
       <dt>{label}</dt>
-      <dd>{value || '—'}</dd>
+      <dd>{isDate ? formatDisplayDate(value) : value || '—'}</dd>
     </div>
   )
 }
@@ -35,6 +47,8 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 export function DocumentUploadModal({
   open,
   caseId,
+  clientId,
+  identityKind,
   document,
   mode = 'edit',
   onModeChange,
@@ -81,14 +95,25 @@ export function DocumentUploadModal({
       return
     }
 
-    recordCaseDocument(caseId, document.id, {
-      fields,
-      fileName: fileName.trim() || undefined,
-      fileId,
-      mimeType,
-      detail: summarizeDocumentFields(form, fields),
-      expiry: documentExpiryFromFields(form, fields),
-    })
+    if (identityKind && clientId) {
+      recordIdentityDocument(clientId, identityKind, {
+        fields,
+        fileName: fileName.trim() || undefined,
+        fileId,
+        mimeType,
+        detail: summarizeDocumentFields(form, fields),
+        expiry: documentExpiryFromFields(form, fields),
+      })
+    } else if (caseId) {
+      recordCaseDocument(caseId, document.id, {
+        fields,
+        fileName: fileName.trim() || undefined,
+        fileId,
+        mimeType,
+        detail: summarizeDocumentFields(form, fields),
+        expiry: documentExpiryFromFields(form, fields),
+      })
+    }
     if (onModeChange) onModeChange('view')
     else onClose()
   }
@@ -144,6 +169,7 @@ export function DocumentUploadModal({
                 key={field.key}
                 label={field.label}
                 value={fields[field.key] ?? ''}
+                isDate={field.type === 'date'}
               />
             ))}
             {document.detail && document.detail !== fileName ? (

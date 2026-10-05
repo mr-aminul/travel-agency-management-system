@@ -28,29 +28,44 @@ export const MODULE_GROUPS: ModuleGroup[] = [
       'Templates this agency sells. They filter Services — they are not extra sidebar pages.',
     modules: [
       {
-        id: 'services.manpower',
-        label: 'Manpower',
-        description: 'Recruitment and overseas employment',
+        id: 'services.touristVisa',
+        label: 'Tourist Visa',
+        description: 'Visit and tourist visa files',
       },
       {
-        id: 'services.student',
-        label: 'Student',
-        description: 'Study-abroad files',
+        id: 'services.studentVisa',
+        label: 'Student Visa',
+        description: 'Study-abroad visa files',
       },
       {
-        id: 'services.hajjUmrah',
-        label: 'Hajj / Umrah',
-        description: 'Pilgrimage packages',
+        id: 'services.workPermitVisa',
+        label: 'Work Permit Visa',
+        description: 'Employment and work-permit files',
       },
       {
-        id: 'services.leisure',
-        label: 'Leisure',
-        description: 'Holiday and tour packages',
+        id: 'services.hajjUmrahVisa',
+        label: 'Hajj / Umrah Visa',
+        description: 'Pilgrimage visa files',
       },
       {
-        id: 'services.ticketing',
-        label: 'Ticketing',
+        id: 'services.medicalVisa',
+        label: 'Medical Visa',
+        description: 'Treatment and medical visa files',
+      },
+      {
+        id: 'services.airTicket',
+        label: 'Air Ticket',
         description: 'Airline bookings',
+      },
+      {
+        id: 'services.hotelBooking',
+        label: 'Hotel Booking',
+        description: 'Hotel reservations',
+      },
+      {
+        id: 'services.tourPackage',
+        label: 'Tour Package',
+        description: 'Holiday and tour packages',
       },
     ],
   },
@@ -105,12 +120,12 @@ export const MODULE_GROUPS: ModuleGroup[] = [
   {
     id: 'hr',
     label: 'HR',
-    description: 'Employee management',
+    description: 'Employees, attendance, and payroll',
     modules: [
       {
         id: 'hr',
         label: 'HR',
-        description: 'Employees and payroll',
+        description: 'Employees, attendance, and payroll',
       },
     ],
   },
@@ -123,19 +138,27 @@ export const MODULE_CATALOG: ModuleCatalogItem[] = MODULE_GROUPS.flatMap(
 export const ALL_MODULE_IDS: ModuleId[] = MODULE_CATALOG.map((item) => item.id)
 
 export const SERVICE_MODULE: Record<BuiltinServiceType, ModuleId> = {
-  Manpower: 'services.manpower',
-  Student: 'services.student',
-  'Hajj/Umrah': 'services.hajjUmrah',
-  Leisure: 'services.leisure',
-  Ticketing: 'services.ticketing',
+  'Tourist Visa': 'services.touristVisa',
+  'Student Visa': 'services.studentVisa',
+  'Work Permit Visa': 'services.workPermitVisa',
+  'Hajj/Umrah Visa': 'services.hajjUmrahVisa',
+  'Medical Visa': 'services.medicalVisa',
+  'Air Ticket': 'services.airTicket',
+  'Hotel Booking': 'services.hotelBooking',
+  'Tour Package': 'services.tourPackage',
 }
 
 const LEGACY_MODULE_ID: Record<string, ModuleId> = {
-  'cases.manpower': 'services.manpower',
-  'cases.student': 'services.student',
-  'cases.hajjUmrah': 'services.hajjUmrah',
-  'cases.leisure': 'services.leisure',
-  'cases.ticketing': 'services.ticketing',
+  'services.manpower': 'services.workPermitVisa',
+  'services.student': 'services.studentVisa',
+  'services.hajjUmrah': 'services.hajjUmrahVisa',
+  'services.leisure': 'services.tourPackage',
+  'services.ticketing': 'services.airTicket',
+  'cases.manpower': 'services.workPermitVisa',
+  'cases.student': 'services.studentVisa',
+  'cases.hajjUmrah': 'services.hajjUmrahVisa',
+  'cases.leisure': 'services.tourPackage',
+  'cases.ticketing': 'services.airTicket',
   agents: 'partners',
 }
 

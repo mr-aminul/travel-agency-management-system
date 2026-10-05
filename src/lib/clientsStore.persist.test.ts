@@ -24,7 +24,7 @@ describe('persisted public client intake', () => {
       {
         name: 'Public Form Lead',
         phone: '01844445555',
-        primaryService: 'Leisure',
+        primaryService: 'Tour Package',
         idChecked: true,
         partnerId: 'AGT-T0001',
       },
@@ -49,5 +49,30 @@ describe('persisted public client intake', () => {
     expect(
       getClientsByPartnerId('AGT-T0001').some((client) => client.id === created.id),
     ).toBe(true)
+  })
+
+  it('keeps tenant custom field values after a reload', () => {
+    writeSession({
+      user: DEMO_USER,
+      tenantId: TENANT_IDS.full,
+      signedInAt: '2026-01-01T00:00:00.000Z',
+    })
+    const created = createClient({
+      name: 'Custom Field Lead',
+      phone: '01844446666',
+      primaryService: 'Tour Package',
+      idChecked: true,
+      customFields: { 'cf-0001': 'Mason' },
+    })
+
+    const persisted = localStorage.getItem('pd-clients-created')
+    expect(persisted).toBeTruthy()
+    resetClients()
+    localStorage.setItem('pd-clients-created', persisted ?? '[]')
+    reloadClientsFromStorage()
+
+    expect(getClientById(created.id)?.customFields).toEqual({
+      'cf-0001': 'Mason',
+    })
   })
 })

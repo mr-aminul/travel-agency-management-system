@@ -8,8 +8,8 @@ import {
   Badge,
   Button,
   EmptyState,
-  Modal,
   SearchField,
+  SideDrawer,
   Select,
   Table,
   TableBody,
@@ -326,18 +326,18 @@ export default function PartnersPage() {
         </Table>
       )}
 
-      <Modal
+      <SideDrawer
         open={newPartnerOpen}
         onClose={closeNewPartnerModal}
         title="New sub agent"
         description="Register the sub agent once — then attach the clients they send."
-        className="pd-clients-modal"
+        className="pd-clients-drawer"
       >
         <NewPartnerForm
           onSubmit={handleCreatePartner}
           onCancel={closeNewPartnerModal}
         />
-      </Modal>
+      </SideDrawer>
     </div>
   )
 }

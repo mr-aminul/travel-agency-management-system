@@ -15,11 +15,13 @@ import { createCase, getCaseById } from '@/lib/casesStore'
 import { TENANT_IDS } from '@/types/tenant'
 import { resetTenantEntitlements } from '@/lib/tenantsStore'
 import { resetCustomServices } from '@/lib/customServicesStore'
+import { resetClientProfileFields } from '@/lib/clientProfileFieldsStore'
 
 afterEach(() => {
   clearSession()
   resetTenantEntitlements()
   resetCustomServices()
+  resetClientProfileFields()
   resetClients()
 })
 
@@ -45,7 +47,7 @@ describe('tenant-scoped stores', () => {
     const created = createClient({
       name: 'Only Leisure Client',
       phone: '01700001111',
-      primaryService: 'Leisure',
+      primaryService: 'Tour Package',
       idChecked: true,
     })
     expect(getClientById(created.id)?.name).toBe('Only Leisure Client')
@@ -60,13 +62,13 @@ describe('tenant-scoped stores', () => {
     const client = createClient({
       name: 'No Manpower',
       phone: '01700002222',
-      primaryService: 'Ticketing',
+      primaryService: 'Air Ticket',
       idChecked: true,
     })
     expect(() =>
       createCase({
         clientId: client.id,
-        service: 'Manpower',
+        service: 'Work Permit Visa',
       }),
     ).toThrow(/not enabled/)
     expect(getCaseById('case-m-101')).toBeUndefined()
@@ -74,10 +76,10 @@ describe('tenant-scoped stores', () => {
 
   it('shows manpower seed cases only in the manpower tenant', () => {
     asManpower()
-    expect(getCaseById('case-m-101')?.service).toBe('Manpower')
+    expect(getCaseById('case-m-101')?.service).toBe('Work Permit Visa')
     asLeisure()
     expect(getCaseById('case-m-101')).toBeUndefined()
-    expect(getCaseById('case-l-105')?.service).toBe('Leisure')
+    expect(getCaseById('case-l-105')?.service).toBe('Tour Package')
   })
 
   it('creates a client under a partner tenant from a public intake', () => {
@@ -86,7 +88,7 @@ describe('tenant-scoped stores', () => {
       {
         name: 'Public Intake Client',
         phone: '01811119999',
-        primaryService: 'Manpower',
+        primaryService: 'Work Permit Visa',
         idChecked: true,
         partnerId: 'AGT-M0001',
       },

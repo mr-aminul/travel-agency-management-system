@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Link,
   Navigate,
@@ -8,7 +8,6 @@ import {
   useSearchParams,
 } from 'react-router-dom'
 import {
-  ArrowLeft,
   BookUser,
   Calendar,
   Check,
@@ -22,26 +21,30 @@ import {
   MapPin,
   MessageSquare,
   Phone,
-  SquarePen,
+  Receipt,
   UserRound,
   Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { CasesList } from '@/components/cases/CasesList'
 import { NewCaseForm } from '@/components/cases/NewCaseForm'
+import { ClientCustomFieldControl } from '@/components/clients/ClientCustomFieldControl'
+import { ClientDocumentsPanel } from '@/components/clients/ClientDocumentsPanel'
 import { PaymentsList } from '@/components/payments/PaymentsList'
 import {
   Avatar,
   Badge,
   Button,
+  CopyableText,
   EmptyState,
   Input,
-  Modal,
   Select,
+  SideDrawer,
   Tabs,
   type BadgeVariant,
 } from '@/components/ui'
 import { createCase, getEnabledServiceOptions, useCasesByClientId } from '@/lib/casesStore'
+import { caseServiceFee } from '@/lib/caseMoney'
 import { clientPath, workDetailPath } from '@/lib/workPaths'
 import { getPartnerById } from '@/lib/partnersStore'
 import {
@@ -52,6 +55,12 @@ import {
   updateClient,
   useClients,
 } from '@/lib/clientsStore'
+import {
+  compactCustomFieldValues,
+  emptyCustomFieldValues,
+} from '@/lib/clientCustomFields'
+import { useClientProfileFields } from '@/lib/clientProfileFieldsStore'
+import { formatDisplayDate } from '@/lib/formatDate'
 import type { ServiceType, CreateCaseInput } from '@/types/case'
 import type {
   Client,
@@ -59,7 +68,7 @@ import type {
   ClientMaritalStatus,
   ClientStatus,
 } from '@/types/client'
-import { DESTINATION_COUNTRIES } from '@/lib/destinationCountries'
+import type { ClientProfileField } from '@/types/clientProfileField'
 import '@/styles/layout-clients.css'
 
 const CLIENT_TABS = [
@@ -90,17 +99,11 @@ function primaryServiceType(services: ServiceType[]): ServiceType {
   const fromServices = services.find((service) =>
     enabled.some((option) => option.value === service),
   )
-  return fromServices ?? enabled[0]?.value ?? 'Leisure'
+  return fromServices ?? enabled[0]?.value ?? 'Tour Package'
 }
 
 function formatDate(value: string): string {
-  const date = new Date(`${value}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return formatDisplayDate(value)
 }
 
 const GENDER_OPTIONS = [
@@ -127,17 +130,6 @@ const BLOOD_GROUP_OPTIONS = [
   ...BLOOD_GROUPS.map((value) => ({ value, label: value })),
 ]
 
-function countryOptions(current: string) {
-  const listed = DESTINATION_COUNTRIES as readonly string[]
-  const extra =
-    current && !listed.includes(current) ? [{ value: current, label: current }] : []
-  return [
-    { value: '', label: '—' },
-    ...extra,
-    ...listed.map((country) => ({ value: country, label: country })),
-  ]
-}
-
 type ProfileDraft = {
   name: string
   phone: string
@@ -157,16 +149,14 @@ type ProfileDraft = {
   passportExpiry: string
   passportIssuedOn: string
   passportPlaceOfIssue: string
-  profession: string
-  preferredCountry: string
-  preferredJob: string
   status: ClientStatus
+  customFields: Record<string, string>
 }
 
 type ProfileFieldDef = {
   key: keyof ProfileDraft
   label: string
-  kind?: 'text' | 'date' | 'gender' | 'marital' | 'country' | 'blood'
+  kind?: 'text' | 'date' | 'gender' | 'marital' | 'blood'
   wide?: boolean
 }
 
@@ -186,45 +176,50 @@ const PROFILE_GROUPS: { title: string; fields: ProfileFieldDef[] }[] = [
       { key: 'bloodGroup', label: 'Blood group', kind: 'blood' },
     ],
   },
-  {
-    title: 'Passport',
-    fields: [
-      { key: 'passport', label: 'Passport number' },
-      { key: 'passportIssuedOn', label: 'Date of issue', kind: 'date' },
-      { key: 'passportExpiry', label: 'Date of expiry', kind: 'date' },
-      { key: 'passportPlaceOfIssue', label: 'Place of issue' },
-    ],
-  },
-  {
-    title: 'Placement',
-    fields: [
-      { key: 'profession', label: 'Profession' },
-      { key: 'preferredCountry', label: 'Preferred country', kind: 'country' },
-      { key: 'preferredJob', label: 'Preferred job' },
-    ],
-  },
 ]
 
-function profileFieldValue(
+function toProfileDraft(
   client: Client,
-  draft: ProfileDraft,
-  editing: boolean,
-  field: ProfileFieldDef,
-): string {
-  if (editing) return String(draft[field.key] ?? '')
-  const value = client[field.key as keyof Client]
-  return typeof value === 'string' ? value : ''
+  customFieldDefs: ClientProfileField[],
+): ProfileDraft {
+  return {
+    name: client.name,
+    phone: client.phone,
+    email: client.email ?? '',
+    address: client.address ?? '',
+    nid: client.nid ?? '',
+    passport: client.passport ?? '',
+    fatherName: client.fatherName ?? '',
+    motherName: client.motherName ?? '',
+    dateOfBirth: client.dateOfBirth ?? '',
+    gender: client.gender ?? 'Male',
+    maritalStatus: client.maritalStatus ?? '',
+    nationality: client.nationality ?? '',
+    placeOfBirth: client.placeOfBirth ?? '',
+    spouseName: client.spouseName ?? '',
+    bloodGroup: client.bloodGroup ?? '',
+    passportExpiry: client.passportExpiry ?? '',
+    passportIssuedOn: client.passportIssuedOn ?? '',
+    passportPlaceOfIssue: client.passportPlaceOfIssue ?? '',
+    status: client.status,
+    customFields: emptyCustomFieldValues(
+      customFieldDefs,
+      client.customFields,
+    ),
+  }
+}
+
+function profileDraftsEqual(a: ProfileDraft, b: ProfileDraft): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
 }
 
 function ProfileFieldControl({
   field,
   value,
-  editing,
   onChange,
 }: {
   field: ProfileFieldDef
   value: string
-  editing: boolean
   onChange: (value: string) => void
 }) {
   if (field.kind === 'gender') {
@@ -232,7 +227,6 @@ function ProfileFieldControl({
       <Select
         label={field.label}
         value={value}
-        readOnly={!editing}
         onChange={(event) => onChange(event.target.value)}
         options={GENDER_OPTIONS}
       />
@@ -243,7 +237,6 @@ function ProfileFieldControl({
       <Select
         label={field.label}
         value={value}
-        readOnly={!editing}
         onChange={(event) => onChange(event.target.value)}
         options={MARITAL_OPTIONS}
       />
@@ -254,21 +247,8 @@ function ProfileFieldControl({
       <Select
         label={field.label}
         value={value}
-        readOnly={!editing}
         onChange={(event) => onChange(event.target.value)}
         options={BLOOD_GROUP_OPTIONS}
-      />
-    )
-  }
-  if (field.kind === 'country') {
-    return (
-      <Select
-        label={field.label}
-        value={value}
-        readOnly={!editing}
-        searchable
-        onChange={(event) => onChange(event.target.value)}
-        options={countryOptions(value)}
       />
     )
   }
@@ -276,7 +256,6 @@ function ProfileFieldControl({
     <Input
       label={field.label}
       type={field.kind === 'date' ? 'date' : 'text'}
-      readOnly={!editing}
       value={value}
       onChange={(event) => onChange(event.target.value)}
     />
@@ -337,7 +316,7 @@ function ContactChip({
   value,
   label,
 }: {
-  href: string
+  href?: string
   value: string
   label: string
 }) {
@@ -360,9 +339,13 @@ function ContactChip({
 
   return (
     <span className="pd-client-detail__contact">
-      <a href={href} className="pd-client-detail__contact-value">
-        {value}
-      </a>
+      {href ? (
+        <a href={href} className="pd-client-detail__contact-value">
+          {value}
+        </a>
+      ) : (
+        <span className="pd-client-detail__contact-value">{value}</span>
+      )}
       <button
         type="button"
         className="pd-client-detail__contact-copy"
@@ -381,41 +364,18 @@ function ContactChip({
 }
 
 export default function ClientDetailPage() {
-  const { id = '' } = useParams()
+  const { id = '', caseId } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const serviceOutlet = useOutlet()
   useClients()
+  const customFieldDefs = useClientProfileFields()
   const client = getClientById(id)
   const clientCases = useCasesByClientId(id)
   const activeTab = serviceOutlet ? 'services' : tabFromSearch(searchParams)
-  const [editing, setEditing] = useState(false)
-  const [phoneError, setPhoneError] = useState<string | undefined>()
   const [newCaseOpen, setNewCaseOpen] = useState(false)
-  const [draft, setDraft] = useState<ProfileDraft>({
-    name: '',
-    phone: '',
-    email: '',
-    address: '',
-    nid: '',
-    passport: '',
-    fatherName: '',
-    motherName: '',
-    dateOfBirth: '',
-    gender: 'Male' as ClientGender,
-    maritalStatus: '',
-    nationality: '',
-    placeOfBirth: '',
-    spouseName: '',
-    bloodGroup: '',
-    passportExpiry: '',
-    passportIssuedOn: '',
-    passportPlaceOfIssue: '',
-    profession: '',
-    preferredCountry: '',
-    preferredJob: '',
-    status: 'Active' as ClientStatus,
-  })
+  const [serviceFeeHighlightToken, setServiceFeeHighlightToken] = useState(0)
+  const [draft, setDraft] = useState<ProfileDraft | null>(null)
 
   useEffect(() => {
     if (searchParams.get('newCase') === '1') {
@@ -423,11 +383,28 @@ export default function ClientDetailPage() {
     }
   }, [searchParams])
 
-  if (!client) {
+  useEffect(() => {
+    if (!client) return
+    setDraft(toProfileDraft(client, customFieldDefs))
+  }, [client?.id, customFieldDefs])
+
+  const savedDraft = useMemo(
+    () => (client ? toProfileDraft(client, customFieldDefs) : null),
+    [client, customFieldDefs],
+  )
+
+  if (!client || !savedDraft) {
     return <Navigate to="/clients" replace />
   }
 
+  const profileDraft = draft ?? savedDraft
+  const isDirty = !profileDraftsEqual(profileDraft, savedDraft)
+
   const partner = client.partnerId ? getPartnerById(client.partnerId) : undefined
+  const totalServiceFee = clientCases.reduce(
+    (sum, item) => sum + caseServiceFee(item),
+    0,
+  )
 
   const selectTab = (tab: string) => {
     if (serviceOutlet) {
@@ -464,92 +441,58 @@ export default function ClientDetailPage() {
     navigate(workDetailPath(created))
   }
 
-  const startEditing = () => {
-    setDraft({
-      name: client.name,
-      phone: client.phone,
-      email: client.email ?? '',
-      address: client.address ?? '',
-      nid: client.nid ?? '',
-      passport: client.passport ?? '',
-      fatherName: client.fatherName ?? '',
-      motherName: client.motherName ?? '',
-      dateOfBirth: client.dateOfBirth ?? '',
-      gender: client.gender ?? 'Male',
-      maritalStatus: client.maritalStatus ?? '',
-      nationality: client.nationality ?? '',
-      placeOfBirth: client.placeOfBirth ?? '',
-      spouseName: client.spouseName ?? '',
-      bloodGroup: client.bloodGroup ?? '',
-      passportExpiry: client.passportExpiry ?? '',
-      passportIssuedOn: client.passportIssuedOn ?? '',
-      passportPlaceOfIssue: client.passportPlaceOfIssue ?? '',
-      profession: client.profession ?? '',
-      preferredCountry: client.preferredCountry ?? '',
-      preferredJob: client.preferredJob ?? '',
-      status: client.status,
-    })
-    setPhoneError(undefined)
-    setEditing(true)
+  const discardChanges = () => {
+    setDraft(savedDraft)
   }
 
-  const finishEditing = () => {
-    if (!draft.name.trim() || !draft.phone.trim()) return
-    const phone = normalizePhone(draft.phone)
-    const conflict = getClientByPhone(phone, client.id)
-    if (conflict) {
-      setPhoneError(
-        `This mobile number is already registered to ${conflict.name}.`,
-      )
-      return
-    }
-    updateClient(client.id, {
-      name: draft.name.trim(),
+  const saveProfile = () => {
+    if (!profileDraft.name.trim() || !profileDraft.phone.trim()) return
+    const phone = normalizePhone(profileDraft.phone)
+    if (getClientByPhone(phone, client.id)) return
+    const updated = updateClient(client.id, {
+      name: profileDraft.name.trim(),
       phone,
-      email: draft.email.trim() || undefined,
-      address: draft.address.trim() || undefined,
-      nid: draft.nid.trim() || undefined,
-      passport: draft.passport.trim() || undefined,
-      fatherName: draft.fatherName.trim() || undefined,
-      motherName: draft.motherName.trim() || undefined,
-      dateOfBirth: draft.dateOfBirth.trim() || undefined,
-      gender: draft.gender,
-      maritalStatus: parseMaritalStatus(draft.maritalStatus),
-      nationality: draft.nationality.trim() || undefined,
-      placeOfBirth: draft.placeOfBirth.trim() || undefined,
-      spouseName: draft.spouseName.trim() || undefined,
-      bloodGroup: draft.bloodGroup.trim() || undefined,
-      passportExpiry: draft.passportExpiry.trim() || undefined,
-      passportIssuedOn: draft.passportIssuedOn.trim() || undefined,
-      passportPlaceOfIssue: draft.passportPlaceOfIssue.trim() || undefined,
-      profession: draft.profession.trim() || undefined,
-      preferredCountry: draft.preferredCountry.trim() || undefined,
-      preferredJob: draft.preferredJob.trim() || undefined,
-      status: draft.status,
+      email: profileDraft.email.trim() || undefined,
+      address: profileDraft.address.trim() || undefined,
+      nid: profileDraft.nid.trim() || undefined,
+      passport: profileDraft.passport.trim() || undefined,
+      fatherName: profileDraft.fatherName.trim() || undefined,
+      motherName: profileDraft.motherName.trim() || undefined,
+      dateOfBirth: profileDraft.dateOfBirth.trim() || undefined,
+      gender: profileDraft.gender,
+      maritalStatus: parseMaritalStatus(profileDraft.maritalStatus),
+      nationality: profileDraft.nationality.trim() || undefined,
+      placeOfBirth: profileDraft.placeOfBirth.trim() || undefined,
+      spouseName: profileDraft.spouseName.trim() || undefined,
+      bloodGroup: profileDraft.bloodGroup.trim() || undefined,
+      passportExpiry: profileDraft.passportExpiry.trim() || undefined,
+      passportIssuedOn: profileDraft.passportIssuedOn.trim() || undefined,
+      passportPlaceOfIssue: profileDraft.passportPlaceOfIssue.trim() || undefined,
+      customFields: compactCustomFieldValues({
+        ...Object.fromEntries(
+          Object.entries(client.customFields ?? {}).filter(
+            ([fieldId]) =>
+              !customFieldDefs.some((field) => field.id === fieldId),
+          ),
+        ),
+        ...emptyCustomFieldValues(customFieldDefs, {
+          ...client.customFields,
+          ...profileDraft.customFields,
+        }),
+      }),
+      status: profileDraft.status,
     })
-    setPhoneError(undefined)
-    setEditing(false)
+    if (updated) setDraft(toProfileDraft(updated, customFieldDefs))
   }
 
-  const displayName = editing ? draft.name || client.name : client.name
-  const displayStatus = editing ? draft.status : client.status
-  const displayPhone = editing ? draft.phone : client.phone
-  const displayEmail = editing ? draft.email : client.email
+  const displayName = profileDraft.name || client.name
+  const displayStatus = profileDraft.status
+  const displayPhone = profileDraft.phone
+  const displayEmail = profileDraft.email
+  const displayPassport = profileDraft.passport
 
   return (
-    <div
-      className={
-        serviceOutlet
-          ? 'pd-page pd-client-detail is-service-open'
-          : 'pd-page pd-client-detail'
-      }
-      aria-label={client.name}
-    >
-      <Link to="/clients" className="pd-client-detail__back">
-        <ArrowLeft size={14} strokeWidth={2.25} aria-hidden />
-        All clients
-      </Link>
-
+    <div className="pd-page pd-client-detail" aria-label={client.name}>
       <header className="pd-client-detail__header">
         <Avatar name={displayName} src={client.avatarUrl} size="xl" />
         <div className="pd-client-detail__header-text">
@@ -566,11 +509,10 @@ export default function ClientDetailPage() {
               label="phone number"
             />
             {displayEmail ? (
-              <ContactChip
-                href={`mailto:${displayEmail}`}
-                value={displayEmail}
-                label="email address"
-              />
+              <ContactChip value={displayEmail} label="email address" />
+            ) : null}
+            {displayPassport ? (
+              <ContactChip value={displayPassport} label="passport number" />
             ) : null}
           </div>
         </div>
@@ -612,6 +554,26 @@ export default function ClientDetailPage() {
                   <button
                     type="button"
                     className="pd-client-detail__stat"
+                    onClick={() => {
+                      selectTab('services')
+                      setServiceFeeHighlightToken((token) => token + 1)
+                    }}
+                  >
+                    <span className="pd-client-detail__stat-icon" aria-hidden>
+                      <Receipt size={16} strokeWidth={2.25} />
+                    </span>
+                    <div className="pd-client-detail__stat-copy">
+                      <span className="pd-client-detail__stat-label">
+                        Total service fee
+                      </span>
+                      <span className="pd-client-detail__stat-value">
+                        {formatBalance(totalServiceFee)}
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="pd-client-detail__stat"
                     onClick={() => selectTab('payments')}
                   >
                     <span className="pd-client-detail__stat-icon" aria-hidden>
@@ -636,49 +598,19 @@ export default function ClientDetailPage() {
                     <div className="pd-client-detail__field">
                       <FieldLabel icon={Phone}>Phone</FieldLabel>
                       <dd>
-                        {editing ? (
-                          <Input
-                            value={draft.phone}
-                            onChange={(event) => {
-                              setPhoneError(undefined)
-                              setDraft((current) => ({
-                                ...current,
-                                phone: event.target.value,
-                              }))
-                            }}
-                            error={phoneError}
-                          />
-                        ) : (
-                          <a
-                            href={`tel:${displayPhone}`}
-                            className="pd-client-detail__link"
-                          >
-                            {displayPhone}
-                          </a>
-                        )}
+                        <a
+                          href={`tel:${displayPhone}`}
+                          className="pd-client-detail__link"
+                        >
+                          {displayPhone}
+                        </a>
                       </dd>
                     </div>
                     <div className="pd-client-detail__field">
                       <FieldLabel icon={Mail}>Email</FieldLabel>
                       <dd>
-                        {editing ? (
-                          <Input
-                            type="email"
-                            value={draft.email}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                email: event.target.value,
-                              }))
-                            }
-                          />
-                        ) : displayEmail ? (
-                          <a
-                            href={`mailto:${displayEmail}`}
-                            className="pd-client-detail__link"
-                          >
-                            {displayEmail}
-                          </a>
+                        {displayEmail ? (
+                          <CopyableText value={displayEmail} />
                         ) : (
                           <span className="pd-client-detail__empty">—</span>
                         )}
@@ -687,60 +619,24 @@ export default function ClientDetailPage() {
                     <div className="pd-client-detail__field">
                       <FieldLabel icon={MapPin}>Address</FieldLabel>
                       <dd>
-                        {editing ? (
-                          <Input
-                            value={draft.address}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                address: event.target.value,
-                              }))
-                            }
-                          />
-                        ) : (
-                          client.address || (
-                            <span className="pd-client-detail__empty">—</span>
-                          )
+                        {client.address || (
+                          <span className="pd-client-detail__empty">—</span>
                         )}
                       </dd>
                     </div>
                     <div className="pd-client-detail__field">
                       <FieldLabel icon={IdCard}>NID</FieldLabel>
                       <dd>
-                        {editing ? (
-                          <Input
-                            value={draft.nid}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                nid: event.target.value,
-                              }))
-                            }
-                          />
-                        ) : (
-                          client.nid || (
-                            <span className="pd-client-detail__empty">—</span>
-                          )
+                        {client.nid || (
+                          <span className="pd-client-detail__empty">—</span>
                         )}
                       </dd>
                     </div>
                     <div className="pd-client-detail__field">
                       <FieldLabel icon={BookUser}>Passport</FieldLabel>
                       <dd>
-                        {editing ? (
-                          <Input
-                            value={draft.passport}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                passport: event.target.value,
-                              }))
-                            }
-                          />
-                        ) : (
-                          client.passport || (
-                            <span className="pd-client-detail__empty">—</span>
-                          )
+                        {client.passport || (
+                          <span className="pd-client-detail__empty">—</span>
                         )}
                       </dd>
                     </div>
@@ -791,44 +687,8 @@ export default function ClientDetailPage() {
             id: 'profile',
             label: <TabLabel icon={Contact}>Profile</TabLabel>,
             content: (
-              <div className="pd-client-detail__overview">
-                <section
-                  className={
-                    editing
-                      ? 'pd-client-detail__section pd-client-detail__section--profile is-editing'
-                      : 'pd-client-detail__section pd-client-detail__section--profile'
-                  }
-                >
-                  <div className="pd-client-detail__section-head">
-                    <SectionTitle icon={Contact}>Personal information</SectionTitle>
-                    <div className="pd-client-detail__section-actions">
-                      {editing ? (
-                        <>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setEditing(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button size="sm" onClick={finishEditing}>
-                            <Check size={14} strokeWidth={2.25} aria-hidden />
-                            Save
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={startEditing}
-                        >
-                          <SquarePen size={14} strokeWidth={2.25} aria-hidden />
-                          Edit
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="pd-client-profile">
+              <div className="pd-client-detail__profile">
+                <div className="pd-client-profile">
                     {PROFILE_GROUPS.map((group) => (
                       <div key={group.title} className="pd-client-profile__group">
                         <h3 className="pd-client-profile__group-title">
@@ -838,24 +698,23 @@ export default function ClientDetailPage() {
                           {group.fields.map((field) => (
                             <div
                               key={field.key}
-                              className={
-                                field.wide
-                                  ? 'pd-client-profile__field is-wide'
-                                  : 'pd-client-profile__field'
-                              }
+                              className={[
+                                'pd-client-profile__field',
+                                field.wide ? 'is-wide' : '',
+                                String(profileDraft[field.key] ?? '') !==
+                                String(savedDraft[field.key] ?? '')
+                                  ? 'is-dirty'
+                                  : '',
+                              ]
+                                .filter(Boolean)
+                                .join(' ')}
                             >
                               <ProfileFieldControl
                                 field={field}
-                                value={profileFieldValue(
-                                  client,
-                                  draft,
-                                  editing,
-                                  field,
-                                )}
-                                editing={editing}
+                                value={String(profileDraft[field.key] ?? '')}
                                 onChange={(value) =>
                                   setDraft((current) => ({
-                                    ...current,
+                                    ...(current ?? savedDraft),
                                     [field.key]:
                                       field.kind === 'gender'
                                         ? (value as ClientGender)
@@ -868,19 +727,65 @@ export default function ClientDetailPage() {
                         </div>
                       </div>
                     ))}
+                    {customFieldDefs.length ? (
+                      <div className="pd-client-profile__group">
+                        <h3 className="pd-client-profile__group-title">
+                          Additional information
+                        </h3>
+                        <div className="pd-client-profile__grid">
+                          {customFieldDefs.map((field) => (
+                            <div
+                              key={field.id}
+                              className={
+                                (profileDraft.customFields[field.id] ?? '') !==
+                                (savedDraft.customFields[field.id] ?? '')
+                                  ? 'pd-client-profile__field is-dirty'
+                                  : 'pd-client-profile__field'
+                              }
+                            >
+                              <ClientCustomFieldControl
+                                field={field}
+                                value={
+                                  profileDraft.customFields[field.id] ?? ''
+                                }
+                                onChange={(value) =>
+                                  setDraft((current) => {
+                                    const base = current ?? savedDraft
+                                    return {
+                                      ...base,
+                                      customFields: {
+                                        ...base.customFields,
+                                        [field.id]: value,
+                                      },
+                                    }
+                                  })
+                                }
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                </div>
+                {isDirty ? (
+                  <div className="pd-client-detail__profile-actions">
+                    <Button variant="secondary" onClick={discardChanges}>
+                      Discard changes
+                    </Button>
+                    <Button onClick={saveProfile}>
+                      <Check size={16} strokeWidth={2.25} aria-hidden />
+                      Save
+                    </Button>
                   </div>
-                </section>
+                ) : null}
               </div>
             ),
           },
           {
             id: 'services',
             label: <TabLabel icon={Folder}>Services</TabLabel>,
-            content: serviceOutlet ?? (
-              <section className="pd-client-detail__section pd-client-detail__section--compact pd-client-detail__section--services">
-                <div className="pd-client-detail__section-head">
-                  <SectionTitle icon={Folder}>Services</SectionTitle>
-                </div>
+            content: (
+              <div className="pd-client-detail__services">
                 <CasesList
                   cases={clientCases}
                   label={`${client.name} services`}
@@ -890,20 +795,23 @@ export default function ClientDetailPage() {
                   lockClient
                   defaultService={primaryServiceType(client.services)}
                   embedded
+                  selectedId={caseId}
                   emptyTitle="No services yet"
                   emptyDescription="Add a service on this profile to track steps, documents, and payments."
+                  serviceFeeHighlightToken={serviceFeeHighlightToken}
                 />
-              </section>
+                {serviceOutlet}
+              </div>
             ),
           },
           {
             id: 'documents',
             label: <TabLabel icon={FileText}>Documents</TabLabel>,
             content: (
-              <EmptyState
-                icon={FileText}
-                title="Identity on this profile"
-                description="NID and passport are stored on the client. Papers for a service (medical, visa, tickets) live on that service and unlock as steps advance."
+              <ClientDocumentsPanel
+                client={client}
+                cases={clientCases}
+                onAddService={openNewCase}
               />
             ),
           },
@@ -931,12 +839,12 @@ export default function ClientDetailPage() {
         ]}
       />
 
-      <Modal
+      <SideDrawer
         open={newCaseOpen}
         onClose={closeNewCase}
         title="Add service"
         description="What does this client need? Progress starts at the first step of that service."
-        className="pd-cases-modal"
+        className="pd-cases-drawer"
       >
         <NewCaseForm
           onSubmit={handleCreateCase}
@@ -945,7 +853,7 @@ export default function ClientDetailPage() {
           lockClient
           defaultService={primaryServiceType(client.services)}
         />
-      </Modal>
+      </SideDrawer>
     </div>
   )
 }

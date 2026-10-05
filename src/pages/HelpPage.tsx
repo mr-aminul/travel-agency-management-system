@@ -6,14 +6,14 @@ const cards = [
   {
     step: '01',
     title: 'Register a client',
-    body: 'Open Clients and fill identity, passport, and placement details. Attach a sub agent when they referred the person.',
+    body: 'Open Clients and fill identity and passport details. Add extra fields in Settings → Client fields. Attach a sub agent when they referred the person.',
     to: '/clients?new=1',
     cta: 'Go to Clients',
   },
   {
     step: '02',
     title: 'Add a service',
-    body: 'A client is the person. A service is what they need — manpower, student, Hajj, leisure, or ticketing.',
+    body: 'A client is the person. A service file is what they need. Open it from the client or the Services queue. The checklist for each line lives in Settings → Service catalog.',
     to: '/services?new=1',
     cta: 'Add a service',
   },

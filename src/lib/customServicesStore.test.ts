@@ -63,8 +63,8 @@ function asFull() {
 describe('custom services', () => {
   it('rejects names that collide with built-in templates', () => {
     asLeisure()
-    expect(validateCustomServiceName('Ticketing')).toMatch(/built-in/)
-    expect(validateCustomServiceName('hajj umrah')).toMatch(/built-in|too close/)
+    expect(validateCustomServiceName('Air Ticket')).toMatch(/already used/)
+    expect(validateCustomServiceName('hajj umrah')).toMatch(/too close/)
   })
 
   it('lets an agency create a service and open a file on it', () => {
@@ -147,15 +147,15 @@ describe('custom services', () => {
   it('hides a built-in service from new files and restores it', () => {
     asFull()
     expect(
-      getEnabledServiceOptions().some((option) => option.value === 'Manpower'),
+      getEnabledServiceOptions().some((option) => option.value === 'Work Permit Visa'),
     ).toBe(true)
-    hideCatalogService('Manpower')
+    hideCatalogService('Work Permit Visa')
     expect(
-      getEnabledServiceOptions().some((option) => option.value === 'Manpower'),
+      getEnabledServiceOptions().some((option) => option.value === 'Work Permit Visa'),
     ).toBe(false)
-    restoreCatalogService('Manpower')
+    restoreCatalogService('Work Permit Visa')
     expect(
-      getEnabledServiceOptions().some((option) => option.value === 'Manpower'),
+      getEnabledServiceOptions().some((option) => option.value === 'Work Permit Visa'),
     ).toBe(true)
   })
 
@@ -169,7 +169,7 @@ describe('custom services', () => {
       idChecked: true,
     })
     expect(() =>
-      createCase({ clientId: client.id, service: 'Manpower' }),
+      createCase({ clientId: client.id, service: 'Work Permit Visa' }),
     ).toThrow(/not enabled/)
   })
 })

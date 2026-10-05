@@ -1,3 +1,5 @@
+import { formatDisplayDate } from '@/lib/formatDate'
+
 export type DocumentFieldType = 'text' | 'date' | 'number'
 
 export type DocumentFieldDef = {
@@ -230,7 +232,11 @@ export function summarizeDocumentFields(
   fields: Record<string, string>,
 ): string {
   const parts = form.fields
-    .map((field) => (fields[field.key] ?? '').trim())
+    .map((field) => {
+      const value = (fields[field.key] ?? '').trim()
+      if (!value) return ''
+      return field.type === 'date' ? formatDisplayDate(value, value) : value
+    })
     .filter(Boolean)
   return parts.join(' · ') || 'Recorded'
 }

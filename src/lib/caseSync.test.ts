@@ -14,12 +14,12 @@ describe('case tab sync', () => {
     const client = createClient({
       name: 'Sync Client',
       phone: `015${Date.now().toString().slice(-8)}`,
-      primaryService: 'Ticketing',
+      primaryService: 'Air Ticket',
       idChecked: true,
     })
     const created = createCase({
       clientId: client.id,
-      service: 'Ticketing',
+      service: 'Air Ticket',
     })
 
     const recorded = recordCaseDocument(created.id, 'passport', {
@@ -47,13 +47,13 @@ describe('case tab sync', () => {
     const client = createClient({
       name: 'Pay Client',
       phone: `014${Date.now().toString().slice(-8)}`,
-      primaryService: 'Ticketing',
+      primaryService: 'Air Ticket',
       idChecked: true,
       passport: 'P11223344',
     })
     const created = createCase({
       clientId: client.id,
-      service: 'Ticketing',
+      service: 'Air Ticket',
       balance: 20000,
     })
 

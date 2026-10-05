@@ -7,6 +7,7 @@ import {
   getNextStepDef,
   isLastStep,
 } from '@/lib/caseChecklist'
+import { identityKindForDocumentId, type IdentityKind } from '@/lib/clientDocuments'
 import {
   buildCaseDocuments,
   syncDocumentsWithProgress,
@@ -99,7 +100,7 @@ const SEED_CASES: Case[] = [
     caseId: 'SR-00101',
     clientId: 'c-284',
     clientName: 'Md. Rahim Uddin',
-    service: 'Manpower',
+    service: 'Work Permit Visa',
     status: 'In-Progress',
     currentStepId: 'medical',
     destination: 'Riyadh, Saudi Arabia',
@@ -129,13 +130,13 @@ const SEED_CASES: Case[] = [
     caseId: 'SR-00102',
     clientId: 'c-284',
     clientName: 'Md. Rahim Uddin',
-    service: 'Ticketing',
+    service: 'Air Ticket',
     status: 'Pending',
     currentStepId: 'request',
     destination: 'Jeddah, Saudi Arabia',
     serviceFee: 10000,
     balance: 10000,
-    assignedTo: 'EMP-7002',
+    assignedTo: 'EMP-7007',
     departureDate: '2026-09-12',
     description:
       'One-way economy ticket aligned with manpower deployment date.',
@@ -148,13 +149,13 @@ const SEED_CASES: Case[] = [
     caseId: 'SR-00103',
     clientId: 'c-291',
     clientName: 'Farhana Akter',
-    service: 'Student',
+    service: 'Student Visa',
     status: 'In-Progress',
     currentStepId: 'visa',
     destination: 'Montreal, Canada',
     serviceFee: 170000,
     balance: 120000,
-    assignedTo: 'EMP-7003',
+    assignedTo: 'EMP-7004',
     departureDate: '2026-12-01',
     description:
       'Fall 2026 intake. Offer letter received; visa file under preparation.',
@@ -179,13 +180,13 @@ const SEED_CASES: Case[] = [
     caseId: 'SR-00104',
     clientId: 'c-315',
     clientName: 'Nusrat Jahan',
-    service: 'Hajj/Umrah',
+    service: 'Hajj/Umrah Visa',
     status: 'In-Progress',
     currentStepId: 'package',
     destination: 'Makkah, Saudi Arabia',
     serviceFee: 110000,
     balance: 85000,
-    assignedTo: 'EMP-7003',
+    assignedTo: 'EMP-7005',
     departureDate: '2026-05-20',
     description: 'Package B — 21 days. Passport submitted; visa quota pending.',
     createdAt: '2026-02-14',
@@ -201,12 +202,12 @@ const SEED_CASES: Case[] = [
     caseId: 'SR-00105',
     clientId: 'c-328',
     clientName: 'Imran Hossain',
-    service: 'Leisure',
+    service: 'Tour Package',
     status: 'Pending',
     currentStepId: 'enquiry',
     destination: 'Cox’s Bazar, Bangladesh',
     balance: 22000,
-    assignedTo: 'EMP-7002',
+    assignedTo: 'EMP-7006',
     departureDate: '2026-08-22',
     description:
       '3N/4D family package for 4 guests. Quote shared; awaiting deposit.',
@@ -219,7 +220,7 @@ const SEED_CASES: Case[] = [
     caseId: 'SR-00106',
     clientId: 'c-302',
     clientName: 'Jamal Haque',
-    service: 'Manpower',
+    service: 'Work Permit Visa',
     status: 'Completed',
     currentStepId: 'departed',
     destination: 'Penang, Malaysia',
@@ -247,12 +248,80 @@ const SEED_CASES: Case[] = [
     },
   }),
   seedCase({
+    id: 'case-107',
+    tenantId: TENANT_IDS.full,
+    caseId: 'SR-00107',
+    clientId: 'c-328',
+    clientName: 'Imran Hossain',
+    service: 'Hotel Booking',
+    status: 'Pending',
+    currentStepId: 'enquiry',
+    destination: 'Cox’s Bazar, Bangladesh',
+    serviceFee: 18000,
+    balance: 18000,
+    assignedTo: 'EMP-7006',
+    departureDate: '2026-08-22',
+    description: 'Sea Pearl 3 nights for a family of four. Awaiting confirmation.',
+    createdAt: '2026-03-02',
+    updatedAt: '2026-03-05',
+  }),
+  seedCase({
+    id: 'case-108',
+    tenantId: TENANT_IDS.full,
+    caseId: 'SR-00108',
+    clientId: 'c-340',
+    clientName: 'Ayesha Rahman',
+    service: 'Tourist Visa',
+    status: 'In-Progress',
+    currentStepId: 'applied',
+    destination: 'Bangkok, Thailand',
+    serviceFee: 12000,
+    balance: 7000,
+    assignedTo: 'EMP-7006',
+    departureDate: '2026-11-12',
+    description: '7-night Bangkok visit. Visa file lodged; awaiting embassy.',
+    createdAt: '2026-06-18',
+    updatedAt: '2026-07-22',
+    stepDetails: {
+      registered: 'Passport and itinerary collected',
+      applied: 'Tourist visa applied at VAC',
+    },
+    documentOverrides: {
+      itinerary: { status: 'under_review', detail: 'Flights + hotel plan' },
+    },
+  }),
+  seedCase({
+    id: 'case-109',
+    tenantId: TENANT_IDS.full,
+    caseId: 'SR-00109',
+    clientId: 'c-351',
+    clientName: 'Dr. Kamal Uddin',
+    service: 'Medical Visa',
+    status: 'In-Progress',
+    currentStepId: 'medical',
+    destination: 'Chennai, India',
+    serviceFee: 25000,
+    balance: 15000,
+    assignedTo: 'EMP-7008',
+    departureDate: '2026-10-05',
+    description: 'Apollo Chennai cardiac review. Hospital invitation pending.',
+    createdAt: '2026-07-01',
+    updatedAt: '2026-07-28',
+    stepDetails: {
+      registered: 'Patient profile opened',
+      medical: 'Awaiting hospital invitation letter',
+    },
+    documentOverrides: {
+      medical: { status: 'under_review', detail: 'Apollo appointment requested' },
+    },
+  }),
+  seedCase({
     id: 'case-l-105',
     tenantId: TENANT_IDS.leisure,
     caseId: 'SR-20105',
     clientId: 'c-l-328',
     clientName: 'Imran Hossain',
-    service: 'Leisure',
+    service: 'Tour Package',
     status: 'Pending',
     currentStepId: 'enquiry',
     destination: 'Cox’s Bazar, Bangladesh',
@@ -271,12 +340,12 @@ const SEED_CASES: Case[] = [
     caseId: 'SR-20110',
     clientId: 'c-l-401',
     clientName: 'Sadia Karim',
-    service: 'Ticketing',
+    service: 'Air Ticket',
     status: 'Pending',
     currentStepId: 'request',
     destination: 'Cox’s Bazar, Bangladesh',
     balance: 8500,
-    assignedTo: 'EMP-L001',
+    assignedTo: 'EMP-L002',
     departureDate: '2026-08-20',
     description: 'Return tickets for a family of four.',
     createdAt: '2026-04-04',
@@ -288,7 +357,7 @@ const SEED_CASES: Case[] = [
     caseId: 'SR-30101',
     clientId: 'c-m-284',
     clientName: 'Md. Rahim Uddin',
-    service: 'Manpower',
+    service: 'Work Permit Visa',
     status: 'In-Progress',
     currentStepId: 'medical',
     destination: 'Riyadh, Saudi Arabia',
@@ -318,7 +387,7 @@ const SEED_CASES: Case[] = [
     caseId: 'SR-30106',
     clientId: 'c-m-302',
     clientName: 'Jamal Haque',
-    service: 'Manpower',
+    service: 'Work Permit Visa',
     status: 'Completed',
     currentStepId: 'departed',
     destination: 'Penang, Malaysia',
@@ -421,7 +490,7 @@ function syncClientFromCases(clientId: string) {
   ) {
     const hasManpowerDeployed = clientCases.some(
       (item) =>
-        item.service === 'Manpower' && item.status === 'Completed',
+        item.service === 'Work Permit Visa' && item.status === 'Completed',
     )
     status = hasManpowerDeployed ? 'Deployed' : client.status === 'Lead' ? 'Lead' : 'Active'
   }
@@ -781,21 +850,15 @@ export type RecordCaseDocumentInput = {
   mimeType?: string
 }
 
-/**
- * Record essential document details from the Documents modal.
- * Syncs into Progress step upload records and client identity when relevant.
- */
-export function recordCaseDocument(
-  caseId: string,
+function applyRecordedDocument(
+  item: Case,
   documentId: string,
   input: RecordCaseDocumentInput,
-): Case | undefined {
-  const item = getCaseById(caseId)
-  if (!item || item.status === 'Cancelled') return undefined
-
+  skipUnlock = false,
+): Pick<Case, 'documents' | 'steps'> | undefined {
   const collector = findStepForDocument(item.service, documentId)
   const unlockStepId = collector?.requirement.stepId
-  if (unlockStepId) {
+  if (!skipUnlock && unlockStepId) {
     const current = getStepIndex(
       item.service,
       item.currentStepId,
@@ -862,23 +925,106 @@ export function recordCaseDocument(
     }
   }
 
+  return { documents, steps }
+}
+
+function syncIdentityFieldsToClient(
+  clientId: string,
+  documentId: string,
+  input: RecordCaseDocumentInput,
+) {
   const form = getDocumentForm(documentId)
-  if (form.syncToClient) {
-    const clientPatch: { passport?: string; nid?: string } = {}
-    if (form.syncToClient.passport) {
-      const value = input.fields[form.syncToClient.passport]?.trim()
-      if (value) clientPatch.passport = value
-    }
-    if (form.syncToClient.nid) {
-      const value = input.fields[form.syncToClient.nid]?.trim()
-      if (value) clientPatch.nid = value
-    }
-    if (Object.keys(clientPatch).length > 0) {
-      updateClient(item.clientId, clientPatch)
-    }
+  if (!form.syncToClient) return
+  const clientPatch: {
+    passport?: string
+    nid?: string
+    passportExpiry?: string
+  } = {}
+  if (form.syncToClient.passport) {
+    const value = input.fields[form.syncToClient.passport]?.trim()
+    if (value) clientPatch.passport = value
+    const expiry = input.expiry?.trim() || input.fields.expiry?.trim()
+    if (expiry) clientPatch.passportExpiry = expiry
+  }
+  if (form.syncToClient.nid) {
+    const value = input.fields[form.syncToClient.nid]?.trim()
+    if (value) clientPatch.nid = value
+  }
+  if (Object.keys(clientPatch).length > 0) {
+    updateClient(clientId, clientPatch)
+  }
+}
+
+/**
+ * Record essential document details from the Documents modal.
+ * Syncs into Progress step upload records and client identity when relevant.
+ */
+export function recordCaseDocument(
+  caseId: string,
+  documentId: string,
+  input: RecordCaseDocumentInput,
+): Case | undefined {
+  const item = getCaseById(caseId)
+  if (!item || item.status === 'Cancelled') return undefined
+
+  const applied = applyRecordedDocument(item, documentId, input)
+  if (!applied) return undefined
+
+  syncIdentityFieldsToClient(item.clientId, documentId, input)
+  return updateCase(caseId, applied)
+}
+
+/** Identity papers live on the client and copy onto every open service. */
+export function recordIdentityDocument(
+  clientId: string,
+  kind: IdentityKind,
+  input: RecordCaseDocumentInput,
+): void {
+  const client = getClientById(clientId)
+  if (!client) return
+
+  const number = input.fields.number?.trim()
+  const expiry = input.expiry?.trim() || input.fields.expiry?.trim()
+  const scan =
+    input.fileId || input.fileName?.trim()
+      ? {
+          fileId: input.fileId ?? `${kind}-${clientId}`,
+          fileName: input.fileName?.trim() || 'Scan',
+          mimeType: input.mimeType,
+        }
+      : undefined
+
+  if (kind === 'passport') {
+    updateClient(clientId, {
+      ...(number ? { passport: number } : {}),
+      ...(expiry ? { passportExpiry: expiry } : {}),
+      ...(scan ? { passportFile: scan } : {}),
+    })
+  } else {
+    updateClient(clientId, {
+      ...(number ? { nid: number } : {}),
+      ...(scan ? { nidFile: scan } : {}),
+    })
   }
 
-  return updateCase(caseId, { documents, steps })
+  for (const item of getCasesByClientId(clientId)) {
+    if (item.status === 'Cancelled') continue
+    let working: Case = item
+    let changed = false
+    for (const doc of item.documents) {
+      if (identityKindForDocumentId(doc.id) !== kind) continue
+      const applied = applyRecordedDocument(working, doc.id, input, true)
+      if (!applied) continue
+      working = { ...working, ...applied }
+      changed = true
+    }
+    if (changed) {
+      updateCase(item.id, {
+        documents: working.documents,
+        steps: working.steps,
+      })
+    }
+  }
 }
 
 /** @deprecated Use recordCaseDocument — kept for older call sites/tests. */

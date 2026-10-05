@@ -21,6 +21,8 @@ afterEach(() => {
 describe('module entitlements', () => {
   it('treats services urls as core', () => {
     expect(pathAccess('/services')).toBe('core')
+    expect(pathAccess('/settings')).toBe('core')
+    expect(pathAccess('/settings/services/tourist-visa')).toBe('core')
     expect(pathAccess('/clients/c-284/services/case-101')).toBe('core')
     expect(pathAccess('/clients/c-284/services/case-101/invoice')).toBe('core')
     expect(pathAccess('/services/case-101')).toBe('core')
@@ -28,6 +30,10 @@ describe('module entitlements', () => {
     expect(pathAccess('/work')).toBe('core')
     expect(pathAccess('/cases/manpower')).toBe('core')
     expect(pathAccess('/hr')).toBe('hr')
+    expect(pathAccess('/hr/employees')).toBe('hr')
+    expect(pathAccess('/hr/employees/EMP-7001')).toBe('hr')
+    expect(pathAccess('/hr/attendance')).toBe('hr')
+    expect(pathAccess('/hr/payroll')).toBe('hr')
     expect(pathAccess('/partners')).toBe('partners')
     expect(pathAccess('/agents')).toBe('partners')
     expect(normalizeModuleId('agents')).toBe('partners')
@@ -99,11 +105,14 @@ describe('module entitlements', () => {
   it('lists service templates separately from workspace pages', () => {
     const services = MODULE_GROUPS.find((group) => group.id === 'services')
     expect(services?.modules.map((module) => module.id)).toEqual([
-      'services.manpower',
-      'services.student',
-      'services.hajjUmrah',
-      'services.leisure',
-      'services.ticketing',
+      'services.touristVisa',
+      'services.studentVisa',
+      'services.workPermitVisa',
+      'services.hajjUmrahVisa',
+      'services.medicalVisa',
+      'services.airTicket',
+      'services.hotelBooking',
+      'services.tourPackage',
     ])
     expect(
       MODULE_GROUPS.filter((group) => group.modules.length === 1).map(
@@ -124,5 +133,10 @@ describe('module entitlements', () => {
       'agency_user',
     )
     expect(nav.some((item) => item.path === '/hr')).toBe(true)
+    expect(
+      nav
+        .find((item) => item.path === '/hr')
+        ?.children?.map((child) => child.label),
+    ).toEqual(['Employees', 'Attendance & Leave', 'Payroll'])
   })
 })

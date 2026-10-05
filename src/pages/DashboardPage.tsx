@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Briefcase,
-  ClipboardList,
-  Folder,
-  Handshake,
+  CheckCircle2,
+  CircleDollarSign,
+  FolderOpen,
+  HandCoins,
+  IdCard,
+  Inbox,
   Users,
-  UsersRound,
-  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -34,10 +34,12 @@ import {
   sortServicesByVolume,
   type DashboardFilter,
 } from '@/lib/dashboardMetrics'
+import { formatDisplayDate } from '@/lib/formatDate'
 import { useEmployees } from '@/lib/employeesStore'
 import { usePayments } from '@/lib/paymentsStore'
 import { useRequests } from '@/lib/requestsStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
+import { iconForService } from '@/lib/serviceIcons'
 import type { StatCardTone } from '@/components/StatCards'
 import '@/styles/layout-ops.css'
 
@@ -102,28 +104,28 @@ export default function DashboardPage() {
       label: 'Pending requests',
       value: String(metrics.pendingRequests),
       filter: 'pending-requests',
-      icon: ClipboardList,
+      icon: Inbox,
       tone: dashboardTileTone('pending-requests'),
     },
     {
       label: 'Open services',
       value: String(metrics.openCases),
       filter: 'open-services',
-      icon: Folder,
+      icon: FolderOpen,
       tone: dashboardTileTone('open-services'),
     },
     {
       label: 'Outstanding',
       value: formatBdt(metrics.outstanding),
       filter: 'outstanding',
-      icon: Wallet,
+      icon: CircleDollarSign,
       tone: dashboardTileTone('outstanding'),
     },
     {
       label: 'Collected',
       value: formatBdt(metrics.collected),
       filter: 'collected',
-      icon: Wallet,
+      icon: HandCoins,
       tone: dashboardTileTone('collected'),
     },
     {
@@ -137,14 +139,14 @@ export default function DashboardPage() {
       label: 'Completed services',
       value: String(metrics.completedCases),
       filter: 'completed-services',
-      icon: Handshake,
+      icon: CheckCircle2,
       tone: dashboardTileTone('completed-services'),
     },
     {
       label: 'Employees',
       value: String(metrics.employees),
       filter: 'employees',
-      icon: UsersRound,
+      icon: IdCard,
       tone: dashboardTileTone('employees'),
     },
     ...sortServicesByVolume(serviceOptions, metrics.serviceCounts).map(
@@ -152,7 +154,7 @@ export default function DashboardPage() {
         label: option.label,
         value: String(metrics.serviceCounts[option.value] ?? 0),
         filter: serviceDashboardFilter(option.value),
-        icon: Briefcase,
+        icon: iconForService(option.value),
         tone: SERVICE_TONES[index % SERVICE_TONES.length],
       }),
     ),
@@ -245,7 +247,7 @@ export default function DashboardPage() {
                   </TableCell>
                   <TableCell>{row.checklist}</TableCell>
                   <TableCell>{row.amount}</TableCell>
-                  <TableCell>{row.date}</TableCell>
+                  <TableCell>{formatDisplayDate(row.date)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

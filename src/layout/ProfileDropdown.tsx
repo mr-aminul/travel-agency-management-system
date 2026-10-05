@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LogOut, Settings, UserRound } from 'lucide-react'
 import { SignOutConfirmModal } from '@/components/ConfirmModal'
+import { CopyableText } from '@/components/ui'
 import { settingsNavItem, profileNavItem } from '@/config/layout'
 import { useAuth } from '@/lib/useAuth'
 import { useHoverMenu } from './useHoverMenu'
@@ -64,7 +65,7 @@ export function ProfileDropdown({
               </div>
               {profileSubtext && (
                 <div className="pd-topbar__dropdown-subtitle">
-                  {profileSubtext}
+                  <CopyableText value={profileSubtext} />
                 </div>
               )}
             </div>

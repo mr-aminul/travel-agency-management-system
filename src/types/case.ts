@@ -1,9 +1,12 @@
 export const BUILTIN_SERVICE_TYPES = [
-  'Manpower',
-  'Student',
-  'Hajj/Umrah',
-  'Leisure',
-  'Ticketing',
+  'Tourist Visa',
+  'Student Visa',
+  'Work Permit Visa',
+  'Hajj/Umrah Visa',
+  'Medical Visa',
+  'Air Ticket',
+  'Hotel Booking',
+  'Tour Package',
 ] as const
 
 export type BuiltinServiceType = (typeof BUILTIN_SERVICE_TYPES)[number]
@@ -15,11 +18,14 @@ export const BUILTIN_SERVICE_OPTIONS: {
   value: BuiltinServiceType
   label: string
 }[] = [
-  { value: 'Manpower', label: 'Manpower' },
-  { value: 'Student', label: 'Student' },
-  { value: 'Hajj/Umrah', label: 'Hajj / Umrah' },
-  { value: 'Leisure', label: 'Leisure' },
-  { value: 'Ticketing', label: 'Ticketing' },
+  { value: 'Tourist Visa', label: 'Tourist Visa' },
+  { value: 'Student Visa', label: 'Student Visa' },
+  { value: 'Work Permit Visa', label: 'Work Permit Visa' },
+  { value: 'Hajj/Umrah Visa', label: 'Hajj / Umrah Visa' },
+  { value: 'Medical Visa', label: 'Medical Visa' },
+  { value: 'Air Ticket', label: 'Air Ticket' },
+  { value: 'Hotel Booking', label: 'Hotel Booking' },
+  { value: 'Tour Package', label: 'Tour Package' },
 ]
 
 export function isBuiltinService(
@@ -174,11 +180,19 @@ export type UpdateCaseInput = Partial<
 
 /** Nav slug ↔ built-in service */
 export const CASE_SERVICE_SLUGS: Record<string, BuiltinServiceType> = {
-  manpower: 'Manpower',
-  student: 'Student',
-  'hajj-umrah': 'Hajj/Umrah',
-  leisure: 'Leisure',
-  ticketing: 'Ticketing',
+  'tourist-visa': 'Tourist Visa',
+  'student-visa': 'Student Visa',
+  'work-permit-visa': 'Work Permit Visa',
+  'hajj-umrah-visa': 'Hajj/Umrah Visa',
+  'medical-visa': 'Medical Visa',
+  'air-ticket': 'Air Ticket',
+  'hotel-booking': 'Hotel Booking',
+  'tour-package': 'Tour Package',
+  manpower: 'Work Permit Visa',
+  student: 'Student Visa',
+  'hajj-umrah': 'Hajj/Umrah Visa',
+  leisure: 'Tour Package',
+  ticketing: 'Air Ticket',
 }
 
 export function slugifyServiceName(name: string): string {

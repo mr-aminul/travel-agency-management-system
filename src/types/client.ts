@@ -8,6 +8,12 @@ export type ClientGender = 'Male' | 'Female' | 'Other'
 
 export type ClientMaritalStatus = 'Single' | 'Married' | 'Divorced' | 'Widowed'
 
+export type ClientFileRef = {
+  fileId: string
+  fileName: string
+  mimeType?: string
+}
+
 export type Client = {
   id: string
   tenantId: string
@@ -37,6 +43,8 @@ export type Client = {
   previousOverseasExp?: string
   preferredCountry?: string
   preferredJob?: string
+  /** Values for tenant-defined profile fields, keyed by field id. */
+  customFields?: Record<string, string>
   expectedSalary?: string
   contractAmount?: number
   branch?: string
@@ -45,6 +53,9 @@ export type Client = {
   passportExpiry?: string
   passportIssuedOn?: string
   passportPlaceOfIssue?: string
+  /** Scan attached from the client Documents drawer. */
+  passportFile?: ClientFileRef
+  nidFile?: ClientFileRef
   avatarUrl?: string
   /** Sub agent who referred this client. */
   partnerId?: string
@@ -91,6 +102,7 @@ export type CreateClientInput = {
   previousOverseasExp?: string
   preferredCountry?: string
   preferredJob?: string
+  customFields?: Record<string, string>
   expectedSalary?: string
   contractAmount?: number
   branch?: string

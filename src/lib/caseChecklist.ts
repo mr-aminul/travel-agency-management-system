@@ -12,6 +12,7 @@ import {
   Stamp,
   Ticket,
 } from 'lucide-react'
+import { formatDisplayDate } from '@/lib/formatDate'
 import { getServiceTemplateOverride, resolveServiceTemplateOverride } from '@/lib/serviceTemplatesStore'
 import type {
   BuiltinServiceType,
@@ -152,12 +153,31 @@ const CUSTOM_STEPS: StepDef[] = [
   { id: 'closed', label: 'Closed', icon: CheckCircle2, stage: 'Closed' },
 ]
 
+const TOURIST_VISA_STEPS: StepDef[] = [
+  { id: 'registered', label: 'Registered', icon: FilePlus2, stage: 'Intake' },
+  { id: 'applied', label: 'Visa applied', icon: ClipboardList, stage: 'Processing' },
+  { id: 'visa', label: 'Visa issued', icon: Stamp, stage: 'Documents' },
+  { id: 'ticket', label: 'Ticket', icon: Ticket, stage: 'Travel' },
+  { id: 'travelled', label: 'Travelled', icon: PlaneTakeoff, stage: 'Closed' },
+]
+
+const MEDICAL_VISA_STEPS: StepDef[] = [
+  { id: 'registered', label: 'Registered', icon: FilePlus2, stage: 'Intake' },
+  { id: 'medical', label: 'Hospital papers', icon: Activity, stage: 'Documents' },
+  { id: 'applied', label: 'Visa applied', icon: ClipboardList, stage: 'Processing' },
+  { id: 'visa', label: 'Visa issued', icon: Stamp, stage: 'Documents' },
+  { id: 'travelled', label: 'Travelled', icon: PlaneTakeoff, stage: 'Closed' },
+]
+
 const STEPS_BY_SERVICE: Record<BuiltinServiceType, StepDef[]> = {
-  Manpower: MANPOWER_STEPS,
-  Student: STUDENT_STEPS,
-  'Hajj/Umrah': HAJJ_STEPS,
-  Leisure: LEISURE_STEPS,
-  Ticketing: TICKETING_STEPS,
+  'Tourist Visa': TOURIST_VISA_STEPS,
+  'Student Visa': STUDENT_STEPS,
+  'Work Permit Visa': MANPOWER_STEPS,
+  'Hajj/Umrah Visa': HAJJ_STEPS,
+  'Medical Visa': MEDICAL_VISA_STEPS,
+  'Air Ticket': TICKETING_STEPS,
+  'Hotel Booking': LEISURE_STEPS,
+  'Tour Package': LEISURE_STEPS,
 }
 
 function stageFromPosition(index: number, total: number): CaseStage {
@@ -250,7 +270,10 @@ export function buildInitialSteps(
         : { completedAt: null }
   }
   // Stamp created date as opened detail without completing the first step.
-  steps[currentStepId] = { completedAt: null, detail: `Opened ${createdAt}` }
+  steps[currentStepId] = {
+    completedAt: null,
+    detail: `Opened ${formatDisplayDate(createdAt, createdAt)}`,
+  }
   return { currentStepId, steps }
 }
 

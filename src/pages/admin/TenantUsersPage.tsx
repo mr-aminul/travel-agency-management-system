@@ -3,6 +3,7 @@ import { Navigate, useParams } from 'react-router-dom'
 import {
   Avatar,
   Badge,
+  CopyableText,
   EmptyState,
   Table,
   TableBody,
@@ -66,7 +67,9 @@ export default function TenantUsersPage() {
                 <span className="pd-admin__user-name">{member.name}</span>
               </span>
             </TableCell>
-            <TableCell>{member.email}</TableCell>
+            <TableCell>
+              <CopyableText value={member.email} />
+            </TableCell>
             <TableCell>{roleLabel(member.role)}</TableCell>
             <TableCell>
               <Badge variant={statusBadgeVariant(member.status)}>

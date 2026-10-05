@@ -20,9 +20,9 @@ const inactive: Employee = {
 
 describe('getEmployeeDisplayName', () => {
   it('resolves HR employee names from ids', () => {
-    expect(getEmployeeDisplayName('EMP-7001')).toBe('Karim Manager')
-    expect(getEmployeeDisplayName('EMP-7002')).toBe('Lima Accounts')
-    expect(getEmployeeDisplayName('EMP-7003')).toBe('Sajid HR')
+    expect(getEmployeeDisplayName('EMP-7001')).toBe('Md. Karim Ahmed')
+    expect(getEmployeeDisplayName('EMP-7002')).toBe('Lima Chowdhury')
+    expect(getEmployeeDisplayName('EMP-7003')).toBe('Sajid Hasan')
   })
 
   it('keeps unmatched values so legacy names still display', () => {
@@ -40,7 +40,7 @@ describe('employeeAssignmentOptions', () => {
     const employee = getEmployeeById('EMP-7001')
     expect(employee).toBeDefined()
     expect(employeeAssignmentOptions([employee!])).toEqual([
-      { value: 'EMP-7001', label: 'Karim Manager' },
+      { value: 'EMP-7001', label: 'Md. Karim Ahmed' },
     ])
   })
 

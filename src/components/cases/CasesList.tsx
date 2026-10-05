@@ -7,8 +7,8 @@ import {
   Badge,
   Button,
   EmptyState,
-  Modal,
   SearchField,
+  SideDrawer,
   Select,
   Table,
   TableBody,
@@ -24,6 +24,8 @@ import { formatBalance } from '@/lib/clientsStore'
 import { caseServiceFee } from '@/lib/caseMoney'
 import { getEmployeeDisplayName } from '@/lib/employeesStore'
 import { formatBdt } from '@/lib/dashboardMetrics'
+import { formatDisplayDate } from '@/lib/formatDate'
+import { cx } from '@/lib/cx'
 import { workDetailPath } from '@/lib/workPaths'
 import type { Case, CaseStatus, ServiceType, CreateCaseInput } from '@/types/case'
 import '@/styles/layout-cases.css'
@@ -60,14 +62,7 @@ export function caseStatusBadgeVariant(status: CaseStatus): BadgeVariant {
 }
 
 function formatCaseDate(value?: string): string {
-  if (!value) return '—'
-  const date = new Date(`${value}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return formatDisplayDate(value)
 }
 
 function matchesFilters(
@@ -114,7 +109,13 @@ export type CasesListProps = {
   emptyTitle?: string
   emptyDescription?: string
   emptyAction?: ReactNode
+  /** Highlight the open service on a client profile. */
+  selectedId?: string
+  /** Bump this to flash the Service fee column for a few seconds. */
+  serviceFeeHighlightToken?: number
 }
+
+export const SERVICE_FEE_HIGHLIGHT_MS = 3000
 
 export function CasesList({
   cases,
@@ -131,6 +132,8 @@ export function CasesList({
   emptyTitle = 'No services yet',
   emptyDescription = 'Add a service to start tracking steps, documents, and payments.',
   emptyAction,
+  selectedId,
+  serviceFeeHighlightToken = 0,
 }: CasesListProps) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -139,6 +142,22 @@ export function CasesList({
   const [serviceFilters, setServiceFilters] = useState<string[]>([])
   const [newCaseOpen, setNewCaseOpen] = useState(false)
   const [dueOnly, setDueOnly] = useState(false)
+  const [highlightServiceFee, setHighlightServiceFee] = useState(false)
+
+  useEffect(() => {
+    if (!serviceFeeHighlightToken) return
+    setHighlightServiceFee(true)
+    const timer = window.setTimeout(() => {
+      setHighlightServiceFee(false)
+    }, SERVICE_FEE_HIGHLIGHT_MS)
+    return () => window.clearTimeout(timer)
+  }, [serviceFeeHighlightToken])
+
+  const feeCellClass = cx(
+    'pd-cases__balance',
+    'pd-cases__fee',
+    highlightServiceFee && 'is-highlight',
+  )
 
   const stats = useMemo(() => {
     let open = 0
@@ -169,7 +188,7 @@ export function CasesList({
       ? (searchParams.get('service') as ServiceType | null)
       : null) ??
     defaultService ??
-    'Manpower'
+    'Work Permit Visa'
 
   useEffect(() => {
     if (!syncNewWithSearchParams) return
@@ -295,7 +314,11 @@ export function CasesList({
             <TableHead>Current step</TableHead>
             <TableHead>Destination</TableHead>
             <TableHead>Departure</TableHead>
-            <TableHead>Service fee</TableHead>
+            <TableHead
+              className={cx('pd-cases__fee', highlightServiceFee && 'is-highlight')}
+            >
+              Service fee
+            </TableHead>
             <TableHead>Balance due</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
@@ -304,7 +327,11 @@ export function CasesList({
           {filtered.map((item) => (
             <TableRow
               key={item.id}
-              className="pd-cases__row"
+              className={cx(
+                'pd-cases__row',
+                item.id === selectedId && 'is-selected',
+              )}
+              aria-selected={item.id === selectedId ? true : undefined}
               onClick={() => navigate(workDetailPath(item))}
             >
               <TableCell>
@@ -317,7 +344,7 @@ export function CasesList({
               </TableCell>
               <TableCell>{item.destination || '—'}</TableCell>
               <TableCell>{formatCaseDate(item.departureDate)}</TableCell>
-              <TableCell className="pd-cases__balance">
+              <TableCell className={feeCellClass}>
                 {formatBalance(caseServiceFee(item))}
               </TableCell>
               <TableCell className="pd-cases__balance">
@@ -433,18 +460,18 @@ export function CasesList({
 
       {body}
 
-      <Modal
+      <SideDrawer
         open={newCaseOpen}
         onClose={closeNewCaseModal}
         title="Add service"
         description={
           lockClient
-            ? 'What does this client need?'
+            ? 'What does this client need? Progress starts at the first step of that service.'
             : lockService
               ? `Add a ${resolvedService} service for a client.`
               : 'Pick the client and the service they need.'
         }
-        className="pd-cases-modal"
+        className="pd-cases-drawer"
       >
         <NewCaseForm
           onSubmit={handleCreateCase}
@@ -454,7 +481,7 @@ export function CasesList({
           defaultService={resolvedService}
           lockService={lockService}
         />
-      </Modal>
+      </SideDrawer>
     </div>
   )
 }

@@ -13,12 +13,12 @@ export const PRODUCT_GLOSSARY: GlossaryTerm[] = [
   {
     term: 'Service',
     meaning:
-      'What the client needs — a built-in template (Manpower, Student, Hajj/Umrah, Leisure, Ticketing) or a service you create in Settings. A client can have more than one. Each service file lives on that client profile. The Services sidebar is the agency-wide queue of the same files.',
+      'What the client needs — Tourist Visa, Student Visa, Work Permit Visa, Hajj/Umrah Visa, Medical Visa, Air Ticket, Hotel Booking, Tour Package, or a line you add in Settings → Service catalog. Each file lives on that client. The Services sidebar is the agency-wide queue of the same files.',
   },
   {
     term: 'Service template',
     meaning:
-      'The checklist, documents, and pricing for a service line. Built-in templates are enabled per agency. In Settings you set status steps and the document checklist for each service you sell.',
+      'The status journey and documents for a catalog line. Open Settings → Service catalog, then a service, to edit the checklist. New files pick up what you save. Add a country when that destination needs a different journey or documents.',
   },
   {
     term: 'Status',

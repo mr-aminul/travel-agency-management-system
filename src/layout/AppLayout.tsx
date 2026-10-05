@@ -69,7 +69,9 @@ export function AppLayout({
       : (matchNavItem(pathname, navItems) ?? navItems[0])
 
   const isFillPage =
-    pathname === '/settings' || pathname.startsWith('/settings/')
+    pathname === '/settings' ||
+    pathname.startsWith('/settings/') ||
+    pathname.endsWith('/invoice')
 
   return (
     <div

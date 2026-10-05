@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check, Circle, Lock } from 'lucide-react'
-import {
-  StepCompletionDrawer,
-  type StepDrawerMode,
-} from '@/components/cases/StepCompletionDrawer'
-import { cx } from '@/lib/cx'
+import { StepCompletionDrawer, type StepDrawerMode } from '@/components/cases/StepCompletionDrawer'
 import {
   getPipelineStagesForService,
   getStepDefsForCase,
@@ -15,17 +11,12 @@ import {
   isPipelineStepComplete,
   templateCountry,
 } from '@/lib/caseChecklist'
+import { cx } from '@/lib/cx'
+import { formatDisplayDate } from '@/lib/formatDate'
 import type { Case, CaseStage } from '@/types/case'
 
 function formatMilestoneDate(value?: string | null): string {
-  if (!value) return '—'
-  const date = new Date(`${value}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return formatDisplayDate(value)
 }
 
 function milestoneDate(item: Case, stepId: string): string | null {

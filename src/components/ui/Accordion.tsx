@@ -5,6 +5,8 @@ import { cx } from '@/lib/cx'
 export type AccordionItem = {
   id: string
   title: string
+  /** Short status shown beside the title; not part of the accessible name. */
+  meta?: string
   content: ReactNode
   disabled?: boolean
 }
@@ -58,7 +60,14 @@ export function Accordion({
                 disabled={item.disabled}
                 onClick={() => toggle(item.id)}
               >
-                <span>{item.title}</span>
+                <span className="pd-accordion__title">
+                  <span>{item.title}</span>
+                  {item.meta ? (
+                    <span className="pd-accordion__meta" aria-hidden>
+                      {item.meta}
+                    </span>
+                  ) : null}
+                </span>
                 <ChevronDown
                   className="pd-accordion__chevron"
                   size={16}

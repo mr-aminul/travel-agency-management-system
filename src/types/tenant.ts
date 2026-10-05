@@ -8,11 +8,14 @@ export type ModuleId =
   | 'reporting'
   | 'hr'
   | 'partners'
-  | 'services.manpower'
-  | 'services.student'
-  | 'services.hajjUmrah'
-  | 'services.leisure'
-  | 'services.ticketing'
+  | 'services.touristVisa'
+  | 'services.studentVisa'
+  | 'services.workPermitVisa'
+  | 'services.hajjUmrahVisa'
+  | 'services.medicalVisa'
+  | 'services.airTicket'
+  | 'services.hotelBooking'
+  | 'services.tourPackage'
 
 export type Tenant = {
   id: string

@@ -196,7 +196,7 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   flex-direction: column;
   background: var(--color-bg);
   box-shadow: var(--shadow-low);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-card-lg);
 }
 
 .pd-app-shell--mobile .pd-app-content-card {
@@ -232,7 +232,7 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   padding: 0;
 }
 
-.pd-app-main--fill > * {
+.pd-app-main--fill>* {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
@@ -611,6 +611,10 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   width: 100%;
   margin-inline: 0;
   padding-inline: 0.5rem;
+}
+
+.pd-sidebar-nav__link--child .pd-sidebar-nav__icon {
+  width: 1.25rem;
 }
 
 .pd-sidebar-footer {

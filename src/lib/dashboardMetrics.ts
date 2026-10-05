@@ -4,7 +4,11 @@ import type { Client } from '@/types/client'
 import type { Employee } from '@/types/employee'
 import type { Payment } from '@/types/payment'
 import type { StatusUpdateRequest } from '@/types/request'
-import { workDetailPath, workInvoicePath } from '@/lib/workPaths'
+import {
+  hrEmployeePath,
+  workDetailPath,
+  workInvoicePath,
+} from '@/lib/workPaths'
 
 export type DashboardMetrics = {
   totalClients: number
@@ -159,10 +163,10 @@ export function buildDashboardRows(
       checklist: '—',
       amount: formatBdt(payment.amount),
       date: payment.createdAt,
-      href: workInvoicePath(
-        { id: payment.caseId, clientId: payment.clientId },
-        payment.id,
-      ),
+      href: workInvoicePath({
+        id: payment.caseId,
+        clientId: payment.clientId,
+      }),
     }
   })
 
@@ -178,7 +182,7 @@ export function buildDashboardRows(
     checklist: '—',
     amount: formatBdt(employee.salary),
     date: employee.joined,
-    href: '/hr',
+    href: hrEmployeePath(employee.id),
   }))
 
   const requestRows: DashboardRow[] = requests.map((request) => {

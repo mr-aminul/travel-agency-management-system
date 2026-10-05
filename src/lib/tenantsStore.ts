@@ -19,14 +19,26 @@ const SEED_TENANTS: Tenant[] = [
     slug: 'coastal-leisure',
     name: 'Coastal Leisure',
     status: 'active',
-    enabledModules: ['services.leisure', 'services.ticketing', 'finance'],
+    enabledModules: [
+      'services.tourPackage',
+      'services.airTicket',
+      'services.hotelBooking',
+      'services.touristVisa',
+      'finance',
+    ],
   },
   {
     id: TENANT_IDS.manpower,
     slug: 'horizon-manpower',
     name: 'Horizon Manpower',
     status: 'active',
-    enabledModules: ['services.manpower', 'finance', 'hr', 'partners'],
+    enabledModules: [
+      'services.workPermitVisa',
+      'services.medicalVisa',
+      'finance',
+      'hr',
+      'partners',
+    ],
   },
   {
     id: TENANT_IDS.full,
@@ -36,6 +48,22 @@ const SEED_TENANTS: Tenant[] = [
     enabledModules: [...ALL_MODULE_IDS],
   },
 ]
+
+const NEW_SERVICE_MODULES: ModuleId[] = [
+  'services.touristVisa',
+  'services.medicalVisa',
+  'services.hotelBooking',
+]
+
+function mergeSeedServiceCatalog(
+  seed: ModuleId[],
+  stored: ModuleId[],
+): ModuleId[] {
+  const alreadyMigrated = NEW_SERVICE_MODULES.some((id) => stored.includes(id))
+  if (alreadyMigrated) return stored
+  const extras = NEW_SERVICE_MODULES.filter((id) => seed.includes(id))
+  return extras.length ? [...stored, ...extras] : stored
+}
 
 const listeners = new Set<Listener>()
 
@@ -88,7 +116,10 @@ function withOverrides(base: Tenant[]): Tenant[] {
   return base.map((tenant) => {
     const enabled = overrides[tenant.id]
     return enabled
-      ? { ...tenant, enabledModules: enabled }
+      ? {
+          ...tenant,
+          enabledModules: mergeSeedServiceCatalog(tenant.enabledModules, enabled),
+        }
       : { ...tenant, enabledModules: [...tenant.enabledModules] }
   })
 }
@@ -109,6 +140,17 @@ export function getTenants(): Tenant[] {
 
 export function getTenantById(id: string): Tenant | undefined {
   return tenants.find((tenant) => tenant.id === id)
+}
+
+export function getTenantBySlug(slug: string): Tenant | undefined {
+  const normalized = slug.trim().toLowerCase()
+  if (!normalized) return undefined
+  return tenants.find((tenant) => tenant.slug.toLowerCase() === normalized)
+}
+
+/** Resolve a public link segment — prefers slug, falls back to internal id. */
+export function resolveTenantRef(ref: string): Tenant | undefined {
+  return getTenantBySlug(ref) ?? getTenantById(ref)
 }
 
 export function useTenantById(id: string): Tenant | undefined {

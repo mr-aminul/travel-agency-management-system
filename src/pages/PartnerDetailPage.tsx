@@ -1,35 +1,36 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   Calendar,
   Check,
-  ChevronDown,
   CircleDot,
   ClipboardList,
   Contact,
   Copy,
   IdCard,
   LayoutDashboard,
-  Link2,
+  LayoutGrid,
   Mail,
   MapPin,
   Phone,
   SquarePen,
-  UserPlus,
+  Table2,
   Users,
   Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { PartnerPhotoField } from '@/components/PartnerPhotoField'
+import { AddClientSplitButton } from '@/components/clients/AddClientSplitButton'
 import { NewClientForm } from '@/components/clients/NewClientForm'
 import {
   Avatar,
+  BackButton,
   Badge,
   Button,
-  DropdownMenu,
+  CopyableText,
   EmptyState,
   Input,
+  SearchField,
   Select,
   SideDrawer,
   Table,
@@ -39,23 +40,29 @@ import {
   TableHeader,
   TableRow,
   Tabs,
-  Textarea,
+  Tooltip,
   type BadgeVariant,
 } from '@/components/ui'
 import { updatePartner, usePartners } from '@/lib/partnersStore'
-import { partnerClientFormUrl } from '@/lib/publicUrl'
+import { formatDisplayDate } from '@/lib/formatDate'
 import { createCase } from '@/lib/casesStore'
 import { workDetailPath } from '@/lib/workPaths'
 import {
   createClient,
   formatBalance,
+  getEnabledServiceTypeOptions,
   normalizePhone,
   useClients,
 } from '@/lib/clientsStore'
 import { usePayments } from '@/lib/paymentsStore'
 import { useRequests } from '@/lib/requestsStore'
 import type { PartnerStatus } from '@/types/partner'
-import type { CreateClientInput } from '@/types/client'
+import type {
+  Client,
+  ClientStatus,
+  CreateClientInput,
+  ServiceType,
+} from '@/types/client'
 import '@/styles/layout-clients.css'
 
 const STATUS_OPTIONS = [
@@ -63,18 +70,78 @@ const STATUS_OPTIONS = [
   { value: 'Inactive', label: 'Inactive' },
 ]
 
+const CLIENT_STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Deployed', label: 'Deployed' },
+  { value: 'Lead', label: 'Lead' },
+  { value: 'Inactive', label: 'Inactive' },
+]
+
+type PartnerClientsListView = 'table' | 'grid'
+
+const PARTNER_CLIENTS_LIST_VIEW_KEY = 'partner-clients-list-view'
+
+function readPartnerClientsListView(): PartnerClientsListView {
+  try {
+    return localStorage.getItem(PARTNER_CLIENTS_LIST_VIEW_KEY) === 'grid'
+      ? 'grid'
+      : 'table'
+  } catch {
+    return 'table'
+  }
+}
+
+function persistPartnerClientsListView(view: PartnerClientsListView) {
+  try {
+    localStorage.setItem(PARTNER_CLIENTS_LIST_VIEW_KEY, view)
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function clientStatusBadgeVariant(status: ClientStatus): BadgeVariant {
+  if (status === 'Deployed') return 'completed'
+  if (status === 'Lead') return 'pending'
+  if (status === 'Inactive') return 'on-hold'
+  return 'neutral'
+}
+
+function formatMobile(phone: string): string {
+  return phone.replace(/\D/g, '')
+}
+
+function matchesPartnerClientFilters(
+  client: Client,
+  search: string,
+  serviceFilters: string[],
+  statusFilters: string[],
+): boolean {
+  const q = search.trim().toLowerCase()
+  const phoneDigits = formatMobile(client.phone)
+  const queryDigits = formatMobile(q)
+  const matchSearch =
+    !q ||
+    client.name.toLowerCase().includes(q) ||
+    client.phone.toLowerCase().includes(q) ||
+    client.passport?.toLowerCase().includes(q) ||
+    client.nid?.toLowerCase().includes(q) ||
+    (queryDigits.length > 0 && phoneDigits.includes(queryDigits))
+  const matchService =
+    serviceFilters.length === 0 ||
+    serviceFilters.some((service) =>
+      client.services.includes(service as ServiceType),
+    )
+  const matchStatus =
+    statusFilters.length === 0 || statusFilters.includes(client.status)
+  return matchSearch && matchService && matchStatus
+}
+
 function statusBadgeVariant(status: PartnerStatus): BadgeVariant {
   return status === 'Active' ? 'completed' : 'on-hold'
 }
 
 function formatDate(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return formatDisplayDate(value)
 }
 
 function FieldLabel({
@@ -109,80 +176,6 @@ function TabLabel({
   )
 }
 
-function AddClientSplitButton({
-  partnerId,
-  size = 'sm',
-  onAddClient,
-}: {
-  partnerId: string
-  size?: 'sm' | 'md'
-  onAddClient: () => void
-}) {
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    if (!copied) return
-    const timer = window.setTimeout(() => setCopied(false), 1500)
-    return () => window.clearTimeout(timer)
-  }, [copied])
-
-  const copyFormLink = async () => {
-    const url = partnerClientFormUrl(partnerId)
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      const field = document.createElement('textarea')
-      field.value = url
-      field.setAttribute('readonly', '')
-      field.style.position = 'fixed'
-      field.style.opacity = '0'
-      document.body.appendChild(field)
-      field.select()
-      document.execCommand('copy')
-      field.remove()
-    }
-    setCopied(true)
-  }
-
-  return (
-    <div className={`pd-split-btn pd-split-btn--${size}`}>
-      <Button size={size} className="pd-split-btn__main" onClick={onAddClient}>
-        <UserPlus size={size === 'sm' ? 14 : 16} strokeWidth={2.25} aria-hidden />
-        Add Client
-      </Button>
-      <DropdownMenu
-        label="More client actions"
-        align="end"
-        items={[
-          {
-            id: 'copy-form',
-            label: copied ? 'Copied' : 'Copy Form Link',
-            icon: copied ? (
-              <Check size={14} strokeWidth={2.25} />
-            ) : (
-              <Link2 size={14} strokeWidth={2.25} />
-            ),
-            onSelect: () => {
-              void copyFormLink()
-            },
-          },
-        ]}
-        trigger={
-          <ChevronDown
-            size={size === 'sm' ? 14 : 16}
-            strokeWidth={2.25}
-            aria-hidden
-          />
-        }
-        triggerProps={{
-          'aria-label': 'Copy Form Link',
-          title: 'Copy Form Link',
-        }}
-      />
-    </div>
-  )
-}
-
 function SectionTitle({
   icon: Icon,
   children,
@@ -205,7 +198,7 @@ function ContactChip({
   value,
   label,
 }: {
-  href: string
+  href?: string
   value: string
   label: string
 }) {
@@ -228,9 +221,13 @@ function ContactChip({
 
   return (
     <span className="pd-client-detail__contact">
-      <a href={href} className="pd-client-detail__contact-value">
-        {value}
-      </a>
+      {href ? (
+        <a href={href} className="pd-client-detail__contact-value">
+          {value}
+        </a>
+      ) : (
+        <span className="pd-client-detail__contact-value">{value}</span>
+      )}
       <button
         type="button"
         className="pd-client-detail__contact-copy"
@@ -263,6 +260,12 @@ export default function PartnerDetailPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [editing, setEditing] = useState(false)
   const [customerOpen, setCustomerOpen] = useState(false)
+  const [clientSearch, setClientSearch] = useState('')
+  const [clientServiceFilters, setClientServiceFilters] = useState<string[]>([])
+  const [clientStatusFilters, setClientStatusFilters] = useState<string[]>([])
+  const [clientsListView, setClientsListView] = useState<PartnerClientsListView>(
+    readPartnerClientsListView,
+  )
   const [draft, setDraft] = useState({
     name: '',
     phone: '',
@@ -285,6 +288,25 @@ export default function PartnerDetailPage() {
   const pendingRequests = requests.filter(
     (item) => item.partnerId === partner.id && item.reviewStatus === 'Pending',
   ).length
+  const filteredClients = clients.filter((client) =>
+    matchesPartnerClientFilters(
+      client,
+      clientSearch,
+      clientServiceFilters,
+      clientStatusFilters,
+    ),
+  )
+  const hasClientFilters =
+    clientServiceFilters.length > 0 || clientStatusFilters.length > 0
+  const selectClientsListView = (view: PartnerClientsListView) => {
+    setClientsListView(view)
+    persistPartnerClientsListView(view)
+  }
+  const resetClientFilters = () => {
+    setClientSearch('')
+    setClientServiceFilters([])
+    setClientStatusFilters([])
+  }
 
   const startEditing = () => {
     setDraft({
@@ -336,10 +358,7 @@ export default function PartnerDetailPage() {
 
   return (
     <div className="pd-page pd-client-detail" aria-label={partner.name}>
-      <Link to="/partners" className="pd-client-detail__back">
-        <ArrowLeft size={14} strokeWidth={2.25} aria-hidden />
-        All sub agents
-      </Link>
+      <BackButton to="/partners" label="Sub Agents" />
 
       <header
         className={
@@ -378,11 +397,7 @@ export default function PartnerDetailPage() {
                 label="phone number"
               />
               {partner.email ? (
-                <ContactChip
-                  href={`mailto:${partner.email}`}
-                  value={partner.email}
-                  label="email address"
-                />
+                <ContactChip value={partner.email} label="email address" />
               ) : null}
             </div>
           )}
@@ -408,16 +423,10 @@ export default function PartnerDetailPage() {
               </Button>
             </>
           ) : (
-            <>
-              <AddClientSplitButton
-                partnerId={partner.id}
-                onAddClient={() => setCustomerOpen(true)}
-              />
-              <Button variant="secondary" size="sm" onClick={startEditing}>
-                <SquarePen size={14} strokeWidth={2.25} aria-hidden />
-                Edit
-              </Button>
-            </>
+            <Button variant="secondary" size="sm" onClick={startEditing}>
+              <SquarePen size={14} strokeWidth={2.25} aria-hidden />
+              Edit
+            </Button>
           )}
         </div>
       </header>
@@ -498,234 +507,380 @@ export default function PartnerDetailPage() {
                   </div>
                 </div>
 
-                <div className="pd-client-detail__grid">
-                  <section className="pd-client-detail__section">
-                    <SectionTitle icon={Contact}>Contact</SectionTitle>
+                <section className="pd-client-detail__section pd-client-detail__section--compact">
+                  <div className="pd-client-detail__section-head">
+                    <SectionTitle icon={Contact}>Profile Information</SectionTitle>
+                  </div>
+                  <dl className="pd-client-detail__fields">
                     {editing ? (
-                      <div className="pd-client-detail__fields">
-                        <div className="pd-client-detail__field pd-client-detail__field-full">
-                          <FieldLabel icon={IdCard}>Photo</FieldLabel>
-                          <dd>
-                            <PartnerPhotoField
-                              name={draft.name}
-                              value={draft.photoUrl}
-                              onChange={(photoUrl) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  photoUrl,
-                                }))
-                              }
-                            />
-                          </dd>
-                        </div>
+                      <div className="pd-client-detail__field pd-client-detail__field-full">
+                        <FieldLabel icon={IdCard}>Photo</FieldLabel>
+                        <dd>
+                          <PartnerPhotoField
+                            name={draft.name}
+                            value={draft.photoUrl}
+                            onChange={(photoUrl) =>
+                              setDraft((current) => ({
+                                ...current,
+                                photoUrl,
+                              }))
+                            }
+                          />
+                        </dd>
                       </div>
                     ) : null}
-                    <dl className="pd-client-detail__fields">
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={Phone}>Phone</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Input
-                              value={draft.phone}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  phone: event.target.value,
-                                }))
-                              }
-                            />
-                          ) : (
-                            <a
-                              href={`tel:${displayPhone}`}
-                              className="pd-client-detail__link"
-                            >
-                              {displayPhone}
-                            </a>
-                          )}
-                        </dd>
-                      </div>
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={Mail}>Email</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Input
-                              type="email"
-                              value={draft.email}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  email: event.target.value,
-                                }))
-                              }
-                            />
-                          ) : displayEmail ? (
-                            <a
-                              href={`mailto:${displayEmail}`}
-                              className="pd-client-detail__link"
-                            >
-                              {displayEmail}
-                            </a>
-                          ) : (
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={Phone}>Phone</FieldLabel>
+                      <dd>
+                        {editing ? (
+                          <Input
+                            value={draft.phone}
+                            onChange={(event) =>
+                              setDraft((current) => ({
+                                ...current,
+                                phone: event.target.value,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <a
+                            href={`tel:${displayPhone}`}
+                            className="pd-client-detail__link"
+                          >
+                            {displayPhone}
+                          </a>
+                        )}
+                      </dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={Mail}>Email</FieldLabel>
+                      <dd>
+                        {editing ? (
+                          <Input
+                            type="email"
+                            value={draft.email}
+                            onChange={(event) =>
+                              setDraft((current) => ({
+                                ...current,
+                                email: event.target.value,
+                              }))
+                            }
+                          />
+                        ) : displayEmail ? (
+                          <CopyableText value={displayEmail} />
+                        ) : (
+                          <span className="pd-client-detail__empty">—</span>
+                        )}
+                      </dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={MapPin}>Address</FieldLabel>
+                      <dd>
+                        {editing ? (
+                          <Input
+                            value={draft.address}
+                            onChange={(event) =>
+                              setDraft((current) => ({
+                                ...current,
+                                address: event.target.value,
+                              }))
+                            }
+                          />
+                        ) : (
+                          partner.address || (
                             <span className="pd-client-detail__empty">—</span>
-                          )}
-                        </dd>
-                      </div>
-                      <div className="pd-client-detail__field pd-client-detail__field-full">
-                        <FieldLabel icon={MapPin}>Address</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Textarea
-                              rows={2}
-                              value={draft.address}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  address: event.target.value,
-                                }))
-                              }
-                            />
-                          ) : (
-                            partner.address || (
-                              <span className="pd-client-detail__empty">—</span>
-                            )
-                          )}
-                        </dd>
-                      </div>
-                    </dl>
-                  </section>
-
-                  <section className="pd-client-detail__section">
-                    <SectionTitle icon={IdCard}>Identity</SectionTitle>
-                    <dl className="pd-client-detail__fields">
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={IdCard}>License</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Input
-                              value={draft.licenseNumber}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  licenseNumber: event.target.value,
-                                }))
-                              }
-                            />
-                          ) : (
-                            partner.licenseNumber || (
-                              <span className="pd-client-detail__empty">—</span>
-                            )
-                          )}
-                        </dd>
-                      </div>
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={MapPin}>Branch</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Input
-                              value={draft.branch}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  branch: event.target.value,
-                                }))
-                              }
-                            />
-                          ) : (
-                            partner.branch || (
-                              <span className="pd-client-detail__empty">—</span>
-                            )
-                          )}
-                        </dd>
-                      </div>
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={CircleDot}>Status</FieldLabel>
-                        <dd>
-                          {editing ? (
-                            <Select
-                              value={draft.status}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...current,
-                                  status: event.target.value as PartnerStatus,
-                                }))
-                              }
-                              options={STATUS_OPTIONS}
-                            />
-                          ) : (
-                            <Badge variant={statusBadgeVariant(partner.status)}>
-                              {partner.status}
-                            </Badge>
-                          )}
-                        </dd>
-                      </div>
-                      <div className="pd-client-detail__field">
-                        <FieldLabel icon={Calendar}>Member since</FieldLabel>
-                        <dd>{formatDate(partner.createdAt)}</dd>
-                      </div>
-                    </dl>
-                  </section>
-                </div>
+                          )
+                        )}
+                      </dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={IdCard}>License</FieldLabel>
+                      <dd>
+                        {editing ? (
+                          <Input
+                            value={draft.licenseNumber}
+                            onChange={(event) =>
+                              setDraft((current) => ({
+                                ...current,
+                                licenseNumber: event.target.value,
+                              }))
+                            }
+                          />
+                        ) : (
+                          partner.licenseNumber || (
+                            <span className="pd-client-detail__empty">—</span>
+                          )
+                        )}
+                      </dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={MapPin}>Branch</FieldLabel>
+                      <dd>
+                        {editing ? (
+                          <Input
+                            value={draft.branch}
+                            onChange={(event) =>
+                              setDraft((current) => ({
+                                ...current,
+                                branch: event.target.value,
+                              }))
+                            }
+                          />
+                        ) : (
+                          partner.branch || (
+                            <span className="pd-client-detail__empty">—</span>
+                          )
+                        )}
+                      </dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={CircleDot}>Status</FieldLabel>
+                      <dd>
+                        {editing ? (
+                          <Select
+                            value={draft.status}
+                            onChange={(event) =>
+                              setDraft((current) => ({
+                                ...current,
+                                status: event.target.value as PartnerStatus,
+                              }))
+                            }
+                            options={STATUS_OPTIONS}
+                          />
+                        ) : (
+                          <Badge variant={statusBadgeVariant(partner.status)}>
+                            {partner.status}
+                          </Badge>
+                        )}
+                      </dd>
+                    </div>
+                    <div className="pd-client-detail__field">
+                      <FieldLabel icon={Calendar}>Member since</FieldLabel>
+                      <dd>{formatDate(partner.createdAt)}</dd>
+                    </div>
+                  </dl>
+                </section>
               </div>
             ),
           },
           {
             id: 'clients',
             label: <TabLabel icon={Users}>Clients</TabLabel>,
-            content:
-              clients.length === 0 ? (
-                <EmptyState
-                  icon={Users}
-                  title="No customers yet"
-                  description="Register a client against this sub agent to start their first case."
-                  action={
+            content: (
+              <div className="pd-partner-clients">
+                <div className="pd-clients__toolbar">
+                  <SearchField
+                    className="pd-clients__search"
+                    placeholder="Search clients…"
+                    value={clientSearch}
+                    onChange={(event) => setClientSearch(event.target.value)}
+                    onClear={() => setClientSearch('')}
+                  />
+
+                  <div className="pd-clients__toolbar-end">
+                    <div className="pd-clients__filters">
+                      <Select
+                        className="pd-clients__filter"
+                        label="Service"
+                        multiple
+                        searchable
+                        placeholder="All services"
+                        searchPlaceholder="Search services…"
+                        value={clientServiceFilters}
+                        onChange={(event) =>
+                          setClientServiceFilters(event.target.value)
+                        }
+                        options={getEnabledServiceTypeOptions()}
+                      />
+                      <Select
+                        className="pd-clients__filter"
+                        label="Status"
+                        multiple
+                        searchable
+                        placeholder="All statuses"
+                        searchPlaceholder="Search statuses…"
+                        value={clientStatusFilters}
+                        onChange={(event) =>
+                          setClientStatusFilters(event.target.value)
+                        }
+                        options={CLIENT_STATUS_FILTERS}
+                      />
+                      {hasClientFilters ? (
+                        <button
+                          type="button"
+                          className="pd-clients__clear"
+                          onClick={() => {
+                            setClientServiceFilters([])
+                            setClientStatusFilters([])
+                          }}
+                        >
+                          Clear
+                        </button>
+                      ) : null}
+                    </div>
+                    <div
+                      className="pd-clients__views"
+                      role="group"
+                      aria-label="Client list view"
+                    >
+                      <Tooltip content="Table view">
+                        <button
+                          type="button"
+                          className={
+                            clientsListView === 'table'
+                              ? 'pd-clients__view is-active'
+                              : 'pd-clients__view'
+                          }
+                          aria-pressed={clientsListView === 'table'}
+                          aria-label="Table view"
+                          onClick={() => selectClientsListView('table')}
+                        >
+                          <Table2 size={16} strokeWidth={2.25} aria-hidden />
+                        </button>
+                      </Tooltip>
+                      <Tooltip content="Grid view">
+                        <button
+                          type="button"
+                          className={
+                            clientsListView === 'grid'
+                              ? 'pd-clients__view is-active'
+                              : 'pd-clients__view'
+                          }
+                          aria-pressed={clientsListView === 'grid'}
+                          aria-label="Grid view"
+                          onClick={() => selectClientsListView('grid')}
+                        >
+                          <LayoutGrid size={16} strokeWidth={2.25} aria-hidden />
+                        </button>
+                      </Tooltip>
+                    </div>
                     <AddClientSplitButton
                       size="md"
+                      label="New client"
                       partnerId={partner.id}
                       onAddClient={() => setCustomerOpen(true)}
                     />
-                  }
-                />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Mobile</TableHead>
-                      <TableHead>Passport</TableHead>
-                      <TableHead>Country</TableHead>
-                      <TableHead>Balance due</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {clients.map((client) => (
-                      <TableRow
+                  </div>
+                </div>
+
+                {clients.length === 0 ? (
+                  <EmptyState
+                    icon={Users}
+                    title="No customers yet"
+                    description="Register a client against this sub agent to start their first case."
+                    action={
+                      <AddClientSplitButton
+                        size="md"
+                        partnerId={partner.id}
+                        onAddClient={() => setCustomerOpen(true)}
+                      />
+                    }
+                  />
+                ) : filteredClients.length === 0 ? (
+                  <EmptyState
+                    icon={Users}
+                    title="No clients match"
+                    description="Try a different name, phone number, or clear filters."
+                    action={
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={resetClientFilters}
+                      >
+                        Reset filters
+                      </Button>
+                    }
+                  />
+                ) : clientsListView === 'grid' ? (
+                  <div className="pd-clients__grid">
+                    {filteredClients.map((client) => (
+                      <button
                         key={client.id}
-                        className="pd-clients__row"
+                        type="button"
+                        className="pd-clients__card"
                         onClick={() => navigate(`/clients/${client.id}`)}
                       >
-                        <TableCell>
+                        <div className="pd-clients__card-top">
                           <div className="pd-clients__identity">
                             <Avatar
                               name={client.name}
                               src={client.avatarUrl}
-                              size="sm"
+                              size="md"
                             />
                             <p className="pd-clients__name">{client.name}</p>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          {normalizePhone(client.phone) || client.phone}
-                        </TableCell>
-                        <TableCell>{client.passport || '—'}</TableCell>
-                        <TableCell>{client.preferredCountry || '—'}</TableCell>
-                        <TableCell className="pd-clients__balance">
-                          {formatBalance(client.balance)}
-                        </TableCell>
-                      </TableRow>
+                          <Badge variant={clientStatusBadgeVariant(client.status)}>
+                            {client.status}
+                          </Badge>
+                        </div>
+                        <dl className="pd-clients__card-meta">
+                          <div className="pd-clients__card-row">
+                            <dt>Mobile</dt>
+                            <dd>{formatMobile(client.phone)}</dd>
+                          </div>
+                          <div className="pd-clients__card-row">
+                            <dt>Passport</dt>
+                            <dd>{client.passport || '—'}</dd>
+                          </div>
+                          <div className="pd-clients__card-row">
+                            <dt>Country</dt>
+                            <dd>{client.preferredCountry || '—'}</dd>
+                          </div>
+                          <div className="pd-clients__card-row">
+                            <dt>Balance due</dt>
+                            <dd className="pd-clients__balance">
+                              {formatBalance(client.balance)}
+                            </dd>
+                          </div>
+                        </dl>
+                      </button>
                     ))}
-                  </TableBody>
-                </Table>
-              ),
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Mobile</TableHead>
+                        <TableHead>Passport</TableHead>
+                        <TableHead>Country</TableHead>
+                        <TableHead>Balance due</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClients.map((client) => (
+                        <TableRow
+                          key={client.id}
+                          className="pd-clients__row"
+                          onClick={() => navigate(`/clients/${client.id}`)}
+                        >
+                          <TableCell>
+                            <div className="pd-clients__identity">
+                              <Avatar
+                                name={client.name}
+                                src={client.avatarUrl}
+                                size="sm"
+                              />
+                              <p className="pd-clients__name">{client.name}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {normalizePhone(client.phone) || client.phone}
+                          </TableCell>
+                          <TableCell>{client.passport || '—'}</TableCell>
+                          <TableCell>
+                            {client.preferredCountry || '—'}
+                          </TableCell>
+                          <TableCell className="pd-clients__balance">
+                            {formatBalance(client.balance)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            ),
           },
         ]}
       />

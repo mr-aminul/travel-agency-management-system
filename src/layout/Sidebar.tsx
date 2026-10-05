@@ -67,7 +67,10 @@ function NavItemLink({
     >
       {Icon ? (
         <span className="pd-sidebar-nav__icon" aria-hidden="true">
-          <Icon size={NAV_ICON_SIZE} strokeWidth={NAV_ICON_STROKE} />
+          <Icon
+            size={isChild ? 15 : NAV_ICON_SIZE}
+            strokeWidth={NAV_ICON_STROKE}
+          />
         </span>
       ) : null}
       <span className="pd-sidebar-nav__label" aria-hidden={collapsed}>
@@ -155,7 +158,7 @@ function NavItemGroup({
             return
           }
           setUserCollapsed(false)
-          navigate(item.path)
+          navigate(firstChildPath)
           onNavigate()
         }}
       >

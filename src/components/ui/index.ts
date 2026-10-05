@@ -1,6 +1,12 @@
 export { Button } from './Button'
 export type { ButtonProps, ButtonVariant, ButtonSize } from './Button'
 
+export { BackButton } from './BackButton'
+export type { BackButtonProps } from './BackButton'
+
+export { CopyableText } from './CopyableText'
+export type { CopyableTextProps } from './CopyableText'
+
 export { Input } from './Input'
 export type { InputProps } from './Input'
 

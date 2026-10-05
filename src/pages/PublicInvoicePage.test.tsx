@@ -14,7 +14,7 @@ const invoice: CaseInvoice = {
   issuedOn: '2026-01-15',
   caseRef: 'SR-00101',
   caseInternalId: 'case-101',
-  service: 'Manpower',
+  service: 'Work Permit Visa',
   destination: 'Riyadh, Saudi Arabia',
   agencyName: 'Horizon Manpower',
   agencyAddress: 'Suite 5B, 88 Motijheel Commercial Area, Dhaka 1000',
@@ -27,7 +27,7 @@ const invoice: CaseInvoice = {
   clientEmail: 'rahim.uddin@email.com',
   clientAddress: 'Mirpur, Dhaka',
   clientPassport: 'A12345678',
-  lineDescription: 'Manpower package — Riyadh, Saudi Arabia',
+  lineDescription: 'Work Permit Visa package — Riyadh, Saudi Arabia',
   packageTotal: 50000,
   paidTotal: 15000,
   balanceDue: 35000,
@@ -57,7 +57,8 @@ describe('public invoice page', () => {
     expect(screen.queryByText('Back to service')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Invoice' })).toBeInTheDocument()
     expect(screen.getByText('INV-SR-00101')).toBeInTheDocument()
-    expect(screen.getAllByText('Horizon Manpower').length).toBeGreaterThan(0)
+    expect(screen.getByText('Horizon Manpower')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Billed To' })).toBeInTheDocument()
     expect(screen.getByText('Md. Rahim Uddin')).toBeInTheDocument()
     expect(screen.getByText('Partial package deposit')).toBeInTheDocument()
   })

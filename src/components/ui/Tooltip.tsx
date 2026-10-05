@@ -16,9 +16,12 @@ export type TooltipProps = {
   children: ReactNode
   side?: TooltipSide
   className?: string
+  /** Delay before showing, in ms. Default 120. */
+  delay?: number
+  /** Wider, left-aligned copy for longer help text. */
+  wide?: boolean
 }
 
-const PORTAL_SIDES: TooltipSide[] = ['left', 'right']
 const GAP_PX = 6
 
 function coordsForSide(
@@ -66,13 +69,14 @@ export function Tooltip({
   children,
   side = 'top',
   className,
+  delay = 120,
+  wide = false,
 }: TooltipProps) {
   const tipId = useId()
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<CSSProperties>()
   const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const triggerRef = useRef<HTMLSpanElement>(null)
-  const usesPortal = PORTAL_SIDES.includes(side)
 
   const clearShowTimer = () => {
     if (showTimer.current) {
@@ -81,9 +85,23 @@ export function Tooltip({
     }
   }
 
+  const place = () => {
+    const el = triggerRef.current
+    if (!el) return
+    setCoords(coordsForSide(el.getBoundingClientRect(), side))
+  }
+
   const show = () => {
     clearShowTimer()
-    showTimer.current = setTimeout(() => setOpen(true), 120)
+    const reveal = () => {
+      place()
+      setOpen(true)
+    }
+    if (delay <= 0) {
+      reveal()
+      return
+    }
+    showTimer.current = setTimeout(reveal, delay)
   }
 
   const hide = () => {
@@ -92,7 +110,7 @@ export function Tooltip({
   }
 
   useLayoutEffect(() => {
-    if (!open || !usesPortal) {
+    if (!open) {
       setCoords(undefined)
       return
     }
@@ -110,14 +128,18 @@ export function Tooltip({
       window.removeEventListener('scroll', update, true)
       window.removeEventListener('resize', update)
     }
-  }, [open, side, usesPortal])
+  }, [open, side])
 
   const tip = open ? (
     <span
       id={tipId}
       role="tooltip"
-      className={cx('pd-tooltip__content', `pd-tooltip__content--${side}`)}
-      style={usesPortal ? coords : undefined}
+      className={cx(
+        'pd-tooltip__content',
+        `pd-tooltip__content--${side}`,
+        wide && 'pd-tooltip__content--wide',
+      )}
+      style={coords}
     >
       {content}
     </span>
@@ -138,11 +160,9 @@ export function Tooltip({
       >
         {children}
       </span>
-      {usesPortal
-        ? tip && typeof document !== 'undefined'
-          ? createPortal(tip, document.body)
-          : null
-        : tip}
+      {tip && typeof document !== 'undefined'
+        ? createPortal(tip, document.body)
+        : null}
     </span>
   )
 }

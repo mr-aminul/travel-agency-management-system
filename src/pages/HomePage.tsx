@@ -65,7 +65,7 @@ const QUICK_LINKS: QuickLink[] = [
   {
     path: '/hr',
     label: 'HR',
-    description: 'Employees & payroll',
+    description: 'Employees, attendance & payroll',
     icon: UsersRound,
   },
   {

@@ -352,6 +352,7 @@
 }
 
 @media print {
+
   .pd-app-shell::before,
   .pd-app-shell::after,
   .pd-app-sidebar,

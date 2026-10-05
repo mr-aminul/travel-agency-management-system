@@ -1,6 +1,6 @@
-import { useId, useRef, type ChangeEvent } from 'react'
-import { Camera, Trash2 } from 'lucide-react'
-import { Avatar, Button } from '@/components/ui'
+import { useId, useRef, type ChangeEvent, type ReactNode } from 'react'
+import { Camera, X } from 'lucide-react'
+import { Avatar } from '@/components/ui'
 
 const MAX_BYTES = 2 * 1024 * 1024
 
@@ -9,6 +9,8 @@ type PartnerPhotoFieldProps = {
   fallbackName?: string
   value?: string
   onChange: (photoUrl: string | undefined) => void
+  encodeFile?: (file: File) => Promise<string>
+  children?: ReactNode
 }
 
 function readImageAsDataUrl(file: File): Promise<string> {
@@ -26,9 +28,12 @@ export function PartnerPhotoField({
   fallbackName = 'Sub Agent',
   value,
   onChange,
+  encodeFile,
+  children,
 }: PartnerPhotoFieldProps) {
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
+  const uploadLabel = value ? 'Change photo' : 'Upload photo'
 
   const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -40,16 +45,20 @@ export function PartnerPhotoField({
       return
     }
     try {
-      onChange(await readImageAsDataUrl(file))
-    } catch {
-      window.alert('Unable to read that image. Try another file.')
+      onChange(await (encodeFile ?? readImageAsDataUrl)(file))
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : 'Unable to read that image. Try another file.',
+      )
     }
   }
 
   return (
     <div className="pd-partner-photo">
-      <Avatar name={name || fallbackName} src={value} size="xl" />
-      <div className="pd-partner-photo__actions">
+      <div className="pd-partner-photo__control">
+        <Avatar name={name || fallbackName} src={value} size="xl" />
         <input
           ref={inputRef}
           id={inputId}
@@ -58,28 +67,29 @@ export function PartnerPhotoField({
           className="pd-partner-photo__input"
           onChange={handleFile}
         />
-        <Button
+        <button
           type="button"
-          variant="secondary"
-          size="sm"
+          className="pd-partner-photo__upload"
+          aria-label={uploadLabel}
+          title="JPG, PNG or WebP · max 2 MB"
           onClick={() => inputRef.current?.click()}
         >
-          <Camera size={14} strokeWidth={2} aria-hidden />
-          {value ? 'Change photo' : 'Upload photo'}
-        </Button>
+          <Camera size={18} strokeWidth={2} aria-hidden />
+        </button>
         {value ? (
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
+            className="pd-partner-photo__remove"
+            aria-label="Remove photo"
             onClick={() => onChange(undefined)}
           >
-            <Trash2 size={14} strokeWidth={2} aria-hidden />
-            Remove
-          </Button>
+            <X size={12} strokeWidth={2.5} aria-hidden />
+          </button>
         ) : null}
-        <p className="pd-partner-photo__hint">JPG, PNG or WebP · max 2 MB</p>
       </div>
+      {children ? (
+        <div className="pd-partner-photo__name">{children}</div>
+      ) : null}
     </div>
   )
 }

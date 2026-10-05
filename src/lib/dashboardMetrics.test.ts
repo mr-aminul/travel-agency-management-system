@@ -19,7 +19,7 @@ const clients: Client[] = [
     tenantId: TENANT_IDS.full,
     name: 'Nadia',
     phone: '01711111111',
-    services: ['Manpower'],
+    services: ['Work Permit Visa'],
     balance: 10000,
     activeCases: 1,
     status: 'Active',
@@ -35,7 +35,7 @@ const cases: Case[] = [
     caseId: 'SR-1',
     clientId: 'c-1',
     clientName: 'Nadia',
-    service: 'Manpower',
+    service: 'Work Permit Visa',
     status: 'In-Progress',
     stage: 'Processing',
     currentStepId: 'medical',
@@ -72,7 +72,7 @@ const cases: Case[] = [
     caseId: 'SR-2',
     clientId: 'c-1',
     clientName: 'Nadia',
-    service: 'Ticketing',
+    service: 'Air Ticket',
     status: 'Completed',
     stage: 'Closed',
     currentStepId: 'ticket',
@@ -137,7 +137,7 @@ describe('dashboard overview table', () => {
       outstanding: 10000,
       employees: 1,
       pendingRequests: 1,
-      serviceCounts: { Manpower: 1, Ticketing: 1 },
+      serviceCounts: { 'Work Permit Visa': 1, 'Air Ticket': 1 },
     })
   })
 
@@ -168,7 +168,7 @@ describe('dashboard overview table', () => {
       filterDashboardRows(rows, 'open-services').map((row) => row.id),
     ).toEqual(['service:case-open'])
     expect(
-      filterDashboardRows(rows, 'svc:Manpower').map((row) => row.id),
+      filterDashboardRows(rows, 'svc:Work Permit Visa').map((row) => row.id),
     ).toEqual(['service:case-open'])
     expect(rows.find((row) => row.id === 'service:case-open')?.checklist).toBe(
       '1/2 docs',
@@ -194,13 +194,13 @@ describe('dashboard overview table', () => {
     expect(
       sortServicesByVolume(
         [
-          { value: 'Leisure', label: 'Leisure' },
-          { value: 'Manpower', label: 'Manpower' },
-          { value: 'Student', label: 'Student' },
-          { value: 'Ticketing', label: 'Ticketing' },
+          { value: 'Tour Package', label: 'Tour Package' },
+          { value: 'Work Permit Visa', label: 'Work Permit Visa' },
+          { value: 'Student Visa', label: 'Student Visa' },
+          { value: 'Air Ticket', label: 'Air Ticket' },
         ],
-        { Manpower: 2, Student: 1, Leisure: 1, Ticketing: 0 },
+        { 'Work Permit Visa': 2, 'Student Visa': 1, 'Tour Package': 1, 'Air Ticket': 0 },
       ).map((option) => option.value),
-    ).toEqual(['Manpower', 'Leisure', 'Student', 'Ticketing'])
+    ).toEqual(['Work Permit Visa', 'Student Visa', 'Tour Package', 'Air Ticket'])
   })
 })

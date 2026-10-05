@@ -1,40 +1,23 @@
 import {
-  Badge,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  type BadgeVariant,
 } from '@/components/ui'
 import {
   formatInvoiceAmount,
   formatInvoiceDate,
+  formatInvoiceWebsite,
   type CaseInvoice,
 } from '@/lib/caseInvoice'
 
-function statusLabel(status: CaseInvoice['status']): string {
-  if (status === 'paid') return 'Paid in full'
-  if (status === 'partial') return 'Partially paid'
-  return 'Unpaid'
-}
-
-function statusVariant(status: CaseInvoice['status']): BadgeVariant {
-  if (status === 'paid') return 'completed'
-  if (status === 'partial') return 'in-progress'
-  return 'pending'
-}
-
 type InvoiceDocumentProps = {
   invoice: CaseInvoice
-  highlightedPaymentId?: string
 }
 
-export function InvoiceDocument({
-  invoice,
-  highlightedPaymentId,
-}: InvoiceDocumentProps) {
+export function InvoiceDocument({ invoice }: InvoiceDocumentProps) {
   return (
     <article className="pd-invoice">
       <header className="pd-invoice__header">
@@ -51,16 +34,24 @@ export function InvoiceDocument({
               decoding="async"
             />
           ) : null}
-          <p className="pd-invoice__agency-name">{invoice.agencyName}</p>
+          <div className="pd-invoice__brand-details">
+            <p className="pd-invoice__agency-name">{invoice.agencyName}</p>
+            {invoice.agencyAddress ? (
+              <p className="pd-invoice__muted">{invoice.agencyAddress}</p>
+            ) : null}
+            {invoice.agencyMobile ? (
+              <p className="pd-invoice__muted">{invoice.agencyMobile}</p>
+            ) : null}
+            {invoice.agencyWebsite ? (
+              <p className="pd-invoice__muted">
+                {formatInvoiceWebsite(invoice.agencyWebsite)}
+              </p>
+            ) : null}
+          </div>
         </div>
         <div className="pd-invoice__meta">
           <h1 className="pd-invoice__title">Invoice</h1>
-          <div className="pd-invoice__meta-row">
-            <p className="pd-invoice__number">{invoice.invoiceNumber}</p>
-            <Badge variant={statusVariant(invoice.status)}>
-              {statusLabel(invoice.status)}
-            </Badge>
-          </div>
+          <p className="pd-invoice__number">{invoice.invoiceNumber}</p>
           <p className="pd-invoice__issued">
             <span>Issued</span>
             {formatInvoiceDate(invoice.issuedOn)}
@@ -70,20 +61,7 @@ export function InvoiceDocument({
 
       <section className="pd-invoice__parties">
         <div className="pd-invoice__party">
-          <h2 className="pd-invoice__section-label">From</h2>
-          <p className="pd-invoice__party-name">{invoice.agencyName}</p>
-          {invoice.agencyAddress ? (
-            <p className="pd-invoice__muted">{invoice.agencyAddress}</p>
-          ) : null}
-          {invoice.agencyMobile ? (
-            <p className="pd-invoice__muted">{invoice.agencyMobile}</p>
-          ) : null}
-          {invoice.agencyWebsite ? (
-            <p className="pd-invoice__muted">{invoice.agencyWebsite}</p>
-          ) : null}
-        </div>
-        <div className="pd-invoice__party pd-invoice__party--to">
-          <h2 className="pd-invoice__section-label">To</h2>
+          <h2 className="pd-invoice__section-label">Billed To</h2>
           <p className="pd-invoice__party-name">{invoice.clientName}</p>
           {invoice.clientAddress ? (
             <p className="pd-invoice__muted">{invoice.clientAddress}</p>
@@ -104,7 +82,7 @@ export function InvoiceDocument({
 
       <section aria-labelledby="invoice-charges">
         <h2 id="invoice-charges" className="pd-invoice__section-label">
-          Charges
+          Service Charges
         </h2>
         <Table>
           <TableHeader>
@@ -142,14 +120,7 @@ export function InvoiceDocument({
             </TableHeader>
             <TableBody>
               {invoice.payments.map((payment) => (
-                <TableRow
-                  key={payment.id}
-                  className={
-                    payment.id === highlightedPaymentId
-                      ? 'pd-invoice__row is-highlight'
-                      : 'pd-invoice__row'
-                  }
-                >
+                <TableRow key={payment.id} className="pd-invoice__row">
                   <TableCell>{formatInvoiceDate(payment.date)}</TableCell>
                   <TableCell>{payment.method}</TableCell>
                   <TableCell>{payment.note || '—'}</TableCell>

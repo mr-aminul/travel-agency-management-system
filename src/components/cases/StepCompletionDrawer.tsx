@@ -2,11 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { FileViewer } from '@/components/cases/FileViewer'
 import { Button, Input, SideDrawer, Textarea } from '@/components/ui'
 import { getStepDef, templateCountry } from '@/lib/caseChecklist'
-import {
-  getStepRequirement,
-  type StepCompletionInput,
-  type StepUploadValue,
-} from '@/lib/caseStepRequirements'
+import { getStepRequirement, type StepCompletionInput, type StepUploadValue } from '@/lib/caseStepRequirements'
+import { formatDisplayDate } from '@/lib/formatDate'
 import { updateCaseStep } from '@/lib/casesStore'
 import { completeCaseStepWithSync } from '@/lib/caseWorkflow'
 import { storeFile } from '@/lib/fileStore'
@@ -23,11 +20,19 @@ export type StepCompletionDrawerProps = {
   onClose: () => void
 }
 
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
+function ReadOnlyField({
+  label,
+  value,
+  isDate,
+}: {
+  label: string
+  value: string
+  isDate?: boolean
+}) {
   return (
     <div className="pd-step-view__field">
       <dt>{label}</dt>
-      <dd>{value || '—'}</dd>
+      <dd>{isDate ? formatDisplayDate(value) : value || '—'}</dd>
     </div>
   )
 }
@@ -182,14 +187,7 @@ export function StepCompletionDrawer({
         <div className="pd-step-view">
           {item.steps[activeStepId]?.completedAt ? (
             <p className="pd-step-view__meta">
-              Completed{' '}
-              {new Date(
-                `${item.steps[activeStepId].completedAt}T00:00:00`,
-              ).toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })}
+              Completed {formatDisplayDate(item.steps[activeStepId].completedAt)}
             </p>
           ) : null}
 
@@ -199,6 +197,7 @@ export function StepCompletionDrawer({
                 key={field.key}
                 label={field.label}
                 value={fields[field.key] ?? ''}
+                isDate={field.type === 'date'}
               />
             ))}
           </dl>

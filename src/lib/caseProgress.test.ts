@@ -13,31 +13,31 @@ describe('case progress spine', () => {
     const client = createClient({
       name: 'Test Client',
       phone: `017${Date.now().toString().slice(-8)}`,
-      primaryService: 'Manpower',
+      primaryService: 'Work Permit Visa',
       idChecked: true,
     })
     const created = createCase({
       clientId: client.id,
-      service: 'Manpower',
+      service: 'Work Permit Visa',
     })
 
     expect(created.currentStepId).toBe('registered')
     expect(getCurrentStepLabel(created)).toBe('Registered')
     expect(getNextStepDef(created)?.id).toBe('shortlisted')
     expect(created.documents.length).toBeGreaterThan(0)
-    expect(getStepRequirement('Manpower', 'registered')).toBeTruthy()
+    expect(getStepRequirement('Work Permit Visa', 'registered')).toBeTruthy()
   })
 
   it('blocks advance when required step data is missing', () => {
     const client = createClient({
       name: 'Blocked Client',
       phone: `016${Date.now().toString().slice(-8)}`,
-      primaryService: 'Student',
+      primaryService: 'Student Visa',
       idChecked: true,
     })
     const created = createCase({
       clientId: client.id,
-      service: 'Student',
+      service: 'Student Visa',
     })
 
     const blocked = completeCurrentStep(created.id, { fields: {}, uploads: [] })
@@ -49,12 +49,12 @@ describe('case progress spine', () => {
     const client = createClient({
       name: 'Advance Client',
       phone: `018${Date.now().toString().slice(-8)}`,
-      primaryService: 'Ticketing',
+      primaryService: 'Air Ticket',
       idChecked: true,
     })
     const created = createCase({
       clientId: client.id,
-      service: 'Ticketing',
+      service: 'Air Ticket',
       balance: 5000,
     })
 

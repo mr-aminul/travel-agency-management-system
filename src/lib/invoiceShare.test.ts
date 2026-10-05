@@ -3,6 +3,7 @@ import type { CaseInvoice } from '@/lib/caseInvoice'
 import {
   decodeInvoiceShare,
   encodeInvoiceShare,
+  invoiceForDocument,
   publicInvoicePath,
 } from '@/lib/invoiceShare'
 
@@ -11,7 +12,7 @@ const invoice: CaseInvoice = {
   issuedOn: '2026-01-15',
   caseRef: 'SR-00101',
   caseInternalId: 'case-101',
-  service: 'Manpower',
+  service: 'Work Permit Visa',
   destination: 'Riyadh, Saudi Arabia',
   agencyName: 'Horizon Manpower',
   agencyAddress: 'Suite 5B, 88 Motijheel Commercial Area, Dhaka 1000',
@@ -24,7 +25,7 @@ const invoice: CaseInvoice = {
   clientEmail: 'rahim.uddin@email.com',
   clientAddress: 'Mirpur, Dhaka',
   clientPassport: 'A12345678',
-  lineDescription: 'Manpower package — Riyadh, Saudi Arabia',
+  lineDescription: 'Work Permit Visa package — Riyadh, Saudi Arabia',
   packageTotal: 50000,
   paidTotal: 15000,
   balanceDue: 35000,
@@ -55,6 +56,19 @@ describe('invoice share token', () => {
     })
     expect(decodeInvoiceShare(token)?.agencyLogoUrl).toBeUndefined()
     expect(decodeInvoiceShare(token)?.agencyLogoIsCustom).toBe(false)
+  })
+
+  it('applies the same logo defaults used by both invoice views', () => {
+    expect(
+      invoiceForDocument(
+        { ...invoice, agencyLogoUrl: undefined, agencyLogoIsCustom: true },
+        '/images/logo.svg',
+      ),
+    ).toEqual({
+      ...invoice,
+      agencyLogoUrl: '/images/logo.svg',
+      agencyLogoIsCustom: false,
+    })
   })
 
   it('rejects a broken token', () => {

@@ -1,9 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { PartnerPhotoField } from '@/components/PartnerPhotoField'
+import { ClientCustomFieldControl } from '@/components/clients/ClientCustomFieldControl'
 import { Badge, Button, Checkbox, Input, Select } from '@/components/ui'
+import {
+  compactCustomFieldValues,
+  emptyCustomFieldValues,
+  missingRequiredCustomFields,
+} from '@/lib/clientCustomFields'
+import {
+  useClientProfileFields,
+  useClientProfileFieldsForTenant,
+} from '@/lib/clientProfileFieldsStore'
 import { usePartners } from '@/lib/partnersStore'
 import { getClientByPhone, normalizePhone } from '@/lib/clientsStore'
-import { DESTINATION_COUNTRIES } from '@/lib/destinationCountries'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 import type { CreateClientInput, ServiceType } from '@/types/client'
 
@@ -16,14 +25,6 @@ type NewClientFormProps = {
   submitLabel?: string
 }
 
-const COUNTRY_OPTIONS = [
-  { value: '', label: '—' },
-  ...DESTINATION_COUNTRIES.map((country) => ({
-    value: country,
-    label: country,
-  })),
-]
-
 export function NewClientForm({
   onSubmit,
   onCancel,
@@ -34,6 +35,9 @@ export function NewClientForm({
 }: NewClientFormProps) {
   const isPublic = variant === 'public'
   const serviceOptions = useEnabledServiceOptions(serviceTenantId)
+  const tenantCustomFields = useClientProfileFieldsForTenant(serviceTenantId)
+  const sessionCustomFields = useClientProfileFields()
+  const customFieldDefs = isPublic ? tenantCustomFields : sessionCustomFields
   const partners = usePartners()
   const [name, setName] = useState('')
   const [fatherName, setFatherName] = useState('')
@@ -48,12 +52,11 @@ export function NewClientForm({
   const [passportIssuedOn, setPassportIssuedOn] = useState('')
   const [passportPlaceOfIssue, setPassportPlaceOfIssue] = useState('')
   const [address, setAddress] = useState('')
-  const [profession, setProfession] = useState('')
-  const [preferredCountry, setPreferredCountry] = useState('')
+  const [customFields, setCustomFields] = useState<Record<string, string>>({})
   const [partnerId, setPartnerId] = useState(defaultPartnerId ?? '')
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>()
   const [primaryService, setPrimaryService] = useState<ServiceType>(
-    () => serviceOptions[0]?.value ?? 'Leisure',
+    () => serviceOptions[0]?.value ?? 'Tour Package',
   )
   const [idChecked, setIdChecked] = useState(isPublic)
   const [openFirstCase, setOpenFirstCase] = useState(!isPublic)
@@ -78,12 +81,20 @@ export function NewClientForm({
     triedSubmit && !idChecked
       ? 'Confirm the mobile number duplicate check.'
       : undefined
+  const customFieldValues = emptyCustomFieldValues(customFieldDefs, customFields)
+  const missingCustom = missingRequiredCustomFields(
+    customFieldDefs,
+    customFieldValues,
+  )
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     setTriedSubmit(true)
     if (!name.trim() || !phone.trim() || existingClient) return
     if (!isPublic && !idChecked) return
+    if (missingRequiredCustomFields(customFieldDefs, customFieldValues).length) {
+      return
+    }
 
     onSubmit({
       name,
@@ -95,8 +106,7 @@ export function NewClientForm({
       email,
       address,
       presentAddress: address,
-      profession,
-      preferredCountry,
+      customFields: compactCustomFieldValues(customFieldValues),
       partnerId: defaultPartnerId || partnerId || undefined,
       avatarUrl,
       nid,
@@ -120,19 +130,12 @@ export function NewClientForm({
     >
       <div className="pd-clients-form__scroll">
         <div className="pd-clients-form__block">
-          <p className="pd-clients-form__heading">Client</p>
-          <p className="pd-clients-form__hint">
-            Mobile number is the unique identifier. One person across every
-            service.
-          </p>
           <PartnerPhotoField
             name={name}
             fallbackName="Client"
             value={avatarUrl}
             onChange={setAvatarUrl}
-          />
-
-          <div className="pd-clients-form__grid">
+          >
             <Input
               label="Full name"
               required
@@ -141,6 +144,9 @@ export function NewClientForm({
               placeholder="Client name"
               error={nameError}
             />
+          </PartnerPhotoField>
+
+          <div className="pd-clients-form__grid">
             <Select
               label="Primary service"
               required
@@ -227,18 +233,24 @@ export function NewClientForm({
               value={passportPlaceOfIssue}
               onChange={(event) => setPassportPlaceOfIssue(event.target.value)}
             />
-            <Input
-              label="Profession"
-              value={profession}
-              onChange={(event) => setProfession(event.target.value)}
-            />
-            <Select
-              label="Preferred country"
-              value={preferredCountry}
-              searchable
-              onChange={(event) => setPreferredCountry(event.target.value)}
-              options={COUNTRY_OPTIONS}
-            />
+            {customFieldDefs.map((field) => (
+              <ClientCustomFieldControl
+                key={field.id}
+                field={field}
+                value={customFieldValues[field.id] ?? ''}
+                error={
+                  triedSubmit && missingCustom.includes(field.label)
+                    ? `${field.label} is required.`
+                    : undefined
+                }
+                onChange={(value) =>
+                  setCustomFields((current) => ({
+                    ...current,
+                    [field.id]: value,
+                  }))
+                }
+              />
+            ))}
             {isPublic ? null : (
               <Select
                 label="Sub Agent"

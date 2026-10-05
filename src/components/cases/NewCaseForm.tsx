@@ -45,7 +45,7 @@ export function NewCaseForm({
     defaultService &&
     serviceOptions.some((option) => option.value === defaultService)
       ? defaultService
-      : (serviceOptions[0]?.value ?? 'Leisure')
+      : (serviceOptions[0]?.value ?? 'Tour Package')
   const [clientId, setClientId] = useState(defaultClientId)
   const [service, setService] = useState<ServiceType>(resolvedDefault)
   const [destination, setDestination] = useState('')
