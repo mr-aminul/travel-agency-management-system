@@ -272,6 +272,7 @@ export function Sidebar({
           className={[
             'pd-app-logo',
             'pd-app-logo--sm',
+            'pd-app-logo--round',
             isCustomLogo && 'pd-app-logo--photo',
           ]
             .filter(Boolean)

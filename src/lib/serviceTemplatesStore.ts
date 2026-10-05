@@ -8,6 +8,7 @@ import {
 import { useAuth } from '@/lib/useAuth'
 import { slugifyServiceName } from '@/types/case'
 import { DEFAULT_TENANT_ID } from '@/types/tenant'
+import { syncDocumentUnlockSteps } from '@/lib/stepDocumentLinks'
 import type {
   ServiceDocumentConfig,
   ServiceStepConfig,
@@ -45,7 +46,17 @@ function normalizeStep(value: unknown): ServiceStepConfig | undefined {
   const id = typeof value.id === 'string' ? value.id.trim() : ''
   const label = typeof value.label === 'string' ? value.label.trim() : ''
   if (!id || !label) return undefined
-  return { id, label }
+  const requiredDocumentIds = Array.isArray(value.requiredDocumentIds)
+    ? value.requiredDocumentIds
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : undefined
+  return {
+    id,
+    label,
+    ...(requiredDocumentIds?.length ? { requiredDocumentIds } : {}),
+  }
 }
 
 function normalizeDocument(value: unknown): ServiceDocumentConfig | undefined {
@@ -218,13 +229,14 @@ export function saveServiceTemplate(input: {
 }): ServiceTemplateOverride {
   const serviceName = input.serviceName.trim()
   const country = normalizeCountryName(input.country ?? '')
-  const steps = input.steps
+  const rawSteps = input.steps
     .map((step) => ({
       id: step.id.trim() || nextTemplateItemId(step.label, []),
       label: step.label.trim(),
+      requiredDocumentIds: step.requiredDocumentIds,
     }))
     .filter((step) => step.label.length > 0)
-  const documents = input.documents
+  const rawDocuments = input.documents
     .map((doc) => ({
       id: doc.id.trim() || nextTemplateItemId(doc.name, []),
       name: doc.name.trim(),
@@ -234,9 +246,11 @@ export function saveServiceTemplate(input: {
     .filter((doc) => doc.name.length > 0)
 
   if (!serviceName) throw new Error('Choose a service to configure.')
-  if (steps.length === 0) {
+  if (rawSteps.length === 0) {
     throw new Error('Add at least one status step for this service.')
   }
+
+  const { steps, documents } = syncDocumentUnlockSteps(rawSteps, rawDocuments)
 
   const active = tenantId()
   const current = getServiceTemplateOverride(serviceName, country, active)

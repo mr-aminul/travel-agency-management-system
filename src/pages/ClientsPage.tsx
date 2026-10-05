@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { LayoutGrid, Table2, UserCheck, Users, UserPlus, Wallet } from 'lucide-react'
+import {
+  CheckCircle2,
+  FolderOpen,
+  LayoutGrid,
+  Table2,
+  Users,
+  Wallet,
+} from 'lucide-react'
 import { AddClientSplitButton } from '@/components/clients/AddClientSplitButton'
 import { NewClientForm } from '@/components/clients/NewClientForm'
+import { caseStatusBadgeVariant } from '@/components/cases/CasesList'
 import { StatCards } from '@/components/StatCards'
 import {
   Avatar,
@@ -19,18 +27,25 @@ import {
   TableHeader,
   TableRow,
   Tooltip,
-  type BadgeVariant,
 } from '@/components/ui'
+import { useCases } from '@/lib/casesStore'
+import {
+  clientMatchesServiceStatusFilters,
+  deriveClientServiceStatus,
+  groupCasesByClientId,
+} from '@/lib/clientServiceStatus'
 import { createClient, formatBalance, getEnabledServiceTypeOptions, useClients } from '@/lib/clientsStore'
 import { formatBdt } from '@/lib/dashboardMetrics'
 import { usePartners } from '@/lib/partnersStore'
-import type { Client, ClientStatus, CreateClientInput, ServiceType } from '@/types/client'
+import type { Case } from '@/types/case'
+import type { Client, CreateClientInput, ServiceType } from '@/types/client'
 import '@/styles/layout-clients.css'
 
-type ClientStatId = 'all' | 'Active' | 'Deployed' | 'due'
+type ClientStatId = 'all' | 'open' | 'Completed' | 'due'
 type ClientsListView = 'table' | 'grid'
 
 const CLIENTS_LIST_VIEW_KEY = 'clients-list-view'
+const OPEN_STATUSES = ['Pending', 'In-Progress', 'On-Hold'] as const
 
 function readClientsListView(): ClientsListView {
   try {
@@ -51,17 +66,18 @@ function persistClientsListView(view: ClientsListView) {
 }
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
-  { value: 'Active', label: 'Active' },
-  { value: 'Deployed', label: 'Deployed' },
-  { value: 'Lead', label: 'Lead' },
-  { value: 'Inactive', label: 'Inactive' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'In-Progress', label: 'In progress' },
+  { value: 'On-Hold', label: 'On hold' },
+  { value: 'Completed', label: 'Completed' },
+  { value: 'Cancelled', label: 'Cancelled' },
 ]
 
-function statusBadgeVariant(status: ClientStatus): BadgeVariant {
-  if (status === 'Deployed') return 'completed'
-  if (status === 'Lead') return 'pending'
-  if (status === 'Inactive') return 'on-hold'
-  return 'neutral'
+function isOpenStatusFilter(statusFilters: string[]): boolean {
+  return (
+    statusFilters.length === OPEN_STATUSES.length &&
+    OPEN_STATUSES.every((status) => statusFilters.includes(status))
+  )
 }
 
 function formatMobile(phone: string): string {
@@ -74,6 +90,7 @@ function matchesFilters(
   serviceFilters: string[],
   statusFilters: string[],
   partnerName: string,
+  clientCases: Case[],
 ): boolean {
   const q = search.trim().toLowerCase()
   const phoneDigits = formatMobile(client.phone)
@@ -91,8 +108,10 @@ function matchesFilters(
     serviceFilters.some((service) =>
       client.services.includes(service as ServiceType),
     )
-  const matchStatus =
-    statusFilters.length === 0 || statusFilters.includes(client.status)
+  const matchStatus = clientMatchesServiceStatusFilters(
+    clientCases,
+    statusFilters,
+  )
   return matchSearch && matchService && matchStatus
 }
 
@@ -100,6 +119,7 @@ export default function ClientsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const clients = useClients()
+  const cases = useCases()
   const partners = usePartners()
   const [search, setSearch] = useState('')
   const [serviceFilters, setServiceFilters] = useState<string[]>([])
@@ -112,30 +132,39 @@ export default function ClientsPage() {
     () => new Map(partners.map((partner) => [partner.id, partner.name])),
     [partners],
   )
+  const casesByClientId = useMemo(() => groupCasesByClientId(cases), [cases])
 
   const partnerNameFor = (client: Client) =>
     client.partnerId ? (partnersById.get(client.partnerId) ?? '') : ''
+  const casesFor = (clientId: string) => casesByClientId.get(clientId) ?? []
+  const statusFor = (clientId: string) =>
+    deriveClientServiceStatus(casesFor(clientId))
 
   useEffect(() => {
     setNewClientOpen(searchParams.get('new') === '1')
   }, [searchParams])
 
   const stats = useMemo(() => {
-    let active = 0
-    let deployed = 0
+    let open = 0
+    let completed = 0
     let outstanding = 0
     for (const client of clients) {
-      if (client.status === 'Active') active += 1
-      if (client.status === 'Deployed') deployed += 1
+      if (client.activeCases > 0) open += 1
+      if (
+        deriveClientServiceStatus(casesByClientId.get(client.id) ?? []) ===
+        'Completed'
+      ) {
+        completed += 1
+      }
       outstanding += client.balance
     }
     return {
       total: clients.length,
-      active,
-      deployed,
+      open,
+      completed,
       outstanding,
     }
-  }, [clients])
+  }, [clients, casesByClientId])
 
   const filtered = clients.filter((client) => {
     if (dueOnly && client.balance <= 0) return false
@@ -145,6 +174,7 @@ export default function ClientsPage() {
       serviceFilters,
       statusFilters,
       partnerNameFor(client),
+      casesFor(client.id),
     )
   })
   const hasActiveFilters =
@@ -152,12 +182,13 @@ export default function ClientsPage() {
 
   const selectedStat: ClientStatId | undefined = dueOnly
     ? 'due'
-    : statusFilters.length === 1 &&
-      (statusFilters[0] === 'Active' || statusFilters[0] === 'Deployed')
-      ? statusFilters[0]
-      : statusFilters.length === 0
-        ? 'all'
-        : undefined
+    : isOpenStatusFilter(statusFilters)
+      ? 'open'
+      : statusFilters.length === 1 && statusFilters[0] === 'Completed'
+        ? 'Completed'
+        : statusFilters.length === 0
+          ? 'all'
+          : undefined
 
   const selectStat = (id: string) => {
     const next = id as ClientStatId
@@ -172,7 +203,11 @@ export default function ClientsPage() {
       return
     }
     setDueOnly(false)
-    setStatusFilters([next])
+    if (next === 'open') {
+      setStatusFilters([...OPEN_STATUSES])
+      return
+    }
+    setStatusFilters(['Completed'])
   }
 
   const selectListView = (view: ClientsListView) => {
@@ -219,17 +254,17 @@ export default function ClientsPage() {
             tone: 'brand',
           },
           {
-            id: 'Active',
-            label: 'Active',
-            value: String(stats.active),
-            icon: UserPlus,
+            id: 'open',
+            label: 'Open services',
+            value: String(stats.open),
+            icon: FolderOpen,
             tone: 'info',
           },
           {
-            id: 'Deployed',
-            label: 'Deployed',
-            value: String(stats.deployed),
-            icon: UserCheck,
+            id: 'Completed',
+            label: 'Completed',
+            value: String(stats.completed),
+            icon: CheckCircle2,
             tone: 'success',
           },
           {
@@ -352,6 +387,7 @@ export default function ClientsPage() {
         <div className="pd-clients__grid">
           {filtered.map((client) => {
             const partnerName = partnerNameFor(client)
+            const serviceStatus = statusFor(client.id)
             return (
               <button
                 key={client.id}
@@ -368,9 +404,11 @@ export default function ClientsPage() {
                     />
                     <p className="pd-clients__name">{client.name}</p>
                   </div>
-                  <Badge variant={statusBadgeVariant(client.status)}>
-                    {client.status}
-                  </Badge>
+                  {serviceStatus ? (
+                    <Badge variant={caseStatusBadgeVariant(serviceStatus)}>
+                      {serviceStatus}
+                    </Badge>
+                  ) : null}
                 </div>
                 <dl className="pd-clients__card-meta">
                   <div className="pd-clients__card-row">
@@ -414,36 +452,43 @@ export default function ClientsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((client) => (
-              <TableRow
-                key={client.id}
-                className="pd-clients__row"
-                onClick={() => navigate(`/clients/${client.id}`)}
-              >
-                <TableCell>
-                  <div className="pd-clients__identity">
-                    <Avatar
-                      name={client.name}
-                      src={client.avatarUrl}
-                      size="sm"
-                    />
-                    <p className="pd-clients__name">{client.name}</p>
-                  </div>
-                </TableCell>
-                <TableCell>{partnerNameFor(client) || '—'}</TableCell>
-                <TableCell>{formatMobile(client.phone)}</TableCell>
-                <TableCell>{client.passport || '—'}</TableCell>
-                <TableCell>{client.activeCases}</TableCell>
-                <TableCell className="pd-clients__balance">
-                  {formatBalance(client.balance)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={statusBadgeVariant(client.status)}>
-                    {client.status}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
+            {filtered.map((client) => {
+              const serviceStatus = statusFor(client.id)
+              return (
+                <TableRow
+                  key={client.id}
+                  className="pd-clients__row"
+                  onClick={() => navigate(`/clients/${client.id}`)}
+                >
+                  <TableCell>
+                    <div className="pd-clients__identity">
+                      <Avatar
+                        name={client.name}
+                        src={client.avatarUrl}
+                        size="sm"
+                      />
+                      <p className="pd-clients__name">{client.name}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>{partnerNameFor(client) || '—'}</TableCell>
+                  <TableCell>{formatMobile(client.phone)}</TableCell>
+                  <TableCell>{client.passport || '—'}</TableCell>
+                  <TableCell>{client.activeCases}</TableCell>
+                  <TableCell className="pd-clients__balance">
+                    {formatBalance(client.balance)}
+                  </TableCell>
+                  <TableCell>
+                    {serviceStatus ? (
+                      <Badge variant={caseStatusBadgeVariant(serviceStatus)}>
+                        {serviceStatus}
+                      </Badge>
+                    ) : (
+                      '—'
+                    )}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       )}

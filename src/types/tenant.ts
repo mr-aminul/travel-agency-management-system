@@ -5,7 +5,6 @@ export type TenantStatus = 'trial' | 'active' | 'suspended'
 export type ModuleId =
   | 'finance'
   | 'documents'
-  | 'reporting'
   | 'hr'
   | 'partners'
   | 'services.touristVisa'

@@ -60,9 +60,8 @@ const SEED_CLIENTS: Client[] = [
     avatarUrl: DUMMY_AVATAR_URL,
     partnerId: 'AGT-T0001',
     services: ['Work Permit Visa', 'Air Ticket'],
-    balance: 0,
-    activeCases: 0,
-    status: 'Active',
+    balance: 45000,
+    activeCases: 2,
     idChecked: true,
     createdAt: '2025-11-12',
   },
@@ -79,7 +78,6 @@ const SEED_CLIENTS: Client[] = [
     services: ['Student Visa'],
     balance: 0,
     activeCases: 0,
-    status: 'Active',
     idChecked: true,
     createdAt: '2026-01-08',
   },
@@ -93,7 +91,6 @@ const SEED_CLIENTS: Client[] = [
     services: ['Work Permit Visa'],
     balance: 0,
     activeCases: 0,
-    status: 'Deployed',
     idChecked: true,
     createdAt: '2025-08-20',
   },
@@ -109,7 +106,6 @@ const SEED_CLIENTS: Client[] = [
     services: ['Hajj/Umrah Visa'],
     balance: 0,
     activeCases: 0,
-    status: 'Active',
     idChecked: true,
     createdAt: '2026-02-14',
   },
@@ -121,7 +117,6 @@ const SEED_CLIENTS: Client[] = [
     services: ['Tour Package', 'Hotel Booking'],
     balance: 0,
     activeCases: 0,
-    status: 'Lead',
     idChecked: false,
     createdAt: '2026-03-01',
   },
@@ -136,7 +131,6 @@ const SEED_CLIENTS: Client[] = [
     services: ['Tourist Visa'],
     balance: 0,
     activeCases: 0,
-    status: 'Active',
     idChecked: true,
     createdAt: '2026-06-18',
   },
@@ -152,7 +146,6 @@ const SEED_CLIENTS: Client[] = [
     services: ['Medical Visa'],
     balance: 0,
     activeCases: 0,
-    status: 'Active',
     idChecked: true,
     createdAt: '2026-07-01',
   },
@@ -164,7 +157,6 @@ const SEED_CLIENTS: Client[] = [
     services: ['Tour Package'],
     balance: 0,
     activeCases: 0,
-    status: 'Lead',
     idChecked: false,
     createdAt: '2026-03-01',
   },
@@ -178,7 +170,6 @@ const SEED_CLIENTS: Client[] = [
     services: ['Air Ticket'],
     balance: 0,
     activeCases: 0,
-    status: 'Active',
     idChecked: true,
     createdAt: '2026-04-02',
   },
@@ -222,9 +213,8 @@ const SEED_CLIENTS: Client[] = [
     avatarUrl: DUMMY_AVATAR_URL,
     partnerId: 'AGT-M0001',
     services: ['Work Permit Visa'],
-    balance: 0,
-    activeCases: 0,
-    status: 'Active',
+    balance: 35000,
+    activeCases: 1,
     idChecked: true,
     createdAt: '2025-11-12',
   },
@@ -239,7 +229,6 @@ const SEED_CLIENTS: Client[] = [
     services: ['Work Permit Visa'],
     balance: 0,
     activeCases: 0,
-    status: 'Deployed',
     idChecked: true,
     createdAt: '2025-08-20',
   },
@@ -293,13 +282,6 @@ function normalizeStoredClient(value: unknown): Client | undefined {
   const services = Array.isArray(value.services)
     ? value.services.filter((item): item is ServiceType => typeof item === 'string')
     : []
-  const status =
-    value.status === 'Active' ||
-    value.status === 'Deployed' ||
-    value.status === 'Lead' ||
-    value.status === 'Inactive'
-      ? value.status
-      : 'Lead'
   return {
     id,
     tenantId,
@@ -355,7 +337,6 @@ function normalizeStoredClient(value: unknown): Client | undefined {
     services: services.length ? services : ['Tour Package'],
     balance: typeof value.balance === 'number' ? value.balance : 0,
     activeCases: typeof value.activeCases === 'number' ? value.activeCases : 0,
-    status,
     idChecked: value.idChecked === true,
     createdAt: optionalString(value.createdAt) ?? new Date().toISOString().slice(0, 10),
   }
@@ -572,7 +553,6 @@ export function createClient(
     services: [input.primaryService],
     balance: 0,
     activeCases: 0,
-    status: 'Lead',
     idChecked: input.idChecked,
     createdAt: new Date().toISOString().slice(0, 10),
   }
@@ -648,7 +628,6 @@ export function renameServiceOnClients(
 }
 
 export function formatBalance(amount: number): string {
-  if (!amount) return '—'
   return `৳ ${amount.toLocaleString('en-BD')}`
 }
 

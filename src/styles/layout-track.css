@@ -335,14 +335,14 @@
 }
 
 .pd-track__step--done .pd-track__marker {
-  border-color: var(--color-theme);
+  border-color: var(--color-theme-ink);
   background: var(--color-theme);
   color: var(--color-on-theme);
 }
 
 .pd-track__step--current .pd-track__marker {
-  border-color: var(--color-theme);
-  color: var(--color-theme);
+  border-color: var(--color-theme-ink);
+  color: var(--color-theme-ink);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-theme) 16%, transparent);
 }
 

@@ -16,6 +16,7 @@ import {
   Textarea,
   Tooltip,
 } from '@/components/ui'
+import { ServiceIconPicker } from '@/components/settings/ServiceIconPicker'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { resolveServiceTemplate } from '@/lib/resolveServiceTemplate'
 import { isBuiltinService } from '@/types/case'
@@ -31,6 +32,8 @@ import {
   useCatalogServiceRefs,
   useHiddenBuiltinCatalogOptions,
 } from '@/lib/serviceCatalog'
+import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
+import { iconForService, type ServiceIconId } from '@/lib/serviceIcons'
 import { useServiceTemplates } from '@/lib/serviceTemplatesStore'
 import {
   serviceCatalogEditorPath,
@@ -59,6 +62,7 @@ export function ServicesSettingsSection({
   const navigate = useNavigate()
   const refs = useCatalogServiceRefs()
   useServiceTemplates()
+  useServiceIconOverrides()
   const hiddenBuiltins = useHiddenBuiltinCatalogOptions()
   const catalog = refs.map((item) => {
     const template = resolveServiceTemplate(item.key)
@@ -73,6 +77,7 @@ export function ServicesSettingsSection({
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [iconId, setIconId] = useState<ServiceIconId | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [composerOpen, setComposerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
@@ -81,6 +86,7 @@ export function ServicesSettingsSection({
     setComposerOpen(false)
     setName('')
     setDescription('')
+    setIconId(null)
     setError(null)
   }
 
@@ -88,7 +94,7 @@ export function ServicesSettingsSection({
     event.preventDefault()
     setError(null)
     try {
-      const created = createCustomService({ name, description })
+      const created = createCustomService({ name, description, iconId })
       closeComposer()
       navigate(serviceCatalogEditorPath(created.name))
     } catch (caught) {
@@ -146,6 +152,7 @@ export function ServicesSettingsSection({
             <TableBody>
               {catalog.map((item) => {
                 const href = serviceCatalogEditorPath(item.key)
+                const Icon = iconForService(item.key)
                 return (
                   <TableRow
                     key={item.key}
@@ -158,6 +165,9 @@ export function ServicesSettingsSection({
                         className="pd-settings-catalog__name"
                         onClick={(event) => event.stopPropagation()}
                       >
+                        <span className="pd-settings-catalog__icon" aria-hidden>
+                          <Icon size={15} strokeWidth={2.25} />
+                        </span>
                         {item.label}
                       </Link>
                     </TableCell>
@@ -285,6 +295,11 @@ export function ServicesSettingsSection({
             placeholder="What this service covers (optional)"
             value={description}
             onChange={(event) => setDescription(event.target.value)}
+          />
+          <ServiceIconPicker
+            value={iconId}
+            serviceName={name}
+            onChange={setIconId}
           />
           {error ? (
             <p

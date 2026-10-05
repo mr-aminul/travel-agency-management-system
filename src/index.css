@@ -17,7 +17,7 @@ body {
   font-size: var(--text-body);
   line-height: 1.5;
   color: var(--color-text);
-  background: var(--color-bg);
+  background: var(--color-cream);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -46,5 +46,5 @@ body {
 
 .pd-route-fallback {
   min-height: 100%;
-  background: var(--color-bg);
+  background: var(--color-cream);
 }

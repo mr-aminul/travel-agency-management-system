@@ -22,7 +22,10 @@ import {
 import { createPartner, usePartners } from '@/lib/partnersStore'
 import { normalizePhone } from '@/lib/clientsStore'
 import { useClients } from '@/lib/clientsStore'
+import { useCases } from '@/lib/casesStore'
+import { derivePartnerActivityStatus } from '@/lib/clientServiceStatus'
 import type { Partner, PartnerDraft, PartnerStatus } from '@/types/partner'
+import type { Case } from '@/types/case'
 import '@/styles/layout-clients.css'
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
@@ -41,6 +44,7 @@ function matchesFilters(
   search: string,
   branchFilters: string[],
   statusFilters: string[],
+  activityStatus: PartnerStatus,
 ): boolean {
   const q = search.trim().toLowerCase()
   const phoneDigits = normalizePhone(partner.phone)
@@ -58,7 +62,7 @@ function matchesFilters(
     branchFilters.length === 0 ||
     (partner.branch ? branchFilters.includes(partner.branch) : false)
   const matchStatus =
-    statusFilters.length === 0 || statusFilters.includes(partner.status)
+    statusFilters.length === 0 || statusFilters.includes(activityStatus)
   return matchSearch && matchBranch && matchStatus
 }
 
@@ -67,6 +71,7 @@ export default function PartnersPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const partners = usePartners()
   const clients = useClients()
+  const cases = useCases()
   const [search, setSearch] = useState('')
   const [branchFilters, setBranchFilters] = useState<string[]>([])
   const [statusFilters, setStatusFilters] = useState<string[]>([])
@@ -95,12 +100,40 @@ export default function PartnersPage() {
     return counts
   }, [clients])
 
+  const casesByPartnerId = useMemo(() => {
+    const clientPartnerId = new Map(
+      clients
+        .filter((client) => client.partnerId)
+        .map((client) => [client.id, client.partnerId as string]),
+    )
+    const map = new Map<string, Case[]>()
+    for (const item of cases) {
+      const partnerId = clientPartnerId.get(item.clientId)
+      if (!partnerId) continue
+      const list = map.get(partnerId)
+      if (list) list.push(item)
+      else map.set(partnerId, [item])
+    }
+    return map
+  }, [cases, clients])
+
+  const activityStatusByPartner = useMemo(() => {
+    const map = new Map<string, PartnerStatus>()
+    for (const partner of partners) {
+      map.set(
+        partner.id,
+        derivePartnerActivityStatus(casesByPartnerId.get(partner.id) ?? []),
+      )
+    }
+    return map
+  }, [partners, casesByPartnerId])
+
   const stats = useMemo(() => {
     let active = 0
     let referredClients = 0
     let idle = 0
     for (const partner of partners) {
-      if (partner.status === 'Active') active += 1
+      if (activityStatusByPartner.get(partner.id) === 'Active') active += 1
       const referred = customerCountByPartner.get(partner.id) ?? 0
       referredClients += referred
       if (referred === 0) idle += 1
@@ -111,13 +144,19 @@ export default function PartnersPage() {
       referredClients,
       idle,
     }
-  }, [partners, customerCountByPartner])
+  }, [partners, customerCountByPartner, activityStatusByPartner])
 
   const filtered = partners.filter((partner) => {
     const referred = customerCountByPartner.get(partner.id) ?? 0
     if (clientFilter === 'referred' && referred === 0) return false
     if (clientFilter === 'idle' && referred > 0) return false
-    return matchesFilters(partner, search, branchFilters, statusFilters)
+    return matchesFilters(
+      partner,
+      search,
+      branchFilters,
+      statusFilters,
+      activityStatusByPartner.get(partner.id) ?? 'Inactive',
+    )
   })
   const hasActiveFilters =
     branchFilters.length > 0 ||
@@ -294,34 +333,42 @@ export default function PartnersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((partner) => (
-              <TableRow
-                key={partner.id}
-                className="pd-clients__row"
-                onClick={() => navigate(`/partners/${partner.id}`)}
-              >
-                <TableCell>
-                  <div className="pd-clients__identity">
-                    <Avatar
-                      name={partner.name}
-                      src={partner.photoUrl}
-                      size="sm"
-                    />
-                    <p className="pd-clients__name">{partner.name}</p>
-                  </div>
-                </TableCell>
-                <TableCell className="pd-table__code">{partner.id}</TableCell>
-                <TableCell>{normalizePhone(partner.phone) || partner.phone}</TableCell>
-                <TableCell>{partner.branch || '—'}</TableCell>
-                <TableCell>{partner.licenseNumber || '—'}</TableCell>
-                <TableCell>{customerCountByPartner.get(partner.id) ?? 0}</TableCell>
-                <TableCell>
-                  <Badge variant={statusBadgeVariant(partner.status)}>
-                    {partner.status}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
+            {filtered.map((partner) => {
+              const activityStatus =
+                activityStatusByPartner.get(partner.id) ?? 'Inactive'
+              return (
+                <TableRow
+                  key={partner.id}
+                  className="pd-clients__row"
+                  onClick={() => navigate(`/partners/${partner.id}`)}
+                >
+                  <TableCell>
+                    <div className="pd-clients__identity">
+                      <Avatar
+                        name={partner.name}
+                        src={partner.photoUrl}
+                        size="sm"
+                      />
+                      <p className="pd-clients__name">{partner.name}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="pd-table__code">{partner.id}</TableCell>
+                  <TableCell>
+                    {normalizePhone(partner.phone) || partner.phone}
+                  </TableCell>
+                  <TableCell>{partner.branch || '—'}</TableCell>
+                  <TableCell>{partner.licenseNumber || '—'}</TableCell>
+                  <TableCell>
+                    {customerCountByPartner.get(partner.id) ?? 0}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusBadgeVariant(activityStatus)}>
+                      {activityStatus}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       )}

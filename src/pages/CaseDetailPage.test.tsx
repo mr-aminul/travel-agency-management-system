@@ -1,17 +1,15 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { AuthProvider } from '@/lib/AuthProvider'
 import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import { TENANT_IDS } from '@/types/tenant'
-import { SERVICE_FEE_HIGHLIGHT_MS } from '@/components/cases/CasesList'
 import ClientDetailPage from '@/pages/ClientDetailPage'
 import CaseDetailPage from '@/pages/CaseDetailPage'
 
 afterEach(() => {
   cleanup()
   clearSession()
-  vi.useRealTimers()
 })
 
 function renderClient(path: string) {
@@ -38,7 +36,7 @@ describe('client overview', () => {
     renderClient('/clients/c-284')
 
     fireEvent.click(
-      within(screen.getByRole('banner')).getByRole('button', {
+      within(screen.getByLabelText('Client profile')).getByRole('button', {
         name: 'Add service',
       }),
     )
@@ -50,36 +48,37 @@ describe('client overview', () => {
     expect(screen.getByLabelText('Country')).toBeInTheDocument()
   })
 
-  it('shows total contracted service fee across this client’s services', () => {
+  it('shows client profile contact details and snapshot', () => {
     renderClient('/clients/c-284')
 
-    const summary = screen.getByLabelText('Summary')
-    const labels = within(summary)
-      .getAllByText(/Open services|Total service fee|Balance due/)
-      .map((node) => node.textContent)
-    expect(labels).toEqual(['Open services', 'Total service fee', 'Balance due'])
-    expect(within(summary).getByText('৳ 60,000')).toBeInTheDocument()
-
-    const header = screen.getByRole('banner')
-    expect(within(header).getByText('01712345678')).toBeInTheDocument()
-    expect(within(header).getByText('rahim.uddin@email.com')).toBeInTheDocument()
-    expect(within(header).queryByRole('link', { name: /@/ })).toBeNull()
+    const profile = screen.getByLabelText('Client profile')
+    expect(within(profile).getByText('01712345678')).toBeInTheDocument()
+    expect(within(profile).getByText('rahim.uddin@email.com')).toBeInTheDocument()
     expect(
-      within(header).getByRole('button', { name: 'Copy email address' }),
-    ).toBeInTheDocument()
-    expect(within(header).getByText('A12345678')).toBeInTheDocument()
+      within(profile).getByRole('link', { name: 'rahim.uddin@email.com' }),
+    ).toHaveAttribute('href', 'mailto:rahim.uddin@email.com')
     expect(
-      within(header).getByRole('button', { name: 'Copy passport number' }),
+      within(profile).getByRole('button', { name: 'Copy email address' }),
     ).toBeInTheDocument()
+    expect(within(profile).getByText('A12345678')).toBeInTheDocument()
+    expect(
+      within(profile).getByRole('button', { name: 'Copy passport number' }),
+    ).toBeInTheDocument()
+    expect(within(profile).getByLabelText('Call Md. Rahim Uddin')).toHaveAttribute(
+      'href',
+      'tel:01712345678',
+    )
+    expect(within(profile).getByText('Services')).toBeInTheDocument()
+    expect(within(profile).getByText('Due balance')).toBeInTheDocument()
+    expect(within(profile).getByText('৳ 45,000')).toBeInTheDocument()
   })
 
-  it('highlights the service fee column after opening services from the total', () => {
-    vi.useFakeTimers()
+  it('opens services from the profile snapshot', () => {
     renderClient('/clients/c-284')
 
     fireEvent.click(
-      within(screen.getByLabelText('Summary')).getByRole('button', {
-        name: /total service fee/i,
+      within(screen.getByLabelText('Snapshot')).getByRole('button', {
+        name: /services/i,
       }),
     )
 
@@ -87,31 +86,38 @@ describe('client overview', () => {
       'aria-selected',
       'true',
     )
+    expect(screen.getByLabelText('Md. Rahim Uddin services')).toBeInTheDocument()
+  })
 
-    const table = screen.getByLabelText('Md. Rahim Uddin services')
-    const feeHeader = within(table).getByRole('columnheader', {
-      name: 'Service fee',
-    })
-    expect(feeHeader).toHaveClass('is-highlight')
-    const feeCells = table.querySelectorAll('td.pd-cases__fee')
-    expect(feeCells).toHaveLength(2)
-    feeCells.forEach((cell) => expect(cell).toHaveClass('is-highlight'))
+  it('opens collect-payment in a side drawer from the payments banner', () => {
+    renderClient('/clients/c-284?tab=payments')
 
-    act(() => {
-      vi.advanceTimersByTime(SERVICE_FEE_HIGHLIGHT_MS)
-    })
+    expect(
+      screen.getByRole('heading', { name: /Payment History/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/Collect this amount to clear/i),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/Payment history stays below/i),
+    ).not.toBeInTheDocument()
 
-    expect(feeHeader).not.toHaveClass('is-highlight')
-    feeCells.forEach((cell) => expect(cell).not.toHaveClass('is-highlight'))
-    vi.useRealTimers()
+    fireEvent.click(screen.getByRole('button', { name: 'Collect payment' }))
+
+    expect(
+      screen.getByRole('dialog', { name: 'Collect payment' }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Amount (৳)')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Save payment' }),
+    ).toBeInTheDocument()
   })
 })
 
 describe('service detail', () => {
-  it('opens the service below the table on the same client page', () => {
+  it('opens the selected file in a workspace beside the list', () => {
     renderClient('/clients/c-284/services/case-101')
 
-    expect(screen.getByRole('link', { name: 'Back to Clients' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Md. Rahim Uddin' })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Add service' }).length).toBeGreaterThan(0)
     expect(screen.getByRole('tab', { name: 'Services' })).toHaveAttribute(
@@ -119,29 +125,38 @@ describe('service detail', () => {
       'true',
     )
 
-    const table = screen.getByLabelText('Md. Rahim Uddin services')
-    expect(within(table).getByText('Current step')).toBeInTheDocument()
-    expect(within(table).getByText('SR-00101')).toBeInTheDocument()
-    expect(within(table).getByText('SR-00102')).toBeInTheDocument()
-    expect(within(table).getByText('SR-00101').closest('tr')).toHaveAttribute(
-      'aria-selected',
-      'true',
+    const files = screen.getByLabelText('Md. Rahim Uddin services')
+    expect(within(files).getByRole('link', { name: 'Work Permit Visa, SR-00101' })).toHaveAttribute(
+      'aria-current',
+      'page',
     )
+    expect(within(files).getByRole('link', { name: 'Air Ticket, SR-00102' })).toBeInTheDocument()
+    expect(within(files).queryByRole('columnheader')).not.toBeInTheDocument()
 
     const service = screen.getByLabelText('Work Permit Visa (SR-00101)')
-    expect(within(service).getByRole('tab', { name: 'Overview' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    )
-    expect(within(service).queryByText('Current step')).not.toBeInTheDocument()
+    expect(within(service).getByRole('heading', { name: 'Work Permit Visa' })).toBeInTheDocument()
+    expect(within(service).getByText('In-Progress')).toBeInTheDocument()
+    expect(within(service).queryByRole('tablist')).not.toBeInTheDocument()
+    expect(within(service).queryByRole('tab', { name: 'Documents' })).not.toBeInTheDocument()
+    expect(within(service).queryByRole('tab', { name: 'Payments' })).not.toBeInTheDocument()
+    expect(within(service).queryByRole('tab', { name: 'Messages' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Case' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Travel' })).not.toBeInTheDocument()
 
     const facts = screen.getByLabelText('Service details')
-    expect(within(facts).getByRole('heading', { name: 'Work Permit Visa' })).toBeInTheDocument()
-    expect(within(facts).getByRole('button', { name: 'Request update' })).toBeInTheDocument()
+    expect(within(facts).getByText('Destination')).toBeInTheDocument()
+    expect(within(facts).getByText('Riyadh, Saudi Arabia')).toBeInTheDocument()
+    expect(within(facts).getByText('Departure')).toBeInTheDocument()
+    expect(within(facts).getByText('15-Sep-2026')).toBeInTheDocument()
+    expect(within(facts).getByText('Current step')).toBeInTheDocument()
+    expect(within(facts).getByText('Medical')).toBeInTheDocument()
+    expect(within(facts).getByText('Service fee')).toBeInTheDocument()
+    expect(within(facts).getByText('Balance due')).toBeInTheDocument()
+    expect(within(service).getByLabelText('Pipeline')).toBeInTheDocument()
+    expect(within(service).getByRole('heading', { name: 'Pipeline' })).toBeInTheDocument()
+    expect(within(service).getByRole('button', { name: 'Request update' })).toBeInTheDocument()
     expect(within(facts).getByText('Md. Karim Ahmed')).toBeInTheDocument()
-    expect(within(facts).getByText('4 needed')).toBeInTheDocument()
+    expect(within(facts).getByText('1 needed')).toBeInTheDocument()
     expect(
       within(facts).getByText(
         'Nurse recruitment for Al Rajhi Hospital. Medical + police clearance in progress.',
@@ -149,36 +164,20 @@ describe('service detail', () => {
     ).toBeInTheDocument()
   })
 
-  it('opens a row from the services table without leaving the list', () => {
+  it('opens the first file when landing on Services, then switches files from the list', () => {
     renderClient('/clients/c-284?tab=services')
 
-    const table = screen.getByLabelText('Md. Rahim Uddin services')
+    const files = screen.getByLabelText('Md. Rahim Uddin services')
+    expect(screen.getByLabelText('Work Permit Visa (SR-00101)')).toBeInTheDocument()
     expect(screen.queryByLabelText('Air Ticket (SR-00102)')).not.toBeInTheDocument()
 
-    fireEvent.click(within(table).getByText('SR-00102'))
+    fireEvent.click(within(files).getByRole('link', { name: 'Air Ticket, SR-00102' }))
 
     expect(screen.getByLabelText('Md. Rahim Uddin services')).toBeInTheDocument()
-    expect(within(table).getByText('SR-00101')).toBeInTheDocument()
     expect(screen.getByLabelText('Air Ticket (SR-00102)')).toBeInTheDocument()
-    expect(within(table).getByText('SR-00102').closest('tr')).toHaveAttribute(
-      'aria-selected',
-      'true',
-    )
-  })
-
-  it('opens documents from the overview facts without leaving the client page', () => {
-    renderClient('/clients/c-284/services/case-101')
-
-    const service = screen.getByLabelText('Work Permit Visa (SR-00101)')
-    const facts = screen.getByLabelText('Service details')
-    fireEvent.click(within(facts).getByRole('button', { name: /needed/i }))
-    expect(within(service).getByRole('tab', { name: 'Documents' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    )
-    expect(screen.getByLabelText('Document checklist')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Md. Rahim Uddin' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Md. Rahim Uddin services')).toBeInTheDocument()
+    expect(
+      within(files).getByRole('link', { name: 'Air Ticket, SR-00102' }),
+    ).toHaveAttribute('aria-current', 'page')
   })
 })
 

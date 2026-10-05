@@ -13,6 +13,7 @@ import { filterNavItems, isPathAllowed, signedInHomePath } from '@/lib/modules'
 import { queryClient } from '@/lib/queryClient'
 import { useActiveTenant } from '@/lib/useActiveTenant'
 import '@/styles/layout-shell.css'
+import '@/styles/layout-search.css'
 
 /* Shell-only font weights — login already has Inter 400/500 + PJ 800 */
 import '@fontsource/inter/latin-600.css'

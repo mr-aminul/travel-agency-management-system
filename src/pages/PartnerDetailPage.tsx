@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import {
+  Link,
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom'
 import {
   Calendar,
   Check,
   CircleDot,
-  ClipboardList,
   Contact,
   Copy,
   IdCard,
@@ -12,8 +17,8 @@ import {
   LayoutGrid,
   Mail,
   MapPin,
+  Pencil,
   Phone,
-  SquarePen,
   Table2,
   Users,
   Wallet,
@@ -22,9 +27,10 @@ import type { LucideIcon } from 'lucide-react'
 import { PartnerPhotoField } from '@/components/PartnerPhotoField'
 import { AddClientSplitButton } from '@/components/clients/AddClientSplitButton'
 import { NewClientForm } from '@/components/clients/NewClientForm'
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon'
 import {
+  Accordion,
   Avatar,
-  BackButton,
   Badge,
   Button,
   CopyableText,
@@ -45,7 +51,14 @@ import {
 } from '@/components/ui'
 import { updatePartner, usePartners } from '@/lib/partnersStore'
 import { formatDisplayDate } from '@/lib/formatDate'
-import { createCase } from '@/lib/casesStore'
+import { caseStatusBadgeVariant } from '@/components/cases/CasesList'
+import { createCase, useCases } from '@/lib/casesStore'
+import {
+  clientMatchesServiceStatusFilters,
+  deriveClientServiceStatus,
+  derivePartnerActivityStatus,
+  groupCasesByClientId,
+} from '@/lib/clientServiceStatus'
 import { workDetailPath } from '@/lib/workPaths'
 import {
   createClient,
@@ -55,31 +68,45 @@ import {
   useClients,
 } from '@/lib/clientsStore'
 import { usePayments } from '@/lib/paymentsStore'
-import { useRequests } from '@/lib/requestsStore'
-import type { PartnerStatus } from '@/types/partner'
+import type { Case } from '@/types/case'
+import type { Partner, PartnerStatus } from '@/types/partner'
 import type {
   Client,
-  ClientStatus,
   CreateClientInput,
   ServiceType,
 } from '@/types/client'
 import '@/styles/layout-clients.css'
 
-const STATUS_OPTIONS = [
-  { value: 'Active', label: 'Active' },
-  { value: 'Inactive', label: 'Inactive' },
-]
+const PARTNER_TABS = ['overview', 'profile', 'clients'] as const
 
 const CLIENT_STATUS_FILTERS: { value: string; label: string }[] = [
-  { value: 'Active', label: 'Active' },
-  { value: 'Deployed', label: 'Deployed' },
-  { value: 'Lead', label: 'Lead' },
-  { value: 'Inactive', label: 'Inactive' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'In-Progress', label: 'In progress' },
+  { value: 'On-Hold', label: 'On hold' },
+  { value: 'Completed', label: 'Completed' },
+  { value: 'Cancelled', label: 'Cancelled' },
 ]
 
 type PartnerClientsListView = 'table' | 'grid'
 
 const PARTNER_CLIENTS_LIST_VIEW_KEY = 'partner-clients-list-view'
+
+type ProfileDraft = {
+  name: string
+  phone: string
+  email: string
+  address: string
+  licenseNumber: string
+  branch: string
+  photoUrl: string | undefined
+}
+
+function tabFromSearch(searchParams: URLSearchParams): string {
+  const tab = searchParams.get('tab')
+  return tab && PARTNER_TABS.includes(tab as (typeof PARTNER_TABS)[number])
+    ? tab
+    : 'overview'
+}
 
 function readPartnerClientsListView(): PartnerClientsListView {
   try {
@@ -99,15 +126,20 @@ function persistPartnerClientsListView(view: PartnerClientsListView) {
   }
 }
 
-function clientStatusBadgeVariant(status: ClientStatus): BadgeVariant {
-  if (status === 'Deployed') return 'completed'
-  if (status === 'Lead') return 'pending'
-  if (status === 'Inactive') return 'on-hold'
-  return 'neutral'
-}
-
 function formatMobile(phone: string): string {
   return phone.replace(/\D/g, '')
+}
+
+function whatsappHref(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (!digits) return '#'
+  const withCountry =
+    digits.startsWith('880') || digits.length > 11
+      ? digits
+      : digits.startsWith('0')
+        ? `88${digits}`
+        : digits
+  return `https://wa.me/${withCountry}`
 }
 
 function matchesPartnerClientFilters(
@@ -115,6 +147,7 @@ function matchesPartnerClientFilters(
   search: string,
   serviceFilters: string[],
   statusFilters: string[],
+  clientCases: Case[],
 ): boolean {
   const q = search.trim().toLowerCase()
   const phoneDigits = formatMobile(client.phone)
@@ -131,8 +164,10 @@ function matchesPartnerClientFilters(
     serviceFilters.some((service) =>
       client.services.includes(service as ServiceType),
     )
-  const matchStatus =
-    statusFilters.length === 0 || statusFilters.includes(client.status)
+  const matchStatus = clientMatchesServiceStatusFilters(
+    clientCases,
+    statusFilters,
+  )
   return matchSearch && matchService && matchStatus
 }
 
@@ -142,6 +177,28 @@ function statusBadgeVariant(status: PartnerStatus): BadgeVariant {
 
 function formatDate(value: string): string {
   return formatDisplayDate(value)
+}
+
+function toProfileDraft(partner: Partner): ProfileDraft {
+  return {
+    name: partner.name,
+    phone: partner.phone,
+    email: partner.email ?? '',
+    address: partner.address ?? '',
+    licenseNumber: partner.licenseNumber ?? '',
+    branch: partner.branch ?? '',
+    photoUrl: partner.photoUrl,
+  }
+}
+
+function StatusChip({ status }: { status: PartnerStatus }) {
+  return (
+    <Badge variant={statusBadgeVariant(status)}>{status}</Badge>
+  )
+}
+
+function profileDraftsEqual(a: ProfileDraft, b: ProfileDraft): boolean {
+  return JSON.stringify(a) === JSON.stringify(b)
 }
 
 function FieldLabel({
@@ -195,10 +252,12 @@ function SectionTitle({
 
 function ContactChip({
   href,
+  to,
   value,
   label,
 }: {
   href?: string
+  to?: string
   value: string
   label: string
 }) {
@@ -219,15 +278,21 @@ function ContactChip({
     }
   }
 
+  const valueNode = to ? (
+    <Link to={to} className="pd-client-detail__contact-value">
+      {value}
+    </Link>
+  ) : href ? (
+    <a href={href} className="pd-client-detail__contact-value">
+      {value}
+    </a>
+  ) : (
+    <span className="pd-client-detail__contact-value">{value}</span>
+  )
+
   return (
     <span className="pd-client-detail__contact">
-      {href ? (
-        <a href={href} className="pd-client-detail__contact-value">
-          {value}
-        </a>
-      ) : (
-        <span className="pd-client-detail__contact-value">{value}</span>
-      )}
+      {valueNode}
       <button
         type="button"
         className="pd-client-detail__contact-copy"
@@ -247,18 +312,27 @@ function ContactChip({
 
 export default function PartnerDetailPage() {
   const { id = '' } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const partners = usePartners()
   const partner = partners.find((item) => item.id === id)
   const allClients = useClients()
+  const allCases = useCases()
   const clients = useMemo(
     () => allClients.filter((client) => client.partnerId === id),
     [allClients, id],
   )
+  const casesByClientId = useMemo(
+    () => groupCasesByClientId(allCases),
+    [allCases],
+  )
+  const partnerCases = useMemo(() => {
+    const clientIds = new Set(clients.map((client) => client.id))
+    return allCases.filter((item) => clientIds.has(item.clientId))
+  }, [allCases, clients])
+  const activityStatus = derivePartnerActivityStatus(partnerCases)
   const payments = usePayments()
-  const requests = useRequests()
-  const [activeTab, setActiveTab] = useState('overview')
-  const [editing, setEditing] = useState(false)
+  const activeTab = tabFromSearch(searchParams)
   const [customerOpen, setCustomerOpen] = useState(false)
   const [clientSearch, setClientSearch] = useState('')
   const [clientServiceFilters, setClientServiceFilters] = useState<string[]>([])
@@ -266,75 +340,82 @@ export default function PartnerDetailPage() {
   const [clientsListView, setClientsListView] = useState<PartnerClientsListView>(
     readPartnerClientsListView,
   )
-  const [draft, setDraft] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    address: '',
-    licenseNumber: '',
-    branch: '',
-    photoUrl: undefined as string | undefined,
-    status: 'Active' as PartnerStatus,
-  })
+  const [draft, setDraft] = useState<ProfileDraft | null>(null)
 
-  if (!partner) {
+  useEffect(() => {
+    if (!partner) return
+    setDraft(toProfileDraft(partner))
+  }, [partner?.id])
+
+  useEffect(() => {
+    if (!partner) return
+    if (partner.status === activityStatus) return
+    updatePartner(partner.id, { status: activityStatus })
+  }, [partner, activityStatus])
+
+  const savedDraft = useMemo(
+    () => (partner ? toProfileDraft(partner) : null),
+    [partner],
+  )
+
+  if (!partner || !savedDraft) {
     return <Navigate to="/partners" replace />
   }
+
+  const profileDraft = draft ?? savedDraft
+  const isDirty = !profileDraftsEqual(profileDraft, savedDraft)
 
   const collected = payments
     .filter((item) => clients.some((client) => client.id === item.clientId))
     .reduce((sum, item) => sum + item.amount, 0)
   const outstanding = clients.reduce((sum, client) => sum + client.balance, 0)
-  const pendingRequests = requests.filter(
-    (item) => item.partnerId === partner.id && item.reviewStatus === 'Pending',
-  ).length
   const filteredClients = clients.filter((client) =>
     matchesPartnerClientFilters(
       client,
       clientSearch,
       clientServiceFilters,
       clientStatusFilters,
+      casesByClientId.get(client.id) ?? [],
     ),
   )
   const hasClientFilters =
     clientServiceFilters.length > 0 || clientStatusFilters.length > 0
+
+  const selectTab = (tab: string) => {
+    const next = new URLSearchParams(searchParams)
+    if (tab === 'overview') next.delete('tab')
+    else next.set('tab', tab)
+    setSearchParams(next, { replace: true })
+  }
+
   const selectClientsListView = (view: PartnerClientsListView) => {
     setClientsListView(view)
     persistPartnerClientsListView(view)
   }
+
   const resetClientFilters = () => {
     setClientSearch('')
     setClientServiceFilters([])
     setClientStatusFilters([])
   }
 
-  const startEditing = () => {
-    setDraft({
-      name: partner.name,
-      phone: partner.phone,
-      email: partner.email ?? '',
-      address: partner.address ?? '',
-      licenseNumber: partner.licenseNumber ?? '',
-      branch: partner.branch ?? '',
-      photoUrl: partner.photoUrl,
-      status: partner.status,
-    })
-    setEditing(true)
+  const discardChanges = () => {
+    setDraft(savedDraft)
   }
 
-  const finishEditing = () => {
-    if (!draft.name.trim() || !draft.phone.trim()) return
-    updatePartner(partner.id, {
-      name: draft.name.trim(),
-      phone: draft.phone.trim(),
-      email: draft.email.trim() || undefined,
-      address: draft.address.trim() || undefined,
-      licenseNumber: draft.licenseNumber.trim() || undefined,
-      branch: draft.branch.trim() || undefined,
-      photoUrl: draft.photoUrl,
-      status: draft.status,
+  const saveProfile = () => {
+    if (!profileDraft.name.trim() || !profileDraft.phone.trim()) return
+    const updated = updatePartner(partner.id, {
+      name: profileDraft.name.trim(),
+      phone: profileDraft.phone.trim(),
+      email: profileDraft.email.trim() || undefined,
+      address: profileDraft.address.trim() || undefined,
+      licenseNumber: profileDraft.licenseNumber.trim() || undefined,
+      branch: profileDraft.branch.trim() || undefined,
+      photoUrl: profileDraft.photoUrl,
+      status: activityStatus,
     })
-    setEditing(false)
+    if (updated) setDraft(toProfileDraft(updated))
   }
 
   const handleCreateClient = (input: CreateClientInput) => {
@@ -351,539 +432,770 @@ export default function PartnerDetailPage() {
     navigate(`/clients/${created.id}`)
   }
 
-  const displayName = editing ? draft.name || partner.name : partner.name
-  const displayStatus = editing ? draft.status : partner.status
-  const displayPhone = editing ? draft.phone : partner.phone
-  const displayEmail = editing ? draft.email : partner.email
+  const displayName = profileDraft.name || partner.name
+  const displayPhone = profileDraft.phone
+  const displayEmail = profileDraft.email
+  const displayAddress = profileDraft.address
+  const displayLicense = profileDraft.licenseNumber
+  const displayBranch = profileDraft.branch
+  const statusForClient = (clientId: string) =>
+    deriveClientServiceStatus(casesByClientId.get(clientId) ?? [])
 
   return (
     <div className="pd-page pd-client-detail" aria-label={partner.name}>
-      <BackButton to="/partners" label="Sub Agents" />
-
-      <header
-        className={
-          editing
-            ? 'pd-client-detail__header is-editing'
-            : 'pd-client-detail__header'
-        }
-      >
-        <Avatar
-          name={displayName}
-          src={editing ? draft.photoUrl : partner.photoUrl}
-          size="xl"
-        />
-        <div className="pd-client-detail__header-text">
-          {editing ? (
-            <Input
-              label="Sub Agent name"
-              value={draft.name}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, name: event.target.value }))
-              }
+      <div className="pd-client-detail__layout">
+        <aside className="pd-client-detail__card" aria-label="Sub agent profile">
+          <div className="pd-client-detail__card-identity">
+            <Avatar
+              name={displayName}
+              src={profileDraft.photoUrl ?? partner.photoUrl}
+              size="xl"
             />
-          ) : (
             <div className="pd-client-detail__title-row">
-              <h1 className="pd-client-detail__name">{partner.name}</h1>
-              <Badge variant={statusBadgeVariant(displayStatus)}>
-                {displayStatus}
-              </Badge>
+              <h1 className="pd-client-detail__name">
+                <ContactChip value={displayName} label="sub agent name" />
+              </h1>
             </div>
-          )}
-          {editing ? null : (
-            <div className="pd-client-detail__meta-row">
-              <ContactChip
-                href={`tel:${partner.phone}`}
-                value={partner.phone}
-                label="phone number"
-              />
-              {partner.email ? (
-                <ContactChip value={partner.email} label="email address" />
-              ) : null}
-            </div>
-          )}
-          {editing ? (
-            <Badge variant={statusBadgeVariant(displayStatus)}>
-              {displayStatus}
-            </Badge>
-          ) : null}
-        </div>
-        <div className="pd-client-detail__header-actions">
-          {editing ? (
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setEditing(false)}
-              >
-                Cancel
-              </Button>
-              <Button size="sm" onClick={finishEditing}>
-                <Check size={14} strokeWidth={2.25} aria-hidden />
-                Save
-              </Button>
-            </>
-          ) : (
-            <Button variant="secondary" size="sm" onClick={startEditing}>
-              <SquarePen size={14} strokeWidth={2.25} aria-hidden />
-              Edit
+          </div>
+
+          <div className="pd-client-detail__card-actions">
+            <Button size="sm" onClick={() => setCustomerOpen(true)}>
+              <Users size={14} strokeWidth={2.25} aria-hidden />
+              Add client
             </Button>
-          )}
-        </div>
-      </header>
+            <div className="pd-client-detail__card-quick">
+              <a
+                className="pd-btn pd-btn--secondary pd-btn--sm pd-btn--icon"
+                href={`tel:${displayPhone}`}
+                aria-label={`Call ${displayName}`}
+                title="Call"
+              >
+                <span className="pd-btn__label">
+                  <Phone size={14} strokeWidth={2.25} aria-hidden />
+                </span>
+              </a>
+              <a
+                className="pd-btn pd-btn--secondary pd-btn--sm pd-btn--icon pd-client-detail__whatsapp"
+                href={whatsappHref(displayPhone)}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`WhatsApp ${displayName}`}
+                title="WhatsApp"
+              >
+                <span className="pd-btn__label">
+                  <WhatsAppIcon size={14} />
+                </span>
+              </a>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="pd-btn--icon"
+                onClick={() => selectTab('profile')}
+                aria-label="Edit profile"
+                title="Edit profile"
+              >
+                <Pencil size={14} strokeWidth={2.25} aria-hidden />
+              </Button>
+            </div>
+          </div>
 
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        items={[
-          {
-            id: 'overview',
-            label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
-            content: (
-              <div className="pd-client-detail__overview">
-                <div className="pd-client-detail__stats" aria-label="Summary">
-                  <button
-                    type="button"
-                    className="pd-client-detail__stat"
-                    onClick={() => setActiveTab('clients')}
-                  >
-                    <span className="pd-client-detail__stat-icon" aria-hidden>
-                      <Users size={16} strokeWidth={2.25} />
-                    </span>
-                    <div className="pd-client-detail__stat-copy">
-                      <span className="pd-client-detail__stat-label">
-                        Customers
-                      </span>
-                      <span className="pd-client-detail__stat-value">
-                        {clients.length}
-                      </span>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="pd-client-detail__stat"
-                    onClick={() => setActiveTab('clients')}
-                  >
-                    <span className="pd-client-detail__stat-icon" aria-hidden>
-                      <Wallet size={16} strokeWidth={2.25} />
-                    </span>
-                    <div className="pd-client-detail__stat-copy">
-                      <span className="pd-client-detail__stat-label">
-                        Collected
-                      </span>
-                      <span className="pd-client-detail__stat-value">
-                        {formatBalance(collected)}
-                      </span>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="pd-client-detail__stat"
-                    onClick={() => setActiveTab('clients')}
-                  >
-                    <span className="pd-client-detail__stat-icon" aria-hidden>
-                      <Wallet size={16} strokeWidth={2.25} />
-                    </span>
-                    <div className="pd-client-detail__stat-copy">
-                      <span className="pd-client-detail__stat-label">
-                        Outstanding
-                      </span>
-                      <span className="pd-client-detail__stat-value">
-                        {formatBalance(outstanding)}
-                      </span>
-                    </div>
-                  </button>
-                  <div className="pd-client-detail__stat">
-                    <span className="pd-client-detail__stat-icon" aria-hidden>
-                      <ClipboardList size={16} strokeWidth={2.25} />
-                    </span>
-                    <div className="pd-client-detail__stat-copy">
-                      <span className="pd-client-detail__stat-label">
-                        Pending requests
-                      </span>
-                      <span className="pd-client-detail__stat-value">
-                        {pendingRequests}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <section className="pd-client-detail__section pd-client-detail__section--compact">
-                  <div className="pd-client-detail__section-head">
-                    <SectionTitle icon={Contact}>Profile Information</SectionTitle>
-                  </div>
-                  <dl className="pd-client-detail__fields">
-                    {editing ? (
-                      <div className="pd-client-detail__field pd-client-detail__field-full">
-                        <FieldLabel icon={IdCard}>Photo</FieldLabel>
-                        <dd>
-                          <PartnerPhotoField
-                            name={draft.name}
-                            value={draft.photoUrl}
-                            onChange={(photoUrl) =>
-                              setDraft((current) => ({
-                                ...current,
-                                photoUrl,
-                              }))
-                            }
-                          />
-                        </dd>
-                      </div>
-                    ) : null}
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={Phone}>Phone</FieldLabel>
-                      <dd>
-                        {editing ? (
-                          <Input
-                            value={draft.phone}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                phone: event.target.value,
-                              }))
-                            }
-                          />
-                        ) : (
-                          <a
-                            href={`tel:${displayPhone}`}
-                            className="pd-client-detail__link"
-                          >
-                            {displayPhone}
-                          </a>
-                        )}
-                      </dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={Mail}>Email</FieldLabel>
-                      <dd>
-                        {editing ? (
-                          <Input
-                            type="email"
-                            value={draft.email}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                email: event.target.value,
-                              }))
-                            }
-                          />
-                        ) : displayEmail ? (
-                          <CopyableText value={displayEmail} />
-                        ) : (
-                          <span className="pd-client-detail__empty">—</span>
-                        )}
-                      </dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={MapPin}>Address</FieldLabel>
-                      <dd>
-                        {editing ? (
-                          <Input
-                            value={draft.address}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                address: event.target.value,
-                              }))
-                            }
-                          />
-                        ) : (
-                          partner.address || (
-                            <span className="pd-client-detail__empty">—</span>
-                          )
-                        )}
-                      </dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={IdCard}>License</FieldLabel>
-                      <dd>
-                        {editing ? (
-                          <Input
-                            value={draft.licenseNumber}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                licenseNumber: event.target.value,
-                              }))
-                            }
-                          />
-                        ) : (
-                          partner.licenseNumber || (
-                            <span className="pd-client-detail__empty">—</span>
-                          )
-                        )}
-                      </dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={MapPin}>Branch</FieldLabel>
-                      <dd>
-                        {editing ? (
-                          <Input
-                            value={draft.branch}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                branch: event.target.value,
-                              }))
-                            }
-                          />
-                        ) : (
-                          partner.branch || (
-                            <span className="pd-client-detail__empty">—</span>
-                          )
-                        )}
-                      </dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={CircleDot}>Status</FieldLabel>
-                      <dd>
-                        {editing ? (
-                          <Select
-                            value={draft.status}
-                            onChange={(event) =>
-                              setDraft((current) => ({
-                                ...current,
-                                status: event.target.value as PartnerStatus,
-                              }))
-                            }
-                            options={STATUS_OPTIONS}
-                          />
-                        ) : (
-                          <Badge variant={statusBadgeVariant(partner.status)}>
-                            {partner.status}
-                          </Badge>
-                        )}
-                      </dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={Calendar}>Member since</FieldLabel>
-                      <dd>{formatDate(partner.createdAt)}</dd>
-                    </div>
-                  </dl>
-                </section>
-              </div>
-            ),
-          },
-          {
-            id: 'clients',
-            label: <TabLabel icon={Users}>Clients</TabLabel>,
-            content: (
-              <div className="pd-partner-clients">
-                <div className="pd-clients__toolbar">
-                  <SearchField
-                    className="pd-clients__search"
-                    placeholder="Search clients…"
-                    value={clientSearch}
-                    onChange={(event) => setClientSearch(event.target.value)}
-                    onClear={() => setClientSearch('')}
+          <dl className="pd-client-detail__card-fields">
+            <div className="pd-client-detail__card-field">
+              <dt>Status</dt>
+              <dd>
+                <StatusChip status={activityStatus} />
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Phone</dt>
+              <dd>
+                <ContactChip
+                  href={`tel:${displayPhone}`}
+                  value={displayPhone}
+                  label="phone number"
+                />
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Email</dt>
+              <dd>
+                {displayEmail ? (
+                  <ContactChip
+                    href={`mailto:${displayEmail}`}
+                    value={displayEmail}
+                    label="email address"
                   />
+                ) : (
+                  <span className="pd-client-detail__empty">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>License</dt>
+              <dd>
+                {displayLicense ? (
+                  <ContactChip value={displayLicense} label="license number" />
+                ) : (
+                  <span className="pd-client-detail__empty">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Branch</dt>
+              <dd>
+                {displayBranch ? (
+                  <ContactChip value={displayBranch} label="branch" />
+                ) : (
+                  <span className="pd-client-detail__empty">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Address</dt>
+              <dd>
+                {displayAddress ? (
+                  <ContactChip value={displayAddress} label="address" />
+                ) : (
+                  <span className="pd-client-detail__empty">—</span>
+                )}
+              </dd>
+            </div>
+          </dl>
 
-                  <div className="pd-clients__toolbar-end">
-                    <div className="pd-clients__filters">
-                      <Select
-                        className="pd-clients__filter"
-                        label="Service"
-                        multiple
-                        searchable
-                        placeholder="All services"
-                        searchPlaceholder="Search services…"
-                        value={clientServiceFilters}
-                        onChange={(event) =>
-                          setClientServiceFilters(event.target.value)
-                        }
-                        options={getEnabledServiceTypeOptions()}
-                      />
-                      <Select
-                        className="pd-clients__filter"
-                        label="Status"
-                        multiple
-                        searchable
-                        placeholder="All statuses"
-                        searchPlaceholder="Search statuses…"
-                        value={clientStatusFilters}
-                        onChange={(event) =>
-                          setClientStatusFilters(event.target.value)
-                        }
-                        options={CLIENT_STATUS_FILTERS}
-                      />
-                      {hasClientFilters ? (
-                        <button
-                          type="button"
-                          className="pd-clients__clear"
-                          onClick={() => {
-                            setClientServiceFilters([])
-                            setClientStatusFilters([])
-                          }}
-                        >
-                          Clear
-                        </button>
-                      ) : null}
-                    </div>
-                    <div
-                      className="pd-clients__views"
-                      role="group"
-                      aria-label="Client list view"
-                    >
-                      <Tooltip content="Table view">
-                        <button
-                          type="button"
-                          className={
-                            clientsListView === 'table'
-                              ? 'pd-clients__view is-active'
-                              : 'pd-clients__view'
-                          }
-                          aria-pressed={clientsListView === 'table'}
-                          aria-label="Table view"
-                          onClick={() => selectClientsListView('table')}
-                        >
-                          <Table2 size={16} strokeWidth={2.25} aria-hidden />
-                        </button>
-                      </Tooltip>
-                      <Tooltip content="Grid view">
-                        <button
-                          type="button"
-                          className={
-                            clientsListView === 'grid'
-                              ? 'pd-clients__view is-active'
-                              : 'pd-clients__view'
-                          }
-                          aria-pressed={clientsListView === 'grid'}
-                          aria-label="Grid view"
-                          onClick={() => selectClientsListView('grid')}
-                        >
-                          <LayoutGrid size={16} strokeWidth={2.25} aria-hidden />
-                        </button>
-                      </Tooltip>
-                    </div>
-                    <AddClientSplitButton
-                      size="md"
-                      label="New client"
-                      partnerId={partner.id}
-                      onAddClient={() => setCustomerOpen(true)}
+          <div className="pd-client-detail__card-snapshot" aria-label="Snapshot">
+            <button
+              type="button"
+              className="pd-client-detail__card-snap"
+              onClick={() => selectTab('clients')}
+            >
+              <span className="pd-client-detail__card-snap-label">Clients</span>
+              <span className="pd-client-detail__card-snap-value">
+                {clients.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="pd-client-detail__card-snap"
+              onClick={() => selectTab('clients')}
+            >
+              <span className="pd-client-detail__card-snap-label">
+                Outstanding
+              </span>
+              <span
+                className={[
+                  'pd-client-detail__card-snap-value',
+                  outstanding > 0 ? 'is-due' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {formatBalance(outstanding)}
+              </span>
+            </button>
+          </div>
+
+          <p className="pd-client-detail__card-footer">
+            <Calendar size={12} strokeWidth={2.25} aria-hidden />
+            Member since {formatDate(partner.createdAt)}
+          </p>
+        </aside>
+
+        <div className="pd-client-detail__main">
+          <Tabs
+            className="pd-client-detail__tabs"
+            value={activeTab}
+            onValueChange={selectTab}
+            items={[
+              {
+                id: 'overview',
+                label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
+                content: (
+                  <div className="pd-client-detail__overview">
+                    <section className="pd-client-detail__section pd-client-detail__section--compact">
+                      <div className="pd-client-detail__section-head">
+                        <SectionTitle icon={Contact}>
+                          Profile Information
+                        </SectionTitle>
+                      </div>
+                      <dl className="pd-client-detail__fields">
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={Phone}>Phone</FieldLabel>
+                          <dd>
+                            <a
+                              href={`tel:${displayPhone}`}
+                              className="pd-client-detail__link"
+                            >
+                              {displayPhone}
+                            </a>
+                          </dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={Mail}>Email</FieldLabel>
+                          <dd>
+                            {displayEmail ? (
+                              <CopyableText value={displayEmail} />
+                            ) : (
+                              <span className="pd-client-detail__empty">—</span>
+                            )}
+                          </dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={MapPin}>Address</FieldLabel>
+                          <dd>
+                            {displayAddress || (
+                              <span className="pd-client-detail__empty">—</span>
+                            )}
+                          </dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={IdCard}>License</FieldLabel>
+                          <dd>
+                            {displayLicense || (
+                              <span className="pd-client-detail__empty">—</span>
+                            )}
+                          </dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={MapPin}>Branch</FieldLabel>
+                          <dd>
+                            {displayBranch || (
+                              <span className="pd-client-detail__empty">—</span>
+                            )}
+                          </dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={CircleDot}>Status</FieldLabel>
+                          <dd>
+                            <StatusChip status={activityStatus} />
+                          </dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={Wallet}>Collected</FieldLabel>
+                          <dd>{formatBalance(collected)}</dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={Calendar}>Member since</FieldLabel>
+                          <dd>{formatDate(partner.createdAt)}</dd>
+                        </div>
+                      </dl>
+                    </section>
+
+                    <Accordion
+                      className="pd-accordion--cards pd-client-detail__services-accordion"
+                      defaultOpenIds={['clients']}
+                      items={[
+                        {
+                          id: 'clients',
+                          title: (
+                            <span className="pd-client-detail__services-accordion-title">
+                              <span
+                                className="pd-client-detail__section-icon"
+                                aria-hidden
+                              >
+                                <Users size={15} strokeWidth={2.25} />
+                              </span>
+                              Clients
+                            </span>
+                          ),
+                          meta:
+                            clients.length > 0
+                              ? String(clients.length)
+                              : undefined,
+                          content:
+                            clients.length === 0 ? (
+                              <EmptyState
+                                icon={Users}
+                                title="No clients yet"
+                                description="Register a client against this sub agent to start their first case."
+                                action={
+                                  <AddClientSplitButton
+                                    size="md"
+                                    partnerId={partner.id}
+                                    onAddClient={() => setCustomerOpen(true)}
+                                  />
+                                }
+                              />
+                            ) : (
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Mobile</TableHead>
+                                    <TableHead>Balance due</TableHead>
+                                    <TableHead>Status</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {clients.map((client) => {
+                                    const serviceStatus = statusForClient(
+                                      client.id,
+                                    )
+                                    return (
+                                      <TableRow
+                                        key={client.id}
+                                        className="pd-clients__row"
+                                        onClick={() =>
+                                          navigate(`/clients/${client.id}`)
+                                        }
+                                      >
+                                        <TableCell>
+                                          <div className="pd-clients__identity">
+                                            <Avatar
+                                              name={client.name}
+                                              src={client.avatarUrl}
+                                              size="sm"
+                                            />
+                                            <p className="pd-clients__name">
+                                              {client.name}
+                                            </p>
+                                          </div>
+                                        </TableCell>
+                                        <TableCell>
+                                          {normalizePhone(client.phone) ||
+                                            client.phone}
+                                        </TableCell>
+                                        <TableCell className="pd-clients__balance">
+                                          {formatBalance(client.balance)}
+                                        </TableCell>
+                                        <TableCell>
+                                          {serviceStatus ? (
+                                            <Badge
+                                              variant={caseStatusBadgeVariant(
+                                                serviceStatus,
+                                              )}
+                                            >
+                                              {serviceStatus}
+                                            </Badge>
+                                          ) : (
+                                            '—'
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    )
+                                  })}
+                                </TableBody>
+                              </Table>
+                            ),
+                        },
+                      ]}
                     />
                   </div>
-                </div>
-
-                {clients.length === 0 ? (
-                  <EmptyState
-                    icon={Users}
-                    title="No customers yet"
-                    description="Register a client against this sub agent to start their first case."
-                    action={
-                      <AddClientSplitButton
-                        size="md"
-                        partnerId={partner.id}
-                        onAddClient={() => setCustomerOpen(true)}
-                      />
-                    }
-                  />
-                ) : filteredClients.length === 0 ? (
-                  <EmptyState
-                    icon={Users}
-                    title="No clients match"
-                    description="Try a different name, phone number, or clear filters."
-                    action={
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={resetClientFilters}
-                      >
-                        Reset filters
-                      </Button>
-                    }
-                  />
-                ) : clientsListView === 'grid' ? (
-                  <div className="pd-clients__grid">
-                    {filteredClients.map((client) => (
-                      <button
-                        key={client.id}
-                        type="button"
-                        className="pd-clients__card"
-                        onClick={() => navigate(`/clients/${client.id}`)}
-                      >
-                        <div className="pd-clients__card-top">
-                          <div className="pd-clients__identity">
-                            <Avatar
-                              name={client.name}
-                              src={client.avatarUrl}
-                              size="md"
-                            />
-                            <p className="pd-clients__name">{client.name}</p>
-                          </div>
-                          <Badge variant={clientStatusBadgeVariant(client.status)}>
-                            {client.status}
-                          </Badge>
-                        </div>
-                        <dl className="pd-clients__card-meta">
-                          <div className="pd-clients__card-row">
-                            <dt>Mobile</dt>
-                            <dd>{formatMobile(client.phone)}</dd>
-                          </div>
-                          <div className="pd-clients__card-row">
-                            <dt>Passport</dt>
-                            <dd>{client.passport || '—'}</dd>
-                          </div>
-                          <div className="pd-clients__card-row">
-                            <dt>Country</dt>
-                            <dd>{client.preferredCountry || '—'}</dd>
-                          </div>
-                          <div className="pd-clients__card-row">
-                            <dt>Balance due</dt>
-                            <dd className="pd-clients__balance">
-                              {formatBalance(client.balance)}
-                            </dd>
-                          </div>
-                        </dl>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Mobile</TableHead>
-                        <TableHead>Passport</TableHead>
-                        <TableHead>Country</TableHead>
-                        <TableHead>Balance due</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredClients.map((client) => (
-                        <TableRow
-                          key={client.id}
-                          className="pd-clients__row"
-                          onClick={() => navigate(`/clients/${client.id}`)}
-                        >
-                          <TableCell>
-                            <div className="pd-clients__identity">
-                              <Avatar
-                                name={client.name}
-                                src={client.avatarUrl}
-                                size="sm"
+                ),
+              },
+              {
+                id: 'profile',
+                label: <TabLabel icon={Contact}>Profile</TabLabel>,
+                content: (
+                  <div className="pd-client-detail__profile">
+                    <div className="pd-client-profile">
+                      <div className="pd-client-profile__group">
+                        <h3 className="pd-client-profile__group-title">
+                          Identity
+                        </h3>
+                        <div className="pd-client-profile__grid">
+                          <div
+                            className={[
+                              'pd-client-profile__field',
+                              'is-wide',
+                              profileDraft.photoUrl !== savedDraft.photoUrl
+                                ? 'is-dirty'
+                                : '',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
+                          >
+                            <PartnerPhotoField
+                              name={profileDraft.name}
+                              value={profileDraft.photoUrl}
+                              onChange={(photoUrl) =>
+                                setDraft((current) => ({
+                                  ...(current ?? savedDraft),
+                                  photoUrl,
+                                }))
+                              }
+                            >
+                              <Input
+                                label="Sub agent name"
+                                value={profileDraft.name}
+                                onChange={(event) =>
+                                  setDraft((current) => ({
+                                    ...(current ?? savedDraft),
+                                    name: event.target.value,
+                                  }))
+                                }
                               />
-                              <p className="pd-clients__name">{client.name}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {normalizePhone(client.phone) || client.phone}
-                          </TableCell>
-                          <TableCell>{client.passport || '—'}</TableCell>
-                          <TableCell>
-                            {client.preferredCountry || '—'}
-                          </TableCell>
-                          <TableCell className="pd-clients__balance">
-                            {formatBalance(client.balance)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
-            ),
-          },
-        ]}
-      />
+                            </PartnerPhotoField>
+                          </div>
+                          <div
+                            className={
+                              profileDraft.phone !== savedDraft.phone
+                                ? 'pd-client-profile__field is-dirty'
+                                : 'pd-client-profile__field'
+                            }
+                          >
+                            <Input
+                              label="Phone"
+                              value={profileDraft.phone}
+                              onChange={(event) =>
+                                setDraft((current) => ({
+                                  ...(current ?? savedDraft),
+                                  phone: event.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div
+                            className={
+                              profileDraft.email !== savedDraft.email
+                                ? 'pd-client-profile__field is-dirty'
+                                : 'pd-client-profile__field'
+                            }
+                          >
+                            <Input
+                              label="Email"
+                              type="email"
+                              value={profileDraft.email}
+                              onChange={(event) =>
+                                setDraft((current) => ({
+                                  ...(current ?? savedDraft),
+                                  email: event.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div
+                            className={
+                              profileDraft.address !== savedDraft.address
+                                ? 'pd-client-profile__field is-dirty'
+                                : 'pd-client-profile__field'
+                            }
+                          >
+                            <Input
+                              label="Address"
+                              value={profileDraft.address}
+                              onChange={(event) =>
+                                setDraft((current) => ({
+                                  ...(current ?? savedDraft),
+                                  address: event.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div
+                            className={
+                              profileDraft.licenseNumber !==
+                              savedDraft.licenseNumber
+                                ? 'pd-client-profile__field is-dirty'
+                                : 'pd-client-profile__field'
+                            }
+                          >
+                            <Input
+                              label="License"
+                              value={profileDraft.licenseNumber}
+                              onChange={(event) =>
+                                setDraft((current) => ({
+                                  ...(current ?? savedDraft),
+                                  licenseNumber: event.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div
+                            className={
+                              profileDraft.branch !== savedDraft.branch
+                                ? 'pd-client-profile__field is-dirty'
+                                : 'pd-client-profile__field'
+                            }
+                          >
+                            <Input
+                              label="Branch"
+                              value={profileDraft.branch}
+                              onChange={(event) =>
+                                setDraft((current) => ({
+                                  ...(current ?? savedDraft),
+                                  branch: event.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {isDirty ? (
+                      <div className="pd-client-detail__profile-actions">
+                        <Button variant="secondary" onClick={discardChanges}>
+                          Discard changes
+                        </Button>
+                        <Button onClick={saveProfile}>
+                          <Check size={16} strokeWidth={2.25} aria-hidden />
+                          Save
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                ),
+              },
+              {
+                id: 'clients',
+                label: <TabLabel icon={Users}>Clients</TabLabel>,
+                content: (
+                  <div className="pd-partner-clients">
+                    <div className="pd-clients__toolbar">
+                      <SearchField
+                        className="pd-clients__search"
+                        placeholder="Search clients…"
+                        value={clientSearch}
+                        onChange={(event) => setClientSearch(event.target.value)}
+                        onClear={() => setClientSearch('')}
+                      />
+
+                      <div className="pd-clients__toolbar-end">
+                        <div className="pd-clients__filters">
+                          <Select
+                            className="pd-clients__filter"
+                            label="Service"
+                            multiple
+                            searchable
+                            placeholder="All services"
+                            searchPlaceholder="Search services…"
+                            value={clientServiceFilters}
+                            onChange={(event) =>
+                              setClientServiceFilters(event.target.value)
+                            }
+                            options={getEnabledServiceTypeOptions()}
+                          />
+                          <Select
+                            className="pd-clients__filter"
+                            label="Status"
+                            multiple
+                            searchable
+                            placeholder="All statuses"
+                            searchPlaceholder="Search statuses…"
+                            value={clientStatusFilters}
+                            onChange={(event) =>
+                              setClientStatusFilters(event.target.value)
+                            }
+                            options={CLIENT_STATUS_FILTERS}
+                          />
+                          {hasClientFilters ? (
+                            <button
+                              type="button"
+                              className="pd-clients__clear"
+                              onClick={() => {
+                                setClientServiceFilters([])
+                                setClientStatusFilters([])
+                              }}
+                            >
+                              Clear
+                            </button>
+                          ) : null}
+                        </div>
+                        <div
+                          className="pd-clients__views"
+                          role="group"
+                          aria-label="Client list view"
+                        >
+                          <Tooltip content="Table view">
+                            <button
+                              type="button"
+                              className={
+                                clientsListView === 'table'
+                                  ? 'pd-clients__view is-active'
+                                  : 'pd-clients__view'
+                              }
+                              aria-pressed={clientsListView === 'table'}
+                              aria-label="Table view"
+                              onClick={() => selectClientsListView('table')}
+                            >
+                              <Table2 size={16} strokeWidth={2.25} aria-hidden />
+                            </button>
+                          </Tooltip>
+                          <Tooltip content="Grid view">
+                            <button
+                              type="button"
+                              className={
+                                clientsListView === 'grid'
+                                  ? 'pd-clients__view is-active'
+                                  : 'pd-clients__view'
+                              }
+                              aria-pressed={clientsListView === 'grid'}
+                              aria-label="Grid view"
+                              onClick={() => selectClientsListView('grid')}
+                            >
+                              <LayoutGrid
+                                size={16}
+                                strokeWidth={2.25}
+                                aria-hidden
+                              />
+                            </button>
+                          </Tooltip>
+                        </div>
+                        <AddClientSplitButton
+                          size="md"
+                          label="New client"
+                          partnerId={partner.id}
+                          onAddClient={() => setCustomerOpen(true)}
+                        />
+                      </div>
+                    </div>
+
+                    {clients.length === 0 ? (
+                      <EmptyState
+                        icon={Users}
+                        title="No customers yet"
+                        description="Register a client against this sub agent to start their first case."
+                        action={
+                          <AddClientSplitButton
+                            size="md"
+                            partnerId={partner.id}
+                            onAddClient={() => setCustomerOpen(true)}
+                          />
+                        }
+                      />
+                    ) : filteredClients.length === 0 ? (
+                      <EmptyState
+                        icon={Users}
+                        title="No clients match"
+                        description="Try a different name, phone number, or clear filters."
+                        action={
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={resetClientFilters}
+                          >
+                            Reset filters
+                          </Button>
+                        }
+                      />
+                    ) : clientsListView === 'grid' ? (
+                      <div className="pd-clients__grid">
+                        {filteredClients.map((client) => {
+                          const serviceStatus = deriveClientServiceStatus(
+                            casesByClientId.get(client.id) ?? [],
+                          )
+                          return (
+                            <button
+                              key={client.id}
+                              type="button"
+                              className="pd-clients__card"
+                              onClick={() => navigate(`/clients/${client.id}`)}
+                            >
+                              <div className="pd-clients__card-top">
+                                <div className="pd-clients__identity">
+                                  <Avatar
+                                    name={client.name}
+                                    src={client.avatarUrl}
+                                    size="md"
+                                  />
+                                  <p className="pd-clients__name">
+                                    {client.name}
+                                  </p>
+                                </div>
+                                {serviceStatus ? (
+                                  <Badge
+                                    variant={caseStatusBadgeVariant(
+                                      serviceStatus,
+                                    )}
+                                  >
+                                    {serviceStatus}
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              <dl className="pd-clients__card-meta">
+                                <div className="pd-clients__card-row">
+                                  <dt>Mobile</dt>
+                                  <dd>{formatMobile(client.phone)}</dd>
+                                </div>
+                                <div className="pd-clients__card-row">
+                                  <dt>Passport</dt>
+                                  <dd>{client.passport || '—'}</dd>
+                                </div>
+                                <div className="pd-clients__card-row">
+                                  <dt>Country</dt>
+                                  <dd>{client.preferredCountry || '—'}</dd>
+                                </div>
+                                <div className="pd-clients__card-row">
+                                  <dt>Balance due</dt>
+                                  <dd className="pd-clients__balance">
+                                    {formatBalance(client.balance)}
+                                  </dd>
+                                </div>
+                              </dl>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Mobile</TableHead>
+                            <TableHead>Passport</TableHead>
+                            <TableHead>Country</TableHead>
+                            <TableHead>Balance due</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredClients.map((client) => {
+                            const serviceStatus = statusForClient(client.id)
+                            return (
+                              <TableRow
+                                key={client.id}
+                                className="pd-clients__row"
+                                onClick={() =>
+                                  navigate(`/clients/${client.id}`)
+                                }
+                              >
+                                <TableCell>
+                                  <div className="pd-clients__identity">
+                                    <Avatar
+                                      name={client.name}
+                                      src={client.avatarUrl}
+                                      size="sm"
+                                    />
+                                    <p className="pd-clients__name">
+                                      {client.name}
+                                    </p>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {normalizePhone(client.phone) || client.phone}
+                                </TableCell>
+                                <TableCell>{client.passport || '—'}</TableCell>
+                                <TableCell>
+                                  {client.preferredCountry || '—'}
+                                </TableCell>
+                                <TableCell className="pd-clients__balance">
+                                  {formatBalance(client.balance)}
+                                </TableCell>
+                                <TableCell>
+                                  {serviceStatus ? (
+                                    <Badge
+                                      variant={caseStatusBadgeVariant(
+                                        serviceStatus,
+                                      )}
+                                    >
+                                      {serviceStatus}
+                                    </Badge>
+                                  ) : (
+                                    '—'
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        </div>
+      </div>
 
       <SideDrawer
         open={customerOpen}

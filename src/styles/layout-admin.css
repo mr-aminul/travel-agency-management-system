@@ -68,14 +68,14 @@
 }
 
 .pd-admin__subnav-link:hover {
-  color: var(--color-theme);
+  color: var(--color-theme-ink);
 }
 
 .pd-admin__subnav-link.is-active {
-  color: var(--color-theme);
+  color: var(--color-theme-ink);
   font-weight: 800;
   background: transparent;
-  border-bottom-color: var(--color-theme);
+  border-bottom-color: var(--color-theme-ink);
 }
 
 .pd-admin__metrics {

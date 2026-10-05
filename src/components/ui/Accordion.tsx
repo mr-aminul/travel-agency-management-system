@@ -4,7 +4,7 @@ import { cx } from '@/lib/cx'
 
 export type AccordionItem = {
   id: string
-  title: string
+  title: ReactNode
   /** Short status shown beside the title; not part of the accessible name. */
   meta?: string
   content: ReactNode

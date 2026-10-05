@@ -14,8 +14,29 @@
 }
 
 .pd-invoice-page-frame--public {
-  min-height: 100vh;
-  background: color-mix(in srgb, var(--color-text) 4%, var(--color-bg));
+  /* html/body/#root clip overflow; this frame must scroll like .pd-track */
+  height: 100%;
+  min-height: 100%;
+  overflow: auto;
+  color-scheme: light;
+  background-color: color-mix(in srgb, var(--color-theme) 55%, #040806);
+  background-image:
+    radial-gradient(
+      48rem 34rem at 14% 10%,
+      color-mix(in srgb, var(--color-theme) 88%, #06281c) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      40rem 30rem at 90% 90%,
+      color-mix(in srgb, var(--color-theme) 70%, #041910) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--color-theme) 65%, #03140e) 0%,
+      color-mix(in srgb, var(--color-theme) 40%, #070b0f) 50%,
+      #050807 100%
+    );
 }
 
 .pd-invoice-page {
@@ -45,7 +66,21 @@
   margin: 0;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: color-mix(in srgb, white 78%, transparent);
+}
+
+.pd-invoice-page-frame--public .pd-empty__title {
+  color: #f8fafc;
+}
+
+.pd-invoice-page-frame--public .pd-empty__description {
+  color: color-mix(in srgb, white 72%, transparent);
+}
+
+.pd-invoice-page-frame--public .pd-empty__icon {
+  background: color-mix(in srgb, white 12%, transparent);
+  color: #f8fafc;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, white 18%, transparent);
 }
 
 .pd-invoice-page__stage {

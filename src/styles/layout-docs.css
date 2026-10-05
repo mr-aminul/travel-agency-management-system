@@ -72,7 +72,7 @@
 
 .pd-docs__nav-item.is-selected {
   background: color-mix(in srgb, var(--color-theme) 16%, transparent);
-  color: var(--color-theme);
+  color: var(--color-theme-ink);
 }
 
 .pd-docs__main {

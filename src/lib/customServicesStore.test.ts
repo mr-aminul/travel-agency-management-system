@@ -29,6 +29,10 @@ import {
   restoreCatalogService,
 } from '@/lib/hiddenServicesStore'
 import {
+  getServiceIconOverride,
+  resetServiceIconOverrides,
+} from '@/lib/serviceIconOverridesStore'
+import {
   getServiceTemplateOverride,
   resetServiceTemplates,
 } from '@/lib/serviceTemplatesStore'
@@ -41,6 +45,7 @@ afterEach(() => {
   resetCustomServices()
   resetServiceTemplates()
   resetHiddenServices()
+  resetServiceIconOverrides()
   resetTenantEntitlements()
 })
 
@@ -72,8 +77,10 @@ describe('custom services', () => {
     const created = createCustomService({
       name: 'Visa processing',
       description: 'Embassy files',
+      iconId: 'stamp',
     })
     expect(created.name).toBe('Visa processing')
+    expect(getServiceIconOverride('Visa processing')).toBe('stamp')
     expect(
       getEnabledServiceOptions().some(
         (option) => option.value === 'Visa processing',

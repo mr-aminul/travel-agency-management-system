@@ -10,6 +10,7 @@ export type SettingsSectionParam =
   | 'business'
   | 'clientFields'
   | 'services'
+  | 'userAccess'
   | 'appearance'
 
 export function hrEmployeesPath(): string {

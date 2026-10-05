@@ -1,6 +1,5 @@
 import {
   Banknote,
-  BarChart3,
   CalendarClock,
   Component,
   FileText,
@@ -56,12 +55,6 @@ export const layoutConfig: AppLayoutConfig = {
       label: 'Documents',
       icon: FileText,
       moduleId: 'documents',
-    },
-    {
-      path: '/reporting',
-      label: 'Reporting',
-      icon: BarChart3,
-      moduleId: 'reporting',
     },
     {
       path: '/hr',

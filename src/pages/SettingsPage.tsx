@@ -9,6 +9,7 @@ import {
   MousePointerClick,
   Palette,
   PanelLeftOpen,
+  ShieldCheck,
   Sun,
   type LucideIcon,
 } from 'lucide-react'
@@ -43,6 +44,7 @@ import {
 } from '@/lib/sidebarPrefs'
 import { useSidebarPrefs } from '@/layout/useSidebarPrefs'
 import { ServicesSettingsSection } from '@/components/settings/ServicesSettingsSection'
+import { UserAccessSection } from '@/components/settings/UserAccessSection'
 import {
   settingsSectionPath,
   type SettingsSectionParam,
@@ -73,6 +75,12 @@ const SETTINGS_SECTIONS: {
       label: 'Service catalog',
       info: 'These are the lines you sell. Open one to set the status journey and documents. New files pick up the checklist you save. Add a country when that destination needs a different journey or documents.',
       icon: Briefcase,
+    },
+    {
+      id: 'userAccess',
+      label: 'User-wise Access Management',
+      info: 'Employees list down the left; pages run across as columns. Subpages use a parent prefix (for example HR - Employees). Set None, View, or Edit per page.',
+      icon: ShieldCheck,
     },
     {
       id: 'appearance',
@@ -122,6 +130,7 @@ function isSettingsSectionId(value: string | null): value is SettingsSectionId {
     value === 'business' ||
     value === 'clientFields' ||
     value === 'services' ||
+    value === 'userAccess' ||
     value === 'appearance'
   )
 }
@@ -222,7 +231,8 @@ export default function SettingsPage() {
       <section className="pd-settings-panel" aria-labelledby="settings-panel-title">
         {isEditor ||
         activeSection === 'services' ||
-        activeSection === 'clientFields' ? null : (
+        activeSection === 'clientFields' ||
+        activeSection === 'userAccess' ? null : (
           <header className="pd-settings-panel__header">
             <h2 id="settings-panel-title" className="pd-settings-panel__title">
               {currentSection.label}
@@ -336,6 +346,13 @@ export default function SettingsPage() {
                 info={currentSection.info ?? ''}
               />
             )
+          ) : null}
+
+          {activeSection === 'userAccess' ? (
+            <UserAccessSection
+              title={currentSection.label}
+              info={currentSection.info ?? ''}
+            />
           ) : null}
 
           {activeSection === 'appearance' ? (

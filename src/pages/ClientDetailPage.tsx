@@ -20,31 +20,34 @@ import {
   Mail,
   MapPin,
   MessageSquare,
+  Pencil,
   Phone,
-  Receipt,
   UserRound,
   Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { CasesList } from '@/components/cases/CasesList'
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon'
+import { ClientServicesWorkspace } from '@/components/cases/ClientServicesWorkspace'
 import { NewCaseForm } from '@/components/cases/NewCaseForm'
 import { ClientCustomFieldControl } from '@/components/clients/ClientCustomFieldControl'
 import { ClientDocumentsPanel } from '@/components/clients/ClientDocumentsPanel'
+import { ClientMessagesPanel } from '@/components/clients/ClientMessagesPanel'
 import { PaymentsList } from '@/components/payments/PaymentsList'
 import {
+  Accordion,
   Avatar,
   Badge,
   Button,
   CopyableText,
-  EmptyState,
   Input,
   Select,
   SideDrawer,
   Tabs,
-  type BadgeVariant,
 } from '@/components/ui'
+import { caseStatusBadgeVariant } from '@/components/cases/CasesList'
 import { createCase, getEnabledServiceOptions, useCasesByClientId } from '@/lib/casesStore'
-import { caseServiceFee } from '@/lib/caseMoney'
+import { deriveClientServiceStatus } from '@/lib/clientServiceStatus'
 import { clientPath, workDetailPath } from '@/lib/workPaths'
 import { getPartnerById } from '@/lib/partnersStore'
 import {
@@ -66,7 +69,6 @@ import type {
   Client,
   ClientGender,
   ClientMaritalStatus,
-  ClientStatus,
 } from '@/types/client'
 import type { ClientProfileField } from '@/types/clientProfileField'
 import '@/styles/layout-clients.css'
@@ -87,13 +89,6 @@ function tabFromSearch(searchParams: URLSearchParams): string {
     : 'overview'
 }
 
-function statusBadgeVariant(status: ClientStatus): BadgeVariant {
-  if (status === 'Deployed') return 'completed'
-  if (status === 'Lead') return 'pending'
-  if (status === 'Inactive') return 'on-hold'
-  return 'neutral'
-}
-
 function primaryServiceType(services: ServiceType[]): ServiceType {
   const enabled = getEnabledServiceOptions()
   const fromServices = services.find((service) =>
@@ -104,6 +99,18 @@ function primaryServiceType(services: ServiceType[]): ServiceType {
 
 function formatDate(value: string): string {
   return formatDisplayDate(value)
+}
+
+function whatsappHref(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (!digits) return '#'
+  const withCountry =
+    digits.startsWith('880') || digits.length > 11
+      ? digits
+      : digits.startsWith('0')
+        ? `88${digits}`
+        : digits
+  return `https://wa.me/${withCountry}`
 }
 
 const GENDER_OPTIONS = [
@@ -149,7 +156,6 @@ type ProfileDraft = {
   passportExpiry: string
   passportIssuedOn: string
   passportPlaceOfIssue: string
-  status: ClientStatus
   customFields: Record<string, string>
 }
 
@@ -201,7 +207,6 @@ function toProfileDraft(
     passportExpiry: client.passportExpiry ?? '',
     passportIssuedOn: client.passportIssuedOn ?? '',
     passportPlaceOfIssue: client.passportPlaceOfIssue ?? '',
-    status: client.status,
     customFields: emptyCustomFieldValues(
       customFieldDefs,
       client.customFields,
@@ -313,10 +318,13 @@ function SectionTitle({
 
 function ContactChip({
   href,
+  to,
   value,
   label,
 }: {
   href?: string
+  /** In-app route; preferred over `href` for SPA navigation. */
+  to?: string
   value: string
   label: string
 }) {
@@ -337,15 +345,21 @@ function ContactChip({
     }
   }
 
+  const valueNode = to ? (
+    <Link to={to} className="pd-client-detail__contact-value">
+      {value}
+    </Link>
+  ) : href ? (
+    <a href={href} className="pd-client-detail__contact-value">
+      {value}
+    </a>
+  ) : (
+    <span className="pd-client-detail__contact-value">{value}</span>
+  )
+
   return (
     <span className="pd-client-detail__contact">
-      {href ? (
-        <a href={href} className="pd-client-detail__contact-value">
-          {value}
-        </a>
-      ) : (
-        <span className="pd-client-detail__contact-value">{value}</span>
-      )}
+      {valueNode}
       <button
         type="button"
         className="pd-client-detail__contact-copy"
@@ -374,7 +388,6 @@ export default function ClientDetailPage() {
   const clientCases = useCasesByClientId(id)
   const activeTab = serviceOutlet ? 'services' : tabFromSearch(searchParams)
   const [newCaseOpen, setNewCaseOpen] = useState(false)
-  const [serviceFeeHighlightToken, setServiceFeeHighlightToken] = useState(0)
   const [draft, setDraft] = useState<ProfileDraft | null>(null)
 
   useEffect(() => {
@@ -393,6 +406,13 @@ export default function ClientDetailPage() {
     [client, customFieldDefs],
   )
 
+  useEffect(() => {
+    if (caseId) return
+    if (tabFromSearch(searchParams) !== 'services') return
+    const open = clientCases[0]
+    if (open) navigate(workDetailPath(open), { replace: true })
+  }, [caseId, clientCases, navigate, searchParams])
+
   if (!client || !savedDraft) {
     return <Navigate to="/clients" replace />
   }
@@ -401,12 +421,16 @@ export default function ClientDetailPage() {
   const isDirty = !profileDraftsEqual(profileDraft, savedDraft)
 
   const partner = client.partnerId ? getPartnerById(client.partnerId) : undefined
-  const totalServiceFee = clientCases.reduce(
-    (sum, item) => sum + caseServiceFee(item),
-    0,
-  )
 
   const selectTab = (tab: string) => {
+    if (tab === 'services') {
+      const open =
+        clientCases.find((item) => item.id === caseId) ?? clientCases[0]
+      if (open) {
+        navigate(workDetailPath(open))
+        return
+      }
+    }
     if (serviceOutlet) {
       navigate(clientPath(id, tab))
       return
@@ -414,6 +438,14 @@ export default function ClientDetailPage() {
     const next = new URLSearchParams(searchParams)
     if (tab === 'overview') next.delete('tab')
     else next.set('tab', tab)
+    if (tab !== 'payments') next.delete('record')
+    setSearchParams(next, { replace: true })
+  }
+
+  const clearRecordIntent = () => {
+    if (!searchParams.get('record')) return
+    const next = new URLSearchParams(searchParams)
+    next.delete('record')
     setSearchParams(next, { replace: true })
   }
 
@@ -480,51 +512,228 @@ export default function ClientDetailPage() {
           ...profileDraft.customFields,
         }),
       }),
-      status: profileDraft.status,
     })
     if (updated) setDraft(toProfileDraft(updated, customFieldDefs))
   }
 
   const displayName = profileDraft.name || client.name
-  const displayStatus = profileDraft.status
+  const displayStatus = deriveClientServiceStatus(clientCases)
   const displayPhone = profileDraft.phone
   const displayEmail = profileDraft.email
   const displayPassport = profileDraft.passport
+  const displayNid = profileDraft.nid
+  const displayWhatsapp = client.whatsapp?.trim() || displayPhone
+  const openCases = clientCases.filter(
+    (item) => item.status !== 'Completed' && item.status !== 'Cancelled',
+  )
+  const dueBalance = openCases.reduce((sum, item) => sum + item.balance, 0)
 
   return (
     <div className="pd-page pd-client-detail" aria-label={client.name}>
-      <header className="pd-client-detail__header">
-        <Avatar name={displayName} src={client.avatarUrl} size="xl" />
-        <div className="pd-client-detail__header-text">
-          <div className="pd-client-detail__title-row">
-            <h1 className="pd-client-detail__name">{displayName}</h1>
-            <Badge variant={statusBadgeVariant(displayStatus)}>
-              {displayStatus}
-            </Badge>
+      <div className="pd-client-detail__layout">
+        <aside className="pd-client-detail__card" aria-label="Client profile">
+          <div className="pd-client-detail__card-identity">
+            <Avatar name={displayName} src={client.avatarUrl} size="xl" />
+            <div className="pd-client-detail__title-row">
+              <h1 className="pd-client-detail__name">
+                <ContactChip value={displayName} label="client name" />
+              </h1>
+              {client.banglaName ? (
+                <p className="pd-client-detail__card-subtitle">
+                  <ContactChip
+                    value={client.banglaName}
+                    label="Bangla name"
+                  />
+                </p>
+              ) : null}
+            </div>
           </div>
-          <div className="pd-client-detail__meta-row">
-            <ContactChip
-              href={`tel:${displayPhone}`}
-              value={displayPhone}
-              label="phone number"
-            />
-            {displayEmail ? (
-              <ContactChip value={displayEmail} label="email address" />
-            ) : null}
-            {displayPassport ? (
-              <ContactChip value={displayPassport} label="passport number" />
-            ) : null}
-          </div>
-        </div>
-        <div className="pd-client-detail__header-actions">
-          <Button size="sm" onClick={openNewCase}>
-            <Folder size={14} strokeWidth={2.25} aria-hidden />
-            Add service
-          </Button>
-        </div>
-      </header>
 
+          <div className="pd-client-detail__card-actions">
+            <Button size="sm" onClick={openNewCase}>
+              <Folder size={14} strokeWidth={2.25} aria-hidden />
+              Add service
+            </Button>
+            <div className="pd-client-detail__card-quick">
+              <a
+                className="pd-btn pd-btn--secondary pd-btn--sm pd-btn--icon"
+                href={`tel:${displayPhone}`}
+                aria-label={`Call ${displayName}`}
+                title="Call"
+              >
+                <span className="pd-btn__label">
+                  <Phone size={14} strokeWidth={2.25} aria-hidden />
+                </span>
+              </a>
+              <a
+                className="pd-btn pd-btn--secondary pd-btn--sm pd-btn--icon pd-client-detail__whatsapp"
+                href={whatsappHref(displayWhatsapp)}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`WhatsApp ${displayName}`}
+                title="WhatsApp"
+              >
+                <span className="pd-btn__label">
+                  <WhatsAppIcon size={14} />
+                </span>
+              </a>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="pd-btn--icon"
+                onClick={() => selectTab('messages')}
+                aria-label="Open messages"
+                title="Messages"
+              >
+                <Mail size={14} strokeWidth={2.25} aria-hidden />
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="pd-btn--icon"
+                onClick={() => selectTab('profile')}
+                aria-label="Edit profile"
+                title="Edit profile"
+              >
+                <Pencil size={14} strokeWidth={2.25} aria-hidden />
+              </Button>
+            </div>
+          </div>
+
+          <dl className="pd-client-detail__card-fields">
+            <div className="pd-client-detail__card-field">
+              <dt>Status</dt>
+              <dd>
+                {displayStatus ? (
+                  <Badge variant={caseStatusBadgeVariant(displayStatus)}>
+                    {displayStatus}
+                  </Badge>
+                ) : (
+                  <span className="pd-client-detail__empty">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Phone</dt>
+              <dd>
+                <ContactChip
+                  href={`tel:${displayPhone}`}
+                  value={displayPhone}
+                  label="phone number"
+                />
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Email</dt>
+              <dd>
+                {displayEmail ? (
+                  <ContactChip
+                    href={`mailto:${displayEmail}`}
+                    value={displayEmail}
+                    label="email address"
+                  />
+                ) : (
+                  <span className="pd-client-detail__empty">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>NID</dt>
+              <dd>
+                {displayNid ? (
+                  <ContactChip value={displayNid} label="NID number" />
+                ) : (
+                  <span className="pd-client-detail__empty">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Passport</dt>
+              <dd>
+                {displayPassport ? (
+                  <ContactChip
+                    value={displayPassport}
+                    label="passport number"
+                  />
+                ) : (
+                  <span className="pd-client-detail__empty">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Gender</dt>
+              <dd>{profileDraft.gender}</dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Address</dt>
+              <dd>
+                {profileDraft.address || client.address ? (
+                  <ContactChip
+                    value={profileDraft.address || client.address || ''}
+                    label="address"
+                  />
+                ) : (
+                  <span className="pd-client-detail__empty">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Sub agent</dt>
+              <dd>
+                {partner ? (
+                  <ContactChip
+                    to={`/partners/${partner.id}`}
+                    value={partner.name}
+                    label="sub agent"
+                  />
+                ) : (
+                  <span className="pd-client-detail__empty">—</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+
+          <div className="pd-client-detail__card-snapshot" aria-label="Snapshot">
+            <button
+              type="button"
+              className="pd-client-detail__card-snap"
+              onClick={() => selectTab('services')}
+            >
+              <span className="pd-client-detail__card-snap-label">Services</span>
+              <span className="pd-client-detail__card-snap-value">
+                {openCases.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="pd-client-detail__card-snap"
+              onClick={() => selectTab('payments')}
+            >
+              <span className="pd-client-detail__card-snap-label">
+                Due balance
+              </span>
+              <span
+                className={[
+                  'pd-client-detail__card-snap-value',
+                  dueBalance > 0 ? 'is-due' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {formatBalance(dueBalance)}
+              </span>
+            </button>
+          </div>
+
+          <p className="pd-client-detail__card-footer">
+            <Calendar size={12} strokeWidth={2.25} aria-hidden />
+            Member since {formatDate(client.createdAt)}
+          </p>
+        </aside>
+
+        <div className="pd-client-detail__main">
       <Tabs
+        className="pd-client-detail__tabs"
         value={activeTab}
         onValueChange={selectTab}
         items={[
@@ -533,63 +742,6 @@ export default function ClientDetailPage() {
             label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
             content: (
               <div className="pd-client-detail__overview">
-                <div className="pd-client-detail__stats" aria-label="Summary">
-                  <button
-                    type="button"
-                    className="pd-client-detail__stat"
-                    onClick={() => selectTab('services')}
-                  >
-                    <span className="pd-client-detail__stat-icon" aria-hidden>
-                      <Folder size={16} strokeWidth={2.25} />
-                    </span>
-                    <div className="pd-client-detail__stat-copy">
-                      <span className="pd-client-detail__stat-label">
-                        Open services
-                      </span>
-                      <span className="pd-client-detail__stat-value">
-                        {client.activeCases}
-                      </span>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="pd-client-detail__stat"
-                    onClick={() => {
-                      selectTab('services')
-                      setServiceFeeHighlightToken((token) => token + 1)
-                    }}
-                  >
-                    <span className="pd-client-detail__stat-icon" aria-hidden>
-                      <Receipt size={16} strokeWidth={2.25} />
-                    </span>
-                    <div className="pd-client-detail__stat-copy">
-                      <span className="pd-client-detail__stat-label">
-                        Total service fee
-                      </span>
-                      <span className="pd-client-detail__stat-value">
-                        {formatBalance(totalServiceFee)}
-                      </span>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="pd-client-detail__stat"
-                    onClick={() => selectTab('payments')}
-                  >
-                    <span className="pd-client-detail__stat-icon" aria-hidden>
-                      <Wallet size={16} strokeWidth={2.25} />
-                    </span>
-                    <div className="pd-client-detail__stat-copy">
-                      <span className="pd-client-detail__stat-label">
-                        Balance due
-                      </span>
-                      <span className="pd-client-detail__stat-value">
-                        {formatBalance(client.balance)}
-                      </span>
-                    </div>
-                  </button>
-                </div>
-
                 <section className="pd-client-detail__section pd-client-detail__section--compact">
                   <div className="pd-client-detail__section-head">
                     <SectionTitle icon={Contact}>Profile Information</SectionTitle>
@@ -662,24 +814,45 @@ export default function ClientDetailPage() {
                   </dl>
                 </section>
 
-                <section className="pd-client-detail__section pd-client-detail__section--compact pd-client-detail__section--services">
-                  <div className="pd-client-detail__section-head">
-                    <SectionTitle icon={Folder}>Services</SectionTitle>
-                  </div>
-                  <CasesList
-                    cases={clientCases}
-                    label={`${client.name} services`}
-                    showClientColumn={false}
-                    showServiceColumn
-                    defaultClientId={client.id}
-                    lockClient
-                    defaultService={primaryServiceType(client.services)}
-                    embedded
-                    showToolbar={false}
-                    emptyTitle="No services yet"
-                    emptyDescription="Add a service on this profile to track steps, documents, and payments."
-                  />
-                </section>
+                <Accordion
+                  className="pd-accordion--cards pd-client-detail__services-accordion"
+                  defaultOpenIds={['services']}
+                  items={[
+                    {
+                      id: 'services',
+                      title: (
+                        <span className="pd-client-detail__services-accordion-title">
+                          <span
+                            className="pd-client-detail__section-icon"
+                            aria-hidden
+                          >
+                            <Folder size={15} strokeWidth={2.25} />
+                          </span>
+                          Services
+                        </span>
+                      ),
+                      meta:
+                        clientCases.length > 0
+                          ? String(clientCases.length)
+                          : undefined,
+                      content: (
+                        <CasesList
+                          cases={clientCases}
+                          label={`${client.name} services`}
+                          showClientColumn={false}
+                          showServiceColumn
+                          defaultClientId={client.id}
+                          lockClient
+                          defaultService={primaryServiceType(client.services)}
+                          embedded
+                          showToolbar={false}
+                          emptyTitle="No services yet"
+                          emptyDescription="Add a service on this profile to track steps, documents, and payments."
+                        />
+                      ),
+                    },
+                  ]}
+                />
               </div>
             ),
           },
@@ -785,23 +958,14 @@ export default function ClientDetailPage() {
             id: 'services',
             label: <TabLabel icon={Folder}>Services</TabLabel>,
             content: (
-              <div className="pd-client-detail__services">
-                <CasesList
-                  cases={clientCases}
-                  label={`${client.name} services`}
-                  showClientColumn={false}
-                  showServiceColumn
-                  defaultClientId={client.id}
-                  lockClient
-                  defaultService={primaryServiceType(client.services)}
-                  embedded
-                  selectedId={caseId}
-                  emptyTitle="No services yet"
-                  emptyDescription="Add a service on this profile to track steps, documents, and payments."
-                  serviceFeeHighlightToken={serviceFeeHighlightToken}
-                />
+              <ClientServicesWorkspace
+                cases={clientCases}
+                clientName={client.name}
+                selectedId={caseId}
+                onAddService={openNewCase}
+              >
                 {serviceOutlet}
-              </div>
+              </ClientServicesWorkspace>
             ),
           },
           {
@@ -822,22 +986,22 @@ export default function ClientDetailPage() {
               <PaymentsList
                 clientId={client.id}
                 cases={clientCases}
+                startRecording={searchParams.get('record') === '1'}
+                onRecordingChange={(recording) => {
+                  if (!recording) clearRecordIntent()
+                }}
               />
             ),
           },
           {
             id: 'messages',
             label: <TabLabel icon={MessageSquare}>Messages</TabLabel>,
-            content: (
-              <EmptyState
-                icon={MessageSquare}
-                title="No messages yet"
-                description="SMS and email history for this client will appear here."
-              />
-            ),
+            content: <ClientMessagesPanel client={client} />,
           },
         ]}
       />
+        </div>
+      </div>
 
       <SideDrawer
         open={newCaseOpen}

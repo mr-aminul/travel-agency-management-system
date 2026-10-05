@@ -1,4 +1,8 @@
 import { getCurrentStepLabel } from '@/lib/caseChecklist'
+import {
+  deriveClientServiceStatus,
+  groupCasesByClientId,
+} from '@/lib/clientServiceStatus'
 import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { Employee } from '@/types/employee'
@@ -112,6 +116,7 @@ export function buildDashboardRows(
 ): DashboardRow[] {
   const clientById = new Map(clients.map((client) => [client.id, client]))
   const caseById = new Map(cases.map((item) => [item.id, item]))
+  const casesByClientId = groupCasesByClientId(cases)
 
   const clientRows: DashboardRow[] = clients.map((client) => ({
     id: `client:${client.id}`,
@@ -119,7 +124,8 @@ export function buildDashboardRows(
     typeLabel: 'Client',
     name: client.name,
     detail: [client.phone, client.services.join(', ')].filter(Boolean).join(' · '),
-    status: client.status,
+    status:
+      deriveClientServiceStatus(casesByClientId.get(client.id) ?? []) ?? '—',
     checklist: '—',
     amount: formatAmount(client.balance),
     date: client.createdAt,

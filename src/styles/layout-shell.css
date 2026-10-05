@@ -194,7 +194,7 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg);
+  background: var(--color-cream);
   box-shadow: var(--shadow-low);
   border-radius: var(--radius-card-lg);
 }
@@ -659,7 +659,7 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   align-items: center;
   flex-shrink: 0;
   /* Frosted glass: content scrolls under while chrome stays readable */
-  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
   backdrop-filter: blur(14px) saturate(1.15);
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
@@ -667,20 +667,20 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .pd-topbar {
-    background: var(--color-bg);
+    background: var(--color-surface);
   }
 }
 
 @media (prefers-reduced-transparency: reduce) {
   .pd-topbar {
-    background: var(--color-bg);
+    background: var(--color-surface);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
 
   .pd-topbar__icon-btn,
   .pd-topbar__search {
-    background: var(--color-bg);
+    background: var(--color-surface);
     border-color: var(--color-border);
   }
 }
@@ -689,19 +689,39 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   height: 3.5rem;
   padding: 0 1.25rem;
   gap: 0.75rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.pd-topbar--desktop .pd-topbar__title {
+  justify-self: start;
+}
+
+.pd-topbar--desktop .pd-topbar__center {
+  justify-self: center;
+}
+
+.pd-topbar--desktop .pd-topbar__actions {
+  justify-self: end;
 }
 
 .pd-topbar__row {
   height: 3.25rem;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   padding: 0 1rem;
   gap: 0.625rem;
   width: 100%;
 }
 
+.pd-topbar__center {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
 .pd-topbar__title {
-  flex: 1;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -744,6 +764,26 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   background: var(--color-neutral-hover);
 }
 
+.pd-topbar__dark-btn,
+.pd-topbar__search-btn {
+  border-radius: 50%;
+}
+
+/* Circular light↔dark reveal from the top-bar toggle (View Transitions API). */
+html[data-theme-transition='circle']::view-transition-old(root),
+html[data-theme-transition='circle']::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html[data-theme-transition='circle']::view-transition-old(root) {
+  z-index: 1;
+}
+
+html[data-theme-transition='circle']::view-transition-new(root) {
+  z-index: 2;
+}
+
 .pd-topbar__actions {
   position: relative;
   display: flex;
@@ -761,9 +801,9 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   display: flex;
   align-items: center;
   min-width: 0;
-  width: 11rem;
+  width: 20rem;
   height: 2rem;
-  padding: 0 0.625rem 0 0.5rem;
+  padding: 0 0.45rem 0 0.5rem;
   border-radius: 0.5rem;
   border: 0.0625rem solid color-mix(in srgb, var(--color-border) 80%, transparent);
   background: color-mix(in srgb, var(--color-bg) 55%, transparent);
@@ -806,12 +846,31 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   appearance: none;
 }
 
+.pd-topbar__search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0 0 0 0.15rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pd-topbar__search-clear:hover {
+  color: var(--color-text);
+}
+
 .pd-topbar--mobile .pd-topbar__search {
-  width: 7.5rem;
+  width: min(20rem, 100%);
 }
 
 .pd-topbar__dropdown-panel--search {
-  width: min(18rem, calc(100vw - 1.5rem));
   overflow: hidden;
 }
 
@@ -996,7 +1055,80 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
 .pd-page {
   min-height: 100%;
   width: 100%;
-  max-width: min(100%, 80rem);
+  max-width: min(100%, 96rem);
   margin-inline: auto;
   box-sizing: border-box;
+}
+
+/*
+ * On each navigation, AppLayout remounts the route. Direct children of
+ * `.pd-page` (and Settings’ fill layout) slide up + fade in with a short
+ * stagger so the page feels alive without wrapping every component.
+ * `backwards` only covers the delay — after the animation, transform is
+ * cleared so sticky headers keep working.
+ */
+.pd-page > *,
+.pd-settings > * {
+  animation: pd-page-section-in var(--pd-page-enter-duration) var(--pd-page-enter-ease) backwards;
+}
+
+.pd-page > *:nth-child(1),
+.pd-settings > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.pd-page > *:nth-child(2),
+.pd-settings > *:nth-child(2) {
+  animation-delay: var(--pd-page-enter-stagger);
+}
+
+.pd-page > *:nth-child(3),
+.pd-settings > *:nth-child(3) {
+  animation-delay: calc(var(--pd-page-enter-stagger) * 2);
+}
+
+.pd-page > *:nth-child(4),
+.pd-settings > *:nth-child(4) {
+  animation-delay: calc(var(--pd-page-enter-stagger) * 3);
+}
+
+.pd-page > *:nth-child(5),
+.pd-settings > *:nth-child(5) {
+  animation-delay: calc(var(--pd-page-enter-stagger) * 4);
+}
+
+.pd-page > *:nth-child(6),
+.pd-settings > *:nth-child(6) {
+  animation-delay: calc(var(--pd-page-enter-stagger) * 5);
+}
+
+.pd-page > *:nth-child(7),
+.pd-settings > *:nth-child(7) {
+  animation-delay: calc(var(--pd-page-enter-stagger) * 6);
+}
+
+.pd-page > *:nth-child(n + 8),
+.pd-settings > *:nth-child(n + 8) {
+  animation-delay: calc(var(--pd-page-enter-stagger) * 7);
+}
+
+@keyframes pd-page-section-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--pd-page-enter-distance));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-page > *,
+  .pd-settings > * {
+    animation: pd-page-section-in-reduced 160ms ease-out backwards;
+    animation-delay: 0ms;
+  }
+
+  @keyframes pd-page-section-in-reduced {
+    from {
+      opacity: 0;
+    }
+  }
 }

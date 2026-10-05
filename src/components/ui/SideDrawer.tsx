@@ -33,9 +33,16 @@ export function SideDrawer({
 }: SideDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const onCloseRef = useRef(onClose)
   const titleId = useId()
   const descriptionId = useId()
 
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  // Only when `open` flips — not when parents recreate `onClose` on each keystroke.
+  // Re-running would steal focus from inputs inside the drawer.
   useEffect(() => {
     if (!open) return
 
@@ -47,24 +54,31 @@ export function SideDrawer({
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
-    const focusTarget = panelRef.current
-    focusTarget?.focus()
+    // Let child autoFocus win; only focus the panel shell if nothing inside is active.
+    const frame = requestAnimationFrame(() => {
+      const panel = panelRef.current
+      if (!panel) return
+      if (!panel.contains(document.activeElement)) {
+        panel.focus()
+      }
+    })
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        onClose()
+        onCloseRef.current()
       }
     }
     window.addEventListener('keydown', onKeyDown)
 
     return () => {
+      cancelAnimationFrame(frame)
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', onKeyDown)
       previousFocusRef.current?.focus()
       previousFocusRef.current = null
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 

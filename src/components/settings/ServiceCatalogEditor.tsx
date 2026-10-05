@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Trash2 } from 'lucide-react'
 import { BackButton, Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
+import { ServiceIconPicker } from '@/components/settings/ServiceIconPicker'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { ServiceTemplateEditor } from '@/components/settings/ServiceTemplateEditor'
 import { renameServiceOnCases } from '@/lib/casesStore'
@@ -16,6 +17,15 @@ import {
   useCatalogServiceRefs,
 } from '@/lib/serviceCatalog'
 import {
+  setServiceIconOverride,
+  useServiceIconOverrides,
+} from '@/lib/serviceIconOverridesStore'
+import {
+  iconForService,
+  selectedIconIdForService,
+  type ServiceIconId,
+} from '@/lib/serviceIcons'
+import {
   serviceCatalogEditorPath,
   serviceCatalogPath,
 } from '@/lib/workPaths'
@@ -29,20 +39,28 @@ export function ServiceCatalogEditor({
 }) {
   const navigate = useNavigate()
   useCatalogServiceRefs()
+  useServiceIconOverrides()
   const item = resolveCatalogEditorService(serviceKey)
   const [name, setName] = useState(item?.label ?? '')
   const [description, setDescription] = useState(item?.description ?? '')
+  const [iconId, setIconId] = useState<ServiceIconId | null>(
+    item ? (selectedIconIdForService(item.key) ?? null) : null,
+  )
   const [identityError, setIdentityError] = useState<string | null>(null)
   const [identityStatus, setIdentityStatus] = useState<string | null>(null)
   const [templateDirty, setTemplateDirty] = useState(false)
   const [pendingLeave, setPendingLeave] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState(false)
 
+  const savedIconId = item ? (selectedIconIdForService(item.key) ?? null) : null
+  const iconDirty = iconId !== savedIconId
   const identityDirty =
     item?.kind === 'custom' &&
     (name.trim() !== (item.label ?? '') ||
-      description.trim() !== (item.description ?? ''))
-  const dirty = templateDirty || identityDirty
+      description.trim() !== (item.description ?? '') ||
+      iconDirty)
+  const builtinIconDirty = item?.kind === 'builtin' && iconDirty
+  const dirty = templateDirty || identityDirty || builtinIconDirty
 
   useEffect(() => {
     onDirtyChange?.(dirty)
@@ -56,6 +74,7 @@ export function ServiceCatalogEditor({
     if (!item) return
     setName(item.label)
     setDescription(item.description)
+    setIconId(selectedIconIdForService(item.key) ?? null)
     setIdentityError(null)
     setIdentityStatus(null)
     setTemplateDirty(false)
@@ -71,22 +90,28 @@ export function ServiceCatalogEditor({
 
   const saveIdentity = (event: FormEvent) => {
     event.preventDefault()
-    if (!item?.customId) return
+    if (!item) return
     setIdentityError(null)
     try {
-      const updated = updateCustomService(item.customId, {
-        name,
-        description,
-      })
-      if (!updated) throw new Error('Could not save that service.')
-      if (item.key !== updated.name) {
-        renameServiceOnCases(item.key, updated.name)
-        renameServiceOnClients(item.key, updated.name)
+      if (item.kind === 'custom' && item.customId) {
+        const updated = updateCustomService(item.customId, {
+          name,
+          description,
+          iconId,
+        })
+        if (!updated) throw new Error('Could not save that service.')
+        if (item.key !== updated.name) {
+          renameServiceOnCases(item.key, updated.name)
+          renameServiceOnClients(item.key, updated.name)
+        }
+        setIdentityStatus('Service details saved.')
+        if (item.key !== updated.name) {
+          navigate(serviceCatalogEditorPath(updated.name), { replace: true })
+        }
+        return
       }
-      setIdentityStatus('Service name saved.')
-      if (item.key !== updated.name) {
-        navigate(serviceCatalogEditorPath(updated.name), { replace: true })
-      }
+      setServiceIconOverride(item.key, iconId)
+      setIdentityStatus('Icon saved.')
     } catch (caught) {
       setIdentityError(
         caught instanceof Error ? caught.message : 'Could not save that service.',
@@ -120,6 +145,8 @@ export function ServiceCatalogEditor({
     )
   }
 
+  const TitleIcon = iconForService(item.key)
+
   return (
     <>
       <div className="pd-settings-catalog-editor">
@@ -129,6 +156,9 @@ export function ServiceCatalogEditor({
             onClick={() => requestLeave(serviceCatalogPath())}
           />
           <div className="pd-settings-catalog-editor__title-row">
+            <span className="pd-settings-catalog-editor__title-icon" aria-hidden>
+              <TitleIcon size={18} strokeWidth={2.25} />
+            </span>
             <h2
               id="settings-panel-title"
               className="pd-settings-catalog-editor__title"
@@ -155,50 +185,65 @@ export function ServiceCatalogEditor({
           </Button>
         </header>
 
-        {item.kind === 'custom' ? (
-          <form
-            className="pd-settings-catalog__composer"
-            onSubmit={saveIdentity}
-          >
-            <Input
-              label="Service name"
-              name="customServiceName"
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value)
-                setIdentityError(null)
-                setIdentityStatus(null)
-              }}
-            />
-            <Textarea
-              label="Description"
-              name="customServiceDescription"
-              rows={2}
-              value={description}
-              onChange={(event) => {
-                setDescription(event.target.value)
-                setIdentityError(null)
-                setIdentityStatus(null)
-              }}
-            />
-            <div className="pd-settings-catalog__composer-actions">
-              <p
-                className={[
-                  'pd-settings-form__status',
-                  identityError && 'pd-settings-form__status--error',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                role={identityError ? 'alert' : undefined}
-              >
-                {identityError ?? identityStatus ?? ''}
-              </p>
-              <Button type="submit" size="sm" disabled={!identityDirty}>
-                Save name
-              </Button>
-            </div>
-          </form>
-        ) : null}
+        <form
+          className="pd-settings-catalog__composer"
+          onSubmit={saveIdentity}
+        >
+          {item.kind === 'custom' ? (
+            <>
+              <Input
+                label="Service name"
+                name="customServiceName"
+                value={name}
+                onChange={(event) => {
+                  setName(event.target.value)
+                  setIdentityError(null)
+                  setIdentityStatus(null)
+                }}
+              />
+              <Textarea
+                label="Description"
+                name="customServiceDescription"
+                rows={2}
+                value={description}
+                onChange={(event) => {
+                  setDescription(event.target.value)
+                  setIdentityError(null)
+                  setIdentityStatus(null)
+                }}
+              />
+            </>
+          ) : null}
+          <ServiceIconPicker
+            value={iconId}
+            serviceName={item.kind === 'custom' ? name : item.label}
+            onChange={(next) => {
+              setIconId(next)
+              setIdentityError(null)
+              setIdentityStatus(null)
+            }}
+          />
+          <div className="pd-settings-catalog__composer-actions">
+            <p
+              className={[
+                'pd-settings-form__status',
+                identityError && 'pd-settings-form__status--error',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              role={identityError ? 'alert' : undefined}
+            >
+              {identityError ?? identityStatus ?? ''}
+            </p>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!(identityDirty || builtinIconDirty)}
+            >
+              {item.kind === 'custom' ? 'Save details' : 'Save icon'}
+            </Button>
+          </div>
+        </form>
 
         <ServiceTemplateEditor
           key={item.key}

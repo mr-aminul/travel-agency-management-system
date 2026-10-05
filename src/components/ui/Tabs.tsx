@@ -23,6 +23,7 @@ export type TabsProps = HTMLAttributes<HTMLDivElement> & {
   defaultValue?: string
   value?: string
   onValueChange?: (id: string) => void
+  listLabel?: string
 }
 
 type IndicatorStyle = {
@@ -37,6 +38,7 @@ export function Tabs({
   value: controlledValue,
   onValueChange,
   className,
+  listLabel = 'Sections',
   ...props
 }: TabsProps) {
   const baseId = useId()
@@ -130,7 +132,7 @@ export function Tabs({
         ref={listRef}
         className="pd-tabs__list"
         role="tablist"
-        aria-label="Sections"
+        aria-label={listLabel}
       >
         {items.map((item) => {
           const selected = item.id === active?.id

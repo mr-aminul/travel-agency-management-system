@@ -1,77 +1,65 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  CheckCircle2,
+  AlertTriangle,
   CircleDollarSign,
   FolderOpen,
   HandCoins,
-  IdCard,
-  Inbox,
+  Percent,
+  Receipt,
   Users,
-  type LucideIcon,
 } from 'lucide-react'
-import {
-  Badge,
-  EmptyState,
-  PageHeader,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  type BadgeVariant,
-} from '@/components/ui'
+import { AgingChart } from '@/components/dashboard/AgingChart'
+import { BarList } from '@/components/dashboard/BarList'
+import { DashboardPanel } from '@/components/dashboard/DashboardPanel'
+import { FunnelChart } from '@/components/dashboard/FunnelChart'
+import { InsightList } from '@/components/dashboard/InsightList'
+import { PulseStrip } from '@/components/dashboard/PulseStrip'
+import { TrendChart } from '@/components/dashboard/TrendChart'
+import { StatCards } from '@/components/StatCards'
+import { PageHeader, type BadgeVariant } from '@/components/ui'
 import { useCases } from '@/lib/casesStore'
 import { useClients } from '@/lib/clientsStore'
 import {
-  buildDashboardRows,
-  computeDashboardMetrics,
-  dashboardFilterTitle,
-  filterDashboardRows,
+  buildExecutivePulse,
+  clientsByPartner,
+  collectionsByMonth,
+  computeOwnerKpis,
   formatBdt,
-  serviceDashboardFilter,
-  sortServicesByVolume,
-  type DashboardFilter,
-} from '@/lib/dashboardMetrics'
-import { formatDisplayDate } from '@/lib/formatDate'
+  formatCollectionRate,
+  formatCompactBdt,
+  formatDeltaPercent,
+  needsAttention,
+  pipelineFunnel,
+  recentPayments,
+  receivablesAging,
+  revenueByService,
+  topOutstanding,
+  upcomingDepartures,
+  workloadByAssignee,
+  type AttentionReason,
+} from '@/lib/dashboardInsights'
 import { useEmployees } from '@/lib/employeesStore'
+import { formatDisplayDate } from '@/lib/formatDate'
+import { usePartners } from '@/lib/partnersStore'
 import { usePayments } from '@/lib/paymentsStore'
 import { useRequests } from '@/lib/requestsStore'
-import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
-import { iconForService } from '@/lib/serviceIcons'
-import type { StatCardTone } from '@/components/StatCards'
 import '@/styles/layout-ops.css'
+import '@/styles/layout-dashboard.css'
 
-const SERVICE_TONES: StatCardTone[] = ['brand', 'info', 'success', 'warning']
-
-type MetricTile = {
-  label: string
-  value: string
-  filter: Exclude<DashboardFilter, 'all'>
-  icon: LucideIcon
-  tone: StatCardTone
+const ATTENTION_BADGE: Record<
+  AttentionReason,
+  { label: string; variant: BadgeVariant }
+> = {
+  'pending-request': { label: 'Request', variant: 'pending' },
+  'on-hold': { label: 'On hold', variant: 'on-hold' },
+  'missing-docs': { label: 'Docs', variant: 'danger' },
+  stale: { label: 'Stale', variant: 'neutral' },
 }
 
-function dashboardTileTone(filter: Exclude<DashboardFilter, 'all'>): StatCardTone {
-  if (filter === 'pending-requests' || filter === 'outstanding') return 'warning'
-  if (filter === 'open-services' || filter === 'clients') return 'info'
-  if (filter === 'completed-services' || filter === 'collected') return 'success'
-  if (filter === 'employees') return 'muted'
-  return 'brand'
-}
-
-function statusBadgeVariant(status: string): BadgeVariant {
-  if (status === 'Completed' || status === 'Deployed' || status === 'Approved') {
-    return 'completed'
-  }
-  if (status === 'Pending' || status === 'Lead' || status === 'Collected') {
-    return 'pending'
-  }
-  if (status === 'In-Progress' || status === 'Active') return 'in-progress'
-  if (status === 'On-Hold' || status === 'Inactive') return 'on-hold'
-  if (status === 'Cancelled' || status === 'Rejected') return 'danger'
-  return 'neutral'
+function deltaTone(change: number | null): 'up' | 'down' | 'flat' {
+  if (change == null || Math.abs(change) < 0.005) return 'flat'
+  return change > 0 ? 'up' : 'down'
 }
 
 export default function DashboardPage() {
@@ -79,181 +67,317 @@ export default function DashboardPage() {
   const clients = useClients()
   const cases = useCases()
   const payments = usePayments()
-  const employees = useEmployees()
+  const partners = usePartners()
   const requests = useRequests()
-  const serviceOptions = useEnabledServiceOptions()
-  const [filter, setFilter] = useState<DashboardFilter>('all')
+  const employees = useEmployees()
 
-  const metrics = useMemo(
-    () =>
-      computeDashboardMetrics(clients, cases, payments, employees, requests),
-    [clients, cases, payments, employees, requests],
+  const kpis = useMemo(
+    () => computeOwnerKpis(clients, cases, payments, requests),
+    [clients, cases, payments, requests],
+  )
+  const months = useMemo(() => collectionsByMonth(payments, 12), [payments])
+  const funnel = useMemo(() => pipelineFunnel(cases), [cases])
+  const revenueMix = useMemo(() => revenueByService(cases).slice(0, 6), [cases])
+  const aging = useMemo(() => receivablesAging(cases), [cases])
+  const attention = useMemo(
+    () => needsAttention(cases, requests, clients, 6),
+    [cases, requests, clients],
+  )
+  const collections = useMemo(
+    () => recentPayments(payments, clients, cases, 6),
+    [payments, clients, cases],
+  )
+  const outstanding = useMemo(() => topOutstanding(cases, 6), [cases])
+  const departures = useMemo(() => upcomingDepartures(cases, 6), [cases])
+  const partnerMix = useMemo(
+    () => clientsByPartner(clients, partners),
+    [clients, partners],
+  )
+  const workload = useMemo(
+    () => workloadByAssignee(cases, employees, 6),
+    [cases, employees],
+  )
+  const pulse = useMemo(
+    () => buildExecutivePulse(kpis, aging, months),
+    [kpis, aging, months],
   )
 
-  const rows = useMemo(
-    () =>
-      filterDashboardRows(
-        buildDashboardRows(clients, cases, payments, employees, requests),
-        filter,
-      ),
-    [clients, cases, payments, employees, requests, filter],
-  )
-
-  const tiles: MetricTile[] = [
-    {
-      label: 'Pending requests',
-      value: String(metrics.pendingRequests),
-      filter: 'pending-requests',
-      icon: Inbox,
-      tone: dashboardTileTone('pending-requests'),
-    },
-    {
-      label: 'Open services',
-      value: String(metrics.openCases),
-      filter: 'open-services',
-      icon: FolderOpen,
-      tone: dashboardTileTone('open-services'),
-    },
-    {
-      label: 'Outstanding',
-      value: formatBdt(metrics.outstanding),
-      filter: 'outstanding',
-      icon: CircleDollarSign,
-      tone: dashboardTileTone('outstanding'),
-    },
-    {
-      label: 'Collected',
-      value: formatBdt(metrics.collected),
-      filter: 'collected',
-      icon: HandCoins,
-      tone: dashboardTileTone('collected'),
-    },
-    {
-      label: 'Clients',
-      value: String(metrics.totalClients),
-      filter: 'clients',
-      icon: Users,
-      tone: dashboardTileTone('clients'),
-    },
-    {
-      label: 'Completed services',
-      value: String(metrics.completedCases),
-      filter: 'completed-services',
-      icon: CheckCircle2,
-      tone: dashboardTileTone('completed-services'),
-    },
-    {
-      label: 'Employees',
-      value: String(metrics.employees),
-      filter: 'employees',
-      icon: IdCard,
-      tone: dashboardTileTone('employees'),
-    },
-    ...sortServicesByVolume(serviceOptions, metrics.serviceCounts).map(
-      (option, index) => ({
-        label: option.label,
-        value: String(metrics.serviceCounts[option.value] ?? 0),
-        filter: serviceDashboardFilter(option.value),
-        icon: iconForService(option.value),
-        tone: SERVICE_TONES[index % SERVICE_TONES.length],
-      }),
-    ),
-  ]
-
-  const selectFilter = (next: Exclude<DashboardFilter, 'all'>) => {
-    setFilter((current) => (current === next ? 'all' : next))
-  }
+  const monthTotal = months.reduce((sum, bucket) => sum + bucket.amount, 0)
+  const agingTotal = aging.reduce((sum, bucket) => sum + bucket.amount, 0)
+  const sparkValues = months.map((bucket) => bucket.amount)
+  const momDelta = formatDeltaPercent(kpis.collectedMomChange)
+  const asOfLabel = new Date().toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 
   return (
-    <div className="pd-page pd-ops" aria-label="Dashboard">
+    <div className="pd-page pd-dash" aria-label="Dashboard">
       <PageHeader
-        title="Dashboard"
-        description="A snapshot of clients, services, money, and pending updates."
+        title="Executive dashboard"
+        description="Cash, pipeline health, and the decisions that protect the book."
+        actions={
+          <span className="pd-dash__asof">As of {asOfLabel}</span>
+        }
       />
-      <div className="pd-ops__metrics pd-ops__metrics--grid">
-        {tiles.map((tile) => {
-          const Icon = tile.icon
-          const isSelected = filter === tile.filter
-          return (
-            <button
-              key={tile.label}
-              type="button"
-              className={[
-                'pd-ops-metric-link',
-                `pd-ops-metric-link--${tile.tone}`,
-                isSelected ? 'is-selected' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              aria-pressed={isSelected}
-              onClick={() => selectFilter(tile.filter)}
-            >
-              <span className="pd-ops-metric-link__watermark" aria-hidden="true">
-                <Icon size={92} strokeWidth={1.15} />
-              </span>
-              <span className="pd-ops-metric-link__head">
-                <span className="pd-ops-metric-link__icon" aria-hidden>
-                  <Icon size={18} />
-                </span>
-                <span className="pd-ops-metric-link__label">{tile.label}</span>
-              </span>
-              <span className="pd-ops-metric-link__value">{tile.value}</span>
-            </button>
-          )
-        })}
+
+      <PulseStrip insights={pulse} />
+
+      <div className="pd-dash__kpis">
+        <StatCards
+          label="Owner snapshot"
+          onSelect={(id) => {
+            if (id === 'clients') navigate('/clients')
+            else if (id === 'open' || id === 'risk') navigate('/services')
+            else navigate('/payments')
+          }}
+          cards={[
+            {
+              id: 'collected',
+              label: 'Collected',
+              value: formatCompactBdt(kpis.collected),
+              hint: `${formatCompactBdt(kpis.collectedLast30Days)} in last 30 days`,
+              icon: HandCoins,
+              tone: 'success',
+              delta: momDelta,
+              deltaTone: deltaTone(kpis.collectedMomChange),
+              sparkline: sparkValues,
+            },
+            {
+              id: 'outstanding',
+              label: 'Outstanding',
+              value: formatCompactBdt(kpis.outstanding),
+              hint:
+                agingTotal > 0
+                  ? `${formatCompactBdt(
+                      aging
+                        .filter((bucket) => bucket.key !== 'current')
+                        .reduce((sum, bucket) => sum + bucket.amount, 0),
+                    )} aged 30d+`
+                  : 'No open balances',
+              icon: CircleDollarSign,
+              tone: 'warning',
+            },
+            {
+              id: 'rate',
+              label: 'Collection rate',
+              value: formatCollectionRate(kpis.collectionRate),
+              hint: `${formatCollectionRate(kpis.completionRate)} completion`,
+              icon: Percent,
+              tone: 'brand',
+            },
+            {
+              id: 'booked',
+              label: 'Booked fees',
+              value: formatCompactBdt(kpis.bookedRevenue),
+              hint:
+                kpis.averageTicket > 0
+                  ? `Avg ticket ${formatCompactBdt(kpis.averageTicket)}`
+                  : 'No billable services yet',
+              icon: Receipt,
+              tone: 'info',
+            },
+            {
+              id: 'open',
+              label: 'Open services',
+              value: String(kpis.openCases),
+              hint: `${kpis.completedCases} completed · ${formatCollectionRate(kpis.holdRate)} on hold`,
+              icon: FolderOpen,
+              tone: 'info',
+            },
+            {
+              id: 'risk',
+              label: 'At risk',
+              value: String(kpis.atRiskCount),
+              hint: `${kpis.pendingRequests} pending · ${kpis.staleOpenCases} stale`,
+              icon: AlertTriangle,
+              tone: kpis.atRiskCount > 0 ? 'warning' : 'muted',
+            },
+            {
+              id: 'clients',
+              label: 'Active clients',
+              value: String(kpis.activeClients),
+              hint: `${clients.length} total on file`,
+              icon: Users,
+              tone: 'muted',
+            },
+          ]}
+        />
       </div>
 
-      <section className="pd-ops__section" aria-label="All in one">
-        <div className="pd-ops__toolbar">
-          <h2 className="pd-ops__section-title">All in one</h2>
-          <p className="pd-ops__meta">
-            {filter === 'all'
-              ? `${rows.length} rows`
-              : `${dashboardFilterTitle(filter)} · ${rows.length} rows`}
-          </p>
-        </div>
-        {rows.length === 0 ? (
-          <EmptyState
-            title="Nothing to show"
-            description="This card has no matching records yet."
+      <div className="pd-dash__hero-charts">
+        <DashboardPanel
+          className="pd-dash-panel--wide"
+          title="Collections trend"
+          description="Cash received by month — the operating rhythm of the agency."
+          meta="Last 12 months"
+          isEmpty={monthTotal === 0}
+          empty={{
+            title: 'No collections yet',
+            description: 'Payments will appear here as they are recorded.',
+          }}
+        >
+          <TrendChart buckets={months} />
+        </DashboardPanel>
+      </div>
+
+      <div className="pd-dash__charts">
+        <DashboardPanel
+          title="Pipeline funnel"
+          description="Where active work sits today."
+          meta={`${cases.length} services`}
+          isEmpty={funnel.length === 0}
+          empty={{
+            title: 'No services yet',
+            description: 'Open a client file to start seeing pipeline volume.',
+          }}
+        >
+          <FunnelChart items={funnel} />
+        </DashboardPanel>
+        <DashboardPanel
+          title="Revenue by service"
+          description="Booked fees — not just file counts."
+          meta={`${revenueMix.length} lines`}
+          isEmpty={revenueMix.length === 0}
+          empty={{
+            title: 'No revenue mix',
+            description: 'Service fees appear once files are created.',
+          }}
+        >
+          <BarList
+            items={revenueMix.map((row) => ({
+              key: row.key,
+              label: row.label,
+              value: row.amount,
+              display: formatCompactBdt(row.amount),
+            }))}
           />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Detail</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Checklist</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="pd-ops__data-row"
-                  onClick={() => navigate(row.href)}
-                >
-                  <TableCell>{row.typeLabel}</TableCell>
-                  <TableCell>{row.name}</TableCell>
-                  <TableCell>{row.detail || '—'}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusBadgeVariant(row.status)}>
-                      {row.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{row.checklist}</TableCell>
-                  <TableCell>{row.amount}</TableCell>
-                  <TableCell>{formatDisplayDate(row.date)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </section>
+        </DashboardPanel>
+        <DashboardPanel
+          title="Receivables aging"
+          description="Outstanding balances by file age."
+          meta={formatCompactBdt(agingTotal)}
+          isEmpty={agingTotal === 0}
+          empty={{
+            title: 'Nothing due',
+            description: 'Open balances will age here as they accrue.',
+          }}
+        >
+          <AgingChart buckets={aging} />
+        </DashboardPanel>
+      </div>
+
+      <div className="pd-dash__actions">
+        <DashboardPanel
+          title="Needs attention"
+          meta={`${attention.length} items`}
+          isEmpty={attention.length === 0}
+          empty={{
+            title: 'Nothing waiting',
+            description: 'No holds, missing documents, stale files, or pending requests.',
+          }}
+        >
+          <InsightList
+            items={attention.map((item) => ({
+              id: item.id,
+              title: item.title,
+              detail: item.detail,
+              href: item.href,
+              badge: ATTENTION_BADGE[item.reason],
+            }))}
+          />
+        </DashboardPanel>
+        <DashboardPanel
+          title="Recent collections"
+          isEmpty={collections.length === 0}
+          empty={{
+            title: 'No payments',
+            description: 'Latest receipts will show up here.',
+          }}
+        >
+          <InsightList
+            items={collections.map((item) => ({
+              id: item.id,
+              title: item.name,
+              detail: `${item.detail} · ${formatDisplayDate(item.date)}`,
+              href: item.href,
+              value: formatBdt(item.amount),
+            }))}
+          />
+        </DashboardPanel>
+        <DashboardPanel
+          title="Top outstanding"
+          isEmpty={outstanding.length === 0}
+          empty={{
+            title: 'Nothing due',
+            description: 'Open balances will rank here.',
+          }}
+        >
+          <InsightList
+            items={outstanding.map((item) => ({
+              id: item.id,
+              title: item.name,
+              detail: item.detail,
+              href: item.href,
+              value: formatBdt(item.amount),
+            }))}
+          />
+        </DashboardPanel>
+        <DashboardPanel
+          title="Upcoming departures"
+          isEmpty={departures.length === 0}
+          empty={{
+            title: 'No travel dates',
+            description: 'Open services with a departure date appear here.',
+          }}
+        >
+          <InsightList
+            items={departures.map((item) => ({
+              id: item.id,
+              title: item.name,
+              detail: item.detail,
+              href: item.href,
+              value: formatDisplayDate(item.departureDate),
+            }))}
+          />
+        </DashboardPanel>
+      </div>
+
+      {workload.length > 0 || partnerMix.length > 0 ? (
+        <div className="pd-dash__secondary">
+          {workload.length > 0 ? (
+            <DashboardPanel
+              title="Workload by owner"
+              description="Open files on each assignee."
+              meta={`${workload.length} owners`}
+            >
+              <BarList
+                items={workload.map((row) => ({
+                  key: row.key,
+                  label: row.label,
+                  value: row.openCases,
+                  display: `${row.openCases} · ${formatCompactBdt(row.outstanding)}`,
+                }))}
+              />
+            </DashboardPanel>
+          ) : null}
+          {partnerMix.length > 0 ? (
+            <DashboardPanel
+              title="Sub-agent referrals"
+              meta="Clients referred"
+            >
+              <BarList
+                items={partnerMix.map((row) => ({
+                  key: row.partnerId,
+                  label: row.name,
+                  value: row.clientCount,
+                }))}
+              />
+            </DashboardPanel>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

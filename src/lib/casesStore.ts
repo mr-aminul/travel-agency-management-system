@@ -14,13 +14,16 @@ import {
   withSeedDocumentStatuses,
 } from '@/lib/caseDocuments'
 import {
-  findStepForDocument,
-  getStepRequirement,
   summarizeStepCompletion,
   validateStepCompletion,
   type StepCompletionInput,
   type StepUploadDef,
 } from '@/lib/caseStepRequirements'
+import {
+  findCaseStepForDocument,
+  getCaseStepRequirement,
+  hydrateStepUploadsFromCase,
+} from '@/lib/caseStepRequirementResolve'
 import { getDocumentForm } from '@/lib/caseDocumentForms'
 import { getStepIndex } from '@/lib/caseChecklist'
 import {
@@ -479,23 +482,7 @@ function syncClientFromCases(clientId: string) {
     ]),
   )
 
-  let status = client.status
-  if (activeCases > 0 && status === 'Lead') status = 'Active'
-  if (
-    activeCases === 0 &&
-    clientCases.some((item) => item.status === 'Completed') &&
-    clientCases.every(
-      (item) => item.status === 'Completed' || item.status === 'Cancelled',
-    )
-  ) {
-    const hasManpowerDeployed = clientCases.some(
-      (item) =>
-        item.service === 'Work Permit Visa' && item.status === 'Completed',
-    )
-    status = hasManpowerDeployed ? 'Deployed' : client.status === 'Lead' ? 'Lead' : 'Active'
-  }
-
-  updateClientRecord(clientId, { activeCases, services, balance, status })
+  updateClientRecord(clientId, { activeCases, services, balance })
 }
 
 /** Recompute derived client fields for every client touched by seed. */
@@ -688,7 +675,7 @@ export function updateCaseStep(
     return { ok: false, errors: { form: 'This case cannot be updated.' } }
   }
 
-  const requirement = getStepRequirement(item.service, stepId)
+  const requirement = getCaseStepRequirement(item, stepId)
   if (!requirement) {
     return {
       ok: false,
@@ -696,7 +683,8 @@ export function updateCaseStep(
     }
   }
 
-  const validation = validateStepCompletion(requirement, input)
+  const hydrated = hydrateStepUploadsFromCase(item, requirement, input)
+  const validation = validateStepCompletion(requirement, hydrated)
   if (!validation.ok) return validation
 
   const existing = item.steps[stepId]
@@ -710,25 +698,25 @@ export function updateCaseStep(
   const documents = applyUploadsToDocuments(
     item.documents,
     requirement.uploads,
-    input.uploads,
+    hydrated.uploads,
   )
-  const summary = summarizeStepCompletion(requirement, input)
+  const summary = summarizeStepCompletion(requirement, hydrated)
   const steps = {
     ...item.steps,
     [stepId]: {
       ...existing,
       completedAt: existing?.completedAt ?? null,
       detail: summary,
-      fields: { ...input.fields },
-      uploads: input.uploads.map((upload) => ({ ...upload })),
+      fields: { ...hydrated.fields },
+      uploads: hydrated.uploads.map((upload) => ({ ...upload })),
     },
   }
 
   const departureFromFields =
-    input.fields.departureDate ||
-    input.fields.departedOn ||
-    input.fields.travelledOn ||
-    input.fields.departureConfirmedOn
+    hydrated.fields.departureDate ||
+    hydrated.fields.departedOn ||
+    hydrated.fields.travelledOn ||
+    hydrated.fields.departureConfirmedOn
 
   const updated = updateCase(id, {
     steps,
@@ -757,7 +745,7 @@ export function completeCurrentStep(
     return { ok: false, errors: { form: 'This case is already completed.' } }
   }
 
-  const requirement = getStepRequirement(item.service, item.currentStepId)
+  const requirement = getCaseStepRequirement(item, item.currentStepId)
   if (!requirement) {
     return {
       ok: false,
@@ -765,19 +753,20 @@ export function completeCurrentStep(
     }
   }
 
-  const validation = validateStepCompletion(requirement, input)
+  const hydrated = hydrateStepUploadsFromCase(item, requirement, input)
+  const validation = validateStepCompletion(requirement, hydrated)
   if (!validation.ok) {
     return validation
   }
 
   const completedAt = today()
   const currentId = item.currentStepId
-  const summary = summarizeStepCompletion(requirement, input)
+  const summary = summarizeStepCompletion(requirement, hydrated)
 
   const documents = applyUploadsToDocuments(
     item.documents,
     requirement.uploads,
-    input.uploads,
+    hydrated.uploads,
   )
 
   const steps = {
@@ -785,17 +774,17 @@ export function completeCurrentStep(
     [currentId]: {
       completedAt,
       detail: summary,
-      fields: { ...input.fields },
-      uploads: input.uploads.map((upload) => ({ ...upload })),
+      fields: { ...hydrated.fields },
+      uploads: hydrated.uploads.map((upload) => ({ ...upload })),
     },
   }
 
   // Sync departure date from common field keys when present.
   const departureFromFields =
-    input.fields.departureDate ||
-    input.fields.departedOn ||
-    input.fields.travelledOn ||
-    input.fields.departureConfirmedOn
+    hydrated.fields.departureDate ||
+    hydrated.fields.departedOn ||
+    hydrated.fields.travelledOn ||
+    hydrated.fields.departureConfirmedOn
 
   if (isLastStep(item)) {
     const updated = updateCase(id, {
@@ -856,7 +845,7 @@ function applyRecordedDocument(
   input: RecordCaseDocumentInput,
   skipUnlock = false,
 ): Pick<Case, 'documents' | 'steps'> | undefined {
-  const collector = findStepForDocument(item.service, documentId)
+  const collector = findCaseStepForDocument(item, documentId)
   const unlockStepId = collector?.requirement.stepId
   if (!skipUnlock && unlockStepId) {
     const current = getStepIndex(

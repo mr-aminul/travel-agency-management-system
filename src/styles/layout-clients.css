@@ -116,7 +116,7 @@
 
 .pd-clients__view.is-active {
   background: var(--color-theme-subtle);
-  color: var(--color-theme);
+  color: var(--color-theme-ink);
 }
 
 .pd-clients__grid {
@@ -458,6 +458,7 @@
 }
 
 @media (hover: none) {
+
   .pd-partner-photo__upload,
   .pd-partner-photo__remove {
     opacity: 1;
@@ -474,6 +475,370 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+.pd-client-detail__layout {
+  display: grid;
+  grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.pd-client-detail__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem 0.875rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-lg, 16px);
+  background: var(--color-surface-raised, var(--color-surface));
+  box-shadow: var(--shadow-card);
+}
+
+@media (min-width: 901px) {
+  .pd-client-detail__card {
+    position: sticky;
+    top: 0.75rem;
+  }
+}
+
+.pd-client-detail__card-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.pd-client-detail__card .pd-client-detail__title-row {
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  overflow: visible;
+}
+
+.pd-client-detail__card .pd-client-detail__name,
+.pd-client-detail__card-subtitle {
+  overflow: visible;
+}
+
+.pd-client-detail__card .pd-client-detail__name {
+  font-size: 1.0625rem;
+  line-height: 1.25;
+}
+
+.pd-client-detail__card-identity .pd-client-detail__contact {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.pd-client-detail__card-identity .pd-client-detail__contact:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+.pd-client-detail__card-identity .pd-client-detail__contact-value {
+  display: inline;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  line-height: inherit;
+  text-align: center;
+}
+
+.pd-client-detail__card-identity .pd-client-detail__name .pd-client-detail__contact-value {
+  font-weight: 800;
+}
+
+.pd-client-detail__card-identity .pd-client-detail__contact-copy {
+  position: absolute;
+  inset-block-start: 50%;
+  /* Flush to the value edge so the cursor never leaves the hit target mid-travel. */
+  inset-inline-start: 100%;
+  inset-inline-end: auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  transform: translateY(-50%);
+  border-inline-start: 0;
+  background: transparent;
+  opacity: 0;
+  /* Keep events on so an opacity-0 icon still counts as hovering the contact. */
+  pointer-events: auto;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease;
+}
+
+.pd-client-detail__card-identity .pd-client-detail__contact-copy:hover,
+.pd-client-detail__card-identity .pd-client-detail__contact-copy:focus-visible {
+  background: transparent;
+  color: var(--color-theme-ink);
+  opacity: 1;
+}
+
+.pd-client-detail__card-identity .pd-client-detail__contact:hover .pd-client-detail__contact-copy,
+.pd-client-detail__card-identity .pd-client-detail__contact:focus-within .pd-client-detail__contact-copy {
+  opacity: 1;
+}
+
+.pd-client-detail__card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  width: 100%;
+}
+
+.pd-client-detail__card-actions>.pd-btn {
+  width: 100%;
+}
+
+.pd-client-detail__card-quick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+
+.pd-client-detail__card-quick .pd-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.pd-client-detail__whatsapp {
+  --whatsapp-green: #25d366;
+}
+
+.pd-btn.pd-btn--secondary.pd-client-detail__whatsapp:hover,
+.pd-btn.pd-btn--secondary.pd-client-detail__whatsapp:focus-visible {
+  background: var(--whatsapp-green);
+  border-color: var(--whatsapp-green);
+  color: var(--color-white);
+}
+
+.pd-client-detail__card-subtitle {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+.pd-client-detail__card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.pd-client-detail__card-fields {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.625rem;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.pd-client-detail__card-field {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.4375rem 0.625rem;
+  border-block-end: 0.0625rem solid var(--color-border);
+}
+
+.pd-client-detail__card-field:last-child {
+  border-block-end: 0;
+}
+
+.pd-client-detail__card-field dt {
+  margin: 0;
+  padding-top: 0.125rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+.pd-client-detail__card-field dd {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  margin: 0;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--color-text);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pd-client-detail__card-field .pd-badge {
+  align-self: flex-start;
+  width: max-content;
+  max-width: 100%;
+  min-height: 1.25rem;
+  padding: 0.125rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.pd-client-detail__card-field .pd-client-detail__contact {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  align-items: flex-start;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.pd-client-detail__card-field .pd-client-detail__contact:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+.pd-client-detail__card-field .pd-client-detail__contact-value {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  padding-inline-end: 1.375rem;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.35;
+  box-sizing: border-box;
+}
+
+.pd-client-detail__card-field .pd-client-detail__contact-copy {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  width: 1.375rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  border-inline-start: 0;
+  background: transparent;
+  opacity: 0;
+  /* Keep events on so an opacity-0 icon still counts as hovering the contact. */
+  pointer-events: auto;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease;
+}
+
+.pd-client-detail__card-field .pd-client-detail__contact-copy:hover,
+.pd-client-detail__card-field .pd-client-detail__contact-copy:focus-visible {
+  background: transparent;
+  color: var(--color-theme-ink);
+  opacity: 1;
+}
+
+.pd-client-detail__card-field .pd-client-detail__contact:hover .pd-client-detail__contact-copy,
+.pd-client-detail__card-field .pd-client-detail__contact:focus-within .pd-client-detail__contact-copy {
+  opacity: 1;
+}
+
+.pd-client-detail__card-snapshot {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+
+.pd-client-detail__card-snap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.4375rem 0.625rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.625rem;
+  background: var(--color-bg);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.pd-client-detail__card-snap:hover {
+  border-color: color-mix(in srgb, var(--color-theme) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-theme) 6%, var(--color-surface));
+}
+
+.pd-client-detail__card-snap:focus-visible {
+  outline: 0.125rem solid var(--color-theme);
+  outline-offset: 0.125rem;
+}
+
+.pd-client-detail__card-snap-label {
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.pd-client-detail__card-snap-value {
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--color-text);
+  line-height: 1.25;
+}
+
+.pd-client-detail__card-snap-value.is-due {
+  color: var(--color-red);
+}
+
+.pd-client-detail__card-footer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-muted, var(--color-text-secondary));
+}
+
+.pd-client-detail__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.pd-client-detail__tabs {
+  min-width: 0;
 }
 
 .pd-client-detail__header {
@@ -581,7 +946,7 @@
 }
 
 .pd-client-detail__contact-copy:hover {
-  color: var(--color-theme);
+  color: var(--color-theme-ink);
   background: color-mix(in srgb, var(--color-theme) 8%, transparent);
 }
 
@@ -652,12 +1017,56 @@
   gap: 1rem;
 }
 
+.pd-payments__due {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.875rem 1rem;
+  border: 0.0625rem solid color-mix(in srgb, var(--color-red) 30%, var(--color-border));
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-red) 7%, var(--color-surface));
+}
+
+.pd-payments__due-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.pd-payments__due-label {
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-red);
+}
+
+.pd-payments__due-amount {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
 .pd-payments__toolbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.pd-payments__heading {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.3;
 }
 
 .pd-payments__actions {
@@ -675,45 +1084,136 @@
   text-decoration: none;
 }
 
-.pd-payments__hint {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  max-width: 32rem;
-  line-height: 1.4;
+.pd-payments__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.pd-payments__form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem 1rem;
-  padding: 1rem;
+.pd-payments__form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.pd-client-messages {
+  display: flex;
+  flex-direction: column;
+}
+
+.pd-client-messages__frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 22rem;
+  overflow: hidden;
   border: 0.0625rem solid var(--color-border);
   border-radius: 0.75rem;
+  background: var(--color-surface-raised, var(--color-bg));
+  box-shadow: var(--shadow-low);
+}
+
+.pd-client-messages__to {
+  margin: 0;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 0.0625rem solid var(--color-divider, var(--color-border));
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.pd-client-messages__thread {
+  flex: 1 1 auto;
+  min-height: 14rem;
+  max-height: 24rem;
+  overflow-y: auto;
+  padding: 0.875rem;
   background: var(--color-bg);
 }
 
-.pd-payments__form .pd-btn {
-  grid-column: 1 / -1;
-  justify-self: start;
+.pd-client-messages__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12rem;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.pd-client-messages__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-client-messages__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: min(22rem, 82%);
+}
+
+.pd-client-messages__item--out {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.pd-client-messages__bubble {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem 0.75rem 0.25rem 0.75rem;
+  background: var(--color-theme);
+  color: var(--color-on-theme);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.pd-client-messages__meta {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.pd-client-messages__composer {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 0.0625rem solid var(--color-divider, var(--color-border));
+}
+
+.pd-client-messages__input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pd-client-messages__composer .pd-btn {
+  flex: 0 0 auto;
+  min-height: 2.25rem;
 }
 
 .pd-client-detail__stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
 }
 
 .pd-client-detail__stat {
   appearance: none;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   min-width: 0;
   width: 100%;
-  padding: 0.875rem 1rem;
+  padding: 0.5rem 0.75rem;
   border: 0.0625rem solid var(--color-border);
-  border-radius: var(--radius-lg, 16px);
+  border-radius: var(--radius-md, 12px);
   background: var(--color-surface-raised, var(--color-surface));
   box-shadow: var(--shadow-card);
   font: inherit;
@@ -740,32 +1240,33 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 1.75rem;
+  height: 1.75rem;
   flex-shrink: 0;
-  border-radius: 0.625rem;
+  border-radius: 0.5rem;
   background: var(--color-theme-subtle);
-  color: var(--color-theme);
+  color: var(--color-theme-ink);
 }
 
 .pd-client-detail__stat-copy {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.0625rem;
   min-width: 0;
 }
 
 .pd-client-detail__stat-label {
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
+  line-height: 1.2;
 }
 
 .pd-client-detail__stat-value {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--color-text);
@@ -780,20 +1281,87 @@
   min-width: 0;
 }
 
-.pd-client-detail__section--services {
+.pd-client-detail__services-accordion {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pd-client-detail__services-accordion .pd-accordion__item {
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: var(--shadow-card);
+}
+
+.pd-client-detail__services-accordion-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--color-text);
+}
+
+.pd-client-detail__services-accordion-title .pd-client-detail__section-icon {
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 0.375rem;
+}
+
+.pd-client-detail__services-accordion .pd-accordion__trigger {
+  padding: 0.75rem 0.875rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pd-client-detail__services-accordion .pd-accordion__meta {
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-client-detail__services-accordion .pd-cases--embedded {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   min-width: 0;
 }
 
-.pd-client-detail__services .pd-cases--embedded,
-.pd-client-detail__section--services .pd-cases--embedded {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.pd-client-detail__services-accordion .pd-cases__toolbar {
+  margin: 0;
 }
 
-.pd-client-detail__services .pd-cases__toolbar,
-.pd-client-detail__section--services .pd-cases__toolbar {
-  margin: 0;
+/* Flush table into the Services accordion — no nested cutout. */
+.pd-client-detail__services-accordion .pd-table-wrap {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  max-width: 100%;
+}
+
+.pd-client-detail__services-accordion .pd-table__th {
+  color: var(--color-on-theme);
+  background: var(--color-theme);
+  border-right-color: color-mix(in srgb, var(--color-on-theme) 14%, transparent);
+}
+
+.pd-client-detail__services-accordion .pd-table__th:first-child,
+.pd-client-detail__services-accordion .pd-table__th:last-child {
+  border-radius: 0;
+}
+
+.pd-client-detail__services-accordion .pd-table__th:first-child,
+.pd-client-detail__services-accordion .pd-table__td:first-child {
+  padding-left: 0.875rem;
+}
+
+.pd-client-detail__services-accordion .pd-table__th:last-child,
+.pd-client-detail__services-accordion .pd-table__td:last-child {
+  padding-right: 0.875rem;
+}
+
+.pd-client-detail__services-accordion .pd-empty {
+  padding: 1rem 0.875rem 1.25rem;
 }
 
 .pd-client-detail__grid {
@@ -938,11 +1506,11 @@
 
 .pd-client-profile__field.is-dirty .pd-field__control,
 .pd-client-profile__field.is-dirty .pd-select__trigger {
-  border-color: var(--color-theme);
+  border-color: var(--color-theme-ink);
 }
 
 .pd-client-profile__field.is-dirty .pd-field--outlined .pd-field__label {
-  color: var(--color-theme);
+  color: var(--color-theme-ink);
 }
 
 .pd-client-detail__section .pd-field--outlined .pd-field__label {
@@ -970,7 +1538,7 @@
   flex-shrink: 0;
   border-radius: 0.5rem;
   background: var(--color-theme-subtle);
-  color: var(--color-theme);
+  color: var(--color-theme-ink);
 }
 
 .pd-client-detail__fields {
@@ -1029,7 +1597,7 @@
 }
 
 .pd-client-detail__link:hover {
-  color: var(--color-theme);
+  color: var(--color-theme-ink);
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }
@@ -1083,11 +1651,11 @@
 }
 
 @media (max-width: 900px) {
-  .pd-client-detail__stats {
+  .pd-client-detail__layout {
     grid-template-columns: 1fr;
   }
 
-  .pd-payments__form {
+  .pd-client-detail__stats {
     grid-template-columns: 1fr;
   }
 
@@ -1125,6 +1693,10 @@
   .pd-client-detail__header-actions {
     width: 100%;
     margin-inline-start: 0;
+  }
+
+  .pd-client-detail__card {
+    position: static;
   }
 
   .pd-client-detail__fields dd {

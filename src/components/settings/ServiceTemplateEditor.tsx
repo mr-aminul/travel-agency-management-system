@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
-import { Button, ConfirmDialog, Input, Select } from '@/components/ui'
+import { ChevronDown, ChevronUp, Plus, Trash2, X } from 'lucide-react'
+import { Button, Checkbox, ConfirmDialog, Input, Select } from '@/components/ui'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { cx } from '@/lib/cx'
 import {
@@ -15,6 +15,7 @@ import {
   useServiceTemplates,
 } from '@/lib/serviceTemplatesStore'
 import { resolveServiceTemplate } from '@/lib/resolveServiceTemplate'
+import { toggleStepRequiredDocument } from '@/lib/stepDocumentLinks'
 import type { ServiceType } from '@/types/case'
 
 const ALL_COUNTRIES = ''
@@ -92,8 +93,14 @@ export function ServiceTemplateEditor({
       {
         id: nextTemplateItemId(`step ${current.length + 1}`, current.map((s) => s.id)),
         label: '',
+        requiredDocumentIds: [],
       },
     ])
+    markDirty()
+  }
+
+  const setStepNeedsDoc = (stepId: string, documentId: string) => {
+    setSteps((current) => toggleStepRequiredDocument(current, stepId, documentId))
     markDirty()
   }
 
@@ -317,7 +324,7 @@ export function ServiceTemplateEditor({
                 </span>
                 <SettingsInfo
                   title="Status journey"
-                  body="Staff move a file through these steps, in this order."
+                  body="Staff move a file through these steps, in this order. Needs docs must be uploaded before that status can be marked complete."
                 />
               </span>
             </div>
@@ -331,63 +338,132 @@ export function ServiceTemplateEditor({
             </p>
           ) : (
             <ol className="pd-settings-template__list pd-settings-template__list--steps">
-              {steps.map((step, index) => (
-                <li key={step.id} className="pd-settings-template__row">
-                  <span className="pd-settings-template__index" aria-hidden>
-                    {index + 1}
-                  </span>
-                  <Input
-                    aria-label={`Step ${index + 1}`}
-                    placeholder="e.g. Medical"
-                    value={step.label}
-                    onChange={(event) => {
-                      const label = event.target.value
-                      setSteps((current) =>
-                        current.map((item) =>
-                          item.id === step.id ? { ...item, label } : item,
-                        ),
-                      )
-                      markDirty()
-                    }}
-                  />
-                  <span className="pd-settings-template__row-actions">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      aria-label="Move step up"
-                      disabled={index === 0}
-                      onClick={() => moveStep(index, -1)}
-                    >
-                      <ChevronUp size={14} />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      aria-label="Move step down"
-                      disabled={index === steps.length - 1}
-                      onClick={() => moveStep(index, 1)}
-                    >
-                      <ChevronDown size={14} />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      aria-label={`Remove ${step.label || 'step'}`}
-                      onClick={() => {
-                        setSteps((current) =>
-                          current.filter((item) => item.id !== step.id),
-                        )
-                        markDirty()
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </span>
-                </li>
-              ))}
+              {steps.map((step, index) => {
+                const needed = step.requiredDocumentIds ?? []
+                const namedNeeded = needed
+                  .map((id) => documents.find((doc) => doc.id === id))
+                  .filter((doc): doc is (typeof documents)[number] => Boolean(doc))
+                return (
+                  <li key={step.id} className="pd-settings-template__step">
+                    <div className="pd-settings-template__row">
+                      <span className="pd-settings-template__index" aria-hidden>
+                        {index + 1}
+                      </span>
+                      <Input
+                        aria-label={`Step ${index + 1}`}
+                        placeholder="e.g. Medical"
+                        value={step.label}
+                        onChange={(event) => {
+                          const label = event.target.value
+                          setSteps((current) =>
+                            current.map((item) =>
+                              item.id === step.id ? { ...item, label } : item,
+                            ),
+                          )
+                          markDirty()
+                        }}
+                      />
+                      <span className="pd-settings-template__row-actions">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          aria-label="Move step up"
+                          disabled={index === 0}
+                          onClick={() => moveStep(index, -1)}
+                        >
+                          <ChevronUp size={14} />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          aria-label="Move step down"
+                          disabled={index === steps.length - 1}
+                          onClick={() => moveStep(index, 1)}
+                        >
+                          <ChevronDown size={14} />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Remove ${step.label || 'step'}`}
+                          onClick={() => {
+                            setSteps((current) =>
+                              current.filter((item) => item.id !== step.id),
+                            )
+                            markDirty()
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </span>
+                    </div>
+                    <div className="pd-settings-template__needs">
+                      <span className="pd-settings-template__needs-label">
+                        Needs docs
+                      </span>
+                      <div className="pd-settings-template__needs-chips">
+                        {namedNeeded.map((doc) => (
+                          <button
+                            key={doc.id}
+                            type="button"
+                            className="pd-settings-template__needs-chip"
+                            onClick={() => setStepNeedsDoc(step.id, doc.id)}
+                            aria-label={`Remove ${doc.name || 'document'} from Needs docs`}
+                          >
+                            <span>{doc.name || 'Untitled'}</span>
+                            <X size={12} aria-hidden />
+                          </button>
+                        ))}
+                        {documents.length === 0 ? (
+                          <span className="pd-settings-template__needs-empty">
+                            Add documents first
+                          </span>
+                        ) : (
+                          <details className="pd-settings-template__needs-picker">
+                            <summary>
+                              <Plus size={12} aria-hidden />
+                              {needed.length ? 'Edit' : 'Add'}
+                            </summary>
+                            <div
+                              className="pd-settings-template__needs-menu"
+                              role="group"
+                              aria-label={`Needs docs for ${step.label || `step ${index + 1}`}`}
+                            >
+                              {documents.map((doc) => {
+                                const checked = needed.includes(doc.id)
+                                const ownedElsewhere = steps.some(
+                                  (other) =>
+                                    other.id !== step.id &&
+                                    (other.requiredDocumentIds ?? []).includes(
+                                      doc.id,
+                                    ),
+                                )
+                                return (
+                                  <Checkbox
+                                    key={doc.id}
+                                    label={
+                                      ownedElsewhere && !checked
+                                        ? `${doc.name || 'Untitled'} (move here)`
+                                        : doc.name || 'Untitled'
+                                    }
+                                    checked={checked}
+                                    onChange={() =>
+                                      setStepNeedsDoc(step.id, doc.id)
+                                    }
+                                  />
+                                )
+                              })}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                )
+              })}
             </ol>
           )}
         </div>
@@ -460,6 +536,14 @@ export function ServiceTemplateEditor({
                     onClick={() => {
                       setDocuments((current) =>
                         current.filter((item) => item.id !== doc.id),
+                      )
+                      setSteps((current) =>
+                        current.map((step) => ({
+                          ...step,
+                          requiredDocumentIds: (
+                            step.requiredDocumentIds ?? []
+                          ).filter((id) => id !== doc.id),
+                        })),
                       )
                       markDirty()
                     }}

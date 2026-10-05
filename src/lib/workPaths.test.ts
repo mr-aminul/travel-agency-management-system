@@ -38,6 +38,9 @@ describe('settings and catalog paths', () => {
     expect(settingsSectionPath()).toBe('/settings')
     expect(settingsSectionPath('business')).toBe('/settings')
     expect(serviceCatalogPath()).toBe('/settings?section=services')
+    expect(settingsSectionPath('userAccess')).toBe(
+      '/settings?section=userAccess',
+    )
     expect(serviceCatalogEditorPath('Tourist Visa')).toBe(
       '/settings/services/tourist-visa',
     )

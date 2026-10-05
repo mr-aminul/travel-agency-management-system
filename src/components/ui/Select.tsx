@@ -1,19 +1,25 @@
 import {
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
 } from 'react'
-import { Check, ChevronDown, Search, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Check, ChevronDown, Search, X, type LucideIcon } from 'lucide-react'
 import { cx } from '@/lib/cx'
 
 export type SelectOption = {
   value: string
   label: string
   disabled?: boolean
+  icon?: LucideIcon
 }
+
+export type SelectSize = 'md' | 'sm'
 
 /** Keeps call sites that read `event.target.value` working. */
 export type SelectChangeEvent<T extends string | string[] = string> = {
@@ -22,6 +28,8 @@ export type SelectChangeEvent<T extends string | string[] = string> = {
 
 type SelectPropsBase = {
   label?: string
+  /** Accessible name when there is no visible label. */
+  'aria-label'?: string
   /** `outlined` = notched label on the control border (Material-style). */
   labelVariant?: 'default' | 'outlined'
   hint?: string
@@ -33,6 +41,8 @@ type SelectPropsBase = {
   id?: string
   name?: string
   className?: string
+  /** Compact trigger for dense tables; panel stays the shared menu. */
+  size?: SelectSize
   searchable?: boolean
   searchPlaceholder?: string
   readOnly?: boolean
@@ -52,8 +62,40 @@ export type SelectProps =
       onChange?: (event: SelectChangeEvent<string[]>) => void
     })
 
+const PANEL_GAP_PX = 4
+const PANEL_MIN_WIDTH_PX = 12 * 16
+const VIEWPORT_PAD_PX = 8
+
 function normalizeMulti(value: string[] | undefined): string[] {
   return value ?? []
+}
+
+function panelStyleForTrigger(
+  trigger: DOMRect,
+  preferredMinWidth: number,
+): CSSProperties {
+  const width = Math.max(trigger.width, preferredMinWidth)
+  const left = Math.min(
+    Math.max(VIEWPORT_PAD_PX, trigger.left),
+    window.innerWidth - width - VIEWPORT_PAD_PX,
+  )
+  const spaceBelow = window.innerHeight - trigger.bottom - VIEWPORT_PAD_PX
+  const spaceAbove = trigger.top - VIEWPORT_PAD_PX
+  const openUp = spaceBelow < 12 * 16 && spaceAbove > spaceBelow
+
+  return {
+    position: 'fixed',
+    top: openUp ? undefined : trigger.bottom + PANEL_GAP_PX,
+    bottom: openUp
+      ? window.innerHeight - trigger.top + PANEL_GAP_PX
+      : undefined,
+    left,
+    width,
+    maxHeight: Math.max(
+      10 * 16,
+      openUp ? spaceAbove - PANEL_GAP_PX : spaceBelow - PANEL_GAP_PX,
+    ),
+  }
 }
 
 export function Select(props: SelectProps) {
@@ -69,10 +111,12 @@ export function Select(props: SelectProps) {
     placeholder,
     required,
     name,
+    size = 'md',
     searchable = false,
     searchPlaceholder = 'Search…',
     readOnly = false,
   } = props
+  const ariaLabel = props['aria-label']
   const outlined = Boolean(label) && labelVariant === 'outlined'
 
   const multiple = props.multiple === true
@@ -102,9 +146,11 @@ export function Select(props: SelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
+  const [panelStyle, setPanelStyle] = useState<CSSProperties>()
 
   const containerRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const listboxRef = useRef<HTMLDivElement>(null)
   const optionRefs = useRef<Array<HTMLDivElement | null>>([])
@@ -132,11 +178,42 @@ export function Select(props: SelectProps) {
   })()
 
   const isPlaceholder = selectedOptions.length === 0
+  const SelectedIcon =
+    !multiple && selectedOptions.length === 1
+      ? selectedOptions[0].icon
+      : undefined
+  const valueIconSize = size === 'sm' ? 12 : 15
 
   const getEnabledIndexes = () =>
     filteredOptions
       .map((option, index) => (option.disabled ? -1 : index))
       .filter((index) => index >= 0)
+
+  const updatePanelPosition = () => {
+    const trigger = triggerRef.current
+    if (!trigger) return
+    setPanelStyle(
+      panelStyleForTrigger(
+        trigger.getBoundingClientRect(),
+        multiple || size === 'sm' ? PANEL_MIN_WIDTH_PX : trigger.offsetWidth,
+      ),
+    )
+  }
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPanelStyle(undefined)
+      return
+    }
+
+    updatePanelPosition()
+    window.addEventListener('resize', updatePanelPosition)
+    window.addEventListener('scroll', updatePanelPosition, true)
+    return () => {
+      window.removeEventListener('resize', updatePanelPosition)
+      window.removeEventListener('scroll', updatePanelPosition, true)
+    }
+  }, [open, multiple, size])
 
   useEffect(() => {
     if (!open) {
@@ -190,12 +267,10 @@ export function Select(props: SelectProps) {
     if (!open) return
 
     const onPointerDown = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setOpen(false)
-      }
+      const target = event.target as Node
+      if (containerRef.current?.contains(target)) return
+      if (panelRef.current?.contains(target)) return
+      setOpen(false)
     }
 
     document.addEventListener('mousedown', onPointerDown)
@@ -297,7 +372,146 @@ export function Select(props: SelectProps) {
   }
 
   const activeOption = filteredOptions[activeIndex]
-  const panelMinWidth = multiple ? '12.5rem' : undefined
+
+  const panel = open ? (
+    <div
+      ref={panelRef}
+      className={cx('pd-select__panel', size === 'sm' && 'pd-select__panel--sm')}
+      style={panelStyle}
+      onKeyDown={handlePanelKeyDown}
+    >
+      {searchable ? (
+        <div className="pd-select__search">
+          <Search
+            className="pd-select__search-icon"
+            size={15}
+            strokeWidth={2.25}
+            aria-hidden
+          />
+          <input
+            ref={searchRef}
+            id={searchId}
+            type="search"
+            className="pd-select__search-input"
+            placeholder={searchPlaceholder}
+            value={query}
+            aria-label={searchPlaceholder}
+            aria-controls={listboxId}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === ' ') {
+                // Keep spaces in the query; don't toggle options.
+                event.stopPropagation()
+              }
+            }}
+          />
+          {query ? (
+            <button
+              type="button"
+              className="pd-select__search-clear"
+              aria-label="Clear search"
+              onClick={() => {
+                setQuery('')
+                searchRef.current?.focus()
+              }}
+            >
+              <X size={14} strokeWidth={2.25} aria-hidden />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div
+        id={listboxId}
+        role="listbox"
+        tabIndex={searchable ? -1 : 0}
+        aria-multiselectable={multiple || undefined}
+        aria-labelledby={label ? selectId : undefined}
+        aria-label={!label ? ariaLabel : undefined}
+        aria-activedescendant={
+          activeOption ? `${selectId}-option-${activeOption.value}` : undefined
+        }
+        className="pd-select__options"
+        ref={listboxRef}
+      >
+        {filteredOptions.length === 0 ? (
+          <div className="pd-select__empty">No matches</div>
+        ) : (
+          filteredOptions.map((option, index) => {
+            const isSelected = multiple
+              ? multiValue.includes(option.value)
+              : option.value === singleValue
+            const isActive = index === activeIndex
+            const OptionIcon = option.icon
+            return (
+              <div
+                key={option.value}
+                ref={(node) => {
+                  optionRefs.current[index] = node
+                }}
+                id={`${selectId}-option-${option.value}`}
+                role="option"
+                aria-selected={isSelected}
+                aria-disabled={option.disabled || undefined}
+                className={cx(
+                  'pd-select__option',
+                  multiple && 'pd-select__option--multi',
+                  isSelected && 'is-selected',
+                  isActive && 'is-active',
+                  option.disabled && 'is-disabled',
+                )}
+                onMouseEnter={() => {
+                  if (!option.disabled) setActiveIndex(index)
+                }}
+                onClick={() => activateOption(option)}
+              >
+                {multiple ? (
+                  <span
+                    className={cx(
+                      'pd-select__checkbox',
+                      isSelected && 'is-checked',
+                    )}
+                    aria-hidden
+                  >
+                    {isSelected ? <Check size={12} strokeWidth={3} /> : null}
+                  </span>
+                ) : null}
+                {OptionIcon ? (
+                  <OptionIcon
+                    className="pd-select__option-icon"
+                    size={15}
+                    strokeWidth={2.25}
+                    aria-hidden
+                  />
+                ) : null}
+                <span className="pd-select__option-label">{option.label}</span>
+                {!multiple && isSelected ? (
+                  <Check
+                    className="pd-select__check"
+                    size={16}
+                    strokeWidth={2.25}
+                    aria-hidden
+                  />
+                ) : null}
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {multiple && multiValue.length > 0 ? (
+        <div className="pd-select__footer">
+          <button
+            type="button"
+            className="pd-select__clear-selection"
+            onClick={() => emitMulti([])}
+          >
+            Clear selection
+          </button>
+        </div>
+      ) : null}
+    </div>
+  ) : null
 
   return (
     <div
@@ -305,6 +519,7 @@ export function Select(props: SelectProps) {
       className={cx(
         'pd-field',
         'pd-select',
+        size === 'sm' && 'pd-select--sm',
         multiple && 'pd-select--multiple',
         outlined && 'pd-field--outlined',
         outlined && 'pd-select--outlined',
@@ -340,6 +555,7 @@ export function Select(props: SelectProps) {
             isPlaceholder && 'pd-select__trigger--placeholder',
           )}
           disabled={disabled}
+          aria-label={ariaLabel}
           aria-haspopup="listbox"
           aria-expanded={open}
           aria-controls={listboxId}
@@ -352,149 +568,28 @@ export function Select(props: SelectProps) {
           }}
           onKeyDown={handleTriggerKeyDown}
         >
-          <span className="pd-select__value">{displayLabel}</span>
+          <span className="pd-select__value">
+            {SelectedIcon ? (
+              <SelectedIcon
+                className="pd-select__value-icon"
+                size={valueIconSize}
+                strokeWidth={2.25}
+                aria-hidden
+              />
+            ) : null}
+            {displayLabel}
+          </span>
           <ChevronDown
             className="pd-select__chevron"
-            size={16}
+            size={size === 'sm' ? 14 : 16}
             strokeWidth={2.25}
             aria-hidden
           />
         </button>
 
-        {open ? (
-          <div
-            className="pd-select__panel"
-            style={panelMinWidth ? { minWidth: panelMinWidth } : undefined}
-            onKeyDown={handlePanelKeyDown}
-          >
-            {searchable ? (
-              <div className="pd-select__search">
-                <Search
-                  className="pd-select__search-icon"
-                  size={15}
-                  strokeWidth={2.25}
-                  aria-hidden
-                />
-                <input
-                  ref={searchRef}
-                  id={searchId}
-                  type="search"
-                  className="pd-select__search-input"
-                  placeholder={searchPlaceholder}
-                  value={query}
-                  aria-label={searchPlaceholder}
-                  aria-controls={listboxId}
-                  onChange={(event) => setQuery(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === ' ') {
-                      // Keep spaces in the query; don't toggle options.
-                      event.stopPropagation()
-                    }
-                  }}
-                />
-                {query ? (
-                  <button
-                    type="button"
-                    className="pd-select__search-clear"
-                    aria-label="Clear search"
-                    onClick={() => {
-                      setQuery('')
-                      searchRef.current?.focus()
-                    }}
-                  >
-                    <X size={14} strokeWidth={2.25} aria-hidden />
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-
-            <div
-              id={listboxId}
-              role="listbox"
-              tabIndex={searchable ? -1 : 0}
-              aria-multiselectable={multiple || undefined}
-              aria-labelledby={label ? selectId : undefined}
-              aria-activedescendant={
-                activeOption
-                  ? `${selectId}-option-${activeOption.value}`
-                  : undefined
-              }
-              className="pd-select__options"
-              ref={listboxRef}
-            >
-              {filteredOptions.length === 0 ? (
-                <div className="pd-select__empty">No matches</div>
-              ) : (
-                filteredOptions.map((option, index) => {
-                  const isSelected = multiple
-                    ? multiValue.includes(option.value)
-                    : option.value === singleValue
-                  const isActive = index === activeIndex
-                  return (
-                    <div
-                      key={option.value}
-                      ref={(node) => {
-                        optionRefs.current[index] = node
-                      }}
-                      id={`${selectId}-option-${option.value}`}
-                      role="option"
-                      aria-selected={isSelected}
-                      aria-disabled={option.disabled || undefined}
-                      className={cx(
-                        'pd-select__option',
-                        multiple && 'pd-select__option--multi',
-                        isSelected && 'is-selected',
-                        isActive && 'is-active',
-                        option.disabled && 'is-disabled',
-                      )}
-                      onMouseEnter={() => {
-                        if (!option.disabled) setActiveIndex(index)
-                      }}
-                      onClick={() => activateOption(option)}
-                    >
-                      {multiple ? (
-                        <span
-                          className={cx(
-                            'pd-select__checkbox',
-                            isSelected && 'is-checked',
-                          )}
-                          aria-hidden
-                        >
-                          {isSelected ? (
-                            <Check size={12} strokeWidth={3} />
-                          ) : null}
-                        </span>
-                      ) : null}
-                      <span className="pd-select__option-label">
-                        {option.label}
-                      </span>
-                      {!multiple && isSelected ? (
-                        <Check
-                          className="pd-select__check"
-                          size={16}
-                          strokeWidth={2.25}
-                          aria-hidden
-                        />
-                      ) : null}
-                    </div>
-                  )
-                })
-              )}
-            </div>
-
-            {multiple && multiValue.length > 0 ? (
-              <div className="pd-select__footer">
-                <button
-                  type="button"
-                  className="pd-select__clear-selection"
-                  onClick={() => emitMulti([])}
-                >
-                  Clear selection
-                </button>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+        {panel && typeof document !== 'undefined'
+          ? createPortal(panel, document.body)
+          : null}
       </div>
 
       {error ? (

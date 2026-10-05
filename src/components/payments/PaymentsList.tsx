@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Eye, FileText, Plus, Wallet } from 'lucide-react'
 import {
@@ -6,6 +6,7 @@ import {
   EmptyState,
   Input,
   Select,
+  SideDrawer,
   Table,
   TableBody,
   TableCell,
@@ -28,18 +29,39 @@ function formatDate(value: string): string {
   return formatDisplayDate(value)
 }
 
+function highestDueCaseId(items: Case[]): string {
+  let bestId = ''
+  let bestBalance = -1
+  for (const item of items) {
+    if (item.balance > bestBalance) {
+      bestBalance = item.balance
+      bestId = item.id
+    }
+  }
+  return bestId
+}
+
 type PaymentsListProps = {
   clientId: string
   caseId?: string
   /** Cases available when recording a payment (client-level). */
   cases?: Case[]
+  /** Open the record-payment drawer on mount / when this flips true. */
+  startRecording?: boolean
+  onRecordingChange?: (recording: boolean) => void
 }
 
-export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps) {
+export function PaymentsList({
+  clientId,
+  caseId,
+  cases = [],
+  startRecording = false,
+  onRecordingChange,
+}: PaymentsListProps) {
   const byClient = usePaymentsByClientId(clientId)
   const byCase = usePaymentsByCaseId(caseId ?? '')
   const payments = caseId ? byCase : byClient
-  const [recording, setRecording] = useState(false)
+  const [recording, setRecording] = useState(startRecording)
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState('Cash')
   const [note, setNote] = useState('')
@@ -49,6 +71,11 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
   const openCases = cases.filter(
     (item) => item.status !== 'Completed' && item.status !== 'Cancelled',
   )
+  const dueCases = (caseId
+    ? cases.filter((item) => item.id === caseId)
+    : openCases
+  ).filter((item) => item.balance > 0)
+  const dueTotal = dueCases.reduce((sum, item) => sum + item.balance, 0)
   const caseOptions = (caseId
     ? cases.filter((item) => item.id === caseId)
     : openCases.length > 0
@@ -58,6 +85,36 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
     value: item.id,
     label: `${item.service}${item.destination ? ` · ${item.destination}` : ''} (${formatPaymentAmount(item.balance)} due)`,
   }))
+
+  const pickCaseForRecording = () => {
+    if (caseId) {
+      setSelectedCaseId(caseId)
+      return
+    }
+    setSelectedCaseId((current) =>
+      current ||
+      highestDueCaseId(dueCases.length > 0 ? dueCases : openCases),
+    )
+  }
+
+  const beginRecording = () => {
+    setError(undefined)
+    pickCaseForRecording()
+    setRecording(true)
+    onRecordingChange?.(true)
+  }
+
+  const endRecording = () => {
+    setRecording(false)
+    onRecordingChange?.(false)
+  }
+
+  useEffect(() => {
+    if (!startRecording) return
+    setError(undefined)
+    pickCaseForRecording()
+    setRecording(true)
+  }, [startRecording])
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -79,7 +136,7 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
         method,
         note,
       })
-      setRecording(false)
+      endRecording()
       setAmount('')
       setNote('')
       setError(undefined)
@@ -88,10 +145,29 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
     }
   }
 
+  const canRecord = caseOptions.length > 0
+
   return (
     <div className="pd-payments">
+      {dueTotal > 0 ? (
+        <div className="pd-payments__due" role="status">
+          <div className="pd-payments__due-copy">
+            <p className="pd-payments__due-label">Still due</p>
+            <p className="pd-payments__due-amount">
+              {formatPaymentAmount(dueTotal)}
+            </p>
+          </div>
+          <Button size="sm" onClick={beginRecording} disabled={!canRecord}>
+            <Wallet size={14} strokeWidth={2.25} aria-hidden />
+            Collect payment
+          </Button>
+        </div>
+      ) : null}
+
       <div className="pd-payments__toolbar">
-        <p className="pd-payments__hint">Linked to this service balance.</p>
+        <h2 className="pd-payments__heading">
+          Payment History ({payments.length})
+        </h2>
         <div className="pd-payments__actions">
           {caseId ? (
             <Link
@@ -102,73 +178,29 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
               View invoice
             </Link>
           ) : null}
-          <Button
-            size="sm"
-            variant={recording ? 'secondary' : 'primary'}
-            onClick={() => {
-              setRecording((value) => !value)
-              setError(undefined)
-              if (caseId) setSelectedCaseId(caseId)
-            }}
-            disabled={caseOptions.length === 0}
-          >
-            <Plus size={14} strokeWidth={2.25} aria-hidden />
-            {recording ? 'Cancel' : 'Record payment'}
-          </Button>
+          {dueTotal > 0 ? null : (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={beginRecording}
+              disabled={!canRecord}
+            >
+              <Plus size={14} strokeWidth={2.25} aria-hidden />
+              Record payment
+            </Button>
+          )}
         </div>
       </div>
-
-      {recording ? (
-        <form className="pd-payments__form" onSubmit={handleSubmit} noValidate>
-          {!caseId ? (
-            <Select
-              label="Case"
-              required
-              value={selectedCaseId}
-              onChange={(event) => setSelectedCaseId(event.target.value)}
-              options={caseOptions}
-              placeholder="Select case"
-            />
-          ) : null}
-          <Input
-            label="Amount (৳)"
-            required
-            inputMode="decimal"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            placeholder="e.g. 10000"
-          />
-          <Select
-            label="Method"
-            value={method}
-            onChange={(event) => setMethod(event.target.value)}
-            options={[
-              { value: 'Cash', label: 'Cash' },
-              { value: 'bKash', label: 'bKash' },
-              { value: 'Bank transfer', label: 'Bank transfer' },
-              { value: 'Card', label: 'Card' },
-            ]}
-          />
-          <Input
-            label="Note"
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder="Optional"
-          />
-          {error ? (
-            <p className="pd-field__error" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <Button type="submit">Save payment</Button>
-        </form>
-      ) : null}
 
       {payments.length === 0 ? (
         <EmptyState
           icon={Wallet}
           title="No payments yet"
-          description="Record a payment against a service to reduce the balance due."
+          description={
+            dueTotal > 0
+              ? 'Collect a payment against a service to reduce the balance due.'
+              : 'Record a payment against a service when money comes in.'
+          }
         />
       ) : (
         <Table>
@@ -216,6 +248,67 @@ export function PaymentsList({ clientId, caseId, cases = [] }: PaymentsListProps
           </TableBody>
         </Table>
       )}
+
+      <SideDrawer
+        open={recording}
+        onClose={endRecording}
+        title="Collect payment"
+        description={
+          dueTotal > 0
+            ? `${formatPaymentAmount(dueTotal)} still due`
+            : 'Record what you received against a service.'
+        }
+        className="pd-payments-drawer"
+      >
+        <form className="pd-payments__form" onSubmit={handleSubmit} noValidate>
+          {!caseId ? (
+            <Select
+              label="Case"
+              required
+              value={selectedCaseId}
+              onChange={(event) => setSelectedCaseId(event.target.value)}
+              options={caseOptions}
+              placeholder="Select case"
+            />
+          ) : null}
+          <Input
+            label="Amount (৳)"
+            required
+            inputMode="decimal"
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            placeholder="e.g. 10000"
+          />
+          <Select
+            label="Method"
+            value={method}
+            onChange={(event) => setMethod(event.target.value)}
+            options={[
+              { value: 'Cash', label: 'Cash' },
+              { value: 'bKash', label: 'bKash' },
+              { value: 'Bank transfer', label: 'Bank transfer' },
+              { value: 'Card', label: 'Card' },
+            ]}
+          />
+          <Input
+            label="Note"
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Optional"
+          />
+          {error ? (
+            <p className="pd-field__error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <div className="pd-payments__form-actions">
+            <Button type="submit">Save payment</Button>
+            <Button type="button" variant="secondary" onClick={endRecording}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </SideDrawer>
     </div>
   )
 }

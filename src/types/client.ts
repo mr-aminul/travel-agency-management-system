@@ -2,8 +2,6 @@ import type { ServiceType } from '@/types/case'
 
 export type { ServiceType }
 
-export type ClientStatus = 'Active' | 'Deployed' | 'Lead' | 'Inactive'
-
 export type ClientGender = 'Male' | 'Female' | 'Other'
 
 export type ClientMaritalStatus = 'Single' | 'Married' | 'Divorced' | 'Widowed'
@@ -65,7 +63,6 @@ export type Client = {
   balance: number
   /** Count of non-completed/cancelled services. */
   activeCases: number
-  status: ClientStatus
   idChecked: boolean
   createdAt: string
 }

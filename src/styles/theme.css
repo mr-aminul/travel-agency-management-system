@@ -38,6 +38,12 @@
   --color-on-brand: oklch(from var(--color-brand) round(1.21 - l) 0 0);
   --color-on-sidebar: oklch(from var(--color-sidebar) round(1.21 - l) 0 0);
 
+  /*
+   * Theme as foreground (links, selected labels, icons on surfaces).
+   * Same as the seed in light mode; brightened in .dark so navy stays readable.
+   */
+  --color-theme-ink: var(--color-theme);
+
   /* Body text — fixed neutrals */
   --color-text-primary: #0a0a0a;
   --color-text-sec: #64748b;
@@ -110,9 +116,9 @@
 }
 
 /**
- * Dark mode — same --color-theme seed.
- * Only canvases, text, soft tints, and status surfaces flip.
- * --color-white stays pure white for ink on brand chrome.
+ * Dark mode — same --color-theme seed for filled chrome.
+ * Surfaces, text, soft tints, status surfaces, and --color-theme-ink flip
+ * so navy accents stay readable on dark canvases.
  */
 .dark {
   color-scheme: dark;
@@ -128,20 +134,27 @@
   --color-brand: var(--color-theme-bright);
   --color-brand-light: var(--color-theme-subtle);
 
+  /* Lift seed for text/icons — filled buttons still use --color-theme. */
+  --color-theme-ink: oklch(from var(--color-theme) clamp(0.72, l + 0.36, 0.86) c h);
+
   --color-text-primary: #f1f3f5;
-  --color-text-sec: #9aa3ab;
-  --color-text-muted: #6f7880;
+  --color-text-sec: #a8b0b8;
+  --color-text-muted: #8a939c;
 
   --color-blue-light: color-mix(in srgb, var(--color-blue) 22%, #1e2429);
   --color-amber-light: color-mix(in srgb, var(--color-amber) 22%, #1e2429);
   --color-red-light: color-mix(in srgb, var(--color-red) 22%, #1e2429);
+  --color-status-completed: color-mix(in srgb, #2f7a5d 45%, white);
   --color-status-completed-surface: color-mix(in srgb,
-      var(--color-status-completed) 22%,
+      #2f7a5d 22%,
       #1e2429);
+  --color-status-on-hold: color-mix(in srgb, #6b7585 40%, white);
   --color-status-on-hold-surface: color-mix(in srgb,
       var(--color-status-on-hold) 18%,
       #1e2429);
+  --color-status-in-progress: color-mix(in srgb, var(--color-blue) 42%, white);
   --color-status-in-progress-surface: var(--color-blue-light);
+  --color-status-pending: color-mix(in srgb, var(--color-amber) 38%, white);
   --color-status-pending-surface: var(--color-amber-light);
 
   /* Cool slate ladder — sits with violet chrome; cards lift above body */

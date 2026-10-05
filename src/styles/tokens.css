@@ -37,6 +37,12 @@
   --shadow-low: 0 1px 3px color-mix(in srgb, var(--color-theme) 12%, transparent);
   --shadow-deep: rgba(9, 14, 21, 0.16) 0px 5px 40px 0px;
   --shadow-filter: drop-shadow(0 8px 20px color-mix(in srgb, black 22%, transparent));
+
+  /* Page enter on navigation (keyed Outlet remount). */
+  --pd-page-enter-duration: 280ms;
+  --pd-page-enter-stagger: 45ms;
+  --pd-page-enter-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --pd-page-enter-distance: 0.75rem;
 }
 
 /*

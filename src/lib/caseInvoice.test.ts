@@ -39,7 +39,6 @@ const client: Client = {
   services: ['Work Permit Visa'],
   balance: 20000,
   activeCases: 1,
-  status: 'Active',
   idChecked: true,
   createdAt: '2026-01-01',
 }

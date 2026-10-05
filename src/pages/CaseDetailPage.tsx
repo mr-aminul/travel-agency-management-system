@@ -1,38 +1,21 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import {
-  CircleDot,
-  ClipboardList,
-  FileText,
-  GitBranch,
-  LayoutDashboard,
-  MessageSquare,
-  SquarePen,
-  Wallet,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { ClipboardList, FileText, SquarePen } from 'lucide-react'
 import { CasePipeline } from '@/components/cases/CasePipeline'
-import { DocumentsChecklist } from '@/components/cases/DocumentsChecklist'
-import { PaymentsList } from '@/components/payments/PaymentsList'
 import {
   Badge,
   Button,
-  Card,
   EmptyState,
   Input,
   Modal,
   Select,
-  Tabs,
   Textarea,
   type BadgeVariant,
 } from '@/components/ui'
 import { getCurrentStepLabel } from '@/lib/caseChecklist'
 import { formatDisplayDate } from '@/lib/formatDate'
 import { serviceDetailAriaLabel } from '@/lib/serviceDisplay'
-import {
-  countMissingDocuments,
-  getCaseComplianceDocuments,
-} from '@/lib/caseDocuments'
+import { countMissingDocuments } from '@/lib/caseDocuments'
 import {
   CASE_STATUS_OPTIONS,
   getCaseById,
@@ -64,50 +47,19 @@ function formatDate(value?: string): string {
   return formatDisplayDate(value)
 }
 
-function TabLabel({
-  icon: Icon,
-  children,
-}: {
-  icon: LucideIcon
-  children: ReactNode
-}) {
-  return (
-    <>
-      <Icon size={15} strokeWidth={2.25} aria-hidden />
-      {children}
-    </>
-  )
-}
-
 function Fact({
   label,
   value,
-  onClick,
 }: {
   label: string
   value: ReactNode
-  onClick?: () => void
 }) {
-  const body = (
-    <>
+  return (
+    <div className="pd-case-detail__fact">
       <span className="pd-case-detail__fact-label">{label}</span>
       <span className="pd-case-detail__fact-value">{value}</span>
-    </>
+    </div>
   )
-
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        className="pd-case-detail__fact is-action"
-        onClick={onClick}
-      >
-        {body}
-      </button>
-    )
-  }
-
-  return <div className="pd-case-detail__fact">{body}</div>
 }
 
 export default function CaseDetailPage() {
@@ -118,7 +70,6 @@ export default function CaseDetailPage() {
   const employees = useEmployees()
   const client = item ? getClientById(item.clientId) : undefined
   const [editing, setEditing] = useState(false)
-  const [activeTab, setActiveTab] = useState('overview')
   const [draft, setDraft] = useState({
     status: 'Pending' as CaseStatus,
     destination: '',
@@ -132,7 +83,6 @@ export default function CaseDetailPage() {
   const [requestRemarks, setRequestRemarks] = useState('')
 
   useEffect(() => {
-    setActiveTab('overview')
     setEditing(false)
     setRequestOpen(false)
   }, [caseId])
@@ -145,12 +95,11 @@ export default function CaseDetailPage() {
     return <Navigate to={workDetailPath(item)} replace />
   }
 
-  const docs = getCaseComplianceDocuments(item)
   const missingDocs = countMissingDocuments(item)
-  const currentLabel = getCurrentStepLabel(item)
   const paidTotal = casePayments.reduce((sum, payment) => sum + payment.amount, 0)
   const serviceFee = caseServiceFee(item, paidTotal)
   const assignedName = getEmployeeDisplayName(item.assignedTo)
+  const currentLabel = getCurrentStepLabel(item)
   const displayStatus = editing ? draft.status : item.status
 
   const startEditing = () => {
@@ -196,23 +145,7 @@ export default function CaseDetailPage() {
         </div>
         <p className="pd-case-detail__client-line">
           <span>{item.caseId}</span>
-          {item.destination ? (
-            <>
-              <span className="pd-case-detail__meta-sep" aria-hidden>
-                ·
-              </span>
-              <span>{item.destination}</span>
-            </>
-          ) : null}
         </p>
-        {editing ? null : (
-          <div className="pd-case-detail__meta-row">
-            <span className="pd-case-detail__step-chip">
-              <CircleDot size={13} strokeWidth={2.25} aria-hidden />
-              {currentLabel}
-            </span>
-          </div>
-        )}
       </div>
 
       <div className="pd-case-detail__header-actions">
@@ -271,195 +204,130 @@ export default function CaseDetailPage() {
 
   return (
     <div
-      className="pd-case-detail pd-case-detail--nested"
+      className="pd-case-detail pd-case-detail--workspace"
       aria-label={serviceDetailAriaLabel(item)}
     >
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        items={[
-          {
-            id: 'overview',
-            label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
-            content: (
-              <section
-                className="pd-case-detail__sheet"
-                aria-label="Service details"
-              >
-                {serviceHeader}
-                {editing ? (
-                  <div className="pd-cases-form__grid">
-                    <Select
-                      label="Status"
-                      value={draft.status}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          status: event.target.value as CaseStatus,
-                        }))
-                      }
-                      options={CASE_STATUS_OPTIONS}
-                    />
-                    <Select
-                      label="Assigned to"
-                      searchable
-                      searchPlaceholder="Search employees…"
-                      placeholder="Select employee"
-                      value={draft.assignedTo}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          assignedTo: event.target.value,
-                        }))
-                      }
-                      options={employeeAssignmentOptions(
-                        employees,
-                        draft.assignedTo,
-                      )}
-                    />
-                    <Input
-                      label="Destination"
-                      value={draft.destination}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          destination: event.target.value,
-                        }))
-                      }
-                    />
-                    <Input
-                      label="Departure"
-                      type="date"
-                      value={draft.departureDate}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          departureDate: event.target.value,
-                        }))
-                      }
-                    />
-                    <Input
-                      label="Service fee"
-                      inputMode="numeric"
-                      value={draft.serviceFee}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          serviceFee: event.target.value,
-                        }))
-                      }
-                    />
-                    <Textarea
-                      className="pd-cases-form__full"
-                      label="Notes"
-                      rows={3}
-                      value={draft.description}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          description: event.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <div className="pd-case-detail__facts">
-                      <Fact label="Assigned to" value={assignedName || '—'} />
-                      <Fact label="Opened" value={formatDate(item.createdAt)} />
-                      <Fact label="Updated" value={formatDate(item.updatedAt)} />
-                      <Fact
-                        label="Departure"
-                        value={formatDate(item.departureDate)}
-                      />
-                      <Fact
-                        label="Service fee"
-                        value={formatBalance(serviceFee)}
-                      />
-                      <Fact
-                        label="Balance due"
-                        value={formatBalance(item.balance)}
-                      />
-                      <Fact
-                        label="Payments"
-                        value={
-                          casePayments.length > 0
-                            ? `${casePayments.length} recorded`
-                            : 'None yet'
-                        }
-                        onClick={() => setActiveTab('payments')}
-                      />
-                      <Fact
-                        label="Documents"
-                        value={
-                          missingDocs > 0 ? `${missingDocs} needed` : 'Complete'
-                        }
-                        onClick={() => setActiveTab('documents')}
-                      />
-                    </div>
-                    {item.description ? (
-                      <p className="pd-case-detail__notes">{item.description}</p>
-                    ) : null}
-                  </>
+      {serviceHeader}
+      <div className="pd-case-detail__overview">
+        <section
+          className="pd-case-detail__sheet"
+          aria-label="Service details"
+        >
+          {editing ? (
+            <div className="pd-cases-form__grid">
+              <Select
+                label="Status"
+                value={draft.status}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    status: event.target.value as CaseStatus,
+                  }))
+                }
+                options={CASE_STATUS_OPTIONS}
+              />
+              <Select
+                label="Assigned to"
+                searchable
+                searchPlaceholder="Search employees…"
+                placeholder="Select employee"
+                value={draft.assignedTo}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    assignedTo: event.target.value,
+                  }))
+                }
+                options={employeeAssignmentOptions(
+                  employees,
+                  draft.assignedTo,
                 )}
-              </section>
-            ),
-          },
-          {
-            id: 'pipeline',
-            label: <TabLabel icon={GitBranch}>Pipeline</TabLabel>,
-            content: <CasePipeline item={item} />,
-          },
-          {
-            id: 'documents',
-            label: <TabLabel icon={FileText}>Documents</TabLabel>,
-            content:
-              docs.length > 0 ? (
-                <div className="pd-client-docs">
-                  <Card
-                    title="Documents"
-                    actions={
-                      <span className="pd-client-docs__count">
-                        {docs.length}{' '}
-                        {docs.length === 1 ? 'document' : 'documents'}
-                      </span>
-                    }
-                  >
-                    <DocumentsChecklist caseId={item.id} docs={docs} />
-                  </Card>
-                </div>
-              ) : (
-                <EmptyState
-                  icon={FileText}
-                  title="No documents"
-                  description="None for this service yet."
+              />
+              <Input
+                label="Destination"
+                value={draft.destination}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    destination: event.target.value,
+                  }))
+                }
+              />
+              <Input
+                label="Departure"
+                type="date"
+                value={draft.departureDate}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    departureDate: event.target.value,
+                  }))
+                }
+              />
+              <Input
+                label="Service fee"
+                inputMode="numeric"
+                value={draft.serviceFee}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    serviceFee: event.target.value,
+                  }))
+                }
+              />
+              <Textarea
+                className="pd-cases-form__full"
+                label="Notes"
+                rows={3}
+                value={draft.description}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+              />
+            </div>
+          ) : (
+            <>
+              <div className="pd-case-detail__facts">
+                <Fact
+                  label="Destination"
+                  value={item.destination || '—'}
                 />
-              ),
-          },
-          {
-            id: 'payments',
-            label: <TabLabel icon={Wallet}>Payments</TabLabel>,
-            content: (
-              <PaymentsList
-                clientId={item.clientId}
-                caseId={item.id}
-                cases={[item]}
-              />
-            ),
-          },
-          {
-            id: 'messages',
-            label: <TabLabel icon={MessageSquare}>Messages</TabLabel>,
-            content: (
-              <EmptyState
-                icon={MessageSquare}
-                title="No messages yet"
-                description="Messages for this service will show up here."
-              />
-            ),
-          },
-        ]}
-      />
+                <Fact
+                  label="Departure"
+                  value={formatDate(item.departureDate)}
+                />
+                <Fact label="Current step" value={currentLabel} />
+                <Fact label="Assigned to" value={assignedName || '—'} />
+                <Fact
+                  label="Service fee"
+                  value={formatBalance(serviceFee)}
+                />
+                <Fact
+                  label="Balance due"
+                  value={formatBalance(item.balance)}
+                />
+                <Fact label="Opened" value={formatDate(item.createdAt)} />
+                <Fact label="Updated" value={formatDate(item.updatedAt)} />
+                <Fact
+                  label="Documents"
+                  value={
+                    missingDocs > 0
+                      ? `${missingDocs} needed`
+                      : 'Complete'
+                  }
+                />
+              </div>
+              {item.description ? (
+                <p className="pd-case-detail__notes">{item.description}</p>
+              ) : null}
+            </>
+          )}
+        </section>
+        <CasePipeline item={item} />
+      </div>
       <Modal
         open={requestOpen}
         onClose={() => setRequestOpen(false)}

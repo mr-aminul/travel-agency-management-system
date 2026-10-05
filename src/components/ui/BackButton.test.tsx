@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { BackButton } from '@/components/ui/BackButton'
 
 describe('BackButton', () => {
-  it('renders a themed arrow with Back to text', () => {
+  it('renders an icon-only link with an accessible Back to name', () => {
     render(
       <MemoryRouter>
         <BackButton to="/clients" label="Clients" />
@@ -13,11 +13,11 @@ describe('BackButton', () => {
 
     const link = screen.getByRole('link', { name: 'Back to Clients' })
     expect(link).toHaveAttribute('href', '/clients')
-    expect(link).toHaveTextContent('Back to Clients')
+    expect(link).not.toHaveTextContent('Back to Clients')
     expect(link.querySelector('.pd-btn--icon')).not.toBeNull()
   })
 
-  it('renders an action button with the same copy', () => {
+  it('renders an icon-only action button with the same accessible name', () => {
     let clicked = false
     render(
       <BackButton
@@ -29,7 +29,7 @@ describe('BackButton', () => {
     )
 
     const button = screen.getByRole('button', { name: 'Back to Catalog' })
-    expect(button).toHaveTextContent('Back to Catalog')
+    expect(button).not.toHaveTextContent('Back to Catalog')
     fireEvent.click(button)
     expect(clicked).toBe(true)
   })

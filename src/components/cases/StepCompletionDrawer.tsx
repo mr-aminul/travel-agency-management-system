@@ -1,8 +1,16 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { FileViewer } from '@/components/cases/FileViewer'
 import { Button, Input, SideDrawer, Textarea } from '@/components/ui'
 import { getStepDef, templateCountry } from '@/lib/caseChecklist'
-import { getStepRequirement, type StepCompletionInput, type StepUploadValue } from '@/lib/caseStepRequirements'
+import {
+  getCaseStepRequirement,
+  splitStepUploads,
+} from '@/lib/caseStepRequirementResolve'
+import type {
+  StepCompletionInput,
+  StepUploadDef,
+  StepUploadValue,
+} from '@/lib/caseStepRequirements'
 import { formatDisplayDate } from '@/lib/formatDate'
 import { updateCaseStep } from '@/lib/casesStore'
 import { completeCaseStepWithSync } from '@/lib/caseWorkflow'
@@ -43,6 +51,117 @@ type UploadDraft = {
   mimeType?: string
 }
 
+function draftFromCaseDoc(
+  item: Case,
+  upload: StepUploadDef,
+): UploadDraft | undefined {
+  if (!upload.documentId) return undefined
+  const doc = item.documents.find((entry) => entry.id === upload.documentId)
+  if (!doc) return undefined
+  const onFile =
+    Boolean(doc.fileName?.trim()) ||
+    doc.status === 'approved' ||
+    doc.status === 'under_review'
+  if (!onFile) return undefined
+  return {
+    fileName: doc.fileName?.trim() || doc.detail || doc.name,
+    fileId: doc.fileId,
+    mimeType: doc.mimeType,
+  }
+}
+
+function UploadBlocks({
+  uploads,
+  title,
+  drafts,
+  triedSubmit,
+  errors,
+  readOnly,
+  onPick,
+}: {
+  uploads: StepUploadDef[]
+  title: string
+  drafts: Record<string, UploadDraft>
+  triedSubmit: boolean
+  errors: Record<string, string>
+  readOnly?: boolean
+  onPick?: (key: string, draft: UploadDraft) => void
+}) {
+  if (uploads.length === 0) return null
+
+  if (readOnly) {
+    return (
+      <div className="pd-step-view__files-block">
+        <p className="pd-step-panel__uploads-title">{title}</p>
+        {uploads.map((upload) => {
+          const draft = drafts[upload.key]
+          return (
+            <div key={upload.key} className="pd-step-view__attachment">
+              <p className="pd-step-view__attachment-label">{upload.label}</p>
+              <FileViewer
+                fileId={draft?.fileId}
+                fileName={draft?.fileName}
+                mimeType={draft?.mimeType}
+                compact
+              />
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  return (
+    <div className="pd-step-panel__uploads">
+      <p className="pd-step-panel__uploads-title">{title}</p>
+      {uploads.map((upload) => {
+        const errorKey = `upload:${upload.key}`
+        const draft = drafts[upload.key]
+        return (
+          <div key={upload.key} className="pd-step-panel__upload-block">
+            <label className="pd-step-panel__upload">
+              <span className="pd-step-panel__upload-label">
+                {upload.label}
+                {upload.required ? ' *' : ''}
+              </span>
+              <span className="pd-doc-modal__file-btn">
+                {draft?.fileName || 'Choose file'}
+                <input
+                  type="file"
+                  accept="image/*,.pdf,application/pdf,text/*,.doc,.docx,.xls,.xlsx"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (!file || !onPick) return
+                    const stored = storeFile(file)
+                    onPick(upload.key, {
+                      fileName: stored.fileName,
+                      fileId: stored.id,
+                      mimeType: stored.mimeType,
+                    })
+                  }}
+                />
+              </span>
+              {triedSubmit && errors[errorKey] ? (
+                <span className="pd-field__error" role="alert">
+                  {errors[errorKey]}
+                </span>
+              ) : null}
+            </label>
+            {draft?.fileId ? (
+              <FileViewer
+                fileId={draft.fileId}
+                fileName={draft.fileName}
+                mimeType={draft.mimeType}
+                compact
+              />
+            ) : null}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function StepCompletionDrawer({
   open,
   item,
@@ -53,11 +172,14 @@ export function StepCompletionDrawer({
 }: StepCompletionDrawerProps) {
   const activeStepId = stepId
   const requirement = activeStepId
-    ? getStepRequirement(item.service, activeStepId)
+    ? getCaseStepRequirement(item, activeStepId)
     : undefined
   const stepDef = activeStepId
     ? getStepDef(item.service, activeStepId, templateCountry(item))
     : undefined
+  const { requiredDocs, attachments } = requirement
+    ? splitStepUploads(requirement)
+    : { requiredDocs: [], attachments: [] }
 
   const [fields, setFields] = useState<Record<string, string>>({})
   const [uploads, setUploads] = useState<Record<string, UploadDraft>>({})
@@ -73,16 +195,17 @@ export function StepCompletionDrawer({
       const existing = record?.uploads?.find(
         (itemUpload) => itemUpload.key === upload.key,
       )
+      const fromCase = draftFromCaseDoc(item, upload)
       nextUploads[upload.key] = {
-        fileName: existing?.fileName ?? '',
-        fileId: existing?.fileId,
-        mimeType: existing?.mimeType,
+        fileName: existing?.fileName || fromCase?.fileName || '',
+        fileId: existing?.fileId || fromCase?.fileId,
+        mimeType: existing?.mimeType || fromCase?.mimeType,
       }
     }
     setUploads(nextUploads)
     setErrors({})
     setTriedSubmit(false)
-  }, [open, activeStepId, item.steps, requirement, mode])
+  }, [open, activeStepId, item.steps, item.documents, requirement, mode])
 
   if (!requirement || !stepDef || !activeStepId) return null
 
@@ -138,6 +261,35 @@ export function StepCompletionDrawer({
     : isComplete
       ? `Complete: ${stepDef.label}`
       : `Edit: ${stepDef.label}`
+
+  const uploadSection = (readOnly: boolean): ReactNode => (
+    <>
+      <UploadBlocks
+        uploads={requiredDocs}
+        title="Required docs"
+        drafts={uploads}
+        triedSubmit={triedSubmit}
+        errors={errors}
+        readOnly={readOnly}
+        onPick={(key, draft) => {
+          setUploads((current) => ({ ...current, [key]: draft }))
+          clearError(`upload:${key}`)
+        }}
+      />
+      <UploadBlocks
+        uploads={attachments}
+        title="Attachments"
+        drafts={uploads}
+        triedSubmit={triedSubmit}
+        errors={errors}
+        readOnly={readOnly}
+        onPick={(key, draft) => {
+          setUploads((current) => ({ ...current, [key]: draft }))
+          clearError(`upload:${key}`)
+        }}
+      />
+    </>
+  )
 
   return (
     <SideDrawer
@@ -202,27 +354,7 @@ export function StepCompletionDrawer({
             ))}
           </dl>
 
-          {requirement.uploads.length > 0 ? (
-            <div className="pd-step-view__files-block">
-              <p className="pd-step-panel__uploads-title">Attachments</p>
-              {requirement.uploads.map((upload) => {
-                const draft = uploads[upload.key]
-                return (
-                  <div key={upload.key} className="pd-step-view__attachment">
-                    <p className="pd-step-view__attachment-label">
-                      {upload.label}
-                    </p>
-                    <FileViewer
-                      fileId={draft?.fileId}
-                      fileName={draft?.fileName}
-                      mimeType={draft?.mimeType}
-                      compact
-                    />
-                  </div>
-                )
-              })}
-            </div>
-          ) : null}
+          {uploadSection(true)}
 
           {!requirement.fields.length && !requirement.uploads.length ? (
             <p className="pd-step-view__empty">No details recorded.</p>
@@ -287,59 +419,7 @@ export function StepCompletionDrawer({
             ),
           )}
 
-          {requirement.uploads.length > 0 ? (
-            <div className="pd-step-panel__uploads">
-              <p className="pd-step-panel__uploads-title">Attachments</p>
-              {requirement.uploads.map((upload) => {
-                const errorKey = `upload:${upload.key}`
-                const draft = uploads[upload.key]
-                return (
-                  <div key={upload.key} className="pd-step-panel__upload-block">
-                    <label className="pd-step-panel__upload">
-                      <span className="pd-step-panel__upload-label">
-                        {upload.label}
-                        {upload.required ? ' *' : ''}
-                      </span>
-                      <span className="pd-doc-modal__file-btn">
-                        {draft?.fileName || 'Choose file'}
-                        <input
-                          type="file"
-                          accept="image/*,.pdf,application/pdf,text/*,.doc,.docx,.xls,.xlsx"
-                          onChange={(event) => {
-                            const file = event.target.files?.[0]
-                            if (!file) return
-                            const stored = storeFile(file)
-                            setUploads((current) => ({
-                              ...current,
-                              [upload.key]: {
-                                fileName: stored.fileName,
-                                fileId: stored.id,
-                                mimeType: stored.mimeType,
-                              },
-                            }))
-                            clearError(errorKey)
-                          }}
-                        />
-                      </span>
-                      {triedSubmit && errors[errorKey] ? (
-                        <span className="pd-field__error" role="alert">
-                          {errors[errorKey]}
-                        </span>
-                      ) : null}
-                    </label>
-                    {draft?.fileId ? (
-                      <FileViewer
-                        fileId={draft.fileId}
-                        fileName={draft.fileName}
-                        mimeType={draft.mimeType}
-                        compact
-                      />
-                    ) : null}
-                  </div>
-                )
-              })}
-            </div>
-          ) : null}
+          {uploadSection(false)}
         </form>
       )}
     </SideDrawer>

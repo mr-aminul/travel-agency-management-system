@@ -6,7 +6,9 @@ import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import { resetCustomServices } from '@/lib/customServicesStore'
 import { resetClientProfileFields } from '@/lib/clientProfileFieldsStore'
 import { resetHiddenServices } from '@/lib/hiddenServicesStore'
+import { resetServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { resetServiceTemplates } from '@/lib/serviceTemplatesStore'
+import { resetUserPageAccess } from '@/lib/userAccessStore'
 import { TENANT_IDS } from '@/types/tenant'
 import SettingsPage from '@/pages/SettingsPage'
 
@@ -16,7 +18,9 @@ afterEach(() => {
   resetCustomServices()
   resetClientProfileFields()
   resetHiddenServices()
+  resetServiceIconOverrides()
   resetServiceTemplates()
+  resetUserPageAccess()
 })
 
 function renderSettings(path: string) {
@@ -108,6 +112,37 @@ describe('settings service catalog', () => {
     expect(screen.getByRole('radio', { name: 'Light' })).toBeInTheDocument()
   }, 15000)
 
+  it('lists employees with parent-prefixed page columns', async () => {
+    renderSettings('/settings?section=userAccess')
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'User-wise Access Management',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('navigation', { name: 'Settings sections' }),
+    ).toHaveTextContent('User-wise Access Management')
+    expect(
+      screen.queryByRole('button', { name: 'Employees' }),
+    ).not.toBeInTheDocument()
+
+    const table = screen.getByRole('table', {
+      name: 'User-wise Access Management',
+    })
+    expect(table).toHaveTextContent('HR - Employees')
+    expect(table).toHaveTextContent('HR - Attendance & Leave')
+    expect(table).toHaveTextContent('HR - Payroll')
+    expect(table).toHaveTextContent('Employee')
+    expect(table).toHaveTextContent('Md. Karim Ahmed')
+    expect(table).toHaveTextContent('Recruitment Manager, Recruitment')
+    expect(
+      screen.getByRole('button', {
+        name: 'HR - Payroll access for Md. Karim Ahmed',
+      }),
+    ).toBeInTheDocument()
+  }, 15000)
+
   it('opens add-service in a right panel and creates the line', async () => {
     renderSettings('/settings?section=services')
 
@@ -115,9 +150,13 @@ describe('settings service catalog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Add service' })
     expect(panel).toBeInTheDocument()
+    expect(
+      within(panel).getByRole('listbox', { name: 'Service icons' }),
+    ).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Service name'), {
       target: { value: 'Visa processing' },
     })
+    fireEvent.click(within(panel).getByRole('option', { name: 'Visa' }))
     fireEvent.click(
       screen.getByRole('button', { name: 'Create and edit checklist' }),
     )
@@ -126,6 +165,27 @@ describe('settings service catalog', () => {
       await screen.findByRole('heading', { name: 'Visa processing' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save checklist' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Visa' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+  }, 15000)
+
+  it('keeps focus in the service name field while typing', async () => {
+    renderSettings('/settings?section=services')
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add service' }))
+
+    const nameField = screen.getByLabelText('Service name')
+    nameField.focus()
+    expect(nameField).toHaveFocus()
+
+    fireEvent.change(nameField, { target: { value: 'V' } })
+    expect(nameField).toHaveFocus()
+
+    fireEvent.change(nameField, { target: { value: 'Visa' } })
+    expect(nameField).toHaveFocus()
+    expect(nameField).toHaveValue('Visa')
   }, 15000)
 
   it('opens a catalog row in a full-panel editor', async () => {

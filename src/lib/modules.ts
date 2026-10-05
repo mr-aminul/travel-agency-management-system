@@ -94,18 +94,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
     ],
   },
   {
-    id: 'reporting',
-    label: 'Reporting',
-    description: 'Reports and insights',
-    modules: [
-      {
-        id: 'reporting',
-        label: 'Reporting',
-        description: 'Reports and insights',
-      },
-    ],
-  },
-  {
     id: 'partners',
     label: 'Sub Agents',
     description: 'Sub agents who send clients into the pipeline',
@@ -214,7 +202,6 @@ export function pathAccess(pathname: string): PathAccess {
     return 'finance'
   }
   if (path === '/documents' || path.startsWith('/documents/')) return 'documents'
-  if (path === '/reporting' || path.startsWith('/reporting/')) return 'reporting'
 
   return 'core'
 }

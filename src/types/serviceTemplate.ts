@@ -1,6 +1,8 @@
 export type ServiceStepConfig = {
   id: string
   label: string
+  /** Catalog document ids that must be filed before this status can complete. */
+  requiredDocumentIds?: string[]
 }
 
 export type ServiceDocumentConfig = {

@@ -118,7 +118,7 @@ describe('module entitlements', () => {
       MODULE_GROUPS.filter((group) => group.modules.length === 1).map(
         (group) => group.id,
       ),
-    ).toEqual(['finance', 'documents', 'reporting', 'partners', 'hr'])
+    ).toEqual(['finance', 'documents', 'partners', 'hr'])
   })
 
   it('restores a module when the platform admin enables it', () => {

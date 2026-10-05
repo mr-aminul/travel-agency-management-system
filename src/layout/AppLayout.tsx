@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { profileNavItem } from '@/config/layout'
 import { APP_VERSION_LABEL } from '@/lib/appVersion'
+import { pageIdentity } from './pageIdentity'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
+import { GlobalSearchProvider } from './GlobalSearchProvider'
 import { useBreakpoint } from './useBreakpoint'
 import type { AppLayoutConfig, NavItem } from './types'
 
@@ -74,60 +76,64 @@ export function AppLayout({
     pathname.endsWith('/invoice')
 
   return (
-    <div
-      className={[
-        'pd-app-shell',
-        isMobile ? 'pd-app-shell--mobile' : '',
-        isMobile && isMobileOpen ? 'pd-app-shell--mobile-nav-open' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      <div className="pd-app-shell__main">
-        <Sidebar
-          navItems={navItems}
-          brand={brand}
-          isMobile={isMobile}
-          isMobileOpen={isMobileOpen}
-          onMobileClose={() => setIsMobileOpen(false)}
-        />
-        <div className="pd-app-content">
-          <div
-            className={[
-              'pd-app-content-card',
-              isFillPage ? 'pd-app-content-card--fill' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          >
-            <TopBar
-              title={currentNavItem?.label ?? 'App'}
-              titleIcon={currentNavItem?.icon}
-              userName={userName}
-              profileSubtext={profileSubtext}
-              onSignOut={onSignOut}
-              onMobileMenuOpen={() => setIsMobileOpen(true)}
-              isMobile={isMobile}
-            />
-            <main
+    <GlobalSearchProvider>
+      <div
+        className={[
+          'pd-app-shell',
+          isMobile ? 'pd-app-shell--mobile' : '',
+          isMobile && isMobileOpen ? 'pd-app-shell--mobile-nav-open' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <div className="pd-app-shell__main">
+          <Sidebar
+            navItems={navItems}
+            brand={brand}
+            isMobile={isMobile}
+            isMobileOpen={isMobileOpen}
+            onMobileClose={() => setIsMobileOpen(false)}
+          />
+          <div className="pd-app-content">
+            <div
               className={[
-                'pd-app-main',
-                isFillPage ? 'pd-app-main--fill' : '',
+                'pd-app-content-card',
+                isFillPage ? 'pd-app-content-card--fill' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
             >
-              <Outlet />
-            </main>
-            <footer
-              className="pd-app-footer"
-              title={`App version ${APP_VERSION_LABEL}`}
-            >
-              <span className="pd-app-footer__version">{APP_VERSION_LABEL}</span>
-            </footer>
+              <TopBar
+                title={currentNavItem?.label ?? 'App'}
+                titleIcon={currentNavItem?.icon}
+                userName={userName}
+                profileSubtext={profileSubtext}
+                onSignOut={onSignOut}
+                onMobileMenuOpen={() => setIsMobileOpen(true)}
+                isMobile={isMobile}
+              />
+              <main
+                className={[
+                  'pd-app-main',
+                  isFillPage ? 'pd-app-main--fill' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                <Fragment key={pageIdentity(pathname)}>
+                  <Outlet />
+                </Fragment>
+              </main>
+              <footer
+                className="pd-app-footer"
+                title={`App version ${APP_VERSION_LABEL}`}
+              >
+                <span className="pd-app-footer__version">{APP_VERSION_LABEL}</span>
+              </footer>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </GlobalSearchProvider>
   )
 }

@@ -36,7 +36,7 @@ describe('service template overrides', () => {
       serviceName: 'Tour Package',
       steps: [
         { id: 'enquiry', label: 'Enquiry' },
-        { id: 'permit', label: 'Permit' },
+        { id: 'permit', label: 'Permit', requiredDocumentIds: ['police'] },
         { id: 'gone', label: 'Travelled' },
       ],
       documents: [
@@ -54,6 +54,13 @@ describe('service template overrides', () => {
       'Passport',
       'Police clearance',
     ])
+    const saved = getServiceTemplateOverride('Tour Package')
+    expect(
+      saved?.steps.find((step) => step.id === 'permit')?.requiredDocumentIds,
+    ).toEqual(['police'])
+    expect(
+      saved?.documents.find((doc) => doc.id === 'police')?.unlockStepId,
+    ).toBe('permit')
   })
 
   it('renames a saved template with the service', () => {

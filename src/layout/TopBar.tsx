@@ -1,5 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { Menu } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { TopBarDarkMode } from './TopBarDarkMode'
 import { TopBarSearch } from './TopBarSearch'
 import { ProfileDropdown } from './ProfileDropdown'
 
@@ -22,9 +24,25 @@ export function TopBar({
   onMobileMenuOpen,
   isMobile = false,
 }: TopBarProps) {
+  const { pathname } = useLocation()
+  const showTopBarSearch = pathname !== '/'
+
+  const titleBlock = (
+    <div className="pd-topbar__title">
+      {TitleIcon && (
+        <TitleIcon
+          size={18}
+          strokeWidth={1.75}
+          className="pd-topbar__title-icon"
+        />
+      )}
+      <span className="pd-topbar__title-text">{title}</span>
+    </div>
+  )
+
   const actions = (
     <div className="pd-topbar__actions">
-      <TopBarSearch />
+      <TopBarDarkMode />
       <ProfileDropdown
         userName={userName}
         profileSubtext={profileSubtext}
@@ -46,16 +64,9 @@ export function TopBar({
           >
             <Menu size={16} strokeWidth={2} />
           </button>
-          <span className="pd-topbar__title">
-            {TitleIcon && (
-              <TitleIcon
-                size={18}
-                strokeWidth={1.75}
-                className="pd-topbar__title-icon"
-              />
-            )}
-            <span className="pd-topbar__title-text">{title}</span>
-          </span>
+          <div className="pd-topbar__center">
+            {showTopBarSearch ? <TopBarSearch /> : null}
+          </div>
           {actions}
         </div>
       </header>
@@ -64,17 +75,10 @@ export function TopBar({
 
   return (
     <header className="pd-topbar pd-topbar--desktop">
-      <div className="pd-topbar__title">
-        {TitleIcon && (
-          <TitleIcon
-            size={18}
-            strokeWidth={1.75}
-            className="pd-topbar__title-icon"
-          />
-        )}
-        <span className="pd-topbar__title-text">{title}</span>
+      {titleBlock}
+      <div className="pd-topbar__center">
+        {showTopBarSearch ? <TopBarSearch /> : null}
       </div>
-      <div style={{ flex: 1 }} />
       {actions}
     </header>
   )

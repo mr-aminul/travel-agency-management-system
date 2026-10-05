@@ -9,4 +9,6 @@ export type CustomService = {
 export type CustomServiceDraft = {
   name: string
   description?: string
+  /** Optional catalog icon id; omit to keep / use default. */
+  iconId?: string | null
 }

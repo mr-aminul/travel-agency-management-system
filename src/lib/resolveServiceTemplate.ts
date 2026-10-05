@@ -5,6 +5,7 @@ import {
   listServiceCountries,
   resolveServiceTemplateOverride,
 } from '@/lib/serviceTemplatesStore'
+import { withRequiredDocumentIds } from '@/lib/stepDocumentLinks'
 import type { ServiceType } from '@/types/case'
 import type {
   ServiceDocumentConfig,
@@ -17,13 +18,15 @@ function defaultsFor(service: ServiceType): {
   steps: ServiceStepConfig[]
   documents: ServiceDocumentConfig[]
 } {
-  return {
-    steps: getBuiltinStepDefs(service).map((step) => ({
+  const documents = getDefaultDocumentConfigs(service)
+  const steps = withRequiredDocumentIds(
+    getBuiltinStepDefs(service).map((step) => ({
       id: step.id,
       label: step.label,
     })),
-    documents: getDefaultDocumentConfigs(service),
-  }
+    documents,
+  )
+  return { steps, documents }
 }
 
 export function resolveServiceTemplate(
@@ -40,9 +43,14 @@ export function resolveServiceTemplate(
     ? resolveServiceTemplateOverride(service, country)
     : getServiceTemplateOverride(service)
   const exact = getServiceTemplateOverride(service, country)
+  const documents = override?.documents ?? fallback.documents
+  const steps = withRequiredDocumentIds(
+    override?.steps ?? fallback.steps,
+    documents,
+  )
   return {
-    steps: override?.steps ?? fallback.steps,
-    documents: override?.documents ?? fallback.documents,
+    steps,
+    documents,
     isCustomized: Boolean(exact),
     countryCount: listServiceCountries(service).length,
   }

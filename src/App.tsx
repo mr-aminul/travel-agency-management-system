@@ -99,7 +99,6 @@ function App() {
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="finance" element={<Navigate to="/payments" replace />} />
             <Route path="documents" element={<DocumentsPage />} />
-            <Route path="reporting" element={<DashboardPage />} />
             <Route path="hr" element={<Navigate to="/hr/employees" replace />} />
             <Route path="hr/employees" element={<HrPage />} />
             <Route path="hr/employees/:id" element={<EmployeeDetailPage />} />

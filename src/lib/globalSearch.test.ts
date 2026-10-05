@@ -14,7 +14,6 @@ const rahim: Client = {
   services: ['Work Permit Visa'],
   balance: 0,
   activeCases: 0,
-  status: 'Active',
   idChecked: true,
   createdAt: '2025-11-12',
 }
@@ -28,7 +27,6 @@ const farhana: Client = {
   services: ['Student Visa'],
   balance: 0,
   activeCases: 0,
-  status: 'Active',
   idChecked: true,
   createdAt: '2026-01-08',
 }

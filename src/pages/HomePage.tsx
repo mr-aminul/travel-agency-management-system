@@ -1,6 +1,5 @@
 import { Link, Navigate } from 'react-router-dom'
 import {
-  BarChart3,
   ClipboardList,
   FileText,
   Handshake,
@@ -55,12 +54,6 @@ const QUICK_LINKS: QuickLink[] = [
     label: 'Documents',
     description: 'Files & records',
     icon: FileText,
-  },
-  {
-    path: '/reporting',
-    label: 'Reporting',
-    description: 'Reports & insights',
-    icon: BarChart3,
   },
   {
     path: '/hr',

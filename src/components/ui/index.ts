@@ -14,7 +14,12 @@ export { Textarea } from './Textarea'
 export type { TextareaProps } from './Textarea'
 
 export { Select } from './Select'
-export type { SelectProps, SelectOption, SelectChangeEvent } from './Select'
+export type {
+  SelectProps,
+  SelectOption,
+  SelectChangeEvent,
+  SelectSize,
+} from './Select'
 
 export { Checkbox } from './Checkbox'
 export type { CheckboxProps } from './Checkbox'

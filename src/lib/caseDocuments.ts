@@ -535,21 +535,38 @@ function isStepUnlocked(item: Case, unlockStepId?: string): boolean {
  * Recompute document status from progress steps (uploads) + unlock position.
  * Documents are not independently editable — Progress is the source of truth.
  */
+function findProgressUploadForDocument(item: Case, documentId: string) {
+  const catalogKey = `doc:${documentId}`
+  for (const record of Object.values(item.steps)) {
+    const uploaded = record.uploads?.find(
+      (file) => file.key === catalogKey || file.key === documentId,
+    )
+    if (uploaded?.fileName) return uploaded
+  }
+  const collector = findStepForDocument(item.service, documentId)
+  if (!collector) return undefined
+  return item.steps[collector.requirement.stepId]?.uploads?.find(
+    (file) => file.key === collector.uploadKey,
+  )
+}
+
 export function syncDocumentsWithProgress(item: Case): CaseDocument[] {
   return item.documents.map((doc) => {
     const collector = findStepForDocument(item.service, doc.id)
     const unlockStepId = collector?.requirement.stepId ?? doc.unlockStepId
     const unlocked = isStepUnlocked(item, unlockStepId)
+    const uploaded = findProgressUploadForDocument(item, doc.id)
 
-    if (collector) {
-      const stepRecord = item.steps[collector.requirement.stepId]
-      const uploaded = stepRecord?.uploads?.find(
-        (file) => file.key === collector.uploadKey,
-      )
+    if (collector || uploaded || doc.unlockStepId) {
       const hasDetails =
         Boolean(doc.fields && Object.keys(doc.fields).length > 0) ||
-        Boolean(uploaded?.fileName)
-      if (hasDetails) {
+        Boolean(uploaded?.fileName) ||
+        Boolean(doc.fileName)
+      if (
+        doc.status === 'approved' ||
+        doc.status === 'under_review' ||
+        hasDetails
+      ) {
         return {
           ...doc,
           unlockStepId,
@@ -557,7 +574,7 @@ export function syncDocumentsWithProgress(item: Case): CaseDocument[] {
             doc.status === 'approved'
               ? ('approved' as const)
               : ('under_review' as const),
-          detail: doc.detail || uploaded?.fileName || 'Recorded',
+          detail: doc.detail || uploaded?.fileName || doc.fileName || 'Recorded',
           fileName: doc.fileName || uploaded?.fileName,
           fileId: doc.fileId || uploaded?.fileId,
           mimeType: doc.mimeType || uploaded?.mimeType,
@@ -571,11 +588,13 @@ export function syncDocumentsWithProgress(item: Case): CaseDocument[] {
           detail: doc.detail,
         }
       }
-      return {
-        ...doc,
-        unlockStepId,
-        status: 'missing' as const,
-        detail: doc.detail,
+      if (collector || doc.unlockStepId) {
+        return {
+          ...doc,
+          unlockStepId,
+          status: 'missing' as const,
+          detail: doc.detail,
+        }
       }
     }
 
@@ -605,13 +624,13 @@ export function getCaseComplianceDocuments(
     const locked = !isStepUnlocked(item, sourceStepId)
 
     let collectionHint = 'On file'
-    if (collector) {
+    if (collector || doc.unlockStepId) {
       if (doc.status === 'under_review' || doc.status === 'approved') {
         collectionHint = `Filed in ${sourceStepLabel ?? 'progress'} step`
       } else if (locked) {
-        collectionHint = `Unlocks at ${sourceStepLabel ?? 'later'} step`
+        collectionHint = `Needed at ${sourceStepLabel ?? 'later'} status`
       } else {
-        collectionHint = `Complete “${sourceStepLabel ?? 'current'}” step to upload`
+        collectionHint = `Upload in “${sourceStepLabel ?? 'current'}” to complete`
       }
     } else if (doc.status === 'approved') {
       collectionHint = 'From client profile'

@@ -8,6 +8,11 @@ import {
   CASE_SERVICE_SLUGS,
 } from '@/types/case'
 import {
+  clearServiceIconOverride,
+  renameServiceIconOverride,
+  setServiceIconOverride,
+} from '@/lib/serviceIconOverridesStore'
+import {
   deleteAllServiceTemplates,
   renameServiceTemplate,
   saveServiceTemplate,
@@ -177,6 +182,9 @@ export function createCustomService(draft: CustomServiceDraft): CustomService {
     steps: DEFAULT_CUSTOM_STEPS,
     documents: DEFAULT_CUSTOM_DOCUMENTS,
   })
+  if (draft.iconId) {
+    setServiceIconOverride(created.name, draft.iconId)
+  }
   return created
 }
 
@@ -207,6 +215,10 @@ export function updateCustomService(
   )
   if (updated && current.name !== updated.name) {
     renameServiceTemplate(current.name, updated.name)
+    renameServiceIconOverride(current.name, updated.name)
+  }
+  if (updated && patch.iconId !== undefined) {
+    setServiceIconOverride(updated.name, patch.iconId)
   }
   return updated
 }
@@ -222,7 +234,10 @@ export function deleteCustomService(id: string): boolean {
   replaceAll(
     services.filter((item) => !(item.id === id && item.tenantId === tenantId())),
   )
-  if (removed) deleteAllServiceTemplates(removed.name)
+  if (removed) {
+    deleteAllServiceTemplates(removed.name)
+    clearServiceIconOverride(removed.name)
+  }
   return true
 }
 
