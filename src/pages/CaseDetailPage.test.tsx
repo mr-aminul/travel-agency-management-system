@@ -53,6 +53,7 @@ describe('client overview', () => {
 
     const profile = screen.getByLabelText('Client profile')
     expect(within(profile).getByText('01712345678')).toBeInTheDocument()
+    expect(within(profile).getByText('মোঃ রহিম উদ্দিন')).toBeInTheDocument()
     expect(within(profile).getByText('rahim.uddin@email.com')).toBeInTheDocument()
     expect(
       within(profile).getByRole('link', { name: 'rahim.uddin@email.com' }),
@@ -135,6 +136,9 @@ describe('service detail', () => {
 
     const service = screen.getByLabelText('Work Permit Visa (SR-00101)')
     expect(within(service).getByRole('heading', { name: 'Work Permit Visa' })).toBeInTheDocument()
+    expect(
+      service.querySelector('.pd-case-detail__header-icon svg'),
+    ).toBeTruthy()
     expect(within(service).getByText('In-Progress')).toBeInTheDocument()
     expect(within(service).queryByRole('tablist')).not.toBeInTheDocument()
     expect(within(service).queryByRole('tab', { name: 'Documents' })).not.toBeInTheDocument()
@@ -227,5 +231,25 @@ describe('client documents tab', () => {
     )
     expect(within(drawer).getByLabelText('Expiry date')).toHaveValue('2030-06-15')
     expect(within(drawer).getByText('Scan / file')).toBeInTheDocument()
+  })
+})
+
+describe('client profile tab', () => {
+  it('shows bangla name right after full name', () => {
+    renderClient('/clients/c-284?tab=profile')
+
+    expect(screen.getByLabelText('Full name')).toHaveValue('Md. Rahim Uddin')
+    expect(screen.getByRole('textbox', { name: 'Bangla name' })).toHaveValue(
+      'মোঃ রহিম উদ্দিন',
+    )
+  })
+
+  it('shows bangla name on a client who only had an english name before', () => {
+    renderClient('/clients/c-291?tab=profile')
+
+    expect(screen.getByLabelText('Full name')).toHaveValue('Farhana Akter')
+    expect(screen.getByRole('textbox', { name: 'Bangla name' })).toHaveValue(
+      'ফারহানা আক্তার',
+    )
   })
 })

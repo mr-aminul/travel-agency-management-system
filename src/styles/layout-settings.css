@@ -977,8 +977,8 @@
 }
 
 .pd-user-access__select.is-none .pd-select__trigger {
-  background: var(--color-status-pending-surface);
-  color: var(--color-status-pending);
+  background: var(--color-red-light);
+  color: var(--color-red);
 }
 
 @media (max-width: 767px) {

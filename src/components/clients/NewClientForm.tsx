@@ -40,6 +40,7 @@ export function NewClientForm({
   const customFieldDefs = isPublic ? tenantCustomFields : sessionCustomFields
   const partners = usePartners()
   const [name, setName] = useState('')
+  const [banglaName, setBanglaName] = useState('')
   const [fatherName, setFatherName] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [placeOfBirth, setPlaceOfBirth] = useState('')
@@ -98,6 +99,7 @@ export function NewClientForm({
 
     onSubmit({
       name,
+      banglaName,
       fatherName,
       dateOfBirth,
       placeOfBirth,
@@ -147,6 +149,12 @@ export function NewClientForm({
           </PartnerPhotoField>
 
           <div className="pd-clients-form__grid">
+            <Input
+              label="Bangla name"
+              value={banglaName}
+              onChange={(event) => setBanglaName(event.target.value)}
+              placeholder="বাংলা নাম"
+            />
             <Select
               label="Primary service"
               required

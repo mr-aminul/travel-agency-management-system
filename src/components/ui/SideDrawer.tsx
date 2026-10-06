@@ -1,7 +1,11 @@
 import {
+  useCallback,
   useEffect,
   useId,
   useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react'
 import { X } from 'lucide-react'
@@ -18,9 +22,50 @@ export type SideDrawerProps = {
   className?: string
 }
 
+const DRAWER_WIDTH_STORAGE_KEY = 'pd-drawer-width'
+const MIN_DRAWER_WIDTH_PX = 320
+const KEYBOARD_RESIZE_STEP_PX = 24
+
+function readStoredDrawerWidth(): number | null {
+  try {
+    const raw = localStorage.getItem(DRAWER_WIDTH_STORAGE_KEY)
+    if (raw == null || raw === '') return null
+    const value = Number(raw)
+    if (!Number.isFinite(value) || value < MIN_DRAWER_WIDTH_PX) return null
+    return value
+  } catch {
+    return null
+  }
+}
+
+function writeStoredDrawerWidth(width: number) {
+  try {
+    localStorage.setItem(DRAWER_WIDTH_STORAGE_KEY, String(Math.round(width)))
+  } catch {
+    /* private mode / quota */
+  }
+}
+
+function clearStoredDrawerWidth() {
+  try {
+    localStorage.removeItem(DRAWER_WIDTH_STORAGE_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+function maxDrawerWidthPx() {
+  return Math.max(MIN_DRAWER_WIDTH_PX, window.innerWidth - 16)
+}
+
+function clampDrawerWidth(width: number) {
+  return Math.min(Math.max(width, MIN_DRAWER_WIDTH_PX), maxDrawerWidthPx())
+}
+
 /**
  * Right-side panel for focused work without burying the page under a form.
  * Esc / backdrop click closes. Focus moves into the panel when opened.
+ * Left-edge grip resizes width; the choice is remembered across panels.
  */
 export function SideDrawer({
   open,
@@ -34,12 +79,33 @@ export function SideDrawer({
   const panelRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const onCloseRef = useRef(onClose)
+  const dragRef = useRef<{ pointerId: number; startX: number; startWidth: number } | null>(
+    null,
+  )
   const titleId = useId()
   const descriptionId = useId()
+  const [widthPx, setWidthPx] = useState<number | null>(readStoredDrawerWidth)
+  const [isResizing, setIsResizing] = useState(false)
+  const widthPxRef = useRef(widthPx)
 
   useEffect(() => {
     onCloseRef.current = onClose
   }, [onClose])
+
+  useEffect(() => {
+    widthPxRef.current = widthPx
+  }, [widthPx])
+
+  const applyWidth = useCallback((next: number) => {
+    const clamped = clampDrawerWidth(next)
+    setWidthPx(clamped)
+    writeStoredDrawerWidth(clamped)
+    return clamped
+  }, [])
+
+  const currentPanelWidth = useCallback(() => {
+    return panelRef.current?.offsetWidth || widthPxRef.current || MIN_DRAWER_WIDTH_PX
+  }, [])
 
   // Only when `open` flips — not when parents recreate `onClose` on each keystroke.
   // Re-running would steal focus from inputs inside the drawer.
@@ -74,13 +140,88 @@ export function SideDrawer({
     return () => {
       cancelAnimationFrame(frame)
       document.body.style.overflow = previousOverflow
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
       window.removeEventListener('keydown', onKeyDown)
       previousFocusRef.current?.focus()
       previousFocusRef.current = null
     }
   }, [open])
 
+  const onGripPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return
+    event.preventDefault()
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      /* jsdom */
+    }
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startWidth: currentPanelWidth(),
+    }
+    setIsResizing(true)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  const endGripDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current
+    if (!drag || event.pointerId !== drag.pointerId) return
+    dragRef.current = null
+    setIsResizing(false)
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+    try {
+      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+      }
+    } catch {
+      /* jsdom */
+    }
+  }
+
+  const onGripPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current
+    if (!drag || event.pointerId !== drag.pointerId) return
+    event.preventDefault()
+    applyWidth(drag.startWidth + (drag.startX - event.clientX))
+  }
+
+  const onGripDoubleClick = () => {
+    dragRef.current = null
+    setIsResizing(false)
+    setWidthPx(null)
+    clearStoredDrawerWidth()
+  }
+
+  const onGripKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const current = currentPanelWidth()
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      applyWidth(current + KEYBOARD_RESIZE_STEP_PX)
+      return
+    }
+    if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      applyWidth(current - KEYBOARD_RESIZE_STEP_PX)
+      return
+    }
+    if (event.key === 'Home') {
+      event.preventDefault()
+      applyWidth(MIN_DRAWER_WIDTH_PX)
+      return
+    }
+    if (event.key === 'End') {
+      event.preventDefault()
+      applyWidth(maxDrawerWidthPx())
+    }
+  }
+
   if (!open) return null
+
+  const resolvedWidth = widthPx == null ? null : clampDrawerWidth(widthPx)
 
   return (
     <div className="pd-drawer" role="presentation">
@@ -92,13 +233,34 @@ export function SideDrawer({
       />
       <div
         ref={panelRef}
-        className={cx('pd-drawer__panel', className)}
+        className={cx('pd-drawer__panel', isResizing && 'is-resizing', className)}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
+        style={
+          resolvedWidth == null
+            ? undefined
+            : { ['--drawer-width' as string]: `${resolvedWidth}px` }
+        }
       >
+        <div
+          className="pd-drawer__grip"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize panel"
+          aria-valuemin={MIN_DRAWER_WIDTH_PX}
+          aria-valuemax={maxDrawerWidthPx()}
+          aria-valuenow={resolvedWidth ?? undefined}
+          tabIndex={0}
+          onPointerDown={onGripPointerDown}
+          onPointerMove={onGripPointerMove}
+          onPointerUp={endGripDrag}
+          onPointerCancel={endGripDrag}
+          onDoubleClick={onGripDoubleClick}
+          onKeyDown={onGripKeyDown}
+        />
         <header className="pd-drawer__header">
           <div className="pd-drawer__heading">
             <h2 id={titleId} className="pd-drawer__title">

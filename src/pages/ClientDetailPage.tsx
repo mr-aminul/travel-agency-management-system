@@ -139,6 +139,7 @@ const BLOOD_GROUP_OPTIONS = [
 
 type ProfileDraft = {
   name: string
+  banglaName: string
   phone: string
   email: string
   address: string
@@ -171,6 +172,7 @@ const PROFILE_GROUPS: { title: string; fields: ProfileFieldDef[] }[] = [
     title: 'Person',
     fields: [
       { key: 'name', label: 'Full name' },
+      { key: 'banglaName', label: 'Bangla name' },
       { key: 'dateOfBirth', label: 'Date of birth', kind: 'date' },
       { key: 'placeOfBirth', label: 'Place of birth' },
       { key: 'gender', label: 'Gender', kind: 'gender' },
@@ -190,6 +192,7 @@ function toProfileDraft(
 ): ProfileDraft {
   return {
     name: client.name,
+    banglaName: client.banglaName ?? '',
     phone: client.phone,
     email: client.email ?? '',
     address: client.address ?? '',
@@ -483,6 +486,7 @@ export default function ClientDetailPage() {
     if (getClientByPhone(phone, client.id)) return
     const updated = updateClient(client.id, {
       name: profileDraft.name.trim(),
+      banglaName: profileDraft.banglaName.trim() || undefined,
       phone,
       email: profileDraft.email.trim() || undefined,
       address: profileDraft.address.trim() || undefined,
@@ -538,10 +542,10 @@ export default function ClientDetailPage() {
               <h1 className="pd-client-detail__name">
                 <ContactChip value={displayName} label="client name" />
               </h1>
-              {client.banglaName ? (
+              {profileDraft.banglaName ? (
                 <p className="pd-client-detail__card-subtitle">
                   <ContactChip
-                    value={client.banglaName}
+                    value={profileDraft.banglaName}
                     label="Bangla name"
                   />
                 </p>

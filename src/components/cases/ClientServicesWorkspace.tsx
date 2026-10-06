@@ -56,9 +56,14 @@ export function ClientServicesWorkspace({
       <aside className="pd-service-rail">
         <div className="pd-service-rail__head">
           <p className="pd-service-rail__title">Services</p>
-          <Button size="sm" onClick={onAddService}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onAddService}
+            aria-label="Add service"
+          >
             <Plus size={14} strokeWidth={2.25} aria-hidden />
-            Add service
+            Add
           </Button>
         </div>
         <nav className="pd-service-rail__list" aria-label="Service files">
@@ -77,7 +82,7 @@ export function ClientServicesWorkspace({
                 aria-label={`${item.service}, ${item.caseId}`}
               >
                 <span className="pd-service-rail__icon" aria-hidden>
-                  <Icon size={16} strokeWidth={2.25} />
+                  <Icon size={14} strokeWidth={2.25} />
                 </span>
                 <span className="pd-service-rail__copy">
                   <span className="pd-service-rail__name">{item.service}</span>
