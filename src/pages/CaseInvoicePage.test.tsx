@@ -37,6 +37,7 @@ describe('case invoice page', () => {
 
     expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Print invoice' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Download PDF' })).toBeInTheDocument()
     expect(screen.getByText('INV-SR-00101')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'From' })).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Billed To' })).toBeInTheDocument()

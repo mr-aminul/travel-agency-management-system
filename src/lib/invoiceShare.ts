@@ -75,6 +75,7 @@ function parseInvoice(value: unknown): CaseInvoice | null {
   if (!invoiceNumber || !clientName || !isInvoiceStatus(status)) return null
 
   const logoUrl = asOptionalString(row.agencyLogoUrl)
+  const isEmbeddedLogo = Boolean(logoUrl?.startsWith('data:'))
 
   return {
     invoiceNumber,
@@ -88,8 +89,9 @@ function parseInvoice(value: unknown): CaseInvoice | null {
     agencyAddress: asString(row.agencyAddress),
     agencyMobile: asString(row.agencyMobile),
     agencyWebsite: asString(row.agencyWebsite),
-    agencyLogoUrl: logoUrl?.startsWith('data:') ? undefined : logoUrl,
-    agencyLogoIsCustom: Boolean(row.agencyLogoIsCustom) && Boolean(logoUrl) && !logoUrl.startsWith('data:'),
+    agencyLogoUrl: isEmbeddedLogo ? undefined : logoUrl,
+    agencyLogoIsCustom:
+      Boolean(row.agencyLogoIsCustom) && Boolean(logoUrl) && !isEmbeddedLogo,
     clientName,
     clientPhone: asString(row.clientPhone),
     clientEmail: asOptionalString(row.clientEmail),

@@ -19,7 +19,7 @@ type InvoiceDocumentProps = {
 
 export function InvoiceDocument({ invoice }: InvoiceDocumentProps) {
   return (
-    <article className="pd-invoice">
+    <article className="pd-invoice" data-invoice-document>
       <header className="pd-invoice__header">
         <div className="pd-invoice__brand">
           {invoice.agencyLogoUrl ? (

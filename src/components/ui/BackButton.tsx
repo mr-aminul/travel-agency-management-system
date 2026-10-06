@@ -29,7 +29,7 @@ export function BackButton({ label, className, ...props }: BackButtonProps) {
     </span>
   )
 
-  if ('to' in props) {
+  if (typeof props.to === 'string') {
     return (
       <Link to={props.to} className={classNames} aria-label={ariaLabel}>
         {contents}

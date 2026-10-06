@@ -31,6 +31,8 @@ import {
   useEmployees,
 } from '@/lib/employeesStore'
 import { submitStatusRequest } from '@/lib/requestsStore'
+import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
+import { iconForService } from '@/lib/serviceIcons'
 import { clientPath, workDetailPath, workInvoicePath } from '@/lib/workPaths'
 import type { CaseStatus } from '@/types/case'
 import '@/styles/layout-cases.css'
@@ -65,6 +67,7 @@ function Fact({
 export default function CaseDetailPage() {
   const { id: clientId = '', caseId = '' } = useParams()
   useCases()
+  useServiceIconOverrides()
   const item = getCaseById(caseId)
   const casePayments = usePaymentsByCaseId(caseId)
   const employees = useEmployees()
@@ -101,6 +104,7 @@ export default function CaseDetailPage() {
   const assignedName = getEmployeeDisplayName(item.assignedTo)
   const currentLabel = getCurrentStepLabel(item)
   const displayStatus = editing ? draft.status : item.status
+  const ServiceIcon = iconForService(item.service)
 
   const startEditing = () => {
     setDraft({
@@ -136,6 +140,9 @@ export default function CaseDetailPage() {
           : 'pd-case-detail__header'
       }
     >
+      <span className="pd-case-detail__header-icon" aria-hidden>
+        <ServiceIcon size={18} strokeWidth={2.25} />
+      </span>
       <div className="pd-case-detail__header-text">
         <div className="pd-case-detail__title-row">
           <h2 className="pd-case-detail__name">{item.service}</h2>
@@ -188,10 +195,7 @@ export default function CaseDetailPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => {
-                startEditing()
-                setActiveTab('overview')
-              }}
+              onClick={startEditing}
             >
               <SquarePen size={14} strokeWidth={2.25} aria-hidden />
               Edit

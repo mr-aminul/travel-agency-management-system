@@ -56,6 +56,8 @@ describe('public invoice page', () => {
 
     expect(screen.queryByText('Back to service')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Invoice' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Print invoice' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Download PDF' })).toBeInTheDocument()
     expect(screen.getByText('INV-SR-00101')).toBeInTheDocument()
     expect(screen.getByText('Horizon Manpower')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Billed To' })).toBeInTheDocument()

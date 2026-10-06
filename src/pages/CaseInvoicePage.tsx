@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
-import { Check, Printer, Share2 } from 'lucide-react'
+import { Check, Share2 } from 'lucide-react'
 import { BackButton, Button } from '@/components/ui'
 import { InvoicePageView } from '@/components/invoices/InvoicePageView'
+import { InvoicePrintActions } from '@/components/invoices/InvoicePrintActions'
 import { buildCaseInvoice } from '@/lib/caseInvoice'
 import { getCaseById, useCases } from '@/lib/casesStore'
 import { getClientById } from '@/lib/clientsStore'
@@ -36,15 +37,16 @@ export default function CaseInvoicePage() {
     return <Navigate to="/services" replace />
   }
 
+  const defaultLogoUrl = layoutConfig.brand.logoUrl ?? ''
   const invoice = invoiceForDocument(
     buildCaseInvoice({
       caseItem,
       payments,
       client,
       profile,
-      defaultLogoUrl: layoutConfig.brand.logoUrl,
+      defaultLogoUrl,
     }),
-    layoutConfig.brand.logoUrl,
+    defaultLogoUrl,
   )
 
   const handleShare = async () => {
@@ -67,14 +69,7 @@ export default function CaseInvoicePage() {
               )}
               {copied ? 'Link copied' : 'Share'}
             </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => window.print()}
-            >
-              <Printer size={14} strokeWidth={2.25} aria-hidden />
-              Print invoice
-            </Button>
+            <InvoicePrintActions invoiceNumber={invoice.invoiceNumber} />
           </div>
         </>
       }
