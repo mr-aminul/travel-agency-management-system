@@ -5,7 +5,6 @@ import {
   FolderOpen,
   LayoutGrid,
   Table2,
-  Trash2,
   Users,
   Wallet,
 } from 'lucide-react'
@@ -388,20 +387,11 @@ export default function ClientsPage() {
           </div>
           <Button
             variant={showArchived ? 'primary' : 'secondary'}
-            size="sm"
+            size="md"
             aria-pressed={showArchived}
             onClick={() => setShowArchived((value) => !value)}
           >
             {showArchived ? 'Viewing archived' : 'Archived'}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            aria-label="Open trash"
-            onClick={() => navigate('/trash')}
-          >
-            <Trash2 size={14} strokeWidth={2} aria-hidden />
-            Trash
           </Button>
           <AddClientSplitButton
             size="md"
