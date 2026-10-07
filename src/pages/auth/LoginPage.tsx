@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { layoutConfig } from '@/config/layout'
 import { useAuth } from '@/lib/auth'
 import { signedInHomePath } from '@/lib/modules'
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const { status, user, signInWithPassword } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { markAllTouched, showError, blur } = useTouchedFields<
@@ -97,19 +99,36 @@ export default function LoginPage() {
               required
               error={showError('email') ? emailError : undefined}
             />
-            <Input
-              id="login-password"
-              label="Password"
-              labelVariant="default"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              onBlur={blur('password')}
-              required
-              error={showError('password') ? passwordError : undefined}
-            />
+            <div className="pd-login__password-control">
+              <Input
+                id="login-password"
+                label="Password"
+                labelVariant="default"
+                type={isPasswordVisible ? 'text' : 'password'}
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                onBlur={blur('password')}
+                required
+                error={showError('password') ? passwordError : undefined}
+              />
+              <button
+                type="button"
+                className="pd-login__password-toggle"
+                aria-label={
+                  isPasswordVisible ? 'Hide password' : 'Show password'
+                }
+                aria-pressed={isPasswordVisible}
+                onClick={() => setIsPasswordVisible((visible) => !visible)}
+              >
+                {isPasswordVisible ? (
+                  <EyeOff size={18} strokeWidth={2} aria-hidden />
+                ) : (
+                  <Eye size={18} strokeWidth={2} aria-hidden />
+                )}
+              </button>
+            </div>
             {error ? (
               <p className="pd-field__error" role="alert">
                 {error}
