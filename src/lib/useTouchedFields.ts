@@ -32,6 +32,11 @@ export function useTouchedFields<Field extends string>() {
     [markTouched],
   )
 
+  const resetTouched = useCallback(() => {
+    setTouched({})
+    setTriedSubmit(false)
+  }, [])
+
   return {
     touched,
     triedSubmit,
@@ -39,5 +44,6 @@ export function useTouchedFields<Field extends string>() {
     markAllTouched,
     showError,
     blur,
+    resetTouched,
   }
 }

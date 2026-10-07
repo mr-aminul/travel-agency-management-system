@@ -78,6 +78,12 @@
   border-bottom-color: var(--color-theme-ink);
 }
 
+.pd-admin__section-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-end: var(--spacing-3, 0.75rem);
+}
+
 .pd-admin__metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));

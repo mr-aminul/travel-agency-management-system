@@ -37,6 +37,12 @@ import {
   updateClientRecord,
 } from '@/lib/clientsStore'
 import { getActiveTenantId } from '@/lib/authApi'
+import {
+  DATA_KEYS,
+  loadJsonParsed,
+  removeJson,
+  saveJson,
+} from '@/lib/data'
 import { BUILTIN_SERVICE_OPTIONS } from '@/types/case'
 import { activeTenantAllowsService } from '@/lib/activeTenant'
 import { resolveServiceCountry } from '@/lib/serviceTemplatesStore'
@@ -423,15 +429,88 @@ const SEED_CASES: Case[] = [
   }),
 ]
 
-let cases: Case[] = SEED_CASES.map((item) => ({
-  ...item,
-  steps: { ...item.steps },
-  documents: item.documents.map((doc) => ({ ...doc })),
-}))
+const STORAGE_KEY = DATA_KEYS.casesCreated
+const SEED_IDS = new Set(SEED_CASES.map((item) => item.id))
+const dirtySeedIds = new Set<string>()
+
+function cloneCase(item: Case): Case {
+  return {
+    ...item,
+    steps: { ...item.steps },
+    documents: item.documents.map((doc) => ({ ...doc })),
+  }
+}
+
+function seedCases(): Case[] {
+  return SEED_CASES.map(cloneCase)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeStoredCase(value: unknown): Case | undefined {
+  if (!isRecord(value)) return undefined
+  if (typeof value.id !== 'string' || !value.id.trim()) return undefined
+  if (typeof value.tenantId !== 'string' || !value.tenantId.trim()) return undefined
+  if (typeof value.clientId !== 'string' || !value.clientId.trim()) return undefined
+  if (typeof value.service !== 'string' || !value.service.trim()) return undefined
+  if (typeof value.caseId !== 'string' || !value.caseId.trim()) return undefined
+  return value as Case
+}
+
+function readStoredCases(): Case[] {
+  return loadJsonParsed(STORAGE_KEY, [] as Case[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
+      .map(normalizeStoredCase)
+      .filter((item): item is Case => item != null)
+      .map(cloneCase)
+  })
+}
+
+function mergeWithSeeds(stored: Case[]): Case[] {
+  const byId = new Map(stored.map((item) => [item.id, item]))
+  for (const id of byId.keys()) {
+    if (SEED_IDS.has(id)) dirtySeedIds.add(id)
+  }
+  return [
+    ...stored,
+    ...seedCases().filter((item) => !byId.has(item.id)),
+  ]
+}
+
+function shouldPersistCase(item: Case): boolean {
+  return !SEED_IDS.has(item.id) || dirtySeedIds.has(item.id)
+}
+
+function persistCases() {
+  saveJson(STORAGE_KEY, cases.filter(shouldPersistCase))
+}
+
+function markCaseDirty(id: string) {
+  if (SEED_IDS.has(id)) dirtySeedIds.add(id)
+}
+
+let cases: Case[] = mergeWithSeeds(readStoredCases())
 const listeners = new Set<Listener>()
 
-function emit() {
+function emit(persist = true) {
+  if (persist) persistCases()
   listeners.forEach((listener) => listener())
+}
+
+export function resetCases() {
+  removeJson(STORAGE_KEY)
+  dirtySeedIds.clear()
+  cases = seedCases()
+  emit(false)
+}
+
+export function reloadCasesFromStorage() {
+  dirtySeedIds.clear()
+  cases = mergeWithSeeds(readStoredCases())
+  emit(false)
 }
 
 function subscribe(listener: Listener) {
@@ -576,6 +655,7 @@ export function createCase(input: CreateCaseInput): Case {
 
   cases = [created, ...cases]
   syncClientFromCases(client.id)
+  markCaseDirty(created.id)
   emit()
   return created
 }
@@ -628,6 +708,7 @@ export function updateCase(
   })
 
   if (updated) {
+    markCaseDirty(updated.id)
     syncClientFromCases(updated.clientId)
     emit()
   }
@@ -1055,6 +1136,7 @@ export function renameServiceOnCases(
   cases = cases.map((item) => {
     if (!inActiveTenant(item) || item.service !== from) return item
     changed += 1
+    markCaseDirty(item.id)
     return { ...item, service: to, updatedAt: today() }
   })
   if (changed) emit()

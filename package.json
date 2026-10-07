@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
     "deploy:ec2": "bash scripts/deploy-to-ec2.sh",
+    "deploy:vps": "bash scripts/deploy-to-vps.sh",
     "deploy:cf": "bash scripts/deploy-cloudflare.sh",
     "astryx": "node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs"
   },

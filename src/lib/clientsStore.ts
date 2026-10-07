@@ -1,6 +1,12 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
+import {
+  DATA_KEYS,
+  loadJsonParsed,
+  removeJson,
+  saveJson,
+} from '@/lib/data'
 import { getEnabledServiceOptions } from '@/lib/serviceCatalog'
 import { getTenantById, tenantAllowsService } from '@/lib/tenantsStore'
 import { BUILTIN_SERVICE_OPTIONS } from '@/types/case'
@@ -247,9 +253,9 @@ const SEED_CLIENTS: Client[] = [
   },
 ]
 
-const STORAGE_KEY = 'pd-clients-created'
-const TRASH_STORAGE_KEY = 'pd-clients-trash'
-const REMOVED_IDS_STORAGE_KEY = 'pd-clients-removed'
+const STORAGE_KEY = DATA_KEYS.clientsCreated
+const TRASH_STORAGE_KEY = DATA_KEYS.clientsTrash
+const REMOVED_IDS_STORAGE_KEY = DATA_KEYS.clientsRemoved
 const SEED_IDS = new Set(SEED_CLIENTS.map((client) => client.id))
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -368,50 +374,31 @@ function normalizeTrashedClient(value: unknown): TrashedClient | undefined {
 }
 
 function readRemovedClientIds(): Set<string> {
-  try {
-    const raw = localStorage.getItem(REMOVED_IDS_STORAGE_KEY)
-    if (!raw) return new Set()
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return new Set()
-    return new Set(
-      parsed.filter((id): id is string => typeof id === 'string' && id.trim() !== ''),
-    )
-  } catch {
-    return new Set()
-  }
+  return new Set(
+    loadJsonParsed(REMOVED_IDS_STORAGE_KEY, [] as string[], (value) => {
+      if (!Array.isArray(value)) return []
+      return value.filter(
+        (id): id is string => typeof id === 'string' && id.trim() !== '',
+      )
+    }),
+  )
 }
 
 function persistRemovedClientIds() {
-  try {
-    localStorage.setItem(
-      REMOVED_IDS_STORAGE_KEY,
-      JSON.stringify(Array.from(removedClientIds)),
-    )
-  } catch {
-    /* ignore quota / private mode */
-  }
+  saveJson(REMOVED_IDS_STORAGE_KEY, Array.from(removedClientIds))
 }
 
 function readTrash(): TrashedClient[] {
-  try {
-    const raw = localStorage.getItem(TRASH_STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed
+  return loadJsonParsed(TRASH_STORAGE_KEY, [] as TrashedClient[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
       .map(normalizeTrashedClient)
       .filter((entry): entry is TrashedClient => entry != null)
-  } catch {
-    return []
-  }
+  })
 }
 
 function persistTrash() {
-  try {
-    localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(trash))
-  } catch {
-    /* ignore quota / private mode */
-  }
+  saveJson(TRASH_STORAGE_KEY, trash)
 }
 
 function trashExpiresAt(deletedAt: string): number {
@@ -432,17 +419,12 @@ export function isTrashExpired(deletedAt: string, now = Date.now()): boolean {
 }
 
 function readCreatedClients(): Client[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed
+  return loadJsonParsed(STORAGE_KEY, [] as Client[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
       .map(normalizeStoredClient)
       .filter((client): client is Client => client != null)
-  } catch {
-    return []
-  }
+  })
 }
 
 function seedClients(): Client[] {
@@ -465,12 +447,7 @@ function shouldPersistClient(client: Client): boolean {
 }
 
 function persistCreatedClients() {
-  const created = clients.filter(shouldPersistClient)
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(created))
-  } catch {
-    /* ignore quota / private mode */
-  }
+  saveJson(STORAGE_KEY, clients.filter(shouldPersistClient))
 }
 
 let removedClientIds = readRemovedClientIds()
@@ -525,13 +502,9 @@ if (typeof window !== 'undefined') {
 }
 
 export function resetClients() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-    localStorage.removeItem(TRASH_STORAGE_KEY)
-    localStorage.removeItem(REMOVED_IDS_STORAGE_KEY)
-  } catch {
-    /* ignore */
-  }
+  removeJson(STORAGE_KEY)
+  removeJson(TRASH_STORAGE_KEY)
+  removeJson(REMOVED_IDS_STORAGE_KEY)
   removedClientIds = new Set()
   trash = []
   clients = seedClients()

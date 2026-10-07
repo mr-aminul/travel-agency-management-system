@@ -1,4 +1,12 @@
 import { useSyncExternalStore } from 'react'
+import { agencyCreateErrors, slugifyAgencyName } from '@/lib/agencyUserRules'
+import {
+  DATA_KEYS,
+  loadJson,
+  loadJsonParsed,
+  removeJson,
+  saveJson,
+} from '@/lib/data'
 import {
   ALL_MODULE_IDS,
   hasModule,
@@ -7,11 +15,18 @@ import {
 } from '@/lib/modules'
 import { tenantHasCustomService } from '@/lib/customServicesStore'
 import { isBuiltinService, type ServiceType } from '@/types/case'
-import { TENANT_IDS, type ModuleId, type Tenant } from '@/types/tenant'
+import {
+  TENANT_IDS,
+  type CreateTenantInput,
+  type ModuleId,
+  type Tenant,
+  type TenantStatus,
+} from '@/types/tenant'
 
 type Listener = () => void
 
-const ENTITLEMENTS_KEY = 'pd-tenant-entitlements'
+const ENTITLEMENTS_KEY = DATA_KEYS.tenantEntitlements
+const CREATED_TENANTS_KEY = DATA_KEYS.tenantsCreated
 
 const SEED_TENANTS: Tenant[] = [
   {
@@ -68,6 +83,7 @@ function mergeSeedServiceCatalog(
 const listeners = new Set<Listener>()
 
 function emit() {
+  rebuildSnapshot()
   listeners.forEach((listener) => listener())
 }
 
@@ -79,36 +95,63 @@ function subscribe(listener: Listener) {
 }
 
 function readOverrides(): Partial<Record<string, ModuleId[]>> {
-  try {
-    const raw = localStorage.getItem(ENTITLEMENTS_KEY)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw) as unknown
-    if (!parsed || typeof parsed !== 'object') return {}
-    const next: Partial<Record<string, ModuleId[]>> = {}
-    for (const [id, value] of Object.entries(parsed as Record<string, unknown>)) {
-      if (!Array.isArray(value)) continue
-      next[id] = value
+  const parsed = loadJson<unknown>(ENTITLEMENTS_KEY, {})
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+  const next: Partial<Record<string, ModuleId[]>> = {}
+  for (const [id, value] of Object.entries(parsed as Record<string, unknown>)) {
+    if (!Array.isArray(value)) continue
+    next[id] = value
+      .map((item) =>
+        typeof item === 'string' ? normalizeModuleId(item) : undefined,
+      )
+      .filter((item): item is ModuleId => item != null)
+  }
+  return next
+}
+
+function persistOverrides(list: Tenant[]) {
+  const overrides: Record<string, ModuleId[]> = {}
+  for (const tenant of list) {
+    overrides[tenant.id] = tenant.enabledModules
+  }
+  saveJson(ENTITLEMENTS_KEY, overrides)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeStoredTenant(value: unknown): Tenant | undefined {
+  if (!isRecord(value)) return undefined
+  const id = typeof value.id === 'string' ? value.id.trim() : ''
+  const slug = typeof value.slug === 'string' ? value.slug.trim() : ''
+  const name = typeof value.name === 'string' ? value.name.trim() : ''
+  if (!id || !slug || !name) return undefined
+  const status: TenantStatus =
+    value.status === 'active' || value.status === 'suspended'
+      ? value.status
+      : 'trial'
+  const enabledModules = Array.isArray(value.enabledModules)
+    ? value.enabledModules
         .map((item) =>
           typeof item === 'string' ? normalizeModuleId(item) : undefined,
         )
         .filter((item): item is ModuleId => item != null)
-    }
-    return next
-  } catch {
-    return {}
-  }
+    : []
+  return { id, slug, name, status, enabledModules }
 }
 
-function persistOverrides(tenants: Tenant[]) {
-  const overrides: Record<string, ModuleId[]> = {}
-  for (const tenant of tenants) {
-    overrides[tenant.id] = tenant.enabledModules
-  }
-  try {
-    localStorage.setItem(ENTITLEMENTS_KEY, JSON.stringify(overrides))
-  } catch {
-    /* ignore quota / private mode */
-  }
+function readCreatedTenants(): Tenant[] {
+  return loadJsonParsed(CREATED_TENANTS_KEY, [] as Tenant[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
+      .map(normalizeStoredTenant)
+      .filter((tenant): tenant is Tenant => tenant != null)
+  })
+}
+
+function persistCreatedTenants() {
+  saveJson(CREATED_TENANTS_KEY, createdTenants)
 }
 
 function withOverrides(base: Tenant[]): Tenant[] {
@@ -125,9 +168,27 @@ function withOverrides(base: Tenant[]): Tenant[] {
 }
 
 let tenants: Tenant[] = withOverrides(SEED_TENANTS)
+/** Agencies created via admin (persisted through the data layer). */
+let createdTenants: Tenant[] = readCreatedTenants()
+let snapshot: Tenant[] = [...tenants, ...createdTenants]
+
+function rebuildSnapshot() {
+  snapshot = [...tenants, ...createdTenants]
+}
 
 function getSnapshot() {
-  return tenants
+  return snapshot
+}
+
+function uniqueSlug(base: string): string {
+  const root = base || 'agency'
+  let slug = root
+  let n = 2
+  while (snapshot.some((tenant) => tenant.slug === slug)) {
+    slug = `${root}-${n}`
+    n += 1
+  }
+  return slug
 }
 
 export function useTenants(): Tenant[] {
@@ -135,17 +196,39 @@ export function useTenants(): Tenant[] {
 }
 
 export function getTenants(): Tenant[] {
-  return tenants
+  return getSnapshot()
 }
 
 export function getTenantById(id: string): Tenant | undefined {
-  return tenants.find((tenant) => tenant.id === id)
+  return getSnapshot().find((tenant) => tenant.id === id)
 }
 
 export function getTenantBySlug(slug: string): Tenant | undefined {
   const normalized = slug.trim().toLowerCase()
   if (!normalized) return undefined
-  return tenants.find((tenant) => tenant.slug.toLowerCase() === normalized)
+  return getSnapshot().find((tenant) => tenant.slug.toLowerCase() === normalized)
+}
+
+export function createTenant(input: CreateTenantInput): Tenant {
+  const errors = agencyCreateErrors(input)
+  if (errors.name) throw new Error(errors.name)
+
+  const name = input.name.trim()
+  const slug = uniqueSlug(
+    (input.slug?.trim() && slugifyAgencyName(input.slug)) ||
+      slugifyAgencyName(name),
+  )
+  const created: Tenant = {
+    id: `tenant-${Date.now().toString(36)}`,
+    slug,
+    name,
+    status: input.status ?? 'trial',
+    enabledModules: input.enabledModules ? [...input.enabledModules] : [],
+  }
+  createdTenants = [created, ...createdTenants]
+  persistCreatedTenants()
+  emit()
+  return created
 }
 
 /** Resolve a public link segment — prefers slug, falls back to internal id. */
@@ -157,13 +240,14 @@ export function useTenantById(id: string): Tenant | undefined {
   return useTenants().find((tenant) => tenant.id === id)
 }
 
-export function setTenantModuleEnabled(
+function patchTenantModules(
+  list: Tenant[],
   tenantId: string,
   moduleId: ModuleId,
   enabled: boolean,
-): Tenant | undefined {
+): { list: Tenant[]; updated?: Tenant } {
   let updated: Tenant | undefined
-  tenants = tenants.map((tenant) => {
+  const next = list.map((tenant) => {
     if (tenant.id !== tenantId) return tenant
     const has = tenant.enabledModules.includes(moduleId)
     let enabledModules = tenant.enabledModules
@@ -174,11 +258,34 @@ export function setTenantModuleEnabled(
     updated = { ...tenant, enabledModules }
     return updated
   })
-  if (updated) {
+  return { list: next, updated }
+}
+
+export function setTenantModuleEnabled(
+  tenantId: string,
+  moduleId: ModuleId,
+  enabled: boolean,
+): Tenant | undefined {
+  const seedPatch = patchTenantModules(tenants, tenantId, moduleId, enabled)
+  if (seedPatch.updated) {
+    tenants = seedPatch.list
     persistOverrides(tenants)
     emit()
+    return seedPatch.updated
   }
-  return updated
+  const createdPatch = patchTenantModules(
+    createdTenants,
+    tenantId,
+    moduleId,
+    enabled,
+  )
+  if (createdPatch.updated) {
+    createdTenants = createdPatch.list
+    persistCreatedTenants()
+    emit()
+    return createdPatch.updated
+  }
+  return undefined
 }
 
 export function tenantHasModule(tenant: Tenant, moduleId: ModuleId) {
@@ -196,11 +303,9 @@ export function tenantAllowsService(
 }
 
 export function resetTenantEntitlements() {
-  try {
-    localStorage.removeItem(ENTITLEMENTS_KEY)
-  } catch {
-    /* ignore */
-  }
+  removeJson(ENTITLEMENTS_KEY)
+  removeJson(CREATED_TENANTS_KEY)
   tenants = withOverrides(SEED_TENANTS)
+  createdTenants = []
   emit()
 }

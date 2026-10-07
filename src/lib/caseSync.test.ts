@@ -50,6 +50,8 @@ describe('case tab sync', () => {
       primaryService: 'Air Ticket',
       idChecked: true,
       passport: 'P11223344',
+      passportIssuedOn: '2020-01-15',
+      passportExpiry: '2030-01-14',
     })
     const created = createCase({
       clientId: client.id,

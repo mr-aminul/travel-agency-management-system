@@ -1,7 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App'
-import { AuthProvider } from '@/lib/auth'
+import { bootstrapDataBackend } from './bootstrapData'
 import { initAppearanceListener } from './lib/brand'
 import { initKeyboardFocus } from './lib/keyboardFocus'
 
@@ -15,10 +14,24 @@ import './index.css'
 initAppearanceListener()
 initKeyboardFocus()
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  </StrictMode>,
-)
+/**
+ * Hydrate the save/load backend before importing stores/App, otherwise
+ * module-level store init would bind to localStorage first.
+ */
+void bootstrapDataBackend()
+  .then(async () => {
+    const [{ default: App }, { AuthProvider }] = await Promise.all([
+      import('./App'),
+      import('@/lib/auth'),
+    ])
+    createRoot(document.getElementById('root')!).render(
+      <StrictMode>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </StrictMode>,
+    )
+  })
+  .catch((error) => {
+    console.error('[boot] failed', error)
+  })

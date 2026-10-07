@@ -1,6 +1,6 @@
 # Travel Agency Management System
 
-Vite + React shell. Independently deployable to EC2, mounted at `/platform`.
+Vite + React app with an isolated VPS stack (Caddy + Docker Postgres + platform API).
 
 ## Run locally
 
@@ -15,31 +15,30 @@ Open http://localhost:8003.
 cp .env.example .env   # optional; VITE_API_BASE_URL empty = same-origin /api
 ```
 
-## Deploy to EC2 `/platform` (from this repo)
+## Production (inventivelab VPS)
 
-One-time:
+Isolated paths (does not share networks/volumes with n8n, MinIO, or Cloudreve):
+
+| Piece | Location |
+|-------|----------|
+| SPA | `/var/www/onetrack-platform` |
+| API + compose | `/opt/onetrack-platform` |
+| Postgres | Docker `onetrack-platform-db` on `127.0.0.1:5433` only |
+| Public site | `https://tams.inventivelab.bd` |
+
+Requires `VPS_HOST`, `VPS_USER`, `VPS_PASSWORD` in local `.env` (gitignored).
 
 ```bash
-cp .env.deploy.example .env.deploy
-# edit PERF_EC2_HOST + PERF_EC2_PEM if needed
+npm run deploy:vps
 ```
-
-Every release:
-
-```bash
-npm run deploy:ec2
-```
-
-That builds with `base: /platform/`, uploads to `/var/www/platform`, reloads nginx if needed.
-
-**Not required for deploy:** `DB_*`, RDS, encryption keys. Those stay with the API until this platform has its own backend.
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Local Vite (:8003) |
-| `npm run build` | Production build (`/platform/` base) |
-| `npm run deploy:ec2` | Build + ship to EC2 `/platform` |
+| `npm run build` | Production build |
+| `npm run deploy:vps` | Build + ship isolated stack to VPS |
+| `npm run deploy:ec2` | Legacy shared-EC2 `/platform` deploy |
 | `npm test` | Vitest |
 | `npm run lint` | ESLint |

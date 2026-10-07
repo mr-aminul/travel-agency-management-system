@@ -1,6 +1,13 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
+import {
+  DATA_KEYS,
+  hasJson,
+  loadJsonParsed,
+  removeJson,
+  saveJson,
+} from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
 import type { SubAgent, SubAgentDraft } from '@/types/subAgent'
@@ -46,8 +53,8 @@ const SEED_SUB_AGENTS: SubAgent[] = [
   },
 ]
 
-const STORAGE_KEY = 'pd-sub-agents-created'
-const LEGACY_STORAGE_KEY = 'pd-sub-agents-created'
+const STORAGE_KEY = DATA_KEYS.subAgentsCreated
+const LEGACY_STORAGE_KEY = DATA_KEYS.subAgentsCreatedLegacy
 const SEED_IDS = new Set(SEED_SUB_AGENTS.map((subAgent) => subAgent.id))
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -83,24 +90,18 @@ function normalizeStoredSubAgent(value: unknown): SubAgent | undefined {
 }
 
 function readCreatedSubAgents(): SubAgent[] {
-  try {
-    const raw =
-      localStorage.getItem(STORAGE_KEY) ??
-      localStorage.getItem(LEGACY_STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    const items = parsed
+  const key = hasJson(STORAGE_KEY) ? STORAGE_KEY : LEGACY_STORAGE_KEY
+  const items = loadJsonParsed(key, [] as SubAgent[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
       .map(normalizeStoredSubAgent)
       .filter((subAgent): subAgent is SubAgent => subAgent != null)
-    if (!localStorage.getItem(STORAGE_KEY) && localStorage.getItem(LEGACY_STORAGE_KEY)) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-      localStorage.removeItem(LEGACY_STORAGE_KEY)
-    }
-    return items
-  } catch {
-    return []
+  })
+  if (key === LEGACY_STORAGE_KEY && items.length > 0) {
+    saveJson(STORAGE_KEY, items)
+    removeJson(LEGACY_STORAGE_KEY)
   }
+  return items
 }
 
 function seedSubAgents(): SubAgent[] {
@@ -117,12 +118,8 @@ function mergeWithSeeds(created: SubAgent[]): SubAgent[] {
 
 function persistCreatedSubAgents() {
   const created = subAgents.filter((subAgent) => !SEED_IDS.has(subAgent.id))
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(created))
-    localStorage.removeItem(LEGACY_STORAGE_KEY)
-  } catch {
-    /* ignore quota / private mode */
-  }
+  saveJson(STORAGE_KEY, created)
+  removeJson(LEGACY_STORAGE_KEY)
 }
 
 let subAgents: SubAgent[] = mergeWithSeeds(readCreatedSubAgents())
@@ -150,12 +147,8 @@ if (typeof window !== 'undefined') {
 }
 
 export function resetSubAgents() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-    localStorage.removeItem(LEGACY_STORAGE_KEY)
-  } catch {
-    /* ignore */
-  }
+  removeJson(STORAGE_KEY)
+  removeJson(LEGACY_STORAGE_KEY)
   subAgents = seedSubAgents()
   emit(false)
 }

@@ -1,0 +1,57 @@
+# Isolated OneTrack / travel-agency stack.
+# Own network + volumes — does not join n8n/cloudreve/minio networks.
+name: onetrack-platform
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: onetrack-platform-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: onetrack_platform
+      POSTGRES_USER: platform
+      POSTGRES_PASSWORD: ${PLATFORM_DB_PASSWORD:?set PLATFORM_DB_PASSWORD}
+    volumes:
+      - onetrack_platform_pgdata:/var/lib/postgresql/data
+    # Bind localhost only — unreachable from other containers' public nets.
+    ports:
+      - "127.0.0.1:5433:5432"
+    networks:
+      - onetrack_platform_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platform -d onetrack_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    container_name: onetrack-platform-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      BIND_HOST: 0.0.0.0
+      PORT: 4010
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: onetrack_platform
+      PGUSER: platform
+      PGPASSWORD: ${PLATFORM_DB_PASSWORD:?set PLATFORM_DB_PASSWORD}
+      CORS_ORIGIN: ${PLATFORM_CORS_ORIGIN:-https://tams.inventivelab.bd}
+    ports:
+      - "127.0.0.1:4010:4010"
+    networks:
+      - onetrack_platform_net
+
+networks:
+  onetrack_platform_net:
+    name: onetrack_platform_net
+    driver: bridge
+
+volumes:
+  onetrack_platform_pgdata:
+    name: onetrack_platform_pgdata

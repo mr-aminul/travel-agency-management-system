@@ -16,6 +16,10 @@ export type ModuleId =
   | 'services.hotelBooking'
   | 'services.tourPackage'
 
+/**
+ * Agency rules (locked) — see `agencyUserRules.ts`:
+ * required at create: name; modules/status optional.
+ */
 export type Tenant = {
   id: string
   slug: string
@@ -24,10 +28,24 @@ export type Tenant = {
   enabledModules: ModuleId[]
 }
 
+export type CreateTenantInput = {
+  name: string
+  /** Defaults to a slug derived from name. */
+  slug?: string
+  /** Defaults to trial. */
+  status?: TenantStatus
+  /** Optional — configure later in settings. Defaults to none. */
+  enabledModules?: ModuleId[]
+}
+
 export type TenantMemberRole = 'owner' | 'manager' | 'staff'
 
 export type TenantMemberStatus = 'active' | 'invited' | 'disabled'
 
+/**
+ * Staff user rules (locked) — see `agencyUserRules.ts`:
+ * required at create: name, email, tenantId; role defaults to staff.
+ */
 export type TenantMember = {
   id: string
   tenantId: string
@@ -35,6 +53,16 @@ export type TenantMember = {
   email: string
   role: TenantMemberRole
   status: TenantMemberStatus
+}
+
+export type CreateTenantMemberInput = {
+  tenantId: string
+  name: string
+  email: string
+  /** Defaults to staff. */
+  role?: TenantMemberRole
+  /** Defaults to invited. */
+  status?: TenantMemberStatus
 }
 
 export const TENANT_IDS = {

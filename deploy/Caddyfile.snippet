@@ -1,0 +1,23 @@
+# OneTrack travel-agency platform — isolated site.
+# Lives in /etc/caddy/conf.d/onetrack-platform.caddy (imported by main Caddyfile).
+# Does not touch ai.inventivelab.bd, storage.onesigntv.com, or MinIO/n8n ports.
+tams.inventivelab.bd {
+	encode gzip
+
+	handle /api/platform* {
+		reverse_proxy 127.0.0.1:4010 {
+			header_up Host {host}
+		}
+	}
+
+	handle {
+		root * /var/www/onetrack-platform
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		X-App onetrack-platform
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}
