@@ -1,17 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   AGENCY_PROFILE_EVENT,
   AGENCY_PROFILE_KEY,
   agencyProfileStorageKey,
   readAgencyProfile,
+  withBusinessNameFallback,
   type AgencyProfile,
 } from '@/lib/agencyProfile'
 import { useAuth } from '@/lib/useAuth'
+import { useTenantById } from '@/lib/tenantsStore'
 import { DEFAULT_TENANT_ID } from '@/types/tenant'
 
 export function useAgencyProfile(): AgencyProfile {
   const { session } = useAuth()
   const tenantId = session?.tenantId ?? DEFAULT_TENANT_ID
+  const tenant = useTenantById(tenantId)
   const [profile, setProfile] = useState(() => readAgencyProfile(tenantId))
 
   useEffect(() => {
@@ -46,5 +49,8 @@ export function useAgencyProfile(): AgencyProfile {
     }
   }, [tenantId])
 
-  return profile
+  return useMemo(
+    () => withBusinessNameFallback(profile, tenant?.name),
+    [profile, tenant?.name],
+  )
 }

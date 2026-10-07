@@ -1,6 +1,12 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
+import {
+  DATA_KEYS,
+  loadJsonParsed,
+  removeJson,
+  saveJson,
+} from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID } from '@/types/tenant'
 import {
@@ -11,7 +17,7 @@ import {
 
 type Listener = () => void
 
-const STORAGE_KEY = 'pd-user-page-access'
+const STORAGE_KEY = DATA_KEYS.userPageAccess
 const DEFAULT_LEVEL: PageAccessLevel = 'edit'
 
 const listeners = new Set<Listener>()
@@ -44,35 +50,45 @@ function normalizeEntry(value: unknown): UserPageAccess | undefined {
   if (!isRecord(value)) return undefined
   const tenantId =
     typeof value.tenantId === 'string' ? value.tenantId.trim() : ''
-  const employeeId =
-    typeof value.employeeId === 'string' ? value.employeeId.trim() : ''
+  const memberId =
+    (typeof value.memberId === 'string' ? value.memberId.trim() : '') ||
+    (typeof value.employeeId === 'string' ? value.employeeId.trim() : '')
   const pagePath =
     typeof value.pagePath === 'string' ? value.pagePath.trim() : ''
   const level = parseLevel(value.level)
-  if (!tenantId || !employeeId || !pagePath || !level) return undefined
-  return { tenantId, employeeId, pagePath, level }
+  if (!tenantId || !memberId || !pagePath || !level) return undefined
+  return { tenantId, memberId, pagePath, level }
 }
 
 function loadAll(): UserPageAccess[] {
+  // Prefer synced data layer; migrate legacy localStorage once.
+  const fromData = loadJsonParsed(STORAGE_KEY, [] as UserPageAccess[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
+      .map(normalizeEntry)
+      .filter((item): item is UserPageAccess => item != null)
+  })
+  if (fromData.length > 0) return fromData
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem('pd-user-page-access')
     if (!raw) return []
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
-    return parsed
+    const migrated = parsed
       .map(normalizeEntry)
       .filter((item): item is UserPageAccess => item != null)
+    if (migrated.length > 0) {
+      saveJson(STORAGE_KEY, migrated)
+      localStorage.removeItem('pd-user-page-access')
+    }
+    return migrated
   } catch {
     return []
   }
 }
 
 function persist(next: UserPageAccess[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-  } catch {
-    /* ignore quota / private mode */
-  }
+  saveJson(STORAGE_KEY, next)
 }
 
 function replaceAll(next: UserPageAccess[]) {
@@ -86,7 +102,7 @@ function tenantId() {
 }
 
 export function getPageAccessLevel(
-  employeeId: string,
+  memberId: string,
   pagePath: string,
   all: UserPageAccess[] = entries,
   activeTenantId: string = tenantId(),
@@ -94,14 +110,14 @@ export function getPageAccessLevel(
   const match = all.find(
     (entry) =>
       entry.tenantId === activeTenantId &&
-      entry.employeeId === employeeId &&
+      entry.memberId === memberId &&
       entry.pagePath === pagePath,
   )
   return match?.level ?? DEFAULT_LEVEL
 }
 
 export function setPageAccessLevel(
-  employeeId: string,
+  memberId: string,
   pagePath: string,
   level: PageAccessLevel,
 ): void {
@@ -110,12 +126,11 @@ export function setPageAccessLevel(
     (entry) =>
       !(
         entry.tenantId === activeTenantId &&
-        entry.employeeId === employeeId &&
+        entry.memberId === memberId &&
         entry.pagePath === pagePath
       ),
   )
 
-  // Default is edit — drop the row when restoring default to keep storage lean.
   if (level === DEFAULT_LEVEL) {
     replaceAll(without)
     return
@@ -125,7 +140,7 @@ export function setPageAccessLevel(
     ...without,
     {
       tenantId: activeTenantId,
-      employeeId,
+      memberId,
       pagePath,
       level,
     },
@@ -147,8 +162,9 @@ export function useUserPageAccess(): UserPageAccess[] {
 }
 
 export function resetUserPageAccess() {
+  removeJson(STORAGE_KEY)
   try {
-    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem('pd-user-page-access')
   } catch {
     /* ignore */
   }

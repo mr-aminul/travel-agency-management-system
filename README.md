@@ -5,15 +5,14 @@ Vite + React app with an isolated VPS stack (Caddy + Docker Postgres + platform 
 ## Run locally
 
 ```bash
+cp .env.example .env   # VITE_USE_PLATFORM_API=1 → live production API/data
 npm install
 npm run dev
 ```
 
 Open http://localhost:8003.
 
-```bash
-cp .env.example .env   # optional; VITE_API_BASE_URL empty = same-origin /api
-```
+Local Vite proxies `/api` to `https://api.onetrack.inventivelab.bd`, so localhost uses the **same live API + database** as production (not seed/demo data). Restart `npm run dev` after changing `.env`.
 
 ## Production
 

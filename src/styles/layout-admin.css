@@ -78,6 +78,55 @@
   border-bottom-color: var(--color-theme-ink);
 }
 
+.pd-admin__modules-intro {
+  margin: 0 0 var(--spacing-4);
+  color: var(--color-text-secondary);
+}
+
+.pd-admin__modules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+}
+
+.pd-admin__module-group-title {
+  margin: 0 0 var(--spacing-1);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.pd-admin__module-group-desc,
+.pd-admin__module-item-desc {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.pd-admin__module-list {
+  list-style: none;
+  margin: var(--spacing-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.pd-admin__module-item-desc {
+  margin-block-start: var(--spacing-1);
+  padding-inline-start: calc(2.5rem);
+}
+
+.pd-admin__status-control {
+  margin-block-start: var(--spacing-4);
+  max-width: 20rem;
+}
+
+.pd-admin__row-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
 .pd-admin__credential-name {
   margin: 0 0 var(--spacing-3);
   font-weight: 600;

@@ -97,13 +97,14 @@ export default function TenantsAdminPage() {
     setIsSubmitting(true)
     try {
       const created = createTenant({ name })
-      await provisionAgencyUser({
+      const login = await provisionAgencyUser({
         tenantId: created.id,
         name: ownerName,
         email: ownerEmail,
         password: ownerPassword,
       })
       createTenantMember({
+        id: login.id,
         tenantId: created.id,
         name: ownerName,
         email: ownerEmail,

@@ -5,14 +5,20 @@ import {
   STAFF_MEMBER_ROLES,
   staffMemberCreateErrors,
 } from '@/lib/agencyUserRules'
-import { provisionAgencyUser } from '@/lib/authApi'
+import {
+  provisionAgencyUser,
+  setAgencyUserPassword,
+  setAgencyUserStatus,
+} from '@/lib/authApi'
 import {
   createTenantMember,
+  updateTenantMember,
   useTenantMembersByTenantId,
 } from '@/lib/tenantMembersStore'
 import { useTenantById } from '@/lib/tenantsStore'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import type {
+  TenantMember,
   TenantMemberRole,
   TenantMemberStatus,
 } from '@/types/tenant'
@@ -67,6 +73,9 @@ export default function TenantUsersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [createdCredentials, setCreatedCredentials] =
     useState<CreatedCredentials | null>(null)
+  const [resetMember, setResetMember] = useState<TenantMember | null>(null)
+  const [resetPassword, setResetPassword] = useState('')
+  const [actionError, setActionError] = useState<string | undefined>()
   const { markAllTouched, showError, blur, resetTouched } =
     useTouchedFields<CreateField>()
 
@@ -96,13 +105,14 @@ export default function TenantUsersPage() {
 
     setIsSubmitting(true)
     try {
-      await provisionAgencyUser({
+      const login = await provisionAgencyUser({
         tenantId: tenant.id,
         name,
         email,
         password,
       })
       createTenantMember({
+        id: login.id,
         tenantId: tenant.id,
         name,
         email,
@@ -122,6 +132,54 @@ export default function TenantUsersPage() {
         error instanceof Error ? error.message : 'Could not add this user.',
       )
       setIsSubmitting(false)
+    }
+  }
+
+  const toggleDisabled = async (member: TenantMember) => {
+    setActionError(undefined)
+    const nextStatus: TenantMemberStatus =
+      member.status === 'disabled' ? 'active' : 'disabled'
+    try {
+      await setAgencyUserStatus({
+        userId: member.id,
+        email: member.email,
+        status: nextStatus === 'disabled' ? 'disabled' : 'active',
+      })
+      updateTenantMember(member.id, { status: nextStatus })
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Could not update status.',
+      )
+    }
+  }
+
+  const handleResetPassword = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!resetMember) return
+    if (!resetPassword || resetPassword.length < 4) {
+      setActionError('Password must be at least 4 characters.')
+      return
+    }
+    setActionError(undefined)
+    try {
+      await setAgencyUserPassword({
+        userId: resetMember.id,
+        email: resetMember.email,
+        name: resetMember.name,
+        tenantId: tenant.id,
+        password: resetPassword,
+      })
+      setCreatedCredentials({
+        name: resetMember.name,
+        email: resetMember.email,
+        password: resetPassword,
+      })
+      setResetMember(null)
+      setResetPassword('')
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Could not reset password.',
+      )
     }
   }
 
@@ -205,7 +263,7 @@ export default function TenantUsersPage() {
     <Modal
       open={createdCredentials != null}
       onClose={() => setCreatedCredentials(null)}
-      title="Login created"
+      title="Login ready"
       description="Share these credentials now. The password will not be shown again."
       actions={
         <Button onClick={() => setCreatedCredentials(null)}>Done</Button>
@@ -230,6 +288,55 @@ export default function TenantUsersPage() {
     </Modal>
   )
 
+  const resetModal = (
+    <Modal
+      open={resetMember != null}
+      onClose={() => {
+        setResetMember(null)
+        setResetPassword('')
+        setActionError(undefined)
+      }}
+      title="Reset password"
+      description={
+        resetMember
+          ? `Set a new password for ${resetMember.name}.`
+          : undefined
+      }
+      actions={
+        <>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setResetMember(null)
+              setResetPassword('')
+            }}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" form="pd-admin-reset-password">
+            Save password
+          </Button>
+        </>
+      }
+    >
+      <form id="pd-admin-reset-password" onSubmit={handleResetPassword} noValidate>
+        <Input
+          label="New password"
+          required
+          type="password"
+          autoComplete="new-password"
+          value={resetPassword}
+          onChange={(event) => setResetPassword(event.target.value)}
+        />
+        {actionError ? (
+          <p className="pd-field__error" role="alert">
+            {actionError}
+          </p>
+        ) : null}
+      </form>
+    </Modal>
+  )
+
   if (members.length === 0) {
     return (
       <>
@@ -241,6 +348,7 @@ export default function TenantUsersPage() {
         />
         {createModal}
         {credentialsModal}
+        {resetModal}
       </>
     )
   }
@@ -248,6 +356,11 @@ export default function TenantUsersPage() {
   return (
     <>
       <div className="pd-admin__section-actions">{addButton}</div>
+      {actionError && !resetMember ? (
+        <p className="pd-field__error" role="alert">
+          {actionError}
+        </p>
+      ) : null}
       <Table>
         <TableHeader>
           <TableRow>
@@ -255,6 +368,7 @@ export default function TenantUsersPage() {
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead aria-label="Actions" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -275,12 +389,35 @@ export default function TenantUsersPage() {
                   {member.status}
                 </Badge>
               </TableCell>
+              <TableCell>
+                <span className="pd-admin__row-actions">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setResetMember(member)
+                      setResetPassword('')
+                      setActionError(undefined)
+                    }}
+                  >
+                    Reset password
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void toggleDisabled(member)}
+                  >
+                    {member.status === 'disabled' ? 'Enable' : 'Disable'}
+                  </Button>
+                </span>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
       {createModal}
       {credentialsModal}
+      {resetModal}
     </>
   )
 }

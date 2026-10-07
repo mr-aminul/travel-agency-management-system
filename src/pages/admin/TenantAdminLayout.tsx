@@ -9,6 +9,7 @@ import { Badge, Breadcrumbs, PageHeader, type BadgeVariant } from '@/components/
 const SECTIONS = [
   { to: 'overview', label: 'Overview' },
   { to: 'users', label: 'Users' },
+  { to: 'modules', label: 'Modules' },
 ] as const
 
 function statusBadgeVariant(status: TenantStatus): BadgeVariant {

@@ -112,7 +112,7 @@ describe('settings service catalog', () => {
     expect(screen.getByRole('radio', { name: 'Light' })).toBeInTheDocument()
   }, 15000)
 
-  it('lists employees with parent-prefixed page columns', async () => {
+  it('lists agency users with parent-prefixed page columns', async () => {
     renderSettings('/settings?section=userAccess')
 
     expect(
@@ -133,12 +133,12 @@ describe('settings service catalog', () => {
     expect(table).toHaveTextContent('HR - Employees')
     expect(table).toHaveTextContent('HR - Attendance & Leave')
     expect(table).toHaveTextContent('HR - Payroll')
-    expect(table).toHaveTextContent('Employee')
-    expect(table).toHaveTextContent('Md. Karim Ahmed')
-    expect(table).toHaveTextContent('Recruitment Manager, Recruitment')
+    expect(table).toHaveTextContent('User')
+    expect(table).toHaveTextContent('OneTrack Agency')
+    expect(table).toHaveTextContent('Owner · ops@onetrack.bd')
     expect(
       screen.getByRole('button', {
-        name: 'HR - Payroll access for Md. Karim Ahmed',
+        name: 'HR - Payroll access for OneTrack Agency',
       }),
     ).toBeInTheDocument()
   }, 15000)

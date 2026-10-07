@@ -20,6 +20,7 @@ export type ModuleId =
  * Agency rules — see `agencyUserRules.ts`:
  * required at create: name (+ first owner credentials in the admin UI);
  * modules/status optional.
+ * `name` is the single org / business display name (Settings → Business name).
  */
 export type Tenant = {
   id: string
@@ -35,7 +36,7 @@ export type CreateTenantInput = {
   slug?: string
   /** Defaults to trial. */
   status?: TenantStatus
-  /** Optional — configure later in settings. Defaults to none. */
+  /** Service lines + modules. Defaults to a starter catalog. */
   enabledModules?: ModuleId[]
 }
 
@@ -49,6 +50,7 @@ export type TenantMemberStatus = 'active' | 'invited' | 'disabled'
  * role defaults to staff; status defaults to active once provisioned.
  */
 export type TenantMember = {
+  /** Same id as platform.users when provisioned (login ↔ member). */
   id: string
   tenantId: string
   name: string
@@ -63,9 +65,17 @@ export type CreateTenantMemberInput = {
   email: string
   /** Initial sign-in password (admin-set). Not persisted on the member row. */
   password: string
+  /** Prefer the provisioned auth user id so login and access share one key. */
+  id?: string
   /** Defaults to staff. */
   role?: TenantMemberRole
   /** Defaults to active when a password is provisioned. */
+  status?: TenantMemberStatus
+}
+
+export type UpdateTenantMemberInput = {
+  name?: string
+  role?: TenantMemberRole
   status?: TenantMemberStatus
 }
 

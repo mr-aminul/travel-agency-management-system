@@ -11,10 +11,18 @@ export const DATA_KEYS = {
   subAgentsCreatedLegacy: 'pd-partners-created',
   casesCreated: 'pd-cases-created',
   tenantEntitlements: 'pd-tenant-entitlements',
+  /** Display-name overrides for seeded tenants (created tenants store name inline). */
+  tenantNames: 'pd-tenant-names',
+  /** Status overrides for seeded tenants (created tenants store status inline). */
+  tenantStatuses: 'pd-tenant-statuses',
   tenantsCreated: 'pd-tenants-created',
   tenantMembersCreated: 'pd-tenant-members-created',
   /** Local-only login rows for users provisioned when the API is offline. */
   provisionedLogins: 'pd-provisioned-logins',
+  /** Per-tenant business profiles (contact + logo), keyed by tenant id. */
+  agencyProfiles: 'pd-agency-profiles',
+  /** Per-member page access matrix. */
+  userPageAccess: 'pd-user-page-access',
 } as const
 
 export type DataKey = (typeof DATA_KEYS)[keyof typeof DATA_KEYS]

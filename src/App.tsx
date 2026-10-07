@@ -32,6 +32,7 @@ const TenantsAdminPage = lazy(() => import('@/pages/admin/TenantsAdminPage'))
 const TenantAdminLayout = lazy(() => import('@/pages/admin/TenantAdminLayout'))
 const TenantOverviewPage = lazy(() => import('@/pages/admin/TenantOverviewPage'))
 const TenantUsersPage = lazy(() => import('@/pages/admin/TenantUsersPage'))
+const TenantModulesPage = lazy(() => import('@/pages/admin/TenantModulesPage'))
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
 
 function RouteFallback() {
@@ -115,10 +116,10 @@ function App() {
               path="admin/tenants/:tenantId"
               element={<TenantAdminLayout />}
             >
-              <Route index element={<Navigate to="users" replace />} />
+              <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={<TenantOverviewPage />} />
               <Route path="users" element={<TenantUsersPage />} />
-              <Route path="modules" element={<Navigate to="users" replace />} />
+              <Route path="modules" element={<TenantModulesPage />} />
             </Route>
             <Route path="settings" element={<SettingsPage />} />
             <Route

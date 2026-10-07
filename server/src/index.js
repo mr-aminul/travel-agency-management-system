@@ -10,7 +10,25 @@ import {
   resolveSession,
   revokeSession,
   seedAuthUsers,
+  setAgencyUserPassword,
+  setAgencyUserStatus,
 } from './auth.js'
+
+/** Keys only platform admins may write (global tenancy / IAM). */
+const PLATFORM_ADMIN_KV_KEYS = new Set([
+  'pd-tenants-created',
+  'pd-tenant-entitlements',
+  'pd-tenant-names',
+  'pd-tenant-statuses',
+  'pd-tenant-members-created',
+  'pd-provisioned-logins',
+])
+
+function canWriteKvKey(auth, key) {
+  if (auth?.user?.role === 'platform_admin') return true
+  if (PLATFORM_ADMIN_KV_KEYS.has(key)) return false
+  return true
+}
 
 const app = express()
 const port = Number(process.env.PORT || 4010)
@@ -87,14 +105,23 @@ app.post('/api/platform/auth/logout', async (req, res) => {
   }
 })
 
-/** Platform admin: create an agency login with an initial password. */
-app.post('/api/platform/auth/users', requirePlatformAdmin, async (req, res) => {
+/**
+ * Create an agency login with an initial password.
+ * Platform admin: any tenant. Agency user: own tenant only.
+ */
+app.post('/api/platform/auth/users', requireAuth, async (req, res) => {
   try {
+    const tenantId = String(req.body?.tenantId ?? '').trim()
+    const isAdmin = req.auth?.user?.role === 'platform_admin'
+    if (!isAdmin && tenantId !== req.auth?.tenantId) {
+      res.status(403).json({ error: 'You can only create users for your agency.' })
+      return
+    }
     const result = await createAgencyUser({
       email: req.body?.email,
       name: req.body?.name,
       password: req.body?.password,
-      tenantId: req.body?.tenantId,
+      tenantId,
       id: req.body?.id,
     })
     if (!result.ok) {
@@ -108,6 +135,78 @@ app.post('/api/platform/auth/users', requirePlatformAdmin, async (req, res) => {
     })
   }
 })
+
+async function assertCanManageAgencyUser(req, res) {
+  if (req.auth?.user?.role === 'platform_admin') return true
+  const userId = String(req.params.userId ?? '').trim()
+  const email = String(req.body?.email ?? '')
+    .trim()
+    .toLowerCase()
+  const existing = await query(
+    `select tenant_id from platform.users
+     where role = 'agency_user'
+       and (id = $1 or ($2 <> '' and lower(email) = $2))
+     limit 1`,
+    [userId, email],
+  )
+  if (!existing.rows[0] || existing.rows[0].tenant_id !== req.auth.tenantId) {
+    // Allow repair path: no login row yet, but same-tenant create is permitted.
+    if (!existing.rows[0] && email) return true
+    res.status(403).json({ error: 'You can only manage users in your agency.' })
+    return false
+  }
+  return true
+}
+
+app.patch(
+  '/api/platform/auth/users/:userId/status',
+  requireAuth,
+  async (req, res) => {
+    try {
+      if (!(await assertCanManageAgencyUser(req, res))) return
+      const result = await setAgencyUserStatus({
+        userId: req.params.userId,
+        email: req.body?.email,
+        status: req.body?.status,
+      })
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      res.status(200).json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'update status failed',
+      })
+    }
+  },
+)
+
+app.patch(
+  '/api/platform/auth/users/:userId/password',
+  requireAuth,
+  async (req, res) => {
+    try {
+      if (!(await assertCanManageAgencyUser(req, res))) return
+      const result = await setAgencyUserPassword({
+        userId: req.params.userId,
+        email: req.body?.email,
+        password: req.body?.password,
+        name: req.body?.name,
+        tenantId: req.body?.tenantId ?? req.auth?.tenantId,
+      })
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      res.status(200).json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'update password failed',
+      })
+    }
+  },
+)
 
 /**
  * List persisted KV keys (SPA hydrate).
@@ -150,6 +249,10 @@ app.get('/api/platform/kv/:key', async (req, res) => {
 
 app.put('/api/platform/kv/:key', requireAuth, async (req, res) => {
   try {
+    if (!canWriteKvKey(req.auth, req.params.key)) {
+      res.status(403).json({ error: 'Not allowed to write this key.' })
+      return
+    }
     const value = req.body?.value
     if (value === undefined) {
       res.status(400).json({ error: 'body.value is required' })
@@ -173,6 +276,10 @@ app.put('/api/platform/kv/:key', requireAuth, async (req, res) => {
 
 app.delete('/api/platform/kv/:key', requireAuth, async (req, res) => {
   try {
+    if (!canWriteKvKey(req.auth, req.params.key)) {
+      res.status(403).json({ error: 'Not allowed to delete this key.' })
+      return
+    }
     await query('delete from platform.kv_store where key = $1', [req.params.key])
     res.json({ ok: true, key: req.params.key })
   } catch (error) {

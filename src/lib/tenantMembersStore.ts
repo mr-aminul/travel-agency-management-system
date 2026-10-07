@@ -18,6 +18,7 @@ import {
   type TenantMember,
   type TenantMemberRole,
   type TenantMemberStatus,
+  type UpdateTenantMemberInput,
 } from '@/types/tenant'
 
 type Listener = () => void
@@ -222,8 +223,16 @@ export function createTenantMember(
     throw new Error('A user with this email already exists in this agency.')
   }
 
+  const id =
+    (input.id?.trim() || '').length > 0
+      ? input.id!.trim()
+      : `member-${Date.now().toString(36)}`
+  if (members.some((member) => member.id === id)) {
+    throw new Error('A user with this id already exists.')
+  }
+
   const created: TenantMember = {
-    id: `member-${Date.now().toString(36)}`,
+    id,
     tenantId: input.tenantId,
     name: input.name.trim(),
     email,
@@ -234,6 +243,46 @@ export function createTenantMember(
   members = [created, ...members]
   emit()
   return created
+}
+
+export function getTenantMemberById(id: string): TenantMember | undefined {
+  return members.find((member) => member.id === id)
+}
+
+/** Resolve the member row for a signed-in user (id match, else email). */
+export function findTenantMemberForUser(
+  tenantId: string,
+  userId: string,
+  email: string,
+): TenantMember | undefined {
+  const byId = members.find(
+    (member) => member.tenantId === tenantId && member.id === userId,
+  )
+  if (byId) return byId
+  const normalized = email.trim().toLowerCase()
+  return members.find(
+    (member) =>
+      member.tenantId === tenantId && member.email.toLowerCase() === normalized,
+  )
+}
+
+export function updateTenantMember(
+  memberId: string,
+  patch: UpdateTenantMemberInput,
+): TenantMember {
+  const index = members.findIndex((member) => member.id === memberId)
+  if (index < 0) throw new Error('User not found.')
+  const current = members[index]!
+  const next: TenantMember = {
+    ...current,
+    name: patch.name !== undefined ? patch.name.trim() : current.name,
+    role: patch.role ?? current.role,
+    status: patch.status ?? current.status,
+  }
+  if (!next.name) throw new Error('Full name is required.')
+  members = members.map((member, i) => (i === index ? next : member))
+  emit()
+  return next
 }
 
 export function resetTenantMembers() {

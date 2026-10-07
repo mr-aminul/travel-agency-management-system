@@ -291,3 +291,122 @@ export async function createAgencyUser({
     },
   }
 }
+
+/** Resolve agency user by id, else by email (members may predate shared ids). */
+async function findAgencyUserRow({ userId, email }) {
+  const id = String(userId ?? '').trim()
+  if (id) {
+    const byId = await query(
+      `select id, email, name, role, tenant_id, status
+       from platform.users
+       where id = $1 and role = 'agency_user'
+       limit 1`,
+      [id],
+    )
+    if (byId.rows[0]) return byId.rows[0]
+  }
+  const normalizedEmail = normalizeEmail(email)
+  if (!normalizedEmail) return null
+  const byEmail = await query(
+    `select id, email, name, role, tenant_id, status
+     from platform.users
+     where lower(email) = $1 and role = 'agency_user'
+     limit 1`,
+    [normalizedEmail],
+  )
+  return byEmail.rows[0] ?? null
+}
+
+export async function setAgencyUserStatus({ userId, email, status }) {
+  const next = status === 'disabled' ? 'disabled' : 'active'
+  const row = await findAgencyUserRow({ userId, email })
+  if (!row) {
+    return { ok: false, status: 404, error: 'User not found.' }
+  }
+
+  const result = await query(
+    `update platform.users
+     set status = $2, updated_at = now()
+     where id = $1
+     returning id, email, name, role, tenant_id, status`,
+    [row.id, next],
+  )
+  const updated = result.rows[0]
+  if (next === 'disabled') {
+    await query(`delete from platform.sessions where user_id = $1`, [row.id])
+  }
+  return {
+    ok: true,
+    status: 200,
+    body: {
+      user: publicUser(updated),
+      tenantId: updated.tenant_id || null,
+      status: updated.status,
+    },
+  }
+}
+
+export async function setAgencyUserPassword({
+  userId,
+  email,
+  password,
+  name,
+  tenantId,
+}) {
+  const rawPassword = String(password ?? '')
+  if (!rawPassword || rawPassword.length < 4) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Password must be at least 4 characters.',
+    }
+  }
+
+  let row = await findAgencyUserRow({ userId, email })
+
+  // Repair: member exists in SPA but never got a platform.users login row.
+  if (!row) {
+    const normalizedEmail = normalizeEmail(email)
+    const resolvedTenantId = String(tenantId ?? '').trim()
+    const trimmedName = String(name ?? '').trim() || normalizedEmail
+    if (!normalizedEmail || !resolvedTenantId) {
+      return { ok: false, status: 404, error: 'User not found.' }
+    }
+    const created = await createAgencyUser({
+      email: normalizedEmail,
+      name: trimmedName,
+      password: rawPassword,
+      tenantId: resolvedTenantId,
+      id: String(userId ?? '').trim() || undefined,
+    })
+    if (!created.ok) return created
+    return {
+      ok: true,
+      status: 200,
+      body: {
+        user: created.body.user,
+        tenantId: created.body.tenantId,
+        repaired: true,
+      },
+    }
+  }
+
+  const passwordHash = hashPassword(rawPassword)
+  const result = await query(
+    `update platform.users
+     set password_hash = $2, status = 'active', updated_at = now()
+     where id = $1
+     returning id, email, name, role, tenant_id, status`,
+    [row.id, passwordHash],
+  )
+  const updated = result.rows[0]
+  await query(`delete from platform.sessions where user_id = $1`, [row.id])
+  return {
+    ok: true,
+    status: 200,
+    body: {
+      user: publicUser(updated),
+      tenantId: updated.tenant_id || null,
+    },
+  }
+}

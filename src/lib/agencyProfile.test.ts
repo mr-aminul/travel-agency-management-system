@@ -8,6 +8,8 @@ import {
   readAgencyProfile,
   resolveBrandDisplay,
   saveAgencyProfile,
+  seedAgencyProfileBusinessName,
+  withBusinessNameFallback,
 } from '@/lib/agencyProfile'
 import { TENANT_IDS } from '@/types/tenant'
 
@@ -136,5 +138,36 @@ describe('agencyProfile', () => {
       isCustomLogo: true,
       hasCustomName: true,
     })
+  })
+
+  it('seeds business name from the agency name on onboard', () => {
+    store.clear()
+    const seeded = seedAgencyProfileBusinessName(
+      'tenant-river',
+      'River Tours',
+    )
+    expect(seeded.businessName).toBe('River Tours')
+    expect(readAgencyProfile('tenant-river').businessName).toBe('River Tours')
+  })
+
+  it('does not overwrite an existing business name when seeding', () => {
+    store.clear()
+    saveAgencyProfile(
+      { ...DEFAULT_AGENCY_PROFILE, businessName: 'Kept Name' },
+      'tenant-river',
+    )
+    seedAgencyProfileBusinessName('tenant-river', 'River Tours')
+    expect(readAgencyProfile('tenant-river').businessName).toBe('Kept Name')
+  })
+
+  it('falls back to the agency name when business name is blank', () => {
+    expect(
+      withBusinessNameFallback(DEFAULT_AGENCY_PROFILE, 'River Tours')
+        .businessName,
+    ).toBe('River Tours')
+    expect(
+      resolveBrandDisplay(DEFAULT_AGENCY_PROFILE, '/logo.svg', 'River Tours')
+        .name,
+    ).toBe('River Tours')
   })
 })

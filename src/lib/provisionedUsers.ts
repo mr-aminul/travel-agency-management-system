@@ -112,6 +112,29 @@ export async function verifyProvisionedLogin(
   return valid ? account : null
 }
 
+export async function updateProvisionedPassword(
+  userId: string,
+  password: string,
+  email?: string,
+): Promise<void> {
+  let index = accounts.findIndex((account) => account.user.id === userId)
+  if (index < 0 && email) {
+    const normalized = email.trim().toLowerCase()
+    index = accounts.findIndex(
+      (account) => account.user.email.toLowerCase() === normalized,
+    )
+  }
+  if (index < 0) {
+    throw new Error('Local login not found for this user.')
+  }
+  const passwordHash = await hashPasswordForTests(password)
+  const current = accounts[index]!
+  accounts = accounts.map((account, i) =>
+    i === index ? { ...current, passwordHash } : account,
+  )
+  persist()
+}
+
 export function resetProvisionedLogins() {
   removeJson(STORAGE_KEY)
   accounts = []

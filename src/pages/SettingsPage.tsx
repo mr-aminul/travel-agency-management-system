@@ -36,8 +36,12 @@ import {
   fileToProfilePictureDataUrl,
   readAgencyProfile,
   saveAgencyProfile,
+  withBusinessNameFallback,
   type AgencyProfile,
 } from '@/lib/agencyProfile'
+import { updateTenantName } from '@/lib/tenantsStore'
+import { useActiveTenant } from '@/lib/useActiveTenant'
+import { validateRequiredName } from '@/lib/fieldValidation'
 import {
   applySidebarMode,
   type SidebarExpandMode,
@@ -61,7 +65,7 @@ const SETTINGS_SECTIONS: {
     {
       id: 'business',
       label: 'Business profile',
-      info: 'Your business name replaces OneTrack in the sidebar title, with “powered by OneTrack” underneath. Leave the name blank to keep OneTrack as the sidebar title.',
+      info: 'Business name is your agency name — shown in the sidebar, invoices, and documents. Contact details and logo are optional.',
       icon: Building2,
     },
     {
@@ -79,7 +83,7 @@ const SETTINGS_SECTIONS: {
     {
       id: 'userAccess',
       label: 'User-wise Access Management',
-      info: 'Employees list down the left; pages run across as columns. Subpages use a parent prefix (for example HR - Employees). Set None, View, or Edit per page.',
+      info: 'Agency logins list down the left; pages run across as columns. Owners and managers can add users and set None, View, or Edit. Access is enforced in the app.',
       icon: ShieldCheck,
     },
     {
@@ -151,8 +155,9 @@ export default function SettingsPage() {
   const [appearance, setAppearance] = useState(readAppearance)
   const { mode: sidebarMode } = useSidebarPrefs()
   const tenantId = getActiveTenantId()
+  const tenant = useActiveTenant()
   const [agencyDraft, setAgencyDraft] = useState(() =>
-    readAgencyProfile(tenantId),
+    withBusinessNameFallback(readAgencyProfile(tenantId), tenant.name),
   )
   const [agencyStatus, setAgencyStatus] = useState<string | null>(null)
   const [agencyError, setAgencyError] = useState<string | null>(null)
@@ -160,8 +165,10 @@ export default function SettingsPage() {
   const [pendingHref, setPendingHref] = useState<string | null>(null)
 
   useEffect(() => {
-    setAgencyDraft(readAgencyProfile(tenantId))
-  }, [tenantId])
+    setAgencyDraft(
+      withBusinessNameFallback(readAgencyProfile(tenantId), tenant.name),
+    )
+  }, [tenantId, tenant.name])
 
   const currentSection =
     SETTINGS_SECTIONS.find((section) => section.id === activeSection) ??
@@ -199,10 +206,32 @@ export default function SettingsPage() {
 
   const handleAgencySave = (event: FormEvent) => {
     event.preventDefault()
-    const saved = saveAgencyProfile(agencyDraft, tenantId)
-    setAgencyDraft(saved)
-    setAgencyError(null)
-    setAgencyStatus('Business profile saved.')
+    const nameError = validateRequiredName(
+      agencyDraft.businessName,
+      'Business name',
+    )
+    if (nameError) {
+      setAgencyError(nameError)
+      return
+    }
+    try {
+      // tenant.name is the single org display name; profile mirrors it.
+      updateTenantName(tenantId, agencyDraft.businessName)
+      const saved = saveAgencyProfile(
+        {
+          ...agencyDraft,
+          businessName: agencyDraft.businessName.trim(),
+        },
+        tenantId,
+      )
+      setAgencyDraft(saved)
+      setAgencyError(null)
+      setAgencyStatus('Business profile saved.')
+    } catch (error) {
+      setAgencyError(
+        error instanceof Error ? error.message : 'Could not save profile.',
+      )
+    }
   }
 
   return (

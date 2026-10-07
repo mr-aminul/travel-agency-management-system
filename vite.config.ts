@@ -58,10 +58,30 @@ export default defineConfig(() => ({
     strictPort: true,
     // Allow ngrok / localtunnel public hostnames during local preview
     allowedHosts: true,
+    // Same-origin /api → live platform API (avoids CORS; live data in local UI).
+    // secure:false — local networks sometimes present an intercepting/self-signed chain.
+    proxy: {
+      '/api': {
+        target:
+          process.env.VITE_DEV_API_PROXY ||
+          'https://api.onetrack.inventivelab.bd',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   preview: {
     host: true,
     port: 8003,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target:
+          process.env.VITE_DEV_API_PROXY ||
+          'https://api.onetrack.inventivelab.bd',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 }))

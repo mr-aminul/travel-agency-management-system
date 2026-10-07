@@ -1,3 +1,5 @@
+import { DATA_KEYS } from '@/lib/data/keys'
+import { loadJsonParsed, saveJson } from '@/lib/data/jsonStore'
 import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
 
 export interface AgencyProfile {
@@ -71,16 +73,44 @@ function withTenantDefaults(
   }
 }
 
-function migrateLegacyProfile(tenantId: string) {
-  if (tenantId !== DEFAULT_TENANT_ID) return
+function readAllProfiles(): Record<string, AgencyProfile> {
+  return loadJsonParsed(
+    DATA_KEYS.agencyProfiles,
+    {} as Record<string, AgencyProfile>,
+    (value) => {
+      if (!isRecord(value)) return {}
+      const next: Record<string, AgencyProfile> = {}
+      for (const [id, profile] of Object.entries(value)) {
+        next[id] = normalizeAgencyProfile(profile)
+      }
+      return next
+    },
+  )
+}
+
+function writeAllProfiles(map: Record<string, AgencyProfile>) {
+  saveJson(DATA_KEYS.agencyProfiles, map)
+}
+
+function migrateLegacyProfile(tenantId: string): AgencyProfile | undefined {
   try {
-    const legacy = localStorage.getItem(AGENCY_PROFILE_KEY)
+    const map = readAllProfiles()
+    if (map[tenantId]) return map[tenantId]
+
     const scoped = localStorage.getItem(agencyProfileStorageKey(tenantId))
-    if (legacy && !scoped) {
-      localStorage.setItem(agencyProfileStorageKey(tenantId), legacy)
-    }
+    const legacy =
+      tenantId === DEFAULT_TENANT_ID
+        ? localStorage.getItem(AGENCY_PROFILE_KEY)
+        : null
+    const raw = scoped || legacy
+    if (!raw) return undefined
+    const profile = normalizeAgencyProfile(JSON.parse(raw) as unknown)
+    writeAllProfiles({ ...map, [tenantId]: profile })
+    localStorage.removeItem(agencyProfileStorageKey(tenantId))
+    if (legacy) localStorage.removeItem(AGENCY_PROFILE_KEY)
+    return profile
   } catch {
-    /* ignore */
+    return undefined
   }
 }
 
@@ -119,17 +149,10 @@ export function normalizeAgencyProfile(value: unknown): AgencyProfile {
 export function readAgencyProfile(
   tenantId: string = DEFAULT_TENANT_ID,
 ): AgencyProfile {
-  migrateLegacyProfile(tenantId)
-  try {
-    const stored = localStorage.getItem(agencyProfileStorageKey(tenantId))
-    if (!stored) return defaultProfileForTenant(tenantId)
-    return withTenantDefaults(
-      normalizeAgencyProfile(JSON.parse(stored) as unknown),
-      tenantId,
-    )
-  } catch {
-    return defaultProfileForTenant(tenantId)
-  }
+  const migrated = migrateLegacyProfile(tenantId)
+  const stored = migrated ?? readAllProfiles()[tenantId]
+  if (!stored) return defaultProfileForTenant(tenantId)
+  return withTenantDefaults(stored, tenantId)
 }
 
 function emitAgencyProfileChange(profile: AgencyProfile, tenantId: string) {
@@ -148,13 +171,34 @@ export function saveAgencyProfile(
   tenantId: string = DEFAULT_TENANT_ID,
 ): AgencyProfile {
   const next = normalizeAgencyProfile(profile)
-  try {
-    localStorage.setItem(agencyProfileStorageKey(tenantId), JSON.stringify(next))
-  } catch {
-    /* ignore quota / private mode */
-  }
+  writeAllProfiles({ ...readAllProfiles(), [tenantId]: next })
   emitAgencyProfileChange(next, tenantId)
   return next
+}
+
+/**
+ * Seed / fill Business name from the agency (tenant) name on onboard.
+ * Does not overwrite a business name the user already saved.
+ */
+export function seedAgencyProfileBusinessName(
+  tenantId: string,
+  businessName: string,
+): AgencyProfile {
+  const name = businessName.trim()
+  const current = readAgencyProfile(tenantId)
+  if (!name || current.businessName.trim()) return current
+  return saveAgencyProfile({ ...current, businessName: name }, tenantId)
+}
+
+/** Prefer saved Business name; otherwise use the agency/tenant name. */
+export function withBusinessNameFallback(
+  profile: AgencyProfile,
+  fallbackName?: string,
+): AgencyProfile {
+  if (profile.businessName.trim()) return profile
+  const fallback = fallbackName?.trim()
+  if (!fallback) return profile
+  return { ...profile, businessName: fallback }
 }
 
 export function clearAgencyProfilePicture(
@@ -177,8 +221,10 @@ export interface ResolvedBrand {
 export function resolveBrandDisplay(
   profile: AgencyProfile,
   defaultLogoUrl?: string,
+  fallbackName?: string,
 ): ResolvedBrand {
-  const businessName = profile.businessName.trim()
+  const businessName =
+    profile.businessName.trim() || fallbackName?.trim() || ''
   const hasCustomName = businessName.length > 0
   const isCustomLogo = Boolean(profile.profilePicture)
 

@@ -168,6 +168,12 @@ function authApiConfigured(): boolean {
   return import.meta.env.PROD === true
 }
 
+/** Offline seed login only when explicitly allowed (not the default live path). */
+function allowOfflineAuthFallback(): boolean {
+  const flag = import.meta.env.VITE_ALLOW_OFFLINE_AUTH as string | undefined
+  return flag === '1' || flag === 'true'
+}
+
 function isNetworkFailure(error: unknown): boolean {
   if (error instanceof TypeError) return true
   if (!(error instanceof Error)) return false
@@ -348,6 +354,32 @@ export async function provisionAgencyUser(
   }
 }
 
+async function assertSessionAllowed(session: AuthSession): Promise<void> {
+  if (session.user.role === 'platform_admin') return
+
+  // Dynamic import avoids circular init with tenants/members stores.
+  const [{ getTenantById }, { findTenantMemberForUser }] = await Promise.all([
+    import('@/lib/tenantsStore'),
+    import('@/lib/tenantMembersStore'),
+  ])
+
+  const tenant = getTenantById(session.tenantId)
+  if (tenant?.status === 'suspended') {
+    clearSession()
+    throw new Error('This agency is suspended. Contact support.')
+  }
+
+  const member = findTenantMemberForUser(
+    session.tenantId,
+    session.user.id,
+    session.user.email,
+  )
+  if (member?.status === 'disabled') {
+    clearSession()
+    throw new Error('Your account is disabled. Contact your agency owner.')
+  }
+}
+
 /**
  * Email/password sign-in against the platform API when enabled,
  * otherwise against seeded local accounts (dev / offline).
@@ -366,18 +398,96 @@ export async function signInWithPassword(
     throw new Error('Enter your password.')
   }
 
+  let session: AuthSession
   if (authApiConfigured()) {
     try {
-      return await loginViaApi(normalizedEmail, rawPassword)
+      session = await loginViaApi(normalizedEmail, rawPassword)
     } catch (error) {
-      if (isNetworkFailure(error)) {
-        return loginLocally(normalizedEmail, rawPassword)
+      if (isNetworkFailure(error) && allowOfflineAuthFallback()) {
+        session = await loginLocally(normalizedEmail, rawPassword)
+      } else if (isNetworkFailure(error)) {
+        throw new Error(
+          'Cannot reach the live API. Check your network, or set VITE_ALLOW_OFFLINE_AUTH=1 for demo logins only.',
+        )
+      } else {
+        throw error
       }
-      throw error
     }
+  } else {
+    session = await loginLocally(normalizedEmail, rawPassword)
   }
 
-  return loginLocally(normalizedEmail, rawPassword)
+  await assertSessionAllowed(session)
+  return session
+}
+
+export async function setAgencyUserStatus(input: {
+  userId: string
+  email: string
+  status: 'active' | 'disabled'
+}): Promise<void> {
+  if (authApiConfigured()) {
+    try {
+      await apiFetch(
+        `/api/platform/auth/users/${encodeURIComponent(input.userId)}/status`,
+        {
+          method: 'PATCH',
+          body: { status: input.status, email: input.email },
+        },
+      )
+      return
+    } catch (error) {
+      if (!isNetworkFailure(error)) {
+        throw new Error(apiErrorMessage(error, 'Could not update user status.'))
+      }
+    }
+  }
+  /* Local/offline: member status is the source of truth. */
+}
+
+export async function setAgencyUserPassword(input: {
+  userId: string
+  email: string
+  password: string
+  name?: string
+  tenantId?: string
+}): Promise<void> {
+  if (!input.password || input.password.length < 4) {
+    throw new Error('Password must be at least 4 characters.')
+  }
+  if (authApiConfigured()) {
+    try {
+      await apiFetch(
+        `/api/platform/auth/users/${encodeURIComponent(input.userId)}/password`,
+        {
+          method: 'PATCH',
+          body: {
+            password: input.password,
+            email: input.email,
+            name: input.name,
+            tenantId: input.tenantId,
+          },
+        },
+      )
+      return
+    } catch (error) {
+      if (!isNetworkFailure(error)) {
+        throw new Error(apiErrorMessage(error, 'Could not update password.'))
+      }
+    }
+  }
+  const { updateProvisionedPassword } = await import('@/lib/provisionedUsers')
+  try {
+    await updateProvisionedPassword(input.userId, input.password, input.email)
+  } catch {
+    await saveProvisionedLogin({
+      id: input.userId,
+      email: input.email,
+      name: input.name || input.email,
+      tenantId: input.tenantId || DEFAULT_TENANT_ID,
+      password: input.password,
+    })
+  }
 }
 
 export async function signOut(): Promise<void> {

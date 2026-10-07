@@ -9,7 +9,15 @@ import {
   resolveBrandDisplay,
 } from '@/lib/agencyProfile'
 import { layoutConfig } from '@/config/layout'
-import { filterNavItems, isPathAllowed, signedInHomePath } from '@/lib/modules'
+import { findTenantMemberForUser } from '@/lib/tenantMembersStore'
+import { canAccessPath } from '@/lib/pageAccess'
+import { getPageAccessLevel } from '@/lib/userAccessStore'
+import { buildAccessPageColumns } from '@/lib/accessPages'
+import {
+  filterNavItems,
+  isPathAllowed,
+  signedInHomePath,
+} from '@/lib/modules'
 import { queryClient } from '@/lib/queryClient'
 import { useActiveTenant } from '@/lib/useActiveTenant'
 import '@/styles/layout-shell.css'
@@ -19,6 +27,8 @@ import '@/styles/layout-search.css'
 import '@fontsource/inter/latin-600.css'
 import '@fontsource/inter/latin-700.css'
 
+const ACCESS_PAGES = buildAccessPageColumns(layoutConfig.navItems)
+
 export default function AuthenticatedLayout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -26,15 +36,36 @@ export default function AuthenticatedLayout() {
   const agencyProfile = useAgencyProfile()
   const tenant = useActiveTenant()
 
-  const navItems = useMemo(
-    () =>
-      filterNavItems(
-        layoutConfig.navItems,
-        tenant.enabledModules,
-        user?.role ?? 'agency_user',
-      ),
-    [tenant.enabledModules, user?.role],
-  )
+  const member =
+    user && user.role !== 'platform_admin'
+      ? findTenantMemberForUser(tenant.id, user.id, user.email)
+      : undefined
+
+  const navItems = useMemo(() => {
+    const role = user?.role ?? 'agency_user'
+    const moduleFiltered = filterNavItems(
+      layoutConfig.navItems,
+      tenant.enabledModules,
+      role,
+    )
+    if (role === 'platform_admin' || !user) return moduleFiltered
+
+    const subjectId = member?.id ?? user.id
+    return moduleFiltered.flatMap((item) => {
+      if (item.children?.length) {
+        const children = item.children.filter((child) => {
+          const col = ACCESS_PAGES.find((page) => page.path === child.path)
+          if (!col) return true
+          return getPageAccessLevel(subjectId, col.path) !== 'none'
+        })
+        if (children.length === 0) return []
+        return [{ ...item, children }]
+      }
+      const col = ACCESS_PAGES.find((page) => page.path === item.path)
+      if (!col) return [item]
+      return getPageAccessLevel(subjectId, col.path) === 'none' ? [] : [item]
+    })
+  }, [tenant.enabledModules, user, member?.id])
 
   const brand = useMemo(() => {
     if (user?.role === 'platform_admin') {
@@ -51,6 +82,7 @@ export default function AuthenticatedLayout() {
     const resolved = resolveBrandDisplay(
       agencyProfile,
       layoutConfig.brand.logoUrl,
+      tenant.name,
     )
     return {
       ...layoutConfig.brand,
@@ -60,7 +92,7 @@ export default function AuthenticatedLayout() {
       isCustomLogo: resolved.isCustomLogo,
       preserveSubtitleCase: resolved.hasCustomName,
     }
-  }, [agencyProfile, user?.role])
+  }, [agencyProfile, tenant.name, user?.role])
 
   useEffect(() => {
     document.title = brand.name
@@ -76,7 +108,45 @@ export default function AuthenticatedLayout() {
     return <Navigate to="/login" replace />
   }
 
+  if (user.role !== 'platform_admin' && tenant.status === 'suspended') {
+    return (
+      <div className="pd-page" aria-label="Suspended">
+        <p role="alert">
+          This agency is suspended. Contact support, then sign in again.
+        </p>
+        <button type="button" onClick={() => void handleSignOut()}>
+          Sign out
+        </button>
+      </div>
+    )
+  }
+
+  if (user.role !== 'platform_admin' && member?.status === 'disabled') {
+    return (
+      <div className="pd-page" aria-label="Disabled">
+        <p role="alert">
+          Your account is disabled. Contact your agency owner.
+        </p>
+        <button type="button" onClick={() => void handleSignOut()}>
+          Sign out
+        </button>
+      </div>
+    )
+  }
+
   if (!isPathAllowed(pathname, tenant.enabledModules, user.role)) {
+    return <Navigate to={signedInHomePath(user.role)} replace />
+  }
+
+  if (
+    !canAccessPath({
+      role: user.role,
+      userId: user.id,
+      email: user.email,
+      tenantId: tenant.id,
+      pathname,
+    })
+  ) {
     return <Navigate to={signedInHomePath(user.role)} replace />
   }
 

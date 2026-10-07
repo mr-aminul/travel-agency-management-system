@@ -1,4 +1,9 @@
 import { useSyncExternalStore } from 'react'
+import {
+  readAgencyProfile,
+  saveAgencyProfile,
+  seedAgencyProfileBusinessName,
+} from '@/lib/agencyProfile'
 import { agencyCreateErrors, slugifyAgencyName } from '@/lib/agencyUserRules'
 import {
   DATA_KEYS,
@@ -26,7 +31,20 @@ import {
 type Listener = () => void
 
 const ENTITLEMENTS_KEY = DATA_KEYS.tenantEntitlements
+const NAMES_KEY = DATA_KEYS.tenantNames
+const STATUSES_KEY = DATA_KEYS.tenantStatuses
 const CREATED_TENANTS_KEY = DATA_KEYS.tenantsCreated
+
+/** Sensible default catalog for newly onboarded agencies. */
+export const DEFAULT_STARTER_MODULES: ModuleId[] = [
+  'services.touristVisa',
+  'services.studentVisa',
+  'services.airTicket',
+  'services.hotelBooking',
+  'services.tourPackage',
+  'finance',
+  'documents',
+]
 
 const SEED_TENANTS: Tenant[] = [
   {
@@ -117,6 +135,38 @@ function persistOverrides(list: Tenant[]) {
   saveJson(ENTITLEMENTS_KEY, overrides)
 }
 
+function readNameOverrides(): Record<string, string> {
+  const parsed = loadJson<unknown>(NAMES_KEY, {})
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+  const next: Record<string, string> = {}
+  for (const [id, value] of Object.entries(parsed as Record<string, unknown>)) {
+    if (typeof value !== 'string') continue
+    const name = value.trim()
+    if (name) next[id] = name
+  }
+  return next
+}
+
+function persistNameOverrides(overrides: Record<string, string>) {
+  saveJson(NAMES_KEY, overrides)
+}
+
+function readStatusOverrides(): Partial<Record<string, TenantStatus>> {
+  const parsed = loadJson<unknown>(STATUSES_KEY, {})
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+  const next: Partial<Record<string, TenantStatus>> = {}
+  for (const [id, value] of Object.entries(parsed as Record<string, unknown>)) {
+    if (value === 'trial' || value === 'active' || value === 'suspended') {
+      next[id] = value
+    }
+  }
+  return next
+}
+
+function persistStatusOverrides(overrides: Partial<Record<string, TenantStatus>>) {
+  saveJson(STATUSES_KEY, overrides)
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -155,15 +205,21 @@ function persistCreatedTenants() {
 }
 
 function withOverrides(base: Tenant[]): Tenant[] {
-  const overrides = readOverrides()
+  const moduleOverrides = readOverrides()
+  const nameOverrides = readNameOverrides()
+  const statusOverrides = readStatusOverrides()
   return base.map((tenant) => {
-    const enabled = overrides[tenant.id]
-    return enabled
-      ? {
-          ...tenant,
-          enabledModules: mergeSeedServiceCatalog(tenant.enabledModules, enabled),
-        }
-      : { ...tenant, enabledModules: [...tenant.enabledModules] }
+    const enabled = moduleOverrides[tenant.id]
+    const name = nameOverrides[tenant.id] ?? tenant.name
+    const status = statusOverrides[tenant.id] ?? tenant.status
+    return {
+      ...tenant,
+      name,
+      status,
+      enabledModules: enabled
+        ? mergeSeedServiceCatalog(tenant.enabledModules, enabled)
+        : [...tenant.enabledModules],
+    }
   })
 }
 
@@ -223,12 +279,60 @@ export function createTenant(input: CreateTenantInput): Tenant {
     slug,
     name,
     status: input.status ?? 'trial',
-    enabledModules: input.enabledModules ? [...input.enabledModules] : [],
+    enabledModules: input.enabledModules
+      ? [...input.enabledModules]
+      : [...DEFAULT_STARTER_MODULES],
   }
   createdTenants = [created, ...createdTenants]
   persistCreatedTenants()
+  // Keep contact-profile display name in sync with the org name (single SOT: tenant.name).
+  seedAgencyProfileBusinessName(created.id, created.name)
   emit()
   return created
+}
+
+function syncProfileBusinessName(tenantId: string, name: string) {
+  saveAgencyProfile(
+    { ...readAgencyProfile(tenantId), businessName: name },
+    tenantId,
+  )
+}
+
+/**
+ * Rename the agency. `tenant.name` is the single business / org display name.
+ * Mirrors into AgencyProfile so branding/invoice readers stay consistent.
+ */
+export function updateTenantName(
+  tenantId: string,
+  name: string,
+): Tenant | undefined {
+  const errors = agencyCreateErrors({ name })
+  if (errors.name) throw new Error(errors.name)
+  const trimmed = name.trim()
+
+  const createdIndex = createdTenants.findIndex(
+    (tenant) => tenant.id === tenantId,
+  )
+  if (createdIndex >= 0) {
+    const updated = { ...createdTenants[createdIndex]!, name: trimmed }
+    createdTenants = createdTenants.map((tenant, index) =>
+      index === createdIndex ? updated : tenant,
+    )
+    persistCreatedTenants()
+    syncProfileBusinessName(tenantId, trimmed)
+    emit()
+    return updated
+  }
+
+  if (!tenants.some((tenant) => tenant.id === tenantId)) return undefined
+
+  const overrides = readNameOverrides()
+  overrides[tenantId] = trimmed
+  persistNameOverrides(overrides)
+  tenants = withOverrides(SEED_TENANTS)
+  syncProfileBusinessName(tenantId, trimmed)
+  emit()
+  return getTenantById(tenantId)
 }
 
 /** Resolve a public link segment — prefers slug, falls back to internal id. */
@@ -259,6 +363,36 @@ function patchTenantModules(
     return updated
   })
   return { list: next, updated }
+}
+
+export function setTenantStatus(
+  tenantId: string,
+  status: TenantStatus,
+): Tenant | undefined {
+  if (status !== 'trial' && status !== 'active' && status !== 'suspended') {
+    throw new Error('Invalid status.')
+  }
+
+  const createdIndex = createdTenants.findIndex(
+    (tenant) => tenant.id === tenantId,
+  )
+  if (createdIndex >= 0) {
+    const updated = { ...createdTenants[createdIndex]!, status }
+    createdTenants = createdTenants.map((tenant, index) =>
+      index === createdIndex ? updated : tenant,
+    )
+    persistCreatedTenants()
+    emit()
+    return updated
+  }
+
+  if (!tenants.some((tenant) => tenant.id === tenantId)) return undefined
+  const overrides = readStatusOverrides()
+  overrides[tenantId] = status
+  persistStatusOverrides(overrides)
+  tenants = withOverrides(SEED_TENANTS)
+  emit()
+  return getTenantById(tenantId)
 }
 
 export function setTenantModuleEnabled(
@@ -304,6 +438,8 @@ export function tenantAllowsService(
 
 export function resetTenantEntitlements() {
   removeJson(ENTITLEMENTS_KEY)
+  removeJson(NAMES_KEY)
+  removeJson(STATUSES_KEY)
   removeJson(CREATED_TENANTS_KEY)
   tenants = withOverrides(SEED_TENANTS)
   createdTenants = []
