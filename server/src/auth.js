@@ -37,9 +37,9 @@ function seedDefinitions() {
     process.env.PLATFORM_ADMIN_EMAIL?.trim().toLowerCase() ||
     'aminulislamborhan@gmail.com'
   const adminPassword =
-    process.env.PLATFORM_ADMIN_PASSWORD?.trim() || 'Borhan!OneTrack2026'
+    process.env.PLATFORM_ADMIN_PASSWORD?.trim() || '12345'
   const agencyPassword =
-    process.env.SEED_AGENCY_PASSWORD?.trim() || 'Agency!OneTrack2026'
+    process.env.SEED_AGENCY_PASSWORD?.trim() || '12345'
 
   return [
     {
