@@ -1,80 +1,43 @@
-import { DEFAULT_TENANT_ID, type UserRole } from '@/types/tenant'
+import { ApiError, apiFetch } from '@/lib/apiClient'
+import { verifyPasswordHash } from '@/lib/passwordHash'
+import {
+  ONETRACK_OWNER_USER,
+  asUserRole,
+  findSeededAccountByEmail,
+  type SeededAuthUser,
+} from '@/lib/seededUsers'
+import { DEFAULT_TENANT_ID } from '@/types/tenant'
 
-export type AuthUser = {
-  id: string
-  email: string
-  name: string
-  role: UserRole
-}
+export type AuthUser = SeededAuthUser
 
-export type DemoAccountId = 'full' | 'leisure' | 'manpower' | 'admin'
+export {
+  PLATFORM_ADMIN_EMAIL,
+  PLATFORM_ADMIN_USER,
+  COASTAL_OWNER_USER,
+  HORIZON_OWNER_USER,
+  ONETRACK_OWNER_USER,
+  SEED_AGENCY_PASSWORD,
+  SEED_PLATFORM_ADMIN_PASSWORD,
+} from '@/lib/seededUsers'
 
-export const DEMO_USER: AuthUser = {
-  id: 'demo',
-  email: 'demo@example.com',
-  name: 'Demo User',
-  role: 'agency_user',
-}
+/** Primary agency user used by tests and seed stores. */
+export const DEMO_USER: AuthUser = ONETRACK_OWNER_USER
 
+/** @deprecated Use COASTAL_OWNER_USER */
 export const LEISURE_USER: AuthUser = {
-  id: 'demo-leisure',
-  email: 'leisure@example.com',
+  id: 'user-coastal-owner',
+  email: 'ops@coastalleisure.com',
   name: 'Coastal Leisure',
   role: 'agency_user',
 }
 
+/** @deprecated Use HORIZON_OWNER_USER */
 export const MANPOWER_USER: AuthUser = {
-  id: 'demo-manpower',
-  email: 'manpower@example.com',
+  id: 'user-horizon-owner',
+  email: 'ops@horizonmanpower.com',
   name: 'Horizon Manpower',
   role: 'agency_user',
 }
-
-export const PLATFORM_ADMIN_EMAIL = 'aminulislamborhan@gmail.com'
-
-export const PLATFORM_ADMIN_USER: AuthUser = {
-  id: 'demo-admin',
-  email: PLATFORM_ADMIN_EMAIL,
-  name: 'Aminul',
-  role: 'platform_admin',
-}
-
-export const DEMO_ACCOUNTS: {
-  id: DemoAccountId
-  user: AuthUser
-  tenantId: string
-  label: string
-  description: string
-}[] = [
-  {
-    id: 'leisure',
-    user: LEISURE_USER,
-    tenantId: 'tenant-leisure',
-    label: 'Coastal Leisure',
-    description: 'Tours, tickets, hotels, and payments',
-  },
-  {
-    id: 'manpower',
-    user: MANPOWER_USER,
-    tenantId: 'tenant-manpower',
-    label: 'Horizon Manpower',
-    description: 'Work permits, payments, and HR',
-  },
-  {
-    id: 'full',
-    user: DEMO_USER,
-    tenantId: DEFAULT_TENANT_ID,
-    label: 'OneTrack Demo',
-    description: 'Every module enabled',
-  },
-  {
-    id: 'admin',
-    user: PLATFORM_ADMIN_USER,
-    tenantId: DEFAULT_TENANT_ID,
-    label: 'Platform admin',
-    description: 'Manage tenants only',
-  },
-]
 
 const AUTH_SESSION_KEY = 'pd-auth-session'
 const LEGACY_AUTH_KEY = 'pd-demo-auth'
@@ -85,7 +48,7 @@ export type AuthSession = {
   /** ISO timestamp when the session was established. */
   signedInAt: string
   /**
-   * Bearer token for API calls when the IdP returns one.
+   * Bearer token for API calls when the auth API returns one.
    * Prefer HttpOnly cookies in production; this field is for SPA token flows.
    */
   accessToken?: string
@@ -105,10 +68,6 @@ export function writeSession(session: AuthSession): void {
 
 export function clearSession(): void {
   sessionStorage.removeItem(AUTH_SESSION_KEY)
-}
-
-function asUserRole(value: unknown): UserRole {
-  return value === 'platform_admin' ? 'platform_admin' : 'agency_user'
 }
 
 function coerceUser(value: unknown): AuthUser | null {
@@ -148,26 +107,11 @@ function coerceSession(value: unknown): AuthSession | null {
 function migrateLegacySession(): AuthSession | null {
   try {
     if (sessionStorage.getItem(LEGACY_AUTH_KEY) !== '1') return null
-    const session: AuthSession = {
-      user: DEMO_USER,
-      tenantId: DEFAULT_TENANT_ID,
-      signedInAt: new Date().toISOString(),
-    }
-    writeSession(session)
     sessionStorage.removeItem(LEGACY_AUTH_KEY)
-    return session
+    clearSession()
+    return null
   } catch {
     return null
-  }
-}
-
-function demoSession(accountId: DemoAccountId): AuthSession {
-  const account = DEMO_ACCOUNTS.find((item) => item.id === accountId)
-  const resolved = account ?? DEMO_ACCOUNTS.find((item) => item.id === 'full')!
-  return {
-    user: resolved.user,
-    tenantId: resolved.tenantId,
-    signedInAt: new Date().toISOString(),
   }
 }
 
@@ -187,12 +131,11 @@ export function readSession(): AuthSession | null {
       return session
     }
   } catch {
-    /* migrate legacy flag stored under the new key */
+    /* fall through */
   }
   if (raw === '1') {
-    const session = demoSession('full')
-    writeSession(session)
-    return session
+    clearSession()
+    return null
   }
   return migrateLegacySession()
 }
@@ -209,77 +152,133 @@ export function isSignedIn(): boolean {
   return readSession() !== null
 }
 
-/**
- * Demo Google sign-in. Replace the body with a real OAuth redirect / token
- * exchange when wiring a production identity provider. Persist `accessToken`
- * on the returned session so `apiFetch` can attach Authorization.
- */
-export async function signInWithGoogle(): Promise<AuthSession> {
-  return signInDemo('full')
-}
-
-export async function signInDemo(accountId: DemoAccountId): Promise<AuthSession> {
-  await Promise.resolve()
-  const session = demoSession(accountId)
-  writeSession(session)
-  return session
-}
-
 function normalizeLoginEmail(value: string): string {
   return value.trim().toLowerCase()
 }
 
-function isPlatformAdminEmail(email: string): boolean {
-  return (
-    email === PLATFORM_ADMIN_EMAIL || email === 'admin@example.com'
+function authApiConfigured(): boolean {
+  const flag = import.meta.env.VITE_USE_PLATFORM_API as string | undefined
+  if (flag === '0' || flag === 'false') return false
+  if (flag === '1' || flag === 'true') return true
+  return import.meta.env.PROD === true
+}
+
+function isNetworkFailure(error: unknown): boolean {
+  if (error instanceof TypeError) return true
+  if (!(error instanceof Error)) return false
+  return /failed to fetch|networkerror|load failed|network request failed/i.test(
+    error.message,
   )
 }
 
+type LoginResponse = {
+  accessToken: string
+  tenantId: string
+  signedInAt: string
+  user: AuthUser
+}
+
+async function loginViaApi(
+  email: string,
+  password: string,
+): Promise<AuthSession> {
+  try {
+    const body = await apiFetch<LoginResponse>('/api/platform/auth/login', {
+      method: 'POST',
+      skipAuth: true,
+      body: { email, password },
+    })
+    const user = coerceUser(body.user)
+    if (!user || !body.accessToken) {
+      throw new Error('Sign-in response was incomplete.')
+    }
+    const session: AuthSession = {
+      user,
+      tenantId: body.tenantId || DEFAULT_TENANT_ID,
+      signedInAt: body.signedInAt || new Date().toISOString(),
+      accessToken: body.accessToken,
+    }
+    writeSession(session)
+    return session
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const message =
+        error.body &&
+        typeof error.body === 'object' &&
+        'error' in error.body &&
+        typeof (error.body as { error: unknown }).error === 'string'
+          ? (error.body as { error: string }).error
+          : 'Email or password is incorrect.'
+      throw new Error(message)
+    }
+    throw error
+  }
+}
+
+async function loginLocally(
+  email: string,
+  password: string,
+): Promise<AuthSession> {
+  const account = findSeededAccountByEmail(email)
+  if (!account) {
+    throw new Error('This account is not authorized.')
+  }
+  const valid = await verifyPasswordHash(password, account.passwordHash)
+  if (!valid) {
+    throw new Error('Email or password is incorrect.')
+  }
+  const session: AuthSession = {
+    user: account.user,
+    tenantId: account.tenantId,
+    signedInAt: new Date().toISOString(),
+  }
+  writeSession(session)
+  return session
+}
+
 /**
- * Demo password login: password must match the email.
- * `aminulislamborhan@gmail.com` is the platform admin.
+ * Email/password sign-in against the platform API when enabled,
+ * otherwise against seeded local accounts (dev / offline).
  */
 export async function signInWithPassword(
   email: string,
   password: string,
 ): Promise<AuthSession> {
-  await Promise.resolve()
   const normalizedEmail = normalizeLoginEmail(email)
-  const normalizedPassword = password.trim().toLowerCase()
+  const rawPassword = password
 
   if (!normalizedEmail) {
     throw new Error('Enter your email.')
   }
-  if (!normalizedPassword) {
+  if (!rawPassword) {
     throw new Error('Enter your password.')
   }
-  if (normalizedPassword !== normalizedEmail) {
-    throw new Error('Email or password is incorrect.')
-  }
 
-  if (isPlatformAdminEmail(normalizedEmail)) {
-    const session: AuthSession = {
-      user: PLATFORM_ADMIN_USER,
-      tenantId: DEFAULT_TENANT_ID,
-      signedInAt: new Date().toISOString(),
+  if (authApiConfigured()) {
+    try {
+      return await loginViaApi(normalizedEmail, rawPassword)
+    } catch (error) {
+      if (isNetworkFailure(error)) {
+        return loginLocally(normalizedEmail, rawPassword)
+      }
+      throw error
     }
-    writeSession(session)
-    return session
   }
 
-  const account = DEMO_ACCOUNTS.find(
-    (item) => item.user.email.toLowerCase() === normalizedEmail,
-  )
-  if (!account) {
-    throw new Error('This account is not authorized.')
-  }
-
-  const session = demoSession(account.id)
-  writeSession(session)
-  return session
+  return loginLocally(normalizedEmail, rawPassword)
 }
 
 export async function signOut(): Promise<void> {
-  await Promise.resolve()
+  const token = getAccessToken()
+  if (token && authApiConfigured()) {
+    try {
+      await apiFetch('/api/platform/auth/logout', {
+        method: 'POST',
+        body: {},
+      })
+    } catch {
+      /* session cleared locally regardless */
+    }
+  }
   clearSession()
 }

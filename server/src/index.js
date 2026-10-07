@@ -1,6 +1,14 @@
 import cors from 'cors'
 import express from 'express'
 import { pool, query } from './db.js'
+import {
+  loginWithPassword,
+  readBearerToken,
+  requireAuth,
+  resolveSession,
+  revokeSession,
+  seedAuthUsers,
+} from './auth.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4010)
@@ -33,7 +41,54 @@ app.get('/api/platform/health', async (_req, res) => {
   }
 })
 
-/** List all persisted KV keys (for SPA hydrate). */
+app.post('/api/platform/auth/login', async (req, res) => {
+  try {
+    const result = await loginWithPassword(req.body?.email, req.body?.password)
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    res.status(200).json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'login failed',
+    })
+  }
+})
+
+app.get('/api/platform/auth/me', async (req, res) => {
+  try {
+    const session = await resolveSession(readBearerToken(req))
+    if (!session) {
+      res.status(401).json({ error: 'Authentication required.' })
+      return
+    }
+    res.json({
+      user: session.user,
+      tenantId: session.tenantId,
+    })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'session failed',
+    })
+  }
+})
+
+app.post('/api/platform/auth/logout', async (req, res) => {
+  try {
+    await revokeSession(readBearerToken(req))
+    res.json({ ok: true })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'logout failed',
+    })
+  }
+})
+
+/**
+ * List persisted KV keys (SPA hydrate).
+ * Reads stay open so the app can bootstrap before login; writes require auth.
+ */
 app.get('/api/platform/kv', async (_req, res) => {
   try {
     const result = await query(
@@ -69,7 +124,7 @@ app.get('/api/platform/kv/:key', async (req, res) => {
   }
 })
 
-app.put('/api/platform/kv/:key', async (req, res) => {
+app.put('/api/platform/kv/:key', requireAuth, async (req, res) => {
   try {
     const value = req.body?.value
     if (value === undefined) {
@@ -92,13 +147,13 @@ app.put('/api/platform/kv/:key', async (req, res) => {
   }
 })
 
-app.delete('/api/platform/kv/:key', async (req, res) => {
+app.delete('/api/platform/kv/:key', requireAuth, async (req, res) => {
   try {
     await query('delete from platform.kv_store where key = $1', [req.params.key])
     res.json({ ok: true, key: req.params.key })
   } catch (error) {
     res.status(500).json({
-      error: error instanceof Error ? error.message : 'delete failed',
+      error: error instanceof Error ? error.message : 'write failed',
     })
   }
 })
@@ -107,17 +162,31 @@ app.use((req, res) => {
   res.status(404).json({ error: 'not found', path: req.path })
 })
 
-const server = app.listen(port, bindHost, () => {
-  console.log(
-    `[platform-api] listening on http://${bindHost}:${port} (isolated)`,
-  )
-})
+async function start() {
+  try {
+    await seedAuthUsers()
+    console.log('[platform-api] seeded auth users')
+  } catch (error) {
+    console.error(
+      '[platform-api] auth seed failed — run migrations first:',
+      error instanceof Error ? error.message : error,
+    )
+  }
 
-async function shutdown() {
-  server.close()
-  await pool.end().catch(() => {})
-  process.exit(0)
+  const server = app.listen(port, bindHost, () => {
+    console.log(
+      `[platform-api] listening on http://${bindHost}:${port} (isolated)`,
+    )
+  })
+
+  async function shutdown() {
+    server.close()
+    await pool.end().catch(() => {})
+    process.exit(0)
+  }
+
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
 }
 
-process.on('SIGINT', shutdown)
-process.on('SIGTERM', shutdown)
+start()

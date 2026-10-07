@@ -1,17 +1,18 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   DEMO_USER,
+  PLATFORM_ADMIN_USER,
+  SEED_AGENCY_PASSWORD,
+  SEED_PLATFORM_ADMIN_PASSWORD,
   clearSession,
   getAccessToken,
   isSignedIn,
   readSession,
-  signInDemo,
-  signInWithGoogle,
   signInWithPassword,
   signOut,
   writeSession,
 } from '@/lib/authApi'
-import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
+import { TENANT_IDS } from '@/types/tenant'
 
 const store = new Map<string, string>()
 
@@ -45,54 +46,57 @@ describe('authApi session', () => {
     expect(readSession()).toBeNull()
   })
 
-  it('persists a Google demo session', async () => {
-    const session = await signInWithGoogle()
-    expect(session.user).toEqual(DEMO_USER)
-    expect(session.tenantId).toBe(DEFAULT_TENANT_ID)
-    expect(isSignedIn()).toBe(true)
-    expect(readSession()?.user.email).toBe(DEMO_USER.email)
-  })
-
-  it('signs into a chosen demo agency', async () => {
-    const session = await signInDemo('leisure')
-    expect(session.tenantId).toBe(TENANT_IDS.leisure)
-    expect(session.user.email).toBe('leisure@example.com')
-  })
-
-  it('signs the owner email in as platform admin when password matches email', async () => {
+  it('signs in the platform admin with email and password', async () => {
     const session = await signInWithPassword(
       'aminulislamborhan@gmail.com',
-      'aminulislamborhan@gmail.com',
+      SEED_PLATFORM_ADMIN_PASSWORD,
     )
+    expect(session.user).toEqual(PLATFORM_ADMIN_USER)
+    expect(session.user.name).toBe('Aminul Islam Borhan')
     expect(session.user.role).toBe('platform_admin')
-    expect(session.user.email).toBe('aminulislamborhan@gmail.com')
+    expect(isSignedIn()).toBe(true)
   })
 
-  it('rejects a password that is not the email', async () => {
+  it('signs in a seeded agency owner', async () => {
+    const session = await signInWithPassword(
+      'ops@coastalleisure.com',
+      SEED_AGENCY_PASSWORD,
+    )
+    expect(session.tenantId).toBe(TENANT_IDS.leisure)
+    expect(session.user.email).toBe('ops@coastalleisure.com')
+    expect(session.user.role).toBe('agency_user')
+  })
+
+  it('rejects a wrong password', async () => {
     await expect(
-      signInWithPassword('aminulislamborhan@gmail.com', 'wrong'),
+      signInWithPassword('aminulislamborhan@gmail.com', 'wrong-password'),
     ).rejects.toThrow(/incorrect/)
   })
 
+  it('rejects an unknown account', async () => {
+    await expect(
+      signInWithPassword('nobody@example.com', SEED_AGENCY_PASSWORD),
+    ).rejects.toThrow(/not authorized/)
+  })
+
   it('clears session on sign out', async () => {
-    await signInWithGoogle()
+    await signInWithPassword('ops@onetrack.bd', SEED_AGENCY_PASSWORD)
     await signOut()
     expect(isSignedIn()).toBe(false)
     expect(readSession()).toBeNull()
   })
 
-  it('migrates the legacy demo flag', () => {
+  it('drops the legacy demo flag without auto-signing in', () => {
     sessionStorage.setItem('pd-demo-auth', '1')
     const session = readSession()
-    expect(session?.user).toEqual(DEMO_USER)
+    expect(session).toBeNull()
     expect(sessionStorage.getItem('pd-demo-auth')).toBeNull()
-    expect(sessionStorage.getItem('pd-auth-session')).toBeTruthy()
   })
 
   it('round-trips writeSession', () => {
     writeSession({
       user: DEMO_USER,
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId: 'tenant-full',
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     expect(readSession()?.signedInAt).toBe('2026-01-01T00:00:00.000Z')
@@ -103,7 +107,7 @@ describe('authApi session', () => {
   it('exposes accessToken via getAccessToken', () => {
     writeSession({
       user: DEMO_USER,
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId: 'tenant-full',
       signedInAt: '2026-01-01T00:00:00.000Z',
       accessToken: 'tok',
     })

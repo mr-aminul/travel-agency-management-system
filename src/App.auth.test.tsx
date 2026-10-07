@@ -9,7 +9,12 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { AuthProvider } from '@/lib/AuthProvider'
-import { clearSession, writeSession, DEMO_USER } from '@/lib/authApi'
+import {
+  clearSession,
+  writeSession,
+  DEMO_USER,
+  SEED_AGENCY_PASSWORD,
+} from '@/lib/authApi'
 import { useAuth } from '@/lib/useAuth'
 
 const AuthenticatedLayout = lazy(() => import('@/layout/AuthenticatedLayout'))
@@ -48,9 +53,7 @@ function renderRoutes(initialPath: string) {
 
 function expectAuthenticatedShell() {
   expect(document.querySelector('.pd-app-shell')).toBeTruthy()
-  expect(
-    screen.queryByRole('button', { name: /continue with google/i }),
-  ).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /log in/i })).not.toBeInTheDocument()
 }
 
 describe('auth route guards', () => {
@@ -59,7 +62,7 @@ describe('auth route guards', () => {
     renderRoutes('/')
 
     expect(
-      await screen.findByRole('button', { name: /continue with google/i }, { timeout: 5000 }),
+      await screen.findByRole('button', { name: /log in/i }, { timeout: 5000 }),
     ).toBeInTheDocument()
   })
 
@@ -68,8 +71,14 @@ describe('auth route guards', () => {
     renderRoutes('/login')
 
     expect(
-      await screen.findByRole('button', { name: /continue with google/i }, { timeout: 5000 }),
+      await screen.findByRole('button', { name: /log in/i }, { timeout: 5000 }),
     ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /choose a saved account/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /continue with google/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('keeps authenticated users off the login page', async () => {
@@ -85,35 +94,24 @@ describe('auth route guards', () => {
     })
   })
 
-  it('signs in from the login button', async () => {
+  it('signs in with email and password', async () => {
     clearSession()
     renderRoutes('/login')
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /continue with google/i }, { timeout: 5000 }),
+    fireEvent.change(
+      await screen.findByRole('textbox', { name: /email/i }, { timeout: 5000 }),
+      { target: { value: 'ops@onetrack.bd' } },
     )
-
-    await waitFor(() => {
-      expectAuthenticatedShell()
+    fireEvent.change(screen.getByLabelText(/^password$/i), {
+      target: { value: SEED_AGENCY_PASSWORD },
     })
-  })
+    fireEvent.click(screen.getByRole('button', { name: /log in/i }))
 
-  it('autofills email and password from the email dropdown', async () => {
-    clearSession()
-    renderRoutes('/login')
-
-    fireEvent.click(
-      await screen.findByRole('button', {
-        name: /choose a saved account/i,
-      }, { timeout: 5000 }),
+    await waitFor(
+      () => {
+        expectAuthenticatedShell()
+      },
+      { timeout: 5000 },
     )
-    fireEvent.click(
-      await screen.findByRole('option', { name: /onetrack demo/i }),
-    )
-
-    expect(screen.getByRole('textbox', { name: /email/i })).toHaveValue(
-      'demo@example.com',
-    )
-    expect(screen.getByLabelText(/^password$/i)).toHaveValue('demo@example.com')
   })
 })

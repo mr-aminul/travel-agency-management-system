@@ -42,6 +42,9 @@ services:
       PGUSER: platform
       PGPASSWORD: ${PLATFORM_DB_PASSWORD:?set PLATFORM_DB_PASSWORD}
       CORS_ORIGIN: ${PLATFORM_CORS_ORIGIN:-https://onetrack.inventivelab.bd,https://onetrack-iota.vercel.app}
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-aminulislamborhan@gmail.com}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-Borhan!OneTrack2026}
+      SEED_AGENCY_PASSWORD: ${SEED_AGENCY_PASSWORD:-Agency!OneTrack2026}
     ports:
       - "127.0.0.1:4010:4010"
     networks:

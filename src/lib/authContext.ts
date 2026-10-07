@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { AuthSession, AuthUser, DemoAccountId } from '@/lib/authApi'
+import type { AuthSession, AuthUser } from '@/lib/authApi'
 
 export type AuthStatus = 'authenticated' | 'anonymous'
 
@@ -7,9 +7,10 @@ export type AuthContextValue = {
   status: AuthStatus
   user: AuthUser | null
   session: AuthSession | null
-  signInWithGoogle: () => Promise<void>
-  signInWithPassword: (email: string, password: string) => Promise<void>
-  signInDemo: (accountId: DemoAccountId) => Promise<void>
+  signInWithPassword: (
+    email: string,
+    password: string,
+  ) => Promise<AuthSession>
   signOut: () => Promise<void>
 }
 

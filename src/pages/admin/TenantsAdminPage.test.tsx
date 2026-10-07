@@ -71,7 +71,7 @@ describe('platform admin businesses', () => {
     expect(
       await screen.findByRole('heading', { name: 'Coastal Leisure' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('leisure@example.com')).toBeInTheDocument()
+    expect(screen.getByText('ops@coastalleisure.com')).toBeInTheDocument()
     expect(screen.getByText('Farzana Rahman')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Modules' })).not.toBeInTheDocument()
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()

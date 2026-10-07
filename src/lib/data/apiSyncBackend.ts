@@ -1,3 +1,4 @@
+import { getAccessToken } from '@/lib/authApi'
 import type { DataBackend } from '@/lib/data/backend'
 import { createMemoryBackend } from '@/lib/data/backend'
 import { DATA_KEYS } from '@/lib/data/keys'
@@ -12,10 +13,21 @@ function apiBase(): string {
   return ''
 }
 
+function authHeaders(
+  extra: Record<string, string> = {},
+): Record<string, string> {
+  const token = getAccessToken()
+  return {
+    Accept: 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...extra,
+  }
+}
+
 async function readAllEntries(): Promise<Record<string, unknown>> {
   const response = await fetch(`${apiBase()}/api/platform/kv`, {
     credentials: 'include',
-    headers: { Accept: 'application/json' },
+    headers: authHeaders(),
   })
   if (!response.ok) {
     throw new Error(`Failed to hydrate platform data (${response.status})`)
@@ -30,10 +42,7 @@ async function writeEntry(key: string, value: unknown): Promise<void> {
     {
       method: 'PUT',
       credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ value }),
     },
   )
@@ -48,7 +57,7 @@ async function deleteEntry(key: string): Promise<void> {
     {
       method: 'DELETE',
       credentials: 'include',
-      headers: { Accept: 'application/json' },
+      headers: authHeaders(),
     },
   )
   if (!response.ok && response.status !== 404) {

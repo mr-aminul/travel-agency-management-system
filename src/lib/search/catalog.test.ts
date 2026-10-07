@@ -66,7 +66,7 @@ describe('buildSearchCatalog', () => {
 
   it('keeps platform admin on businesses only', () => {
     const items = buildSearchCatalog({
-      user: { name: 'Aminul', role: 'platform_admin' },
+      user: { name: 'Aminul Islam Borhan', role: 'platform_admin' },
       enabledModules: ALL_MODULE_IDS,
       clients: [rahim],
       cases: [workFile],

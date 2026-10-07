@@ -21,6 +21,12 @@ PUBLIC_API_URL="${PLATFORM_PUBLIC_API_URL:-https://api.onetrack.inventivelab.bd}
 CORS_ORIGIN="${PLATFORM_CORS_ORIGIN:-https://onetrack.inventivelab.bd,https://onetrack-iota.vercel.app}"
 REMOTE_ROOT="${PLATFORM_REMOTE_ROOT:-/opt/onetrack-platform}"
 DB_PASSWORD_FILE="$REMOTE_ROOT/.env"
+ADMIN_EMAIL="$(read_env PLATFORM_ADMIN_EMAIL "$ENV_FILE")"
+ADMIN_PASSWORD="$(read_env PLATFORM_ADMIN_PASSWORD "$ENV_FILE")"
+AGENCY_PASSWORD="$(read_env SEED_AGENCY_PASSWORD "$ENV_FILE")"
+ADMIN_EMAIL="${ADMIN_EMAIL:-aminulislamborhan@gmail.com}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-Borhan!OneTrack2026}"
+AGENCY_PASSWORD="${AGENCY_PASSWORD:-Agency!OneTrack2026}"
 
 if [[ -z "$HOST" || -z "$USER_NAME" || -z "$PASS" ]]; then
   echo "VPS_HOST / VPS_USER / VPS_PASSWORD missing in .env" >&2
@@ -50,22 +56,35 @@ set -euo pipefail
 REMOTE_ROOT='$REMOTE_ROOT'
 DB_PASSWORD_FILE='$DB_PASSWORD_FILE'
 CORS_ORIGIN='$CORS_ORIGIN'
+ADMIN_EMAIL='$ADMIN_EMAIL'
+ADMIN_PASSWORD='$ADMIN_PASSWORD'
+AGENCY_PASSWORD='$AGENCY_PASSWORD'
 
 if [[ ! -f "\$DB_PASSWORD_FILE" ]]; then
   PW=\$(openssl rand -base64 24 | tr -d '=+/' | cut -c1-28)
   cat > "\$DB_PASSWORD_FILE" <<EOF
 PLATFORM_DB_PASSWORD=\$PW
 PLATFORM_CORS_ORIGIN=\$CORS_ORIGIN
+PLATFORM_ADMIN_EMAIL=\$ADMIN_EMAIL
+PLATFORM_ADMIN_PASSWORD=\$ADMIN_PASSWORD
+SEED_AGENCY_PASSWORD=\$AGENCY_PASSWORD
 EOF
   chmod 600 "\$DB_PASSWORD_FILE"
   echo "[platform-api] wrote new \$DB_PASSWORD_FILE"
 else
-  if grep -q '^PLATFORM_CORS_ORIGIN=' "\$DB_PASSWORD_FILE"; then
-    sed -i "s|^PLATFORM_CORS_ORIGIN=.*|PLATFORM_CORS_ORIGIN=\$CORS_ORIGIN|" "\$DB_PASSWORD_FILE"
-  else
-    echo "PLATFORM_CORS_ORIGIN=\$CORS_ORIGIN" >> "\$DB_PASSWORD_FILE"
-  fi
-  echo "[platform-api] updated CORS on \$DB_PASSWORD_FILE"
+  set_kv() {
+    local k="\$1" v="\$2"
+    if grep -q "^\$k=" "\$DB_PASSWORD_FILE"; then
+      sed -i "s|^\$k=.*|\$k=\$v|" "\$DB_PASSWORD_FILE"
+    else
+      echo "\$k=\$v" >> "\$DB_PASSWORD_FILE"
+    fi
+  }
+  set_kv PLATFORM_CORS_ORIGIN "\$CORS_ORIGIN"
+  set_kv PLATFORM_ADMIN_EMAIL "\$ADMIN_EMAIL"
+  set_kv PLATFORM_ADMIN_PASSWORD "\$ADMIN_PASSWORD"
+  set_kv SEED_AGENCY_PASSWORD "\$AGENCY_PASSWORD"
+  echo "[platform-api] updated auth + CORS on \$DB_PASSWORD_FILE"
 fi
 
 cp "\$REMOTE_ROOT/deploy/Caddyfile.api.snippet" /etc/caddy/conf.d/onetrack-platform-api.caddy
