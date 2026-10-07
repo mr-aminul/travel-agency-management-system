@@ -34,9 +34,9 @@ describe('module entitlements', () => {
     expect(pathAccess('/hr/employees/EMP-7001')).toBe('hr')
     expect(pathAccess('/hr/attendance')).toBe('hr')
     expect(pathAccess('/hr/payroll')).toBe('hr')
-    expect(pathAccess('/partners')).toBe('partners')
-    expect(pathAccess('/agents')).toBe('partners')
-    expect(normalizeModuleId('agents')).toBe('partners')
+    expect(pathAccess('/sub-agents')).toBe('subAgents')
+    expect(pathAccess('/agents')).toBe('subAgents')
+    expect(normalizeModuleId('agents')).toBe('subAgents')
     expect(pathAccess('/admin/tenants')).toBe('admin')
     expect(pathAccess('/admin/tenants/tenant-leisure/users')).toBe('admin')
     expect(pathAccess('/payments')).toBe('finance')
@@ -55,7 +55,7 @@ describe('module entitlements', () => {
       false,
     )
     expect(
-      isPathAllowed('/partners', leisure.enabledModules, 'agency_user'),
+      isPathAllowed('/sub-agents', leisure.enabledModules, 'agency_user'),
     ).toBe(false)
     expect(
       isPathAllowed('/admin/tenants', leisure.enabledModules, 'agency_user'),
@@ -80,7 +80,7 @@ describe('module entitlements', () => {
     expect(nav.map((item) => item.path)).toEqual(['/admin/tenants'])
   })
 
-  it('hides HR and partners from leisure nav and does not list service types', () => {
+  it('hides HR and subAgents from leisure nav and does not list service types', () => {
     const leisure = getTenantById(TENANT_IDS.leisure)!
     const nav = filterNavItems(
       layoutConfig.navItems,
@@ -118,7 +118,7 @@ describe('module entitlements', () => {
       MODULE_GROUPS.filter((group) => group.modules.length === 1).map(
         (group) => group.id,
       ),
-    ).toEqual(['finance', 'documents', 'partners', 'hr'])
+    ).toEqual(['finance', 'documents', 'subAgents', 'hr'])
   })
 
   it('restores a module when the platform admin enables it', () => {

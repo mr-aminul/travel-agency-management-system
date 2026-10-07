@@ -1,5 +1,5 @@
 import type { Case, CaseStatus } from '@/types/case'
-import type { PartnerStatus } from '@/types/partner'
+import type { SubAgentStatus } from '@/types/subAgent'
 
 /** Most actionable first — used when a client has multiple service files. */
 const STATUS_PRIORITY: CaseStatus[] = [
@@ -39,9 +39,9 @@ export function deriveClientServiceStatus(
 /**
  * Sub agents stay Active while any referred client still has an open service.
  */
-export function derivePartnerActivityStatus(
+export function deriveSubAgentActivityStatus(
   cases: readonly Case[],
-): PartnerStatus {
+): SubAgentStatus {
   return cases.some((item) => isOpenStatus(item.status)) ? 'Active' : 'Inactive'
 }
 

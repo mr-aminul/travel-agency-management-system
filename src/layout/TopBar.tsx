@@ -62,10 +62,10 @@ export function TopBar({
             onClick={onMobileMenuOpen}
             aria-label="Open menu"
           >
-            <Menu size={16} strokeWidth={2} />
+            <Menu size={18} strokeWidth={2} />
           </button>
           <div className="pd-topbar__center">
-            {showTopBarSearch ? <TopBarSearch /> : null}
+            {showTopBarSearch ? <TopBarSearch /> : titleBlock}
           </div>
           {actions}
         </div>

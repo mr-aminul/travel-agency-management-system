@@ -6,7 +6,12 @@ import { DEMO_ACCOUNTS } from '@/lib/authApi'
 import { useAuth } from '@/lib/auth'
 import { signedInHomePath } from '@/lib/modules'
 import { publicUrl } from '@/lib/publicUrl'
-import { Alert, Button, Input } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
+import {
+  validateRequiredEmail,
+  validateRequiredPassword,
+} from '@/lib/fieldValidation'
+import { useTouchedFields } from '@/lib/useTouchedFields'
 import '@/styles/layout-login.css'
 
 function GoogleMark() {
@@ -47,6 +52,11 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const emailFieldRef = useRef<HTMLDivElement>(null)
+  const { markAllTouched, showError, blur } = useTouchedFields<
+    'email' | 'password'
+  >()
+  const emailError = validateRequiredEmail(email)
+  const passwordError = validateRequiredPassword(password)
 
   useEffect(() => {
     if (!isAccountMenuOpen) return
@@ -98,6 +108,8 @@ export default function LoginPage() {
   const handlePasswordSignIn = async (event: FormEvent) => {
     event.preventDefault()
     setError(null)
+    markAllTouched(['email', 'password'])
+    if (emailError || passwordError) return
     setIsSubmitting(true)
     try {
       await signInWithPassword(email, password)
@@ -165,7 +177,9 @@ export default function LoginPage() {
                 placeholder="name@company.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                onBlur={blur('email')}
                 required
+                error={showError('email') ? emailError : undefined}
               />
               <button
                 type="button"
@@ -208,9 +222,15 @@ export default function LoginPage() {
               placeholder="Enter your password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              onBlur={blur('password')}
               required
+              error={showError('password') ? passwordError : undefined}
             />
-            {error ? <Alert variant="error">{error}</Alert> : null}
+            {error ? (
+              <p className="pd-field__error" role="alert">
+                {error}
+              </p>
+            ) : null}
             <Button type="submit" size="lg" loading={isSubmitting}>
               Log in
             </Button>

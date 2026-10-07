@@ -13,13 +13,13 @@ afterEach(() => {
   resetClients()
 })
 
-function renderIntake(partnerId: string) {
+function renderIntake(subAgentId: string) {
   clearSession()
   return render(
     <AuthProvider>
-      <MemoryRouter initialEntries={[`/join/${partnerId}`]}>
+      <MemoryRouter initialEntries={[`/join/${subAgentId}`]}>
         <Routes>
-          <Route path="/join/:partnerId" element={<PublicClientIntakePage />} />
+          <Route path="/join/:subAgentId" element={<PublicClientIntakePage />} />
         </Routes>
       </MemoryRouter>
     </AuthProvider>,
@@ -70,7 +70,7 @@ describe('public client intake', () => {
     })
     const created = getClientByPhone('01822223333')
     expect(created?.name).toBe('Nusrat Jahan')
-    expect(created?.partnerId).toBe('AGT-T0001')
+    expect(created?.subAgentId).toBe('AGT-T0001')
   })
 
   it('lets anyone submit a profile that lands as an agency client', () => {
@@ -99,7 +99,7 @@ describe('public client intake', () => {
     })
     const created = getClientByPhone('01844445555')
     expect(created?.name).toBe('Direct Client')
-    expect(created?.partnerId).toBeUndefined()
+    expect(created?.subAgentId).toBeUndefined()
     expect(created?.tenantId).toBe(TENANT_IDS.full)
   })
 

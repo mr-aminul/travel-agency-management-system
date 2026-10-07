@@ -4,7 +4,7 @@ const PREFIXES: Array<{ pattern: RegExp; scope: SearchScope }> = [
   { pattern: /^@\s*/, scope: 'clients' },
   { pattern: /^(client:|clients:)\s*/i, scope: 'clients' },
   { pattern: /^(service:|services:|file:|files:|s:)\s*/i, scope: 'services' },
-  { pattern: /^(partner:|partners:|agent:|agents:)\s*/i, scope: 'partners' },
+  { pattern: /^(subAgent:|subAgents:|agent:|agents:)\s*/i, scope: 'subAgents' },
   { pattern: /^(employee:|employees:|emp:|hr:|e:)\s*/i, scope: 'employees' },
   { pattern: /^(page:|pages:|#)\s*/i, scope: 'pages' },
   { pattern: /^(action:|actions:|>)\s*/i, scope: 'actions' },

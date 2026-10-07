@@ -192,7 +192,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.pd-partner-photo {
+.pd-profile-photo {
   display: grid;
   grid-template-columns: 4rem minmax(0, 1fr);
   align-items: center;
@@ -201,34 +201,34 @@
   padding-top: 0.625rem;
 }
 
-.pd-partner-photo:not(:has(.pd-partner-photo__name)) {
+.pd-profile-photo:not(:has(.pd-profile-photo__name)) {
   grid-template-columns: 4rem;
 }
 
-.pd-partner-photo__control {
+.pd-profile-photo__control {
   position: relative;
   grid-column: 1;
   width: 4rem;
   height: 4rem;
 }
 
-.pd-partner-photo__control .pd-avatar {
+.pd-profile-photo__control .pd-avatar {
   display: flex;
 }
 
-.pd-partner-photo__name {
+.pd-profile-photo__name {
   grid-column: 2;
   min-width: 0;
   width: 100%;
 }
 
-.pd-partner-photo__name .pd-field,
-.pd-partner-photo__name .pd-field__control {
+.pd-profile-photo__name .pd-field,
+.pd-profile-photo__name .pd-field__control {
   width: 100%;
   max-width: 100%;
 }
 
-.pd-partner-photo__input {
+.pd-profile-photo__input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -236,7 +236,7 @@
   clip: rect(0 0 0 0);
 }
 
-.pd-partner-photo__upload {
+.pd-profile-photo__upload {
   position: absolute;
   inset: 0;
   display: inline-flex;
@@ -253,17 +253,17 @@
   transition: opacity 0.15s ease;
 }
 
-.pd-partner-photo__control:hover .pd-partner-photo__upload,
-.pd-partner-photo__control:focus-within .pd-partner-photo__upload {
+.pd-profile-photo__control:hover .pd-profile-photo__upload,
+.pd-profile-photo__control:focus-within .pd-profile-photo__upload {
   opacity: 1;
 }
 
-.pd-partner-photo__upload:focus-visible {
+.pd-profile-photo__upload:focus-visible {
   outline: 0.125rem solid color-mix(in srgb, var(--color-theme) 55%, transparent);
   outline-offset: 0.125rem;
 }
 
-.pd-partner-photo__remove {
+.pd-profile-photo__remove {
   position: absolute;
   top: -0.25rem;
   right: -0.25rem;
@@ -284,40 +284,40 @@
   transition: opacity 0.15s ease, color 0.15s ease;
 }
 
-.pd-partner-photo__control:hover .pd-partner-photo__remove,
-.pd-partner-photo__control:focus-within .pd-partner-photo__remove,
-.pd-partner-photo__remove:focus-visible {
+.pd-profile-photo__control:hover .pd-profile-photo__remove,
+.pd-profile-photo__control:focus-within .pd-profile-photo__remove,
+.pd-profile-photo__remove:focus-visible {
   opacity: 1;
 }
 
-.pd-partner-photo__remove:hover,
-.pd-partner-photo__remove:focus-visible {
+.pd-profile-photo__remove:hover,
+.pd-profile-photo__remove:focus-visible {
   color: var(--color-text);
 }
 
-.pd-partner-photo__remove:focus-visible {
+.pd-profile-photo__remove:focus-visible {
   outline: 0.125rem solid color-mix(in srgb, var(--color-theme) 55%, transparent);
   outline-offset: 0.125rem;
 }
 
 @media (hover: none) {
-  .pd-partner-photo__upload,
-  .pd-partner-photo__remove {
+  .pd-profile-photo__upload,
+  .pd-profile-photo__remove {
     opacity: 1;
   }
 
-  .pd-partner-photo__upload {
+  .pd-profile-photo__upload {
     background: color-mix(in srgb, var(--color-text) 28%, transparent);
   }
 }
 
-.pd-partner-grid {
+.pd-subAgent-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.9rem;
 }
 
-.pd-partner-card {
+.pd-subAgent-card {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -329,29 +329,29 @@
   color: inherit;
 }
 
-.pd-partner-card:hover {
+.pd-subAgent-card:hover {
   border-color: var(--color-theme-ink);
 }
 
-.pd-partner-card__top {
+.pd-subAgent-card__top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
 }
 
-.pd-partner-card__name {
+.pd-subAgent-card__name {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
 }
 
-.pd-partner-card__id {
+.pd-subAgent-card__id {
   margin: 0.15rem 0 0;
   font-size: 0.75rem;
   color: var(--color-text-secondary);
 }
 
-.pd-partner-card__meta {
+.pd-subAgent-card__meta {
   margin: 0.25rem 0 0;
   display: flex;
   align-items: center;
@@ -360,7 +360,7 @@
   color: var(--color-text-secondary);
 }
 
-.pd-partner-card__footer {
+.pd-subAgent-card__footer {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -370,7 +370,7 @@
   color: var(--color-theme-ink);
 }
 
-.pd-partner-profile {
+.pd-subAgent-profile {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -449,20 +449,74 @@
 @media (max-width: 1100px) {
   .pd-ops__metrics,
   .pd-ops__metrics--grid,
-  .pd-partner-grid,
+  .pd-subAgent-grid,
   .pd-help-grid,
   .pd-profile-kv {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
+  /* Keep four compact KPI tiles in one row (Clients / Payments / Sub Agents / Services). */
   .pd-ops__metrics,
-  .pd-ops__metrics--grid,
-  .pd-partner-grid,
+  .pd-ops__metrics--grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.375rem;
+  }
+
+  .pd-ops-metric-link {
+    gap: 0.2rem;
+    padding: 0.45rem 0.4rem 0.5rem;
+    border-radius: 0.625rem;
+  }
+
+  .pd-ops-metric-link__watermark {
+    display: none;
+  }
+
+  .pd-ops-metric-link__head {
+    gap: 0.2rem;
+  }
+
+  .pd-ops-metric-link__icon {
+    display: none;
+  }
+
+  .pd-ops-metric-link__label {
+    font-size: 0.625rem;
+    font-weight: 650;
+    line-height: 1.15;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .pd-ops-metric-link__value {
+    font-size: clamp(0.8125rem, 3.8vw, 1.0625rem);
+    letter-spacing: -0.02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pd-ops-metric-link__hint,
+  .pd-ops-metric-link__delta {
+    display: none;
+  }
+
+  .pd-subAgent-grid,
   .pd-help-grid,
   .pd-profile-kv,
   .pd-ops-form--2 {
     grid-template-columns: 1fr;
+  }
+
+  .pd-ops__toolbar {
+    align-items: stretch;
+  }
+
+  .pd-ops__toolbar > * {
+    min-width: 0;
   }
 }

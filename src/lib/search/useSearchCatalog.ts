@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useClients } from '@/lib/clientsStore'
 import { useCases } from '@/lib/casesStore'
 import { useEmployees } from '@/lib/employeesStore'
-import { usePartners } from '@/lib/partnersStore'
+import { useSubAgents } from '@/lib/subAgentsStore'
 import { useActiveTenant } from '@/lib/useActiveTenant'
 import { useAuth } from '@/lib/useAuth'
 import { buildSearchCatalog } from './catalog'
@@ -13,7 +13,7 @@ export function useSearchCatalog(): SearchItem[] {
   const tenant = useActiveTenant()
   const clients = useClients()
   const cases = useCases()
-  const partners = usePartners()
+  const subAgents = useSubAgents()
   const employees = useEmployees()
 
   return useMemo(
@@ -23,9 +23,9 @@ export function useSearchCatalog(): SearchItem[] {
         enabledModules: tenant.enabledModules,
         clients,
         cases,
-        partners,
+        subAgents,
         employees,
       }),
-    [user, tenant.enabledModules, clients, cases, partners, employees],
+    [user, tenant.enabledModules, clients, cases, subAgents, employees],
   )
 }

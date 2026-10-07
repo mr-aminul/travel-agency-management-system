@@ -21,29 +21,21 @@
   justify-content: center;
   overflow: auto;
   padding:
-    calc(1.5rem + env(safe-area-inset-top, 0px))
-    1.25rem
-    calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    calc(1.5rem + env(safe-area-inset-top, 0px)) 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
   color: var(--login-ink);
   color-scheme: light;
   background-color: color-mix(in srgb, var(--color-theme) 55%, #040806);
   background-image:
-    radial-gradient(
-      48rem 34rem at 14% 10%,
+    radial-gradient(48rem 34rem at 14% 10%,
       color-mix(in srgb, var(--color-theme) 88%, #06281c) 0%,
-      transparent 58%
-    ),
-    radial-gradient(
-      40rem 30rem at 90% 90%,
+      transparent 58%),
+    radial-gradient(40rem 30rem at 90% 90%,
       color-mix(in srgb, var(--color-theme) 70%, #041910) 0%,
-      transparent 55%
-    ),
-    linear-gradient(
-      165deg,
+      transparent 55%),
+    linear-gradient(165deg,
       color-mix(in srgb, var(--color-theme) 65%, #03140e) 0%,
       color-mix(in srgb, var(--color-theme) 40%, #070b0f) 50%,
-      #050807 100%
-    );
+      #050807 100%);
 }
 
 .pd-login__corner-logo {
@@ -194,12 +186,10 @@
 .pd-login__divider::after {
   content: '';
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--login-panel-border),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      var(--login-panel-border),
+      transparent);
 }
 
 .pd-login__form {
@@ -247,10 +237,6 @@
   margin-top: 0.15rem;
   border-radius: var(--login-control-radius);
   font-weight: 600;
-}
-
-.pd-login__form .pd-alert {
-  text-align: start;
 }
 
 .pd-login__email-control {
@@ -378,6 +364,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .pd-login__card,
   .pd-login__corner-logo,
   .pd-login__brand-logo,

@@ -1,6 +1,6 @@
 import { Check, Circle, Eye, Plus } from 'lucide-react'
-import { Badge, Button, type BadgeVariant } from '@/components/ui'
 import { cx } from '@/lib/cx'
+import { Badge, Button, type BadgeVariant } from '@/components/ui'
 
 export type DocumentRowTone = 'done' | 'wait' | 'need' | 'idle'
 

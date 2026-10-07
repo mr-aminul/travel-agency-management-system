@@ -56,7 +56,7 @@ export type Client = {
   nidFile?: ClientFileRef
   avatarUrl?: string
   /** Sub agent who referred this client. */
-  partnerId?: string
+  subAgentId?: string
   /** Services this client has engaged — derived from requests + intake. */
   services: ServiceType[]
   /** Sum of open service-request balances. */
@@ -111,12 +111,10 @@ export type CreateClientInput = {
   expectedSalary?: string
   contractAmount?: number
   branch?: string
-  partnerId?: string
+  subAgentId?: string
   avatarUrl?: string
   primaryService: ServiceType
   idChecked: boolean
-  /** When true, UI should immediately add the first service. */
-  openFirstCase?: boolean
 }
 
 export type UpdateClientInput = Partial<

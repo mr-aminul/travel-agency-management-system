@@ -37,7 +37,7 @@ const SEED_TENANTS: Tenant[] = [
       'services.medicalVisa',
       'finance',
       'hr',
-      'partners',
+      'subAgents',
     ],
   },
   {

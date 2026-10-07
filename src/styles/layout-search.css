@@ -256,8 +256,9 @@
 
 @media (max-width: 40rem) {
   .pd-global-search--inline {
-    width: min(22rem, calc(100vw - 1rem));
-    max-height: min(28rem, calc(100vh - 4rem));
+    width: min(22rem, calc(100dvw - 1rem));
+    max-width: calc(100dvw - 1rem);
+    max-height: min(28rem, calc(100dvh - 4rem));
   }
 
   .pd-global-search__hints span:nth-child(n + 3) {

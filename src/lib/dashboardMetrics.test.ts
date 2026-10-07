@@ -114,7 +114,7 @@ const requests: StatusUpdateRequest[] = [
   {
     id: 'req-1',
     tenantId: TENANT_IDS.full,
-    partnerId: 'p-1',
+    subAgentId: 'p-1',
     clientId: 'c-1',
     caseId: 'case-open',
     fromStatus: 'Pending',

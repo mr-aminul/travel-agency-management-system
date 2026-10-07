@@ -1,3 +1,4 @@
+import { Avatar } from '@/components/ui'
 import {
   forwardRef,
   useEffect,
@@ -11,7 +12,6 @@ import {
 } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
-import { Avatar } from '@/components/ui'
 import { cx } from '@/lib/cx'
 import {
   presentSearchResults,

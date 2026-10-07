@@ -99,3 +99,25 @@
 .pd-admin__metric-link:hover .pd-metric {
   border-color: color-mix(in srgb, var(--color-theme) 45%, var(--color-border));
 }
+
+@media (max-width: 767px) {
+  .pd-admin__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-admin__subnav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .pd-admin__subnav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pd-admin__subnav-link {
+    flex: 0 0 auto;
+    padding: 0.65rem 0.9rem;
+  }
+}

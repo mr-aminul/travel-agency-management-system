@@ -1,10 +1,10 @@
 import { useId, type FormEvent } from 'react'
 import { DocumentRecordFields } from '@/components/cases/DocumentRecordFields'
+import { Button, SideDrawer } from '@/components/ui'
 import {
   useDocumentRecordEditor,
   type DocumentDrawerMode,
 } from '@/components/cases/documentRecordEditor'
-import { Button, SideDrawer } from '@/components/ui'
 import type { IdentityKind } from '@/lib/clientDocuments'
 import type { CaseDocument } from '@/types/case'
 

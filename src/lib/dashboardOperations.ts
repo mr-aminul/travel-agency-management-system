@@ -173,6 +173,6 @@ export function passportsExpiringSoon(
 }
 
 export function referralSplit(clients: Client[]): ReferralSplit {
-  const referred = clients.filter((client) => Boolean(client.partnerId)).length
+  const referred = clients.filter((client) => Boolean(client.subAgentId)).length
   return { referred, direct: clients.length - referred }
 }

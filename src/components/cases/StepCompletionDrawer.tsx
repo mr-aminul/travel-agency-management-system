@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { FileViewer } from '@/components/cases/FileViewer'
-import { Button, FileDropzone, Input, SideDrawer, Textarea } from '@/components/ui'
 import { getStepDef, templateCountry } from '@/lib/caseChecklist'
+import { Button, FileDropzone, Input, SideDrawer, Textarea } from '@/components/ui'
 import {
   getCaseStepRequirement,
   splitStepUploads,
@@ -11,6 +11,11 @@ import type {
   StepUploadDef,
   StepUploadValue,
 } from '@/lib/caseStepRequirements'
+import {
+  clientProgressBlockers,
+  progressBlockedMessage,
+} from '@/lib/clientMissingInfo'
+import { getClientById } from '@/lib/clientsStore'
 import { formatDisplayDate, formatDisplayDateTime } from '@/lib/formatDate'
 import { updateCaseStep } from '@/lib/casesStore'
 import { completeCaseStepWithSync } from '@/lib/caseWorkflow'
@@ -226,6 +231,12 @@ export function StepCompletionDrawer({
   const isComplete = mode === 'complete'
   const canEditCase =
     item.status !== 'Completed' && item.status !== 'Cancelled'
+  const client = getClientById(item.clientId)
+  const profileBlockers = client ? clientProgressBlockers(client) : []
+  const profileBlockedMessage =
+    isComplete && profileBlockers.length > 0
+      ? progressBlockedMessage(profileBlockers)
+      : ''
 
   const clearError = (key: string) => {
     setErrors((current) => {
@@ -394,6 +405,12 @@ export function StepCompletionDrawer({
           onSubmit={handleSubmit}
           noValidate
         >
+          {profileBlockedMessage ? (
+            <p className="pd-field__error" role="alert">
+              {profileBlockedMessage}
+            </p>
+          ) : null}
+
           {errors.form ? (
             <p className="pd-field__error" role="alert">
               {errors.form}

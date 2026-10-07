@@ -1,20 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Button,
-  EmptyState,
-  Input,
-  Modal,
-  PageHeader,
-  SearchField,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui'
+import { Button, EmptyState, Input, Modal, PageHeader, SearchField, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui'
 import {
   createEmployee,
   formatSalary,

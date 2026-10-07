@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { SideDrawer } from '@/components/ui/SideDrawer'
 
@@ -16,6 +16,16 @@ describe('SideDrawer', () => {
     )
 
     expect(screen.getByRole('separator', { name: 'Resize panel' })).toBeInTheDocument()
+  })
+
+  it('slides the panel in from the right when opened', () => {
+    render(
+      <SideDrawer open onClose={() => undefined} title="Add service">
+        Form
+      </SideDrawer>,
+    )
+
+    expect(screen.getByRole('dialog', { name: 'Add service' })).toHaveClass('is-entering')
   })
 
   it('widens the panel when the grip is dragged left', () => {
@@ -53,5 +63,46 @@ describe('SideDrawer', () => {
 
     expect(panel.style.getPropertyValue('--drawer-width')).toBe('')
     expect(localStorage.getItem('pd-drawer-width')).toBeNull()
+  })
+
+  it('does not replay the enter animation after a resize drag ends', () => {
+    render(
+      <SideDrawer open onClose={() => undefined} title="Add service">
+        Form
+      </SideDrawer>,
+    )
+
+    const panel = screen.getByRole('dialog', { name: 'Add service' })
+    Object.defineProperty(panel, 'offsetWidth', { configurable: true, value: 448 })
+
+    const grip = screen.getByRole('separator', { name: 'Resize panel' })
+    fireEvent.pointerDown(grip, { button: 0, pointerId: 1, clientX: 800 })
+    expect(panel).not.toHaveClass('is-entering')
+
+    fireEvent.pointerMove(grip, { pointerId: 1, clientX: 680 })
+    fireEvent.pointerUp(grip, { pointerId: 1, clientX: 680 })
+
+    expect(panel).not.toHaveClass('is-entering')
+    expect(panel).not.toHaveClass('is-resizing')
+  })
+
+  it('ignores the backdrop click that follows a resize drag', () => {
+    const onClose = vi.fn()
+    render(
+      <SideDrawer open onClose={onClose} title="Add service">
+        Form
+      </SideDrawer>,
+    )
+
+    const panel = screen.getByRole('dialog', { name: 'Add service' })
+    Object.defineProperty(panel, 'offsetWidth', { configurable: true, value: 448 })
+
+    const grip = screen.getByRole('separator', { name: 'Resize panel' })
+    fireEvent.pointerDown(grip, { button: 0, pointerId: 1, clientX: 800 })
+    fireEvent.pointerMove(grip, { pointerId: 1, clientX: 680 })
+    fireEvent.pointerUp(grip, { pointerId: 1, clientX: 680 })
+    fireEvent.click(screen.getByRole('button', { name: 'Close panel' }))
+
+    expect(onClose).not.toHaveBeenCalled()
   })
 })

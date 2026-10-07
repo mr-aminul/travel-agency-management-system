@@ -60,6 +60,25 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-2, 0.5rem);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  .pd-invoice-page {
+    padding: var(--spacing-3, 0.75rem);
+  }
+
+  .pd-invoice-page__toolbar {
+    align-items: stretch;
+  }
+
+  .pd-invoice-page__actions {
+    width: 100%;
+  }
+
+  .pd-invoice-page__actions .pd-btn {
+    flex: 1 1 auto;
+  }
 }
 
 .pd-invoice-page__public-label {

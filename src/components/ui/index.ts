@@ -50,9 +50,6 @@ export type { ConfirmDialogProps } from './ConfirmDialog'
 export { TypeConfirmDialog } from './TypeConfirmDialog'
 export type { TypeConfirmDialogProps } from './TypeConfirmDialog'
 
-export { Alert } from './Alert'
-export type { AlertProps, AlertVariant } from './Alert'
-
 export { PageHeader } from './PageHeader'
 export type { PageHeaderProps } from './PageHeader'
 
@@ -117,3 +114,11 @@ export { FileDropzone, DOCUMENT_FILE_ACCEPT } from './FileDropzone'
 
 export { FilterChips, FilterChip } from './FilterChips'
 export type { FilterChipsProps, FilterChipProps } from './FilterChips'
+
+export { FilterPopover } from './FilterPopover'
+export type {
+  FilterPopoverProps,
+  FilterPopoverDimension,
+  FilterPopoverOption,
+} from './FilterPopover'
+

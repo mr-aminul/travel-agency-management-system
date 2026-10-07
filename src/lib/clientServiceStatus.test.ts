@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   clientMatchesServiceStatusFilters,
   deriveClientServiceStatus,
-  derivePartnerActivityStatus,
+  deriveSubAgentActivityStatus,
 } from '@/lib/clientServiceStatus'
 import type { Case } from '@/types/case'
 import { TENANT_IDS } from '@/types/tenant'
@@ -67,10 +67,10 @@ describe('clientMatchesServiceStatusFilters', () => {
   })
 })
 
-describe('derivePartnerActivityStatus', () => {
+describe('deriveSubAgentActivityStatus', () => {
   it('is Active when any referred client has an open service', () => {
     expect(
-      derivePartnerActivityStatus([
+      deriveSubAgentActivityStatus([
         stubCase('Completed', 'a'),
         stubCase('In-Progress', 'b'),
       ]),
@@ -78,9 +78,9 @@ describe('derivePartnerActivityStatus', () => {
   })
 
   it('is Inactive when there are no open services', () => {
-    expect(derivePartnerActivityStatus([])).toBe('Inactive')
+    expect(deriveSubAgentActivityStatus([])).toBe('Inactive')
     expect(
-      derivePartnerActivityStatus([
+      deriveSubAgentActivityStatus([
         stubCase('Completed', 'a'),
         stubCase('Cancelled', 'b'),
       ]),

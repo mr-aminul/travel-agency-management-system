@@ -1,21 +1,9 @@
 import { Ban, CheckCircle2, CircleOff, Eye, Pencil, Users } from 'lucide-react'
-import {
-  Avatar,
-  Badge,
-  EmptyState,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  type SelectOption,
-} from '@/components/ui'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { layoutConfig } from '@/config/layout'
 import { buildAccessPageColumns } from '@/lib/accessPages'
 import { useEmployees } from '@/lib/employeesStore'
+import { Avatar, Badge, EmptyState, Select, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type SelectOption } from '@/components/ui'
 import {
   getPageAccessLevel,
   setPageAccessLevel,

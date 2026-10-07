@@ -4,7 +4,7 @@ import { Avatar } from '@/components/ui'
 
 const MAX_BYTES = 2 * 1024 * 1024
 
-type PartnerPhotoFieldProps = {
+type ProfilePhotoFieldProps = {
   name?: string
   fallbackName?: string
   value?: string
@@ -23,14 +23,14 @@ function readImageAsDataUrl(file: File): Promise<string> {
   })
 }
 
-export function PartnerPhotoField({
+export function ProfilePhotoField({
   name,
   fallbackName = 'Sub Agent',
   value,
   onChange,
   encodeFile,
   children,
-}: PartnerPhotoFieldProps) {
+}: ProfilePhotoFieldProps) {
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const uploadLabel = value ? 'Change photo' : 'Upload photo'
@@ -56,20 +56,20 @@ export function PartnerPhotoField({
   }
 
   return (
-    <div className="pd-partner-photo">
-      <div className="pd-partner-photo__control">
+    <div className="pd-profile-photo">
+      <div className="pd-profile-photo__control">
         <Avatar name={name || fallbackName} src={value} size="xl" />
         <input
           ref={inputRef}
           id={inputId}
           type="file"
           accept="image/png,image/jpeg,image/webp"
-          className="pd-partner-photo__input"
+          className="pd-profile-photo__input"
           onChange={handleFile}
         />
         <button
           type="button"
-          className="pd-partner-photo__upload"
+          className="pd-profile-photo__upload"
           aria-label={uploadLabel}
           title="JPG, PNG or WebP · max 2 MB"
           onClick={() => inputRef.current?.click()}
@@ -79,7 +79,7 @@ export function PartnerPhotoField({
         {value ? (
           <button
             type="button"
-            className="pd-partner-photo__remove"
+            className="pd-profile-photo__remove"
             aria-label="Remove photo"
             onClick={() => onChange(undefined)}
           >
@@ -88,7 +88,7 @@ export function PartnerPhotoField({
         ) : null}
       </div>
       {children ? (
-        <div className="pd-partner-photo__name">{children}</div>
+        <div className="pd-profile-photo__name">{children}</div>
       ) : null}
     </div>
   )

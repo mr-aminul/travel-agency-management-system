@@ -2,17 +2,24 @@ import { useId, type FormEvent } from 'react'
 import { Check } from 'lucide-react'
 import { DocumentRecordFields } from '@/components/cases/DocumentRecordFields'
 import { useDocumentRecordEditor } from '@/components/cases/documentRecordEditor'
-import { Badge, Button } from '@/components/ui'
 import { documentIcon } from '@/lib/caseDocuments'
 import type { IdentityKind } from '@/lib/clientDocuments'
 import type { CaseDocument } from '@/types/case'
 import '@/styles/layout-cases.css'
+import { Badge, Button, type BadgeVariant } from '@/components/ui'
+import { documentHasFile } from '@/lib/clientDocuments'
 
-function statusCopy(document: CaseDocument, locked: boolean): {
+function statusCopy(
+  document: CaseDocument,
+  locked: boolean,
+  hasFile: boolean,
+): {
   label: string
-  variant: 'completed' | 'pending' | 'in-progress' | 'on-hold'
+  variant: BadgeVariant
 } {
   if (locked) return { label: 'Later', variant: 'on-hold' }
+  // Number-only / under_review without a scan still needs a file.
+  if (!hasFile) return { label: 'Needed', variant: 'danger' }
   if (document.status === 'approved') return { label: 'Uploaded', variant: 'completed' }
   if (document.status === 'under_review') {
     return { label: 'In review', variant: 'in-progress' }
@@ -40,9 +47,14 @@ export function DocumentWorkspace({
   const formId = useId()
   const editor = useDocumentRecordEditor(document)
   const Icon = documentIcon(document.icon)
-  const status = statusCopy(document, locked)
+  const hasFile = documentHasFile({
+    fileId: editor.fileId ?? document.fileId,
+    fileName: editor.fileName || document.fileName,
+  })
+  const status = statusCopy(document, locked, hasFile)
   const allowEdit = canEdit && !locked
   const mode = allowEdit ? 'edit' : 'view'
+  const needsFile = allowEdit && !hasFile
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -52,7 +64,12 @@ export function DocumentWorkspace({
   if (!editor.form) return null
 
   return (
-    <article className="pd-doc-inspect" aria-label={document.name}>
+    <article
+      className={['pd-doc-inspect', needsFile ? 'is-attention' : '']
+        .filter(Boolean)
+        .join(' ')}
+      aria-label={document.name}
+    >
       <header className="pd-doc-inspect__head">
         <span className="pd-doc-inspect__icon" aria-hidden>
           <Icon size={16} strokeWidth={2.25} />
@@ -82,6 +99,7 @@ export function DocumentWorkspace({
           onFieldChange={editor.updateField}
           onAttachFile={editor.attachFile}
           onRemoveFile={editor.clearFile}
+          highlightNeedsFile={needsFile}
           hideFileMeta
           embedded
           afterFields={

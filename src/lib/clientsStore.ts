@@ -62,7 +62,7 @@ const SEED_CLIENTS: Client[] = [
     passportIssuedOn: '2020-06-16',
     passportPlaceOfIssue: 'Dhaka',
     avatarUrl: DUMMY_AVATAR_URL,
-    partnerId: 'AGT-T0001',
+    subAgentId: 'AGT-T0001',
     services: ['Work Permit Visa', 'Air Ticket'],
     balance: 45000,
     activeCases: 2,
@@ -79,7 +79,7 @@ const SEED_CLIENTS: Client[] = [
     address: 'Chittagong',
     nid: '1995123456789',
     passport: 'B98765432',
-    partnerId: 'AGT-T0002',
+    subAgentId: 'AGT-T0002',
     services: ['Student Visa'],
     balance: 0,
     activeCases: 0,
@@ -109,7 +109,7 @@ const SEED_CLIENTS: Client[] = [
     banglaName: 'নুসরাত জাহান',
     address: 'Uttara, Dhaka',
     passport: 'C11223344',
-    partnerId: 'AGT-T0001',
+    subAgentId: 'AGT-T0001',
     services: ['Hajj/Umrah Visa'],
     balance: 0,
     activeCases: 0,
@@ -223,7 +223,7 @@ const SEED_CLIENTS: Client[] = [
     passportIssuedOn: '2020-06-16',
     passportPlaceOfIssue: 'Dhaka',
     avatarUrl: DUMMY_AVATAR_URL,
-    partnerId: 'AGT-M0001',
+    subAgentId: 'AGT-M0001',
     services: ['Work Permit Visa'],
     balance: 35000,
     activeCases: 1,
@@ -238,7 +238,7 @@ const SEED_CLIENTS: Client[] = [
     banglaName: 'জামাল হক',
     address: 'Sylhet',
     nid: '1988123456789',
-    partnerId: 'AGT-M0001',
+    subAgentId: 'AGT-M0001',
     services: ['Work Permit Visa'],
     balance: 0,
     activeCases: 0,
@@ -348,7 +348,8 @@ function normalizeStoredClient(value: unknown): Client | undefined {
     passportFile: optionalFileRef(value.passportFile),
     nidFile: optionalFileRef(value.nidFile),
     avatarUrl: optionalString(value.avatarUrl),
-    partnerId: optionalString(value.partnerId),
+    subAgentId:
+      optionalString(value.subAgentId) ?? optionalString(value.partnerId),
     services: services.length ? services : ['Tour Package'],
     balance: typeof value.balance === 'number' ? value.balance : 0,
     activeCases: typeof value.activeCases === 'number' ? value.activeCases : 0,
@@ -640,9 +641,9 @@ export function findClientByPassport(passport: string): Client | undefined {
   )
 }
 
-export function getClientsByPartnerId(partnerId: string): Client[] {
+export function getClientsBySubAgentId(subAgentId: string): Client[] {
   return clients.filter(
-    (client) => inActiveTenant(client) && client.partnerId === partnerId,
+    (client) => inActiveTenant(client) && client.subAgentId === subAgentId,
   )
 }
 
@@ -697,7 +698,7 @@ export function createClient(
     expectedSalary: input.expectedSalary?.trim() || undefined,
     contractAmount: input.contractAmount,
     branch: input.branch?.trim() || undefined,
-    partnerId: input.partnerId,
+    subAgentId: input.subAgentId,
     avatarUrl: input.avatarUrl?.trim() || undefined,
     nid: input.nid?.trim() || undefined,
     passport: input.passport?.trim() || undefined,

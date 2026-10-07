@@ -320,7 +320,7 @@
   padding-top: 0.4rem;
 }
 
-.pd-settings-form__fields>.pd-partner-photo {
+.pd-settings-form__fields>.pd-profile-photo {
   padding-top: 0;
 }
 
@@ -1020,5 +1020,42 @@
   .pd-settings-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .pd-settings-template__row {
+    flex-wrap: wrap;
+  }
+
+  .pd-settings-template__needs {
+    padding-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .pd-settings-template__needs-menu {
+    min-width: 0;
+    max-width: min(20rem, calc(100vw - 2rem));
+  }
+
+  /* Sticky frozen columns eat too much width on phones — allow natural scroll. */
+  .pd-user-access .pd-table__th:nth-child(-n + 2),
+  .pd-user-access .pd-table__td:nth-child(-n + 2) {
+    position: static;
+    left: auto;
+    box-shadow: none;
+  }
+
+  .pd-user-access .pd-table__th:nth-child(1),
+  .pd-user-access .pd-table__td:nth-child(1) {
+    min-width: 10rem;
+  }
+
+  .pd-user-access .pd-table__th:nth-child(2),
+  .pd-user-access .pd-table__td:nth-child(2) {
+    min-width: 4.5rem;
+  }
+
+  .pd-user-access__name,
+  .pd-user-access__role {
+    white-space: normal;
   }
 }

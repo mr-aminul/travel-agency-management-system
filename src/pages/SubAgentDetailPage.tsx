@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Accordion, Avatar, Badge, Button, CopyableText, EmptyState, Input, SearchField, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, Tooltip, type BadgeVariant } from '@/components/ui'
 import {
   Link,
   Navigate,
@@ -24,42 +25,27 @@ import {
   Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { PartnerPhotoField } from '@/components/PartnerPhotoField'
+import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import { AddClientSplitButton } from '@/components/clients/AddClientSplitButton'
 import { NewClientForm } from '@/components/clients/NewClientForm'
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon'
+import { updateSubAgent, useSubAgents } from '@/lib/subAgentsStore'
 import {
-  Accordion,
-  Avatar,
-  Badge,
-  Button,
-  CopyableText,
-  EmptyState,
-  Input,
-  SearchField,
-  Select,
-  SideDrawer,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Tabs,
-  Tooltip,
-  type BadgeVariant,
-} from '@/components/ui'
-import { updatePartner, usePartners } from '@/lib/partnersStore'
+  validateOptionalEmail,
+  validateOptionalText,
+  validateRequiredName,
+  validateRequiredPhone,
+} from '@/lib/fieldValidation'
 import { formatDisplayDate } from '@/lib/formatDate'
+import { useTouchedFields } from '@/lib/useTouchedFields'
 import { caseStatusBadgeVariant } from '@/components/cases/CasesList'
-import { createCase, useCases } from '@/lib/casesStore'
+import { useCases } from '@/lib/casesStore'
 import {
   clientMatchesServiceStatusFilters,
   deriveClientServiceStatus,
-  derivePartnerActivityStatus,
+  deriveSubAgentActivityStatus,
   groupCasesByClientId,
 } from '@/lib/clientServiceStatus'
-import { workDetailPath } from '@/lib/workPaths'
 import {
   createClient,
   formatBalance,
@@ -69,7 +55,7 @@ import {
 } from '@/lib/clientsStore'
 import { usePayments } from '@/lib/paymentsStore'
 import type { Case } from '@/types/case'
-import type { Partner, PartnerStatus } from '@/types/partner'
+import type { SubAgent, SubAgentStatus } from '@/types/subAgent'
 import type {
   Client,
   CreateClientInput,
@@ -87,9 +73,9 @@ const CLIENT_STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'Cancelled', label: 'Cancelled' },
 ]
 
-type PartnerClientsListView = 'table' | 'grid'
+type SubAgentClientsListView = 'table' | 'grid'
 
-const PARTNER_CLIENTS_LIST_VIEW_KEY = 'partner-clients-list-view'
+const SUB_AGENT_CLIENTS_LIST_VIEW_KEY = 'subAgent-clients-list-view'
 
 type ProfileDraft = {
   name: string
@@ -108,9 +94,9 @@ function tabFromSearch(searchParams: URLSearchParams): string {
     : 'overview'
 }
 
-function readPartnerClientsListView(): PartnerClientsListView {
+function readSubAgentClientsListView(): SubAgentClientsListView {
   try {
-    return localStorage.getItem(PARTNER_CLIENTS_LIST_VIEW_KEY) === 'grid'
+    return localStorage.getItem(SUB_AGENT_CLIENTS_LIST_VIEW_KEY) === 'grid'
       ? 'grid'
       : 'table'
   } catch {
@@ -118,9 +104,9 @@ function readPartnerClientsListView(): PartnerClientsListView {
   }
 }
 
-function persistPartnerClientsListView(view: PartnerClientsListView) {
+function persistSubAgentClientsListView(view: SubAgentClientsListView) {
   try {
-    localStorage.setItem(PARTNER_CLIENTS_LIST_VIEW_KEY, view)
+    localStorage.setItem(SUB_AGENT_CLIENTS_LIST_VIEW_KEY, view)
   } catch {
     /* ignore quota / private mode */
   }
@@ -142,7 +128,7 @@ function whatsappHref(phone: string): string {
   return `https://wa.me/${withCountry}`
 }
 
-function matchesPartnerClientFilters(
+function matchesSubAgentClientFilters(
   client: Client,
   search: string,
   serviceFilters: string[],
@@ -171,7 +157,7 @@ function matchesPartnerClientFilters(
   return matchSearch && matchService && matchStatus
 }
 
-function statusBadgeVariant(status: PartnerStatus): BadgeVariant {
+function statusBadgeVariant(status: SubAgentStatus): BadgeVariant {
   return status === 'Active' ? 'completed' : 'on-hold'
 }
 
@@ -179,19 +165,19 @@ function formatDate(value: string): string {
   return formatDisplayDate(value)
 }
 
-function toProfileDraft(partner: Partner): ProfileDraft {
+function toProfileDraft(subAgent: SubAgent): ProfileDraft {
   return {
-    name: partner.name,
-    phone: partner.phone,
-    email: partner.email ?? '',
-    address: partner.address ?? '',
-    licenseNumber: partner.licenseNumber ?? '',
-    branch: partner.branch ?? '',
-    photoUrl: partner.photoUrl,
+    name: subAgent.name,
+    phone: subAgent.phone,
+    email: subAgent.email ?? '',
+    address: subAgent.address ?? '',
+    licenseNumber: subAgent.licenseNumber ?? '',
+    branch: subAgent.branch ?? '',
+    photoUrl: subAgent.photoUrl,
   }
 }
 
-function StatusChip({ status }: { status: PartnerStatus }) {
+function StatusChip({ status }: { status: SubAgentStatus }) {
   return (
     <Badge variant={statusBadgeVariant(status)}>{status}</Badge>
   )
@@ -310,67 +296,82 @@ function ContactChip({
   )
 }
 
-export default function PartnerDetailPage() {
+export default function SubAgentDetailPage() {
   const { id = '' } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const partners = usePartners()
-  const partner = partners.find((item) => item.id === id)
+  const subAgents = useSubAgents()
+  const subAgent = subAgents.find((item) => item.id === id)
   const allClients = useClients()
   const allCases = useCases()
   const clients = useMemo(
-    () => allClients.filter((client) => client.partnerId === id),
+    () => allClients.filter((client) => client.subAgentId === id),
     [allClients, id],
   )
   const casesByClientId = useMemo(
     () => groupCasesByClientId(allCases),
     [allCases],
   )
-  const partnerCases = useMemo(() => {
+  const subAgentCases = useMemo(() => {
     const clientIds = new Set(clients.map((client) => client.id))
     return allCases.filter((item) => clientIds.has(item.clientId))
   }, [allCases, clients])
-  const activityStatus = derivePartnerActivityStatus(partnerCases)
+  const activityStatus = deriveSubAgentActivityStatus(subAgentCases)
   const payments = usePayments()
   const activeTab = tabFromSearch(searchParams)
   const [customerOpen, setCustomerOpen] = useState(false)
   const [clientSearch, setClientSearch] = useState('')
   const [clientServiceFilters, setClientServiceFilters] = useState<string[]>([])
   const [clientStatusFilters, setClientStatusFilters] = useState<string[]>([])
-  const [clientsListView, setClientsListView] = useState<PartnerClientsListView>(
-    readPartnerClientsListView,
+  const [clientsListView, setClientsListView] = useState<SubAgentClientsListView>(
+    readSubAgentClientsListView,
   )
   const [draft, setDraft] = useState<ProfileDraft | null>(null)
+  const { markAllTouched, showError, blur } = useTouchedFields<
+    'name' | 'phone' | 'email' | 'address' | 'licenseNumber' | 'branch'
+  >()
 
   useEffect(() => {
-    if (!partner) return
-    setDraft(toProfileDraft(partner))
-  }, [partner?.id])
+    if (!subAgent) return
+    setDraft(toProfileDraft(subAgent))
+  }, [subAgent?.id])
 
   useEffect(() => {
-    if (!partner) return
-    if (partner.status === activityStatus) return
-    updatePartner(partner.id, { status: activityStatus })
-  }, [partner, activityStatus])
+    if (!subAgent) return
+    if (subAgent.status === activityStatus) return
+    updateSubAgent(subAgent.id, { status: activityStatus })
+  }, [subAgent, activityStatus])
 
   const savedDraft = useMemo(
-    () => (partner ? toProfileDraft(partner) : null),
-    [partner],
+    () => (subAgent ? toProfileDraft(subAgent) : null),
+    [subAgent],
   )
 
-  if (!partner || !savedDraft) {
-    return <Navigate to="/partners" replace />
+  if (!subAgent || !savedDraft) {
+    return <Navigate to="/sub-agents" replace />
   }
 
   const profileDraft = draft ?? savedDraft
   const isDirty = !profileDraftsEqual(profileDraft, savedDraft)
+  const subAgentErrors = {
+    name: validateRequiredName(profileDraft.name, 'Sub agent name'),
+    phone: validateRequiredPhone(profileDraft.phone),
+    email: validateOptionalEmail(profileDraft.email),
+    address: validateOptionalText(profileDraft.address, 'Address'),
+    licenseNumber: validateOptionalText(
+      profileDraft.licenseNumber,
+      'License',
+      40,
+    ),
+    branch: validateOptionalText(profileDraft.branch, 'Branch'),
+  }
 
   const collected = payments
     .filter((item) => clients.some((client) => client.id === item.clientId))
     .reduce((sum, item) => sum + item.amount, 0)
   const outstanding = clients.reduce((sum, client) => sum + client.balance, 0)
   const filteredClients = clients.filter((client) =>
-    matchesPartnerClientFilters(
+    matchesSubAgentClientFilters(
       client,
       clientSearch,
       clientServiceFilters,
@@ -388,9 +389,9 @@ export default function PartnerDetailPage() {
     setSearchParams(next, { replace: true })
   }
 
-  const selectClientsListView = (view: PartnerClientsListView) => {
+  const selectClientsListView = (view: SubAgentClientsListView) => {
     setClientsListView(view)
-    persistPartnerClientsListView(view)
+    persistSubAgentClientsListView(view)
   }
 
   const resetClientFilters = () => {
@@ -404,8 +405,16 @@ export default function PartnerDetailPage() {
   }
 
   const saveProfile = () => {
-    if (!profileDraft.name.trim() || !profileDraft.phone.trim()) return
-    const updated = updatePartner(partner.id, {
+    markAllTouched([
+      'name',
+      'phone',
+      'email',
+      'address',
+      'licenseNumber',
+      'branch',
+    ])
+    if (Object.values(subAgentErrors).some(Boolean)) return
+    const updated = updateSubAgent(subAgent.id, {
       name: profileDraft.name.trim(),
       phone: profileDraft.phone.trim(),
       email: profileDraft.email.trim() || undefined,
@@ -419,20 +428,12 @@ export default function PartnerDetailPage() {
   }
 
   const handleCreateClient = (input: CreateClientInput) => {
-    const created = createClient({ ...input, partnerId: partner.id })
+    const created = createClient({ ...input, subAgentId: subAgent.id })
     setCustomerOpen(false)
-    if (input.openFirstCase) {
-      const opened = createCase({
-        clientId: created.id,
-        service: input.primaryService,
-      })
-      navigate(workDetailPath(opened))
-      return
-    }
-    navigate(`/clients/${created.id}`)
+    navigate(`/clients/${created.id}?newCase=1`)
   }
 
-  const displayName = profileDraft.name || partner.name
+  const displayName = profileDraft.name || subAgent.name
   const displayPhone = profileDraft.phone
   const displayEmail = profileDraft.email
   const displayAddress = profileDraft.address
@@ -442,13 +443,13 @@ export default function PartnerDetailPage() {
     deriveClientServiceStatus(casesByClientId.get(clientId) ?? [])
 
   return (
-    <div className="pd-page pd-client-detail" aria-label={partner.name}>
+    <div className="pd-page pd-client-detail" aria-label={subAgent.name}>
       <div className="pd-client-detail__layout">
         <aside className="pd-client-detail__card" aria-label="Sub agent profile">
           <div className="pd-client-detail__card-identity">
             <Avatar
               name={displayName}
-              src={profileDraft.photoUrl ?? partner.photoUrl}
+              src={profileDraft.photoUrl ?? subAgent.photoUrl}
               size="xl"
             />
             <div className="pd-client-detail__title-row">
@@ -594,7 +595,7 @@ export default function PartnerDetailPage() {
 
           <p className="pd-client-detail__card-footer">
             <Calendar size={12} strokeWidth={2.25} aria-hidden />
-            Member since {formatDate(partner.createdAt)}
+            Member since {formatDate(subAgent.createdAt)}
           </p>
         </aside>
 
@@ -668,7 +669,7 @@ export default function PartnerDetailPage() {
                         </div>
                         <div className="pd-client-detail__field">
                           <FieldLabel icon={Calendar}>Member since</FieldLabel>
-                          <dd>{formatDate(partner.createdAt)}</dd>
+                          <dd>{formatDate(subAgent.createdAt)}</dd>
                         </div>
                       </dl>
                     </section>
@@ -703,7 +704,7 @@ export default function PartnerDetailPage() {
                                 action={
                                   <AddClientSplitButton
                                     size="md"
-                                    partnerId={partner.id}
+                                    subAgentId={subAgent.id}
                                     onAddClient={() => setCustomerOpen(true)}
                                   />
                                 }
@@ -797,7 +798,7 @@ export default function PartnerDetailPage() {
                               .filter(Boolean)
                               .join(' ')}
                           >
-                            <PartnerPhotoField
+                            <ProfilePhotoField
                               name={profileDraft.name}
                               value={profileDraft.photoUrl}
                               onChange={(photoUrl) =>
@@ -809,6 +810,7 @@ export default function PartnerDetailPage() {
                             >
                               <Input
                                 label="Sub agent name"
+                                required
                                 value={profileDraft.name}
                                 onChange={(event) =>
                                   setDraft((current) => ({
@@ -816,8 +818,14 @@ export default function PartnerDetailPage() {
                                     name: event.target.value,
                                   }))
                                 }
+                                onBlur={blur('name')}
+                                error={
+                                  showError('name')
+                                    ? subAgentErrors.name
+                                    : undefined
+                                }
                               />
-                            </PartnerPhotoField>
+                            </ProfilePhotoField>
                           </div>
                           <div
                             className={
@@ -828,12 +836,20 @@ export default function PartnerDetailPage() {
                           >
                             <Input
                               label="Phone"
+                              required
+                              type="tel"
                               value={profileDraft.phone}
                               onChange={(event) =>
                                 setDraft((current) => ({
                                   ...(current ?? savedDraft),
                                   phone: event.target.value,
                                 }))
+                              }
+                              onBlur={blur('phone')}
+                              error={
+                                showError('phone')
+                                  ? subAgentErrors.phone
+                                  : undefined
                               }
                             />
                           </div>
@@ -854,6 +870,12 @@ export default function PartnerDetailPage() {
                                   email: event.target.value,
                                 }))
                               }
+                              onBlur={blur('email')}
+                              error={
+                                showError('email')
+                                  ? subAgentErrors.email
+                                  : undefined
+                              }
                             />
                           </div>
                           <div
@@ -871,6 +893,12 @@ export default function PartnerDetailPage() {
                                   ...(current ?? savedDraft),
                                   address: event.target.value,
                                 }))
+                              }
+                              onBlur={blur('address')}
+                              error={
+                                showError('address')
+                                  ? subAgentErrors.address
+                                  : undefined
                               }
                             />
                           </div>
@@ -891,6 +919,12 @@ export default function PartnerDetailPage() {
                                   licenseNumber: event.target.value,
                                 }))
                               }
+                              onBlur={blur('licenseNumber')}
+                              error={
+                                showError('licenseNumber')
+                                  ? subAgentErrors.licenseNumber
+                                  : undefined
+                              }
                             />
                           </div>
                           <div
@@ -908,6 +942,12 @@ export default function PartnerDetailPage() {
                                   ...(current ?? savedDraft),
                                   branch: event.target.value,
                                 }))
+                              }
+                              onBlur={blur('branch')}
+                              error={
+                                showError('branch')
+                                  ? subAgentErrors.branch
+                                  : undefined
                               }
                             />
                           </div>
@@ -932,7 +972,7 @@ export default function PartnerDetailPage() {
                 id: 'clients',
                 label: <TabLabel icon={Users}>Clients</TabLabel>,
                 content: (
-                  <div className="pd-partner-clients">
+                  <div className="pd-sub-agent-clients">
                     <div className="pd-clients__toolbar">
                       <SearchField
                         className="pd-clients__search"
@@ -1026,7 +1066,7 @@ export default function PartnerDetailPage() {
                         <AddClientSplitButton
                           size="md"
                           label="New client"
-                          partnerId={partner.id}
+                          subAgentId={subAgent.id}
                           onAddClient={() => setCustomerOpen(true)}
                         />
                       </div>
@@ -1040,7 +1080,7 @@ export default function PartnerDetailPage() {
                         action={
                           <AddClientSplitButton
                             size="md"
-                            partnerId={partner.id}
+                            subAgentId={subAgent.id}
                             onAddClient={() => setCustomerOpen(true)}
                           />
                         }
@@ -1198,7 +1238,7 @@ export default function PartnerDetailPage() {
         className="pd-clients-drawer"
       >
         <NewClientForm
-          defaultPartnerId={partner.id}
+          defaultSubAgentId={subAgent.id}
           onCancel={() => setCustomerOpen(false)}
           onSubmit={handleCreateClient}
         />

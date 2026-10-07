@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Download, Printer } from 'lucide-react'
-import { Button } from '@/components/ui'
 import { downloadInvoicePdf } from '@/lib/downloadInvoicePdf'
+import { Button } from '@/components/ui'
 
 type InvoicePrintActionsProps = {
   invoiceNumber: string

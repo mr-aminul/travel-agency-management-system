@@ -2,16 +2,18 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { ServiceJourney } from '@/components/cases/ServiceJourney'
-import { Alert, Badge, Button, Input } from '@/components/ui'
 import { layoutConfig } from '@/config/layout'
 import { findCasesByClientIdAnyTenant } from '@/lib/casesStore'
 import { findClientByPassport } from '@/lib/clientsStore'
 import { cx } from '@/lib/cx'
+import { validateRequiredPassport } from '@/lib/fieldValidation'
 import { publicUrl } from '@/lib/publicUrl'
 import { iconForService } from '@/lib/serviceIcons'
 import { buildServiceJourney } from '@/lib/serviceJourney'
+import { useTouchedFields } from '@/lib/useTouchedFields'
 import type { Case } from '@/types/case'
 import '@/styles/layout-track.css'
+import { Badge, Button, Input } from '@/components/ui'
 
 function pickDefaultCase(cases: Case[], preferredId?: string | null): Case | undefined {
   if (preferredId) {
@@ -39,7 +41,8 @@ export default function TrackClientPage() {
   const initialPassport = (params.get('passport') ?? '').trim()
   const [passport, setPassport] = useState(initialPassport)
   const [submitted, setSubmitted] = useState(initialPassport)
-  const [fieldError, setFieldError] = useState<string | undefined>()
+  const { markAllTouched, showError, blur } = useTouchedFields<'passport'>()
+  const passportError = validateRequiredPassport(passport)
 
   const client = useMemo(
     () => (submitted ? findClientByPassport(submitted) : undefined),
@@ -65,14 +68,13 @@ export default function TrackClientPage() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    const value = passport.trim()
-    if (!value) {
-      setFieldError('Enter a passport number to continue.')
+    markAllTouched(['passport'])
+    if (passportError) {
       setSubmitted('')
       setSearchParams({})
       return
     }
-    setFieldError(undefined)
+    const value = passport.trim()
     setSubmitted(value)
     setSearchParams({ passport: value })
   }
@@ -116,16 +118,15 @@ export default function TrackClientPage() {
           <Input
             id="track-passport"
             label="Passport number"
+            required
             value={passport}
-            onChange={(event) => {
-              setPassport(event.target.value)
-              if (fieldError) setFieldError(undefined)
-            }}
+            onChange={(event) => setPassport(event.target.value)}
+            onBlur={blur('passport')}
             placeholder="e.g. A12345678"
             autoComplete="off"
             autoCapitalize="characters"
             spellCheck={false}
-            error={fieldError}
+            error={showError('passport') ? passportError : undefined}
           />
           <Button type="submit" size="lg">
             <Search size={18} strokeWidth={2.25} aria-hidden />
@@ -134,11 +135,10 @@ export default function TrackClientPage() {
         </form>
 
         {searchedAndMissing ? (
-          <Alert variant="warning" title="No match found">
-            We could not find an application for passport {submitted}. Check the
-            number and try again, or ask the agency if the file has been
-            registered.
-          </Alert>
+          <p className="pd-field__error" role="status">
+            No match found for passport {submitted}. Check the number and try
+            again, or ask the agency if the file has been registered.
+          </p>
         ) : null}
 
         {client && selectedCase && journey ? (

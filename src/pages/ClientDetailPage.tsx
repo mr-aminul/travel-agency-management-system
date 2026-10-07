@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Accordion, Avatar, Badge, Button, Input, Select, SideDrawer, Tabs } from '@/components/ui'
 import {
   Link,
   Navigate,
@@ -33,21 +34,19 @@ import { ClientCustomFieldControl } from '@/components/clients/ClientCustomField
 import { ClientDocumentsPanel } from '@/components/clients/ClientDocumentsPanel'
 import { ClientMessagesPanel } from '@/components/clients/ClientMessagesPanel'
 import { PaymentsList } from '@/components/payments/PaymentsList'
-import {
-  Accordion,
-  Avatar,
-  Badge,
-  Button,
-  Input,
-  Select,
-  SideDrawer,
-  Tabs,
-} from '@/components/ui'
 import { caseStatusBadgeVariant } from '@/components/cases/CasesList'
 import { createCase, getEnabledServiceOptions, useCasesByClientId } from '@/lib/casesStore'
+import { countClientDocumentAlerts } from '@/lib/clientDocuments'
+import {
+  listClientInfoGaps,
+  type ClientInfoGap,
+  type ClientInfoGapId,
+} from '@/lib/clientMissingInfo'
+import { toReadinessItem } from '@/lib/clientReadiness'
 import { deriveClientServiceStatus } from '@/lib/clientServiceStatus'
+import { useRequests } from '@/lib/requestsStore'
 import { clientPath, workDetailPath } from '@/lib/workPaths'
-import { getPartnerById } from '@/lib/partnersStore'
+import { getSubAgentById, useSubAgents } from '@/lib/subAgentsStore'
 import {
   formatBalance,
   getClientById,
@@ -60,8 +59,21 @@ import {
   compactCustomFieldValues,
   emptyCustomFieldValues,
 } from '@/lib/clientCustomFields'
+import { validateCustomFieldValue } from '@/lib/clientCustomFieldValidation'
 import { useClientProfileFields } from '@/lib/clientProfileFieldsStore'
+import {
+  validateOptionalDateOfBirth,
+  validateOptionalEmail,
+  validateOptionalNid,
+  validateOptionalPassport,
+  validateOptionalPersonName,
+  validateOptionalText,
+  validatePassportDates,
+  validateRequiredName,
+  validateRequiredPhone,
+} from '@/lib/fieldValidation'
 import { formatDisplayDate } from '@/lib/formatDate'
+import { useTouchedFields } from '@/lib/useTouchedFields'
 import type { ServiceType, CreateCaseInput } from '@/types/case'
 import type {
   Client,
@@ -156,14 +168,26 @@ type ProfileDraft = {
   passportExpiry: string
   passportIssuedOn: string
   passportPlaceOfIssue: string
+  /** Empty string = agency-direct (no referring sub agent). */
+  subAgentId: string
   customFields: Record<string, string>
 }
 
 type ProfileFieldDef = {
   key: keyof ProfileDraft
   label: string
-  kind?: 'text' | 'date' | 'gender' | 'marital' | 'blood'
+  kind?: 'text' | 'date' | 'gender' | 'marital' | 'blood' | 'subAgent'
   wide?: boolean
+}
+
+/** Profile draft keys that map to missing-info gap ids. */
+const PROFILE_GAP_FIELD: Record<ClientInfoGapId, keyof ProfileDraft> = {
+  passport: 'passport',
+  passportIssuedOn: 'passportIssuedOn',
+  passportExpiry: 'passportExpiry',
+  nid: 'nid',
+  address: 'address',
+  email: 'email',
 }
 
 const PROFILE_GROUPS: { title: string; fields: ProfileFieldDef[] }[] = [
@@ -181,6 +205,30 @@ const PROFILE_GROUPS: { title: string; fields: ProfileFieldDef[] }[] = [
       { key: 'motherName', label: 'Mother name' },
       { key: 'nationality', label: 'Nationality' },
       { key: 'bloodGroup', label: 'Blood group', kind: 'blood' },
+    ],
+  },
+  {
+    title: 'Contact',
+    fields: [
+      { key: 'phone', label: 'Mobile number' },
+      { key: 'email', label: 'Email' },
+      { key: 'address', label: 'Address', wide: true },
+    ],
+  },
+  {
+    title: 'Identity',
+    fields: [
+      { key: 'passport', label: 'Passport number' },
+      { key: 'passportPlaceOfIssue', label: 'Place of issue' },
+      { key: 'passportIssuedOn', label: 'Date of issue', kind: 'date' },
+      { key: 'passportExpiry', label: 'Date of expiry', kind: 'date' },
+      { key: 'nid', label: 'NID number' },
+    ],
+  },
+  {
+    title: 'Referral',
+    fields: [
+      { key: 'subAgentId', label: 'Sub Agent', kind: 'subAgent' },
     ],
   },
 ]
@@ -209,6 +257,7 @@ function toProfileDraft(
     passportExpiry: client.passportExpiry ?? '',
     passportIssuedOn: client.passportIssuedOn ?? '',
     passportPlaceOfIssue: client.passportPlaceOfIssue ?? '',
+    subAgentId: client.subAgentId ?? '',
     customFields: emptyCustomFieldValues(
       customFieldDefs,
       client.customFields,
@@ -224,10 +273,18 @@ function ProfileFieldControl({
   field,
   value,
   onChange,
+  onBlur,
+  error,
+  required,
+  subAgentOptions,
 }: {
   field: ProfileFieldDef
   value: string
   onChange: (value: string) => void
+  onBlur?: () => void
+  error?: string
+  required?: boolean
+  subAgentOptions?: { value: string; label: string }[]
 }) {
   if (field.kind === 'gender') {
     return (
@@ -235,7 +292,9 @@ function ProfileFieldControl({
         label={field.label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
         options={GENDER_OPTIONS}
+        error={error}
       />
     )
   }
@@ -245,7 +304,9 @@ function ProfileFieldControl({
         label={field.label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
         options={MARITAL_OPTIONS}
+        error={error}
       />
     )
   }
@@ -255,18 +316,101 @@ function ProfileFieldControl({
         label={field.label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
         options={BLOOD_GROUP_OPTIONS}
+        error={error}
+      />
+    )
+  }
+  if (field.kind === 'subAgent') {
+    return (
+      <Select
+        label={field.label}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+        options={subAgentOptions ?? [{ value: '', label: 'None' }]}
+        error={error}
       />
     )
   }
   return (
     <Input
       label={field.label}
-      type={field.kind === 'date' ? 'date' : 'text'}
+      required={required}
+      type={
+        field.kind === 'date'
+          ? 'date'
+          : field.key === 'email'
+            ? 'email'
+            : field.key === 'phone'
+              ? 'tel'
+              : 'text'
+      }
       value={value}
       onChange={(event) => onChange(event.target.value)}
+      onBlur={onBlur}
+      error={error}
     />
   )
+}
+
+function gapForProfileField(
+  gaps: ClientInfoGap[],
+  fieldKey: keyof ProfileDraft,
+): ClientInfoGap | undefined {
+  return gaps.find((gap) => PROFILE_GAP_FIELD[gap.id] === fieldKey)
+}
+
+function profileFieldError(
+  key: keyof ProfileDraft,
+  draft: ProfileDraft,
+  duplicateName?: string,
+): string | undefined {
+  switch (key) {
+    case 'name':
+      return validateRequiredName(draft.name)
+    case 'phone':
+      return validateRequiredPhone(draft.phone, { duplicateName })
+    case 'email':
+      return validateOptionalEmail(draft.email)
+    case 'banglaName':
+      return validateOptionalPersonName(draft.banglaName, 'Bangla name')
+    case 'fatherName':
+      return validateOptionalPersonName(draft.fatherName, 'Father name')
+    case 'motherName':
+      return validateOptionalPersonName(draft.motherName, 'Mother name')
+    case 'spouseName':
+      return validateOptionalPersonName(draft.spouseName, 'Spouse name')
+    case 'dateOfBirth':
+      return validateOptionalDateOfBirth(draft.dateOfBirth)
+    case 'placeOfBirth':
+      return validateOptionalText(draft.placeOfBirth, 'Place of birth')
+    case 'nationality':
+      return validateOptionalText(draft.nationality, 'Nationality')
+    case 'address':
+      return validateOptionalText(draft.address, 'Address')
+    case 'passport':
+      return validateOptionalPassport(draft.passport)
+    case 'passportPlaceOfIssue':
+      return validateOptionalText(draft.passportPlaceOfIssue, 'Place of issue')
+    case 'passportIssuedOn':
+      return validatePassportDates(
+        draft.passportIssuedOn,
+        draft.passportExpiry,
+        draft.passport,
+      ).issuedOn
+    case 'passportExpiry':
+      return validatePassportDates(
+        draft.passportIssuedOn,
+        draft.passportExpiry,
+        draft.passport,
+      ).expiry
+    case 'nid':
+      return validateOptionalNid(draft.nid)
+    default:
+      return undefined
+  }
 }
 
 function FieldLabel({
@@ -289,14 +433,23 @@ function FieldLabel({
 function TabLabel({
   icon: Icon,
   children,
+  alertCount = 0,
 }: {
   icon: LucideIcon
   children: ReactNode
+  /** Red count when this section needs attention. */
+  alertCount?: number
 }) {
+  const count = alertCount > 0 ? alertCount : 0
   return (
     <>
       <Icon size={15} strokeWidth={2.25} aria-hidden />
       {children}
+      {count > 0 ? (
+        <span className="pd-tabs__alert" aria-hidden title={`${count} needing attention`}>
+          {count > 99 ? '99+' : count}
+        </span>
+      ) : null}
     </>
   )
 }
@@ -385,12 +538,25 @@ export default function ClientDetailPage() {
   const navigate = useNavigate()
   const serviceOutlet = useOutlet()
   useClients()
+  const subAgents = useSubAgents()
   const customFieldDefs = useClientProfileFields()
   const client = getClientById(id)
   const clientCases = useCasesByClientId(id)
+  const requests = useRequests()
   const activeTab = serviceOutlet ? 'services' : tabFromSearch(searchParams)
   const [newCaseOpen, setNewCaseOpen] = useState(false)
   const [draft, setDraft] = useState<ProfileDraft | null>(null)
+  const { markAllTouched, showError, blur } = useTouchedFields<string>()
+  const subAgentOptions = useMemo(
+    () => [
+      { value: '', label: 'None' },
+      ...subAgents.map((subAgent) => ({
+        value: subAgent.id,
+        label: subAgent.name,
+      })),
+    ],
+    [subAgents],
+  )
 
   useEffect(() => {
     if (searchParams.get('newCase') === '1') {
@@ -422,7 +588,9 @@ export default function ClientDetailPage() {
   const profileDraft = draft ?? savedDraft
   const isDirty = !profileDraftsEqual(profileDraft, savedDraft)
 
-  const partner = client.partnerId ? getPartnerById(client.partnerId) : undefined
+  const subAgent = profileDraft.subAgentId
+    ? getSubAgentById(profileDraft.subAgentId)
+    : undefined
 
   const selectTab = (tab: string) => {
     if (tab === 'services') {
@@ -479,10 +647,31 @@ export default function ClientDetailPage() {
     setDraft(savedDraft)
   }
 
-  const saveProfile = () => {
-    if (!profileDraft.name.trim() || !profileDraft.phone.trim()) return
+  const duplicatePhoneOwner = (() => {
     const phone = normalizePhone(profileDraft.phone)
-    if (getClientByPhone(phone, client.id)) return
+    if (!phone) return undefined
+    return getClientByPhone(phone, client.id)?.name
+  })()
+
+  const profileFieldKeys = PROFILE_GROUPS.flatMap((group) =>
+    group.fields.map((field) => field.key),
+  )
+  const customFieldKeys = customFieldDefs.map((field) => `custom:${field.id}`)
+
+  const saveProfile = () => {
+    markAllTouched([...profileFieldKeys, ...customFieldKeys])
+    const hasProfileError = profileFieldKeys.some((key) =>
+      profileFieldError(key, profileDraft, duplicatePhoneOwner),
+    )
+    const hasCustomError = customFieldDefs.some(
+      (field) =>
+        validateCustomFieldValue(
+          field,
+          profileDraft.customFields[field.id] ?? '',
+        ) != null,
+    )
+    if (hasProfileError || hasCustomError) return
+    const phone = normalizePhone(profileDraft.phone)
     const updated = updateClient(client.id, {
       name: profileDraft.name.trim(),
       banglaName: profileDraft.banglaName.trim() || undefined,
@@ -503,6 +692,7 @@ export default function ClientDetailPage() {
       passportExpiry: profileDraft.passportExpiry.trim() || undefined,
       passportIssuedOn: profileDraft.passportIssuedOn.trim() || undefined,
       passportPlaceOfIssue: profileDraft.passportPlaceOfIssue.trim() || undefined,
+      subAgentId: profileDraft.subAgentId.trim() || undefined,
       customFields: compactCustomFieldValues({
         ...Object.fromEntries(
           Object.entries(client.customFields ?? {}).filter(
@@ -530,6 +720,34 @@ export default function ClientDetailPage() {
     (item) => item.status !== 'Completed' && item.status !== 'Cancelled',
   )
   const dueBalance = openCases.reduce((sum, item) => sum + item.balance, 0)
+
+  const profileGaps = listClientInfoGaps({
+    passport: profileDraft.passport,
+    passportIssuedOn: profileDraft.passportIssuedOn,
+    passportExpiry: profileDraft.passportExpiry,
+    nid: profileDraft.nid,
+    address: profileDraft.address,
+    presentAddress: client.presentAddress,
+    email: profileDraft.email,
+  })
+  const profileAlertCount = profileGaps.length
+
+  const documentsAlertCount = countClientDocumentAlerts(client, clientCases)
+
+  const paymentsAlertCount = openCases.filter((item) => item.balance > 0).length
+
+  const servicesAttentionCases = openCases.filter((item) => {
+    const readiness = toReadinessItem(item)
+    return (
+      readiness != null &&
+      (readiness.state === 'blocked' || readiness.state === 'on-hold')
+    )
+  }).length
+  const pendingStatusRequests = requests.filter(
+    (request) =>
+      request.clientId === client.id && request.reviewStatus === 'Pending',
+  ).length
+  const servicesAlertCount = servicesAttentionCases + pendingStatusRequests
 
   return (
     <div className="pd-page pd-client-detail" aria-label={client.name}>
@@ -681,10 +899,10 @@ export default function ClientDetailPage() {
             <div className="pd-client-detail__card-field">
               <dt>Sub agent</dt>
               <dd>
-                {partner ? (
+                {subAgent ? (
                   <ContactChip
-                    to={`/partners/${partner.id}`}
-                    value={partner.name}
+                    to={`/sub-agents/${subAgent.id}`}
+                    value={subAgent.name}
                     label="sub agent"
                   />
                 ) : (
@@ -733,274 +951,330 @@ export default function ClientDetailPage() {
         </aside>
 
         <div className="pd-client-detail__main">
-      <Tabs
-        className="pd-client-detail__tabs"
-        value={activeTab}
-        onValueChange={selectTab}
-        items={[
-          {
-            id: 'overview',
-            label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
-            content: (
-              <div className="pd-client-detail__overview">
-                <section className="pd-client-detail__section pd-client-detail__section--compact">
-                  <div className="pd-client-detail__section-head">
-                    <SectionTitle icon={Contact}>Profile Information</SectionTitle>
-                  </div>
-                  <dl className="pd-client-detail__fields">
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={Phone}>Phone</FieldLabel>
-                      <dd>
-                        {displayPhone}
-                      </dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={Mail}>Email</FieldLabel>
-                      <dd>
-                        {displayEmail ? (
-                          displayEmail
-                        ) : (
-                          <span className="pd-client-detail__empty">—</span>
-                        )}
-                      </dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={MapPin}>Address</FieldLabel>
-                      <dd>
-                        {client.address || (
-                          <span className="pd-client-detail__empty">—</span>
-                        )}
-                      </dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={IdCard}>NID</FieldLabel>
-                      <dd>
-                        {client.nid || (
-                          <span className="pd-client-detail__empty">—</span>
-                        )}
-                      </dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={BookUser}>Passport</FieldLabel>
-                      <dd>
-                        {client.passport || (
-                          <span className="pd-client-detail__empty">—</span>
-                        )}
-                      </dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={Calendar}>Member since</FieldLabel>
-                      <dd>{formatDate(client.createdAt)}</dd>
-                    </div>
-                    <div className="pd-client-detail__field">
-                      <FieldLabel icon={UserRound}>Sub Agent</FieldLabel>
-                      <dd>
-                        {partner ? (
-                          <Link
-                            to={`/partners/${partner.id}`}
-                            className="pd-client-detail__link"
-                          >
-                            {partner.name}
-                          </Link>
-                        ) : (
-                          <span className="pd-client-detail__empty">—</span>
-                        )}
-                      </dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <Accordion
-                  className="pd-accordion--cards pd-client-detail__services-accordion"
-                  defaultOpenIds={['services']}
-                  items={[
-                    {
-                      id: 'services',
-                      title: (
-                        <span className="pd-client-detail__services-accordion-title">
-                          <span
-                            className="pd-client-detail__section-icon"
-                            aria-hidden
-                          >
-                            <Folder size={15} strokeWidth={2.25} />
-                          </span>
-                          Services
-                        </span>
-                      ),
-                      meta:
-                        clientCases.length > 0
-                          ? String(clientCases.length)
-                          : undefined,
-                      content: (
-                        <CasesList
-                          cases={clientCases}
-                          label={`${client.name} services`}
-                          showClientColumn={false}
-                          showServiceColumn
-                          defaultClientId={client.id}
-                          lockClient
-                          defaultService={primaryServiceType(client.services)}
-                          embedded
-                          showToolbar={false}
-                          emptyTitle="No services yet"
-                          emptyDescription="Add a service on this profile to track steps, documents, and payments."
-                        />
-                      ),
-                    },
-                  ]}
-                />
-              </div>
-            ),
-          },
-          {
-            id: 'profile',
-            label: <TabLabel icon={Contact}>Profile</TabLabel>,
-            content: (
-              <div className="pd-client-detail__profile">
-                <div className="pd-client-profile">
-                    {PROFILE_GROUPS.map((group) => (
-                      <div key={group.title} className="pd-client-profile__group">
-                        <h3 className="pd-client-profile__group-title">
-                          {group.title}
-                        </h3>
-                        <div className="pd-client-profile__grid">
-                          {group.fields.map((field) => (
-                            <div
-                              key={field.key}
-                              className={[
-                                'pd-client-profile__field',
-                                field.wide ? 'is-wide' : '',
-                                String(profileDraft[field.key] ?? '') !==
-                                String(savedDraft[field.key] ?? '')
-                                  ? 'is-dirty'
-                                  : '',
-                              ]
-                                .filter(Boolean)
-                                .join(' ')}
-                            >
-                              <ProfileFieldControl
-                                field={field}
-                                value={String(profileDraft[field.key] ?? '')}
-                                onChange={(value) =>
-                                  setDraft((current) => ({
-                                    ...(current ?? savedDraft),
-                                    [field.key]:
-                                      field.kind === 'gender'
-                                        ? (value as ClientGender)
-                                        : value,
-                                  }))
-                                }
-                              />
-                            </div>
-                          ))}
-                        </div>
+          <Tabs
+            className="pd-client-detail__tabs"
+            value={activeTab}
+            onValueChange={selectTab}
+            items={[
+              {
+                id: 'overview',
+                label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
+                content: (
+                  <div className="pd-client-detail__overview">
+                    <section className="pd-client-detail__section pd-client-detail__section--compact">
+                      <div className="pd-client-detail__section-head">
+                        <SectionTitle icon={Contact}>Profile Information</SectionTitle>
                       </div>
-                    ))}
-                    {customFieldDefs.length ? (
-                      <div className="pd-client-profile__group">
-                        <h3 className="pd-client-profile__group-title">
-                          Additional information
-                        </h3>
-                        <div className="pd-client-profile__grid">
-                          {customFieldDefs.map((field) => (
-                            <div
-                              key={field.id}
-                              className={
-                                (profileDraft.customFields[field.id] ?? '') !==
-                                (savedDraft.customFields[field.id] ?? '')
-                                  ? 'pd-client-profile__field is-dirty'
-                                  : 'pd-client-profile__field'
-                              }
-                            >
-                              <ClientCustomFieldControl
-                                field={field}
-                                value={
-                                  profileDraft.customFields[field.id] ?? ''
-                                }
-                                onChange={(value) =>
-                                  setDraft((current) => {
-                                    const base = current ?? savedDraft
-                                    return {
-                                      ...base,
-                                      customFields: {
-                                        ...base.customFields,
-                                        [field.id]: value,
-                                      },
-                                    }
-                                  })
-                                }
-                              />
-                            </div>
-                          ))}
+                      <dl className="pd-client-detail__fields">
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={Phone}>Phone</FieldLabel>
+                          <dd>
+                            {displayPhone}
+                          </dd>
                         </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={Mail}>Email</FieldLabel>
+                          <dd>
+                            {displayEmail ? (
+                              displayEmail
+                            ) : (
+                              <span className="pd-client-detail__empty">—</span>
+                            )}
+                          </dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={MapPin}>Address</FieldLabel>
+                          <dd>
+                            {client.address || (
+                              <span className="pd-client-detail__empty">—</span>
+                            )}
+                          </dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={IdCard}>NID</FieldLabel>
+                          <dd>
+                            {client.nid || (
+                              <span className="pd-client-detail__empty">—</span>
+                            )}
+                          </dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={BookUser}>Passport</FieldLabel>
+                          <dd>
+                            {client.passport || (
+                              <span className="pd-client-detail__empty">—</span>
+                            )}
+                          </dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={Calendar}>Member since</FieldLabel>
+                          <dd>{formatDate(client.createdAt)}</dd>
+                        </div>
+                        <div className="pd-client-detail__field">
+                          <FieldLabel icon={UserRound}>Sub Agent</FieldLabel>
+                          <dd>
+                            {subAgent ? (
+                              <Link
+                                to={`/sub-agents/${subAgent.id}`}
+                                className="pd-client-detail__link"
+                              >
+                                {subAgent.name}
+                              </Link>
+                            ) : (
+                              <span className="pd-client-detail__empty">—</span>
+                            )}
+                          </dd>
+                        </div>
+                      </dl>
+                    </section>
+
+                    <Accordion
+                      className="pd-accordion--cards pd-client-detail__services-accordion"
+                      defaultOpenIds={['services']}
+                      items={[
+                        {
+                          id: 'services',
+                          title: (
+                            <span className="pd-client-detail__services-accordion-title">
+                              <span
+                                className="pd-client-detail__section-icon"
+                                aria-hidden
+                              >
+                                <Folder size={15} strokeWidth={2.25} />
+                              </span>
+                              Services
+                            </span>
+                          ),
+                          meta:
+                            clientCases.length > 0
+                              ? String(clientCases.length)
+                              : undefined,
+                          content: (
+                            <CasesList
+                              cases={clientCases}
+                              label={`${client.name} services`}
+                              showClientColumn={false}
+                              showServiceColumn
+                              defaultClientId={client.id}
+                              lockClient
+                              defaultService={primaryServiceType(client.services)}
+                              embedded
+                              showToolbar={false}
+                              emptyTitle="No services yet"
+                              emptyDescription="Add a service on this profile to track steps, documents, and payments."
+                            />
+                          ),
+                        },
+                      ]}
+                    />
+                  </div>
+                ),
+              },
+              {
+                id: 'profile',
+                label: (
+                  <TabLabel icon={Contact} alertCount={profileAlertCount}>
+                    Profile
+                  </TabLabel>
+                ),
+                content: (
+                  <div className="pd-client-detail__profile">
+                    <div className="pd-client-profile">
+                      {PROFILE_GROUPS.map((group) => (
+                        <div key={group.title} className="pd-client-profile__group">
+                          <h3 className="pd-client-profile__group-title">
+                            {group.title}
+                          </h3>
+                          <div className="pd-client-profile__grid">
+                            {group.fields.map((field) => {
+                              const gap = gapForProfileField(profileGaps, field.key)
+                              return (
+                              <div
+                                key={field.key}
+                                className={[
+                                  'pd-client-profile__field',
+                                  field.wide ? 'is-wide' : '',
+                                  String(profileDraft[field.key] ?? '') !==
+                                    String(savedDraft[field.key] ?? '')
+                                    ? 'is-dirty'
+                                    : '',
+                                  gap ? 'is-attention' : '',
+                                  gap?.blocksProgress ? 'is-blocking' : '',
+                                ]
+                                  .filter(Boolean)
+                                  .join(' ')}
+                              >
+                                <ProfileFieldControl
+                                  field={field}
+                                  value={String(profileDraft[field.key] ?? '')}
+                                  required={
+                                    field.key === 'name' ||
+                                    field.key === 'phone' ||
+                                    ((field.key === 'passportIssuedOn' ||
+                                      field.key === 'passportExpiry') &&
+                                      Boolean(profileDraft.passport.trim()))
+                                  }
+                                  subAgentOptions={
+                                    field.kind === 'subAgent'
+                                      ? subAgentOptions
+                                      : undefined
+                                  }
+                                  error={
+                                    showError(field.key)
+                                      ? profileFieldError(
+                                          field.key,
+                                          profileDraft,
+                                          duplicatePhoneOwner,
+                                        )
+                                      : undefined
+                                  }
+                                  onBlur={blur(field.key)}
+                                  onChange={(value) =>
+                                    setDraft((current) => ({
+                                      ...(current ?? savedDraft),
+                                      [field.key]:
+                                        field.kind === 'gender'
+                                          ? (value as ClientGender)
+                                          : value,
+                                    }))
+                                  }
+                                />
+                              </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                      {customFieldDefs.length ? (
+                        <div className="pd-client-profile__group">
+                          <h3 className="pd-client-profile__group-title">
+                            Additional information
+                          </h3>
+                          <div className="pd-client-profile__grid">
+                            {customFieldDefs.map((field) => {
+                              const key = `custom:${field.id}`
+                              return (
+                                <div
+                                  key={field.id}
+                                  className={
+                                    (profileDraft.customFields[field.id] ?? '') !==
+                                      (savedDraft.customFields[field.id] ?? '')
+                                      ? 'pd-client-profile__field is-dirty'
+                                      : 'pd-client-profile__field'
+                                  }
+                                >
+                                  <ClientCustomFieldControl
+                                    field={field}
+                                    value={
+                                      profileDraft.customFields[field.id] ?? ''
+                                    }
+                                    error={
+                                      showError(key)
+                                        ? validateCustomFieldValue(
+                                          field,
+                                          profileDraft.customFields[field.id] ??
+                                          '',
+                                        )
+                                        : undefined
+                                    }
+                                    onBlur={blur(key)}
+                                    onChange={(value) =>
+                                      setDraft((current) => {
+                                        const base = current ?? savedDraft
+                                        return {
+                                          ...base,
+                                          customFields: {
+                                            ...base.customFields,
+                                            [field.id]: value,
+                                          },
+                                        }
+                                      })
+                                    }
+                                  />
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                    {isDirty ? (
+                      <div className="pd-client-detail__profile-actions">
+                        <Button variant="secondary" onClick={discardChanges}>
+                          Discard changes
+                        </Button>
+                        <Button onClick={saveProfile}>
+                          <Check size={16} strokeWidth={2.25} aria-hidden />
+                          Save
+                        </Button>
                       </div>
                     ) : null}
-                </div>
-                {isDirty ? (
-                  <div className="pd-client-detail__profile-actions">
-                    <Button variant="secondary" onClick={discardChanges}>
-                      Discard changes
-                    </Button>
-                    <Button onClick={saveProfile}>
-                      <Check size={16} strokeWidth={2.25} aria-hidden />
-                      Save
-                    </Button>
                   </div>
-                ) : null}
-              </div>
-            ),
-          },
-          {
-            id: 'services',
-            label: <TabLabel icon={Folder}>Services</TabLabel>,
-            content: (
-              <ClientServicesWorkspace
-                cases={clientCases}
-                clientName={client.name}
-                selectedId={caseId}
-                onAddService={openNewCase}
-              >
-                {serviceOutlet}
-              </ClientServicesWorkspace>
-            ),
-          },
-          {
-            id: 'documents',
-            label: <TabLabel icon={FileText}>Documents</TabLabel>,
-            content: (
-              <ClientDocumentsPanel
-                client={client}
-                cases={clientCases}
-                onAddService={openNewCase}
-              />
-            ),
-          },
-          {
-            id: 'payments',
-            label: <TabLabel icon={Wallet}>Payments</TabLabel>,
-            content: (
-              <PaymentsList
-                clientId={client.id}
-                cases={clientCases}
-                startRecording={searchParams.get('record') === '1'}
-                onRecordingChange={(recording) => {
-                  if (!recording) clearRecordIntent()
-                }}
-              />
-            ),
-          },
-          {
-            id: 'messages',
-            label: <TabLabel icon={MessageSquare}>Messages</TabLabel>,
-            content: <ClientMessagesPanel client={client} channel="sms" />,
-          },
-          {
-            id: 'email',
-            label: <TabLabel icon={Mail}>Email</TabLabel>,
-            content: <ClientMessagesPanel client={client} channel="email" />,
-          },
-        ]}
-      />
+                ),
+              },
+              {
+                id: 'services',
+                label: (
+                  <TabLabel icon={Folder} alertCount={servicesAlertCount}>
+                    Services
+                  </TabLabel>
+                ),
+                content: (
+                  <ClientServicesWorkspace
+                    cases={clientCases}
+                    clientName={client.name}
+                    selectedId={caseId}
+                    onAddService={openNewCase}
+                  >
+                    {serviceOutlet}
+                  </ClientServicesWorkspace>
+                ),
+              },
+              {
+                id: 'documents',
+                label: (
+                  <TabLabel icon={FileText} alertCount={documentsAlertCount}>
+                    Documents
+                  </TabLabel>
+                ),
+                content: (
+                  <ClientDocumentsPanel
+                    client={client}
+                    cases={clientCases}
+                    onAddService={openNewCase}
+                  />
+                ),
+              },
+              {
+                id: 'payments',
+                label: (
+                  <TabLabel icon={Wallet} alertCount={paymentsAlertCount}>
+                    Payments
+                  </TabLabel>
+                ),
+                content: (
+                  <PaymentsList
+                    clientId={client.id}
+                    cases={clientCases}
+                    startRecording={searchParams.get('record') === '1'}
+                    onRecordingChange={(recording) => {
+                      if (!recording) clearRecordIntent()
+                    }}
+                  />
+                ),
+              },
+              {
+                id: 'messages',
+                label: <TabLabel icon={MessageSquare}>Messages</TabLabel>,
+                content: <ClientMessagesPanel client={client} channel="sms" />,
+              },
+              {
+                id: 'email',
+                label: <TabLabel icon={Mail}>Email</TabLabel>,
+                content: <ClientMessagesPanel client={client} channel="email" />,
+              },
+            ]}
+          />
         </div>
       </div>
 

@@ -1,31 +1,12 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { Avatar, BackButton, Badge, Button, ConfirmDialog, EmptyState, Input, Modal, Select, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, Textarea, type BadgeVariant } from '@/components/ui'
 import {
   Banknote,
   CalendarClock,
   CalendarOff,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import {
-  Avatar,
-  BackButton,
-  Badge,
-  Button,
-  ConfirmDialog,
-  EmptyState,
-  Input,
-  Modal,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Tabs,
-  Textarea,
-  type BadgeVariant,
-} from '@/components/ui'
 import {
   formatSalary,
   useEmployees,

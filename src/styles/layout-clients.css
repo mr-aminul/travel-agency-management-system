@@ -6,7 +6,7 @@
   gap: 1.25rem;
 }
 
-.pd-partner-clients {
+.pd-sub-agent-clients {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -323,7 +323,7 @@
 .pd-clients-form__scroll {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.75rem;
   max-height: min(60vh, 28rem);
   overflow-y: auto;
   padding-inline-end: 0.25rem;
@@ -401,7 +401,7 @@
   background: var(--color-surface-raised, var(--color-bg));
 }
 
-.pd-partner-photo {
+.pd-profile-photo {
   display: grid;
   grid-template-columns: 4rem minmax(0, 1fr);
   align-items: center;
@@ -410,34 +410,34 @@
   padding-top: 0.625rem;
 }
 
-.pd-partner-photo:not(:has(.pd-partner-photo__name)) {
+.pd-profile-photo:not(:has(.pd-profile-photo__name)) {
   grid-template-columns: 4rem;
 }
 
-.pd-partner-photo__control {
+.pd-profile-photo__control {
   position: relative;
   grid-column: 1;
   width: 4rem;
   height: 4rem;
 }
 
-.pd-partner-photo__control .pd-avatar {
+.pd-profile-photo__control .pd-avatar {
   display: flex;
 }
 
-.pd-partner-photo__name {
+.pd-profile-photo__name {
   grid-column: 2;
   min-width: 0;
   width: 100%;
 }
 
-.pd-partner-photo__name .pd-field,
-.pd-partner-photo__name .pd-field__control {
+.pd-profile-photo__name .pd-field,
+.pd-profile-photo__name .pd-field__control {
   width: 100%;
   max-width: 100%;
 }
 
-.pd-partner-photo__input {
+.pd-profile-photo__input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -445,7 +445,7 @@
   clip: rect(0 0 0 0);
 }
 
-.pd-partner-photo__upload {
+.pd-profile-photo__upload {
   position: absolute;
   inset: 0;
   display: inline-flex;
@@ -462,17 +462,17 @@
   transition: opacity 0.15s ease;
 }
 
-.pd-partner-photo__control:hover .pd-partner-photo__upload,
-.pd-partner-photo__control:focus-within .pd-partner-photo__upload {
+.pd-profile-photo__control:hover .pd-profile-photo__upload,
+.pd-profile-photo__control:focus-within .pd-profile-photo__upload {
   opacity: 1;
 }
 
-.pd-partner-photo__upload:focus-visible {
+.pd-profile-photo__upload:focus-visible {
   outline: 0.125rem solid color-mix(in srgb, var(--color-theme) 55%, transparent);
   outline-offset: 0.125rem;
 }
 
-.pd-partner-photo__remove {
+.pd-profile-photo__remove {
   position: absolute;
   top: -0.25rem;
   right: -0.25rem;
@@ -493,30 +493,30 @@
   transition: opacity 0.15s ease, color 0.15s ease;
 }
 
-.pd-partner-photo__control:hover .pd-partner-photo__remove,
-.pd-partner-photo__control:focus-within .pd-partner-photo__remove,
-.pd-partner-photo__remove:focus-visible {
+.pd-profile-photo__control:hover .pd-profile-photo__remove,
+.pd-profile-photo__control:focus-within .pd-profile-photo__remove,
+.pd-profile-photo__remove:focus-visible {
   opacity: 1;
 }
 
-.pd-partner-photo__remove:hover,
-.pd-partner-photo__remove:focus-visible {
+.pd-profile-photo__remove:hover,
+.pd-profile-photo__remove:focus-visible {
   color: var(--color-text);
 }
 
-.pd-partner-photo__remove:focus-visible {
+.pd-profile-photo__remove:focus-visible {
   outline: 0.125rem solid color-mix(in srgb, var(--color-theme) 55%, transparent);
   outline-offset: 0.125rem;
 }
 
 @media (hover: none) {
 
-  .pd-partner-photo__upload,
-  .pd-partner-photo__remove {
+  .pd-profile-photo__upload,
+  .pd-profile-photo__remove {
     opacity: 1;
   }
 
-  .pd-partner-photo__upload {
+  .pd-profile-photo__upload {
     background: color-mix(in srgb, var(--color-text) 28%, transparent);
   }
 }
@@ -534,7 +534,7 @@
 
 @media (max-width: 767px) {
   .pd-client-detail {
-    --pd-sticky-topbar: 3.25rem;
+    --pd-sticky-topbar: 3.5rem;
     --pd-sticky-gutter: 1rem;
   }
 }
@@ -1699,6 +1699,21 @@
   color: var(--color-theme-ink);
 }
 
+.pd-client-profile__field.is-attention .pd-field__control,
+.pd-client-profile__field.is-attention .pd-select__trigger {
+  border-color: color-mix(in srgb, var(--color-danger) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--color-danger) 5%, var(--color-surface));
+}
+
+.pd-client-profile__field.is-attention .pd-field--outlined .pd-field__label {
+  color: var(--color-danger);
+}
+
+.pd-client-profile__field.is-blocking .pd-field__control,
+.pd-client-profile__field.is-blocking .pd-select__trigger {
+  border-color: var(--color-danger);
+}
+
 .pd-client-detail__section .pd-field--outlined .pd-field__label {
   background: var(--color-surface-raised, var(--color-bg));
 }
@@ -1826,15 +1841,57 @@
   }
 }
 
-@media (max-width: 720px) {
+/* Mobile drill-down Filters button — hidden on desktop */
+.pd-clients__mobile-filters {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .pd-clients__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
   .pd-clients__search {
-    flex: 1 1 100%;
+    flex: none;
+    min-width: 0;
     width: 100%;
   }
 
   .pd-clients__toolbar-end {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
     width: 100%;
-    justify-content: flex-end;
+  }
+
+  /* Inline Service/Status selects → Filters popover on small screens */
+  .pd-clients__filters {
+    display: none;
+  }
+
+  .pd-clients__mobile-filters {
+    display: block;
+  }
+
+  .pd-clients__views {
+    flex: 0 0 auto;
+    height: 2.25rem;
+  }
+
+  .pd-clients__view {
+    width: 2rem;
+  }
+
+  .pd-clients__toolbar-end > .pd-btn,
+  .pd-clients__toolbar-end > .pd-split-btn {
+    flex: 0 0 auto;
+  }
+
+  .pd-clients__toolbar-end > :last-child {
+    margin-inline-start: auto;
   }
 
   .pd-clients-form__grid,
@@ -1857,6 +1914,10 @@
     position: static;
   }
 
+  .pd-client-detail__card-quick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .pd-client-detail__fields dd {
     padding-inline-start: 0;
   }
@@ -1871,6 +1932,28 @@
 
   .pd-client-detail__section-head {
     align-items: flex-start;
+  }
+
+  .pd-client-messages__frame,
+  .pd-client-messages__frame--email {
+    min-height: 18rem;
+  }
+
+  .pd-client-messages__composer--sms {
+    flex-wrap: wrap;
+  }
+
+  .pd-client-messages__composer--sms .pd-btn {
+    width: 100%;
+  }
+
+  .pd-client-messages__attach-remove {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .pd-clients__card {
+    min-width: 0;
   }
 }
 

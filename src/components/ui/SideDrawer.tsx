@@ -2,8 +2,10 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
+  type AnimationEvent as ReactAnimationEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -86,7 +88,9 @@ export function SideDrawer({
   const descriptionId = useId()
   const [widthPx, setWidthPx] = useState<number | null>(readStoredDrawerWidth)
   const [isResizing, setIsResizing] = useState(false)
+  const [isEntering, setIsEntering] = useState(false)
   const widthPxRef = useRef(widthPx)
+  const suppressBackdropClickRef = useRef(false)
 
   useEffect(() => {
     onCloseRef.current = onClose
@@ -106,6 +110,17 @@ export function SideDrawer({
   const currentPanelWidth = useCallback(() => {
     return panelRef.current?.offsetWidth || widthPxRef.current || MIN_DRAWER_WIDTH_PX
   }, [])
+
+  // Apply the enter class before paint so the slide-in is not skipped for a frame.
+  useLayoutEffect(() => {
+    if (!open) {
+      setIsEntering(false)
+      setIsResizing(false)
+      suppressBackdropClickRef.current = false
+      return
+    }
+    setIsEntering(true)
+  }, [open])
 
   // Only when `open` flips — not when parents recreate `onClose` on each keystroke.
   // Re-running would steal focus from inputs inside the drawer.
@@ -148,9 +163,16 @@ export function SideDrawer({
     }
   }, [open])
 
+  const onPanelAnimationEnd = (event: ReactAnimationEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return
+    if (event.animationName !== 'pd-drawer-in') return
+    setIsEntering(false)
+  }
+
   const onGripPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return
     event.preventDefault()
+    event.stopPropagation()
     try {
       event.currentTarget.setPointerCapture(event.pointerId)
     } catch {
@@ -161,6 +183,7 @@ export function SideDrawer({
       startX: event.clientX,
       startWidth: currentPanelWidth(),
     }
+    setIsEntering(false)
     setIsResizing(true)
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
@@ -169,10 +192,15 @@ export function SideDrawer({
   const endGripDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current
     if (!drag || event.pointerId !== drag.pointerId) return
+    const moved = Math.abs(event.clientX - drag.startX) > 2
     dragRef.current = null
     setIsResizing(false)
     document.body.style.cursor = ''
     document.body.style.userSelect = ''
+    // Pointerup after a drag often lands on the backdrop and would close the panel.
+    if (moved) {
+      suppressBackdropClickRef.current = true
+    }
     try {
       if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId)
@@ -194,6 +222,14 @@ export function SideDrawer({
     setIsResizing(false)
     setWidthPx(null)
     clearStoredDrawerWidth()
+  }
+
+  const onBackdropClick = () => {
+    if (suppressBackdropClickRef.current) {
+      suppressBackdropClickRef.current = false
+      return
+    }
+    onClose()
   }
 
   const onGripKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -229,16 +265,22 @@ export function SideDrawer({
         type="button"
         className="pd-drawer__backdrop"
         aria-label="Close panel"
-        onClick={onClose}
+        onClick={onBackdropClick}
       />
       <div
         ref={panelRef}
-        className={cx('pd-drawer__panel', isResizing && 'is-resizing', className)}
+        className={cx(
+          'pd-drawer__panel',
+          isEntering && 'is-entering',
+          isResizing && 'is-resizing',
+          className,
+        )}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
+        onAnimationEnd={onPanelAnimationEnd}
         style={
           resolvedWidth == null
             ? undefined

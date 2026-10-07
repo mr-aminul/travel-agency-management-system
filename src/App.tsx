@@ -11,8 +11,8 @@ const CasesPage = lazy(() => import('@/pages/CasesPage'))
 const LegacyCasesRedirect = lazy(() => import('@/pages/LegacyCasesRedirect'))
 const ClientDetailPage = lazy(() => import('@/pages/ClientDetailPage'))
 const ClientsPage = lazy(() => import('@/pages/ClientsPage'))
-const ComponentsPage = lazy(() => import('@/pages/ComponentsPage'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
+const ReadinessPage = lazy(() => import('@/pages/ReadinessPage'))
 const DocumentsPage = lazy(() => import('@/pages/DocumentsPage'))
 const PaymentsPage = lazy(() => import('@/pages/PaymentsPage'))
 const HelpPage = lazy(() => import('@/pages/HelpPage'))
@@ -21,8 +21,8 @@ const HrPage = lazy(() => import('@/pages/HrPage'))
 const HrAttendancePage = lazy(() => import('@/pages/HrAttendancePage'))
 const HrPayrollPage = lazy(() => import('@/pages/HrPayrollPage'))
 const EmployeeDetailPage = lazy(() => import('@/pages/EmployeeDetailPage'))
-const PartnersPage = lazy(() => import('@/pages/PartnersPage'))
-const PartnerDetailPage = lazy(() => import('@/pages/PartnerDetailPage'))
+const SubAgentsPage = lazy(() => import('@/pages/SubAgentsPage'))
+const SubAgentDetailPage = lazy(() => import('@/pages/SubAgentDetailPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const TrackClientPage = lazy(() => import('@/pages/TrackClientPage'))
@@ -40,7 +40,7 @@ function RouteFallback() {
 
 function LegacyAgentsRedirect() {
   const { id } = useParams()
-  return <Navigate to={id ? `/partners/${id}` : '/partners'} replace />
+  return <Navigate to={id ? `/sub-agents/${id}` : '/sub-agents'} replace />
 }
 
 function CatchAllRedirect() {
@@ -68,11 +68,12 @@ function App() {
           {/* Legacy agency intake links */}
           <Route path="/register/:tenantSlug" element={<PublicClientIntakePage />} />
           <Route path="/join/direct/:tenantSlug" element={<PublicClientIntakePage />} />
-          <Route path="/join/:partnerId" element={<PublicClientIntakePage />} />
+          <Route path="/join/:subAgentId" element={<PublicClientIntakePage />} />
           <Route path="/i/:token" element={<PublicInvoicePage />} />
           <Route path="/" element={<AuthenticatedLayout />}>
             <Route index element={<HomePage />} />
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="readiness" element={<ReadinessPage />} />
             <Route path="clients" element={<ClientsPage />} />
             <Route path="clients/:id" element={<ClientDetailPage />}>
               <Route path="services/:caseId" element={<CaseDetailPage />} />
@@ -81,9 +82,11 @@ function App() {
               path="clients/:id/services/:caseId/invoice"
               element={<CaseInvoicePage />}
             />
-            <Route path="partners" element={<PartnersPage />} />
-            <Route path="partners/:id" element={<PartnerDetailPage />} />
-            <Route path="agents" element={<Navigate to="/partners" replace />} />
+            <Route path="sub-agents" element={<SubAgentsPage />} />
+            <Route path="sub-agents/:id" element={<SubAgentDetailPage />} />
+            <Route path="partners" element={<Navigate to="/sub-agents" replace />} />
+            <Route path="partners/:id" element={<LegacyAgentsRedirect />} />
+            <Route path="agents" element={<Navigate to="/sub-agents" replace />} />
             <Route path="agents/:id" element={<LegacyAgentsRedirect />} />
             <Route path="services" element={<CasesPage />} />
             <Route path="services/:id" element={<LegacyCasesRedirect />} />
@@ -124,7 +127,6 @@ function App() {
             />
             <Route path="trash" element={<TrashPage />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="components" element={<ComponentsPage />} />
           </Route>
           <Route path="*" element={<CatchAllRedirect />} />
         </Routes>

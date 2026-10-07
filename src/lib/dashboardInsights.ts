@@ -3,7 +3,7 @@ import { workDetailPath, workInvoicePath } from '@/lib/workPaths'
 import type { Case, CaseStatus } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { Employee } from '@/types/employee'
-import type { Partner } from '@/types/partner'
+import type { SubAgent } from '@/types/subAgent'
 import type { Payment } from '@/types/payment'
 import type { StatusUpdateRequest } from '@/types/request'
 
@@ -120,8 +120,8 @@ export type DepartureItem = {
   href: string
 }
 
-export type PartnerContribution = {
-  partnerId: string
+export type SubAgentContribution = {
+  subAgentId: string
   name: string
   clientCount: number
 }
@@ -585,20 +585,20 @@ export function upcomingDepartures(
     }))
 }
 
-export function clientsByPartner(
+export function clientsBySubAgent(
   clients: Client[],
-  partners: Partner[],
-): PartnerContribution[] {
-  const partnerById = new Map(partners.map((partner) => [partner.id, partner]))
+  subAgents: SubAgent[],
+): SubAgentContribution[] {
+  const subAgentById = new Map(subAgents.map((subAgent) => [subAgent.id, subAgent]))
   const counts = new Map<string, number>()
   for (const client of clients) {
-    if (!client.partnerId) continue
-    counts.set(client.partnerId, (counts.get(client.partnerId) ?? 0) + 1)
+    if (!client.subAgentId) continue
+    counts.set(client.subAgentId, (counts.get(client.subAgentId) ?? 0) + 1)
   }
   return [...counts.entries()]
-    .map(([partnerId, clientCount]) => ({
-      partnerId,
-      name: partnerById.get(partnerId)?.name ?? partnerId,
+    .map(([subAgentId, clientCount]) => ({
+      subAgentId,
+      name: subAgentById.get(subAgentId)?.name ?? subAgentId,
       clientCount,
     }))
     .sort((left, right) => {
@@ -673,7 +673,7 @@ export function buildExecutivePulse(
         id: 'collections-down',
         tone: 'watch',
         title: `Collections down ${pct}% vs prior 30 days`,
-        detail: 'Cash intake cooled — review open balances and partner follow-ups.',
+        detail: 'Cash intake cooled — review open balances and subAgent follow-ups.',
       })
     }
   }

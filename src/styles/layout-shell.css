@@ -213,6 +213,7 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
 
 .pd-app-shell--mobile .pd-app-main {
   padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
 }
 
 .pd-app-content-card--fill {
@@ -866,8 +867,34 @@ html[data-theme-transition='circle']::view-transition-new(root) {
   color: var(--color-text);
 }
 
+.pd-topbar--mobile .pd-topbar__row {
+  height: calc(3.5rem + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-inline: 0.75rem;
+}
+
 .pd-topbar--mobile .pd-topbar__search {
   width: min(20rem, 100%);
+  height: 2.5rem;
+}
+
+.pd-topbar--mobile .pd-topbar__icon-btn {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.pd-topbar--mobile .pd-topbar__profile-avatar--btn {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.pd-topbar--mobile .pd-topbar__title {
+  justify-content: center;
+  font-size: 0.9375rem;
+}
+
+.pd-topbar--mobile .pd-topbar__dropdown-panel--profile {
+  max-width: calc(100vw - 2rem);
 }
 
 .pd-topbar__dropdown-panel--search {
@@ -976,6 +1003,7 @@ html[data-theme-transition='circle']::view-transition-new(root) {
 
 .pd-topbar__dropdown-panel--profile {
   min-width: 12rem;
+  max-width: min(20rem, calc(100vw - 2rem));
   overflow: hidden;
 }
 
@@ -1112,6 +1140,14 @@ html[data-theme-transition='circle']::view-transition-new(root) {
   animation-delay: calc(var(--pd-page-enter-stagger) * 7);
 }
 
+/* Right panels mount inside the page tree but must slide from the right,
+   not inherit the page section’s upward enter. */
+.pd-page > .pd-drawer,
+.pd-settings > .pd-drawer {
+  animation: none;
+  animation-delay: 0ms;
+}
+
 @keyframes pd-page-section-in {
   from {
     opacity: 0;
@@ -1124,6 +1160,11 @@ html[data-theme-transition='circle']::view-transition-new(root) {
   .pd-settings > * {
     animation: pd-page-section-in-reduced 160ms ease-out backwards;
     animation-delay: 0ms;
+  }
+
+  .pd-page > .pd-drawer,
+  .pd-settings > .pd-drawer {
+    animation: none;
   }
 
   @keyframes pd-page-section-in-reduced {

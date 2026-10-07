@@ -6,7 +6,7 @@ export type ModuleId =
   | 'finance'
   | 'documents'
   | 'hr'
-  | 'partners'
+  | 'subAgents'
   | 'services.touristVisa'
   | 'services.studentVisa'
   | 'services.workPermitVisa'

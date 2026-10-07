@@ -1,17 +1,25 @@
 import { useState, type FormEvent } from 'react'
-import { Button, Input, Select, Textarea } from '@/components/ui'
 import { CASE_SERVICE_OPTIONS } from '@/lib/casesStore'
 import { parseMoneyInput } from '@/lib/caseMoney'
+import { Button, Input, Select, Textarea } from '@/components/ui'
 import {
   employeeAssignmentOptions,
   useEmployees,
 } from '@/lib/employeesStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
+import { iconForService } from '@/lib/serviceIcons'
 import { useClients } from '@/lib/clientsStore'
 import {
   destinationCountryOptions,
   formatDestination,
 } from '@/lib/destinationCountries'
+import {
+  validateOptionalDate,
+  validateOptionalMoney,
+  validateOptionalText,
+  validateRequiredSelect,
+} from '@/lib/fieldValidation'
+import { useTouchedFields } from '@/lib/useTouchedFields'
 import {
   listServiceCountries,
   useServiceTemplates,
@@ -29,6 +37,16 @@ type NewCaseFormProps = {
   lockService?: boolean
 }
 
+type Field =
+  | 'clientId'
+  | 'service'
+  | 'country'
+  | 'destination'
+  | 'assignedTo'
+  | 'departureDate'
+  | 'serviceFee'
+  | 'description'
+
 export function NewCaseForm({
   onSubmit,
   onCancel,
@@ -43,7 +61,7 @@ export function NewCaseForm({
   const serviceOptions = useEnabledServiceOptions()
   const resolvedDefault =
     defaultService &&
-    serviceOptions.some((option) => option.value === defaultService)
+      serviceOptions.some((option) => option.value === defaultService)
       ? defaultService
       : (serviceOptions[0]?.value ?? 'Tour Package')
   const [clientId, setClientId] = useState(defaultClientId)
@@ -54,7 +72,8 @@ export function NewCaseForm({
   const [departureDate, setDepartureDate] = useState('')
   const [serviceFee, setServiceFee] = useState('')
   const [description, setDescription] = useState('')
-  const [triedSubmit, setTriedSubmit] = useState(false)
+  const { markTouched, markAllTouched, showError, blur } =
+    useTouchedFields<Field>()
 
   const clientOptions = clients.map((client) => ({
     value: client.id,
@@ -65,22 +84,36 @@ export function NewCaseForm({
   const countryOptions = destinationCountryOptions(
     listServiceCountries(activeService),
   )
-  const countryHasOwnChecklist = listServiceCountries(activeService).some(
-    (item) => item.toLowerCase() === country.trim().toLowerCase(),
-  )
   const resolvedClientId = lockClient ? defaultClientId : clientId
-  const clientError =
-    triedSubmit && !resolvedClientId
-      ? 'Select a client for this service.'
-      : undefined
+  const serviceName = lockService ? resolvedDefault : service
+
+  const errors: Record<Field, string | undefined> = {
+    clientId: validateRequiredSelect(resolvedClientId, 'client'),
+    service: validateRequiredSelect(serviceName, 'service'),
+    country: undefined,
+    destination: validateOptionalText(destination, 'City / destination'),
+    assignedTo: undefined,
+    departureDate: validateOptionalDate(departureDate, 'Departure date'),
+    serviceFee: validateOptionalMoney(serviceFee, 'Service fee'),
+    description: validateOptionalText(description, 'Notes', 2000),
+  }
+
+  const fieldError = (field: Field) =>
+    showError(field) ? errors[field] : undefined
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    setTriedSubmit(true)
-    if (!resolvedClientId) return
+    const fields: Field[] = [
+      'clientId',
+      'service',
+      'destination',
+      'departureDate',
+      'serviceFee',
+      'description',
+    ]
+    markAllTouched(fields)
+    if (fields.some((field) => errors[field])) return
 
-    const parsedFee = parseMoneyInput(serviceFee)
-    const serviceName = lockService ? resolvedDefault : service
     onSubmit({
       clientId: resolvedClientId,
       service: serviceName,
@@ -88,7 +121,7 @@ export function NewCaseForm({
       destination: formatDestination(destination, country),
       assignedTo,
       departureDate: departureDate || undefined,
-      serviceFee: parsedFee,
+      serviceFee: parseMoneyInput(serviceFee),
       description,
     })
   }
@@ -99,7 +132,8 @@ export function NewCaseForm({
         <div className="pd-cases-form__block">
           <p className="pd-cases-form__heading">Service</p>
           <p className="pd-cases-form__hint">
-            One service = one need this client has.
+            Only client and service type are required. Country, fee, and
+            assignment can be filled in later.
           </p>
 
           <div className="pd-cases-form__grid">
@@ -111,43 +145,56 @@ export function NewCaseForm({
               searchPlaceholder="Search clients…"
               placeholder="Select client"
               value={resolvedClientId}
-              onChange={(event) => setClientId(event.target.value)}
+              onChange={(event) => {
+                setClientId(event.target.value)
+                markTouched('clientId')
+              }}
+              onBlur={blur('clientId')}
               options={clientOptions}
-              error={clientError}
+              error={fieldError('clientId')}
               disabled={lockClient}
             />
             <Select
               label="Service"
               required
-              value={lockService ? resolvedDefault : service}
-              onChange={(event) =>
+              value={serviceName}
+              onChange={(event) => {
                 setService(event.target.value as ServiceType)
+                markTouched('service')
+              }}
+              onBlur={blur('service')}
+              options={
+                serviceOptions.length
+                  ? serviceOptions
+                  : CASE_SERVICE_OPTIONS.map((option) => ({
+                    ...option,
+                    icon: iconForService(option.value),
+                  }))
               }
-              options={serviceOptions.length ? serviceOptions : CASE_SERVICE_OPTIONS}
               disabled={lockService}
+              error={fieldError('service')}
             />
             <Select
               label="Country"
+              hint="Optional — helps pick the right checklist"
               searchable
               searchPlaceholder="Search countries…"
               placeholder="Select country"
               value={country}
               onChange={(event) => setCountry(event.target.value)}
               options={countryOptions}
-              hint={
-                countryHasOwnChecklist
-                  ? 'This country has its own status journey and documents.'
-                  : 'Used to pick a country-specific checklist when one exists.'
-              }
             />
             <Input
               label="City / destination"
               value={destination}
               onChange={(event) => setDestination(event.target.value)}
+              onBlur={blur('destination')}
               placeholder="City or area"
+              error={fieldError('destination')}
             />
             <Select
               label="Assigned to"
+              hint="Optional — who owns this file"
               searchable
               searchPlaceholder="Search employees…"
               placeholder="Select employee"
@@ -160,14 +207,18 @@ export function NewCaseForm({
               type="date"
               value={departureDate}
               onChange={(event) => setDepartureDate(event.target.value)}
+              onBlur={blur('departureDate')}
+              error={fieldError('departureDate')}
             />
             <Input
               label="Service fee (৳)"
+              hint="Optional — can set when quoting"
               inputMode="numeric"
               value={serviceFee}
               onChange={(event) => setServiceFee(event.target.value)}
+              onBlur={blur('serviceFee')}
               placeholder="0"
-              hint="What you charge for this service. Balance due starts at this amount."
+              error={fieldError('serviceFee')}
             />
             <Textarea
               className="pd-cases-form__full"
@@ -175,7 +226,9 @@ export function NewCaseForm({
               rows={3}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
+              onBlur={blur('description')}
               placeholder="Package, employer, university, or booking notes"
+              error={fieldError('description')}
             />
           </div>
         </div>

@@ -94,12 +94,12 @@ export const MODULE_GROUPS: ModuleGroup[] = [
     ],
   },
   {
-    id: 'partners',
+    id: 'subAgents',
     label: 'Sub Agents',
     description: 'Sub agents who send clients into the pipeline',
     modules: [
       {
-        id: 'partners',
+        id: 'subAgents',
         label: 'Sub Agents',
         description: 'Sub agent directory and customer pipeline',
       },
@@ -147,7 +147,8 @@ const LEGACY_MODULE_ID: Record<string, ModuleId> = {
   'cases.hajjUmrah': 'services.hajjUmrahVisa',
   'cases.leisure': 'services.tourPackage',
   'cases.ticketing': 'services.airTicket',
-  agents: 'partners',
+  agents: 'subAgents',
+  partners: 'subAgents',
 }
 
 export function normalizeModuleId(value: string): ModuleId | undefined {
@@ -186,12 +187,14 @@ export function pathAccess(pathname: string): PathAccess {
   if (path === '/admin' || path.startsWith('/admin/')) return 'admin'
   if (path === '/hr' || path.startsWith('/hr/')) return 'hr'
   if (
+    path === '/sub-agents' ||
+    path.startsWith('/sub-agents/') ||
     path === '/partners' ||
     path.startsWith('/partners/') ||
     path === '/agents' ||
     path.startsWith('/agents/')
   ) {
-    return 'partners'
+    return 'subAgents'
   }
   if (
     path === '/payments' ||

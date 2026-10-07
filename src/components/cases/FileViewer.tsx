@@ -1,3 +1,4 @@
+import { DOCUMENT_FILE_ACCEPT } from '@/components/ui'
 import {
   useEffect,
   useEffectEvent,
@@ -26,7 +27,6 @@ import {
   isPdfMime,
   isTextMime,
 } from '@/lib/fileStore'
-import { DOCUMENT_FILE_ACCEPT } from '@/components/ui/FileDropzone'
 import { cx } from '@/lib/cx'
 
 export type FileViewerProps = {

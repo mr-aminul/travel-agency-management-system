@@ -1,25 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ChevronRight, Plus, Trash2 } from 'lucide-react'
-import {
-  Badge,
-  Button,
-  ConfirmDialog,
-  Input,
-  SideDrawer,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Textarea,
-  Tooltip,
-} from '@/components/ui'
 import { ServiceIconPicker } from '@/components/settings/ServiceIconPicker'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { resolveServiceTemplate } from '@/lib/resolveServiceTemplate'
 import { isBuiltinService } from '@/types/case'
+import { Badge, Button, ConfirmDialog, Input, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea, Tooltip } from '@/components/ui'
 import {
   createCustomService,
   deleteCustomService,
@@ -35,6 +21,11 @@ import {
 import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { iconForService, type ServiceIconId } from '@/lib/serviceIcons'
 import { useServiceTemplates } from '@/lib/serviceTemplatesStore'
+import {
+  validateOptionalText,
+  validateRequiredText,
+} from '@/lib/fieldValidation'
+import { useTouchedFields } from '@/lib/useTouchedFields'
 import {
   serviceCatalogEditorPath,
 } from '@/lib/workPaths'
@@ -81,6 +72,13 @@ export function ServicesSettingsSection({
   const [error, setError] = useState<string | null>(null)
   const [composerOpen, setComposerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
+  const { markAllTouched, showError, blur } = useTouchedFields<
+    'name' | 'description'
+  >()
+  const nameError =
+    validateRequiredText(name, 'Service name', 2) ??
+    (isBuiltinService(name.trim()) ? 'That name is already used.' : undefined)
+  const descriptionError = validateOptionalText(description, 'Description', 500)
 
   const closeComposer = () => {
     setComposerOpen(false)
@@ -93,6 +91,8 @@ export function ServicesSettingsSection({
   const handleComposerSubmit = (event: FormEvent) => {
     event.preventDefault()
     setError(null)
+    markAllTouched(['name', 'description'])
+    if (nameError || descriptionError) return
     try {
       const created = createCustomService({ name, description, iconId })
       closeComposer()
@@ -275,6 +275,7 @@ export function ServicesSettingsSection({
           <Input
             label="Service name"
             name="customServiceName"
+            required
             placeholder="e.g. Visa processing"
             value={name}
             autoFocus
@@ -282,11 +283,8 @@ export function ServicesSettingsSection({
               setName(event.target.value)
               setError(null)
             }}
-            error={
-              isBuiltinService(name.trim())
-                ? 'That name is already used.'
-                : undefined
-            }
+            onBlur={blur('name')}
+            error={showError('name') ? nameError : undefined}
           />
           <Textarea
             label="Description"
@@ -295,6 +293,8 @@ export function ServicesSettingsSection({
             placeholder="What this service covers (optional)"
             value={description}
             onChange={(event) => setDescription(event.target.value)}
+            onBlur={blur('description')}
+            error={showError('description') ? descriptionError : undefined}
           />
           <ServiceIconPicker
             value={iconId}

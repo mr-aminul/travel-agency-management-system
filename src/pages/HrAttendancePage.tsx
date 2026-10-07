@@ -1,23 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import {
-  Badge,
-  Button,
-  ConfirmDialog,
-  EmptyState,
-  Input,
-  Modal,
-  PageHeader,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Textarea,
-} from '@/components/ui'
+import { Badge, Button, ConfirmDialog, EmptyState, Input, Modal, PageHeader, Select, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@/components/ui'
 import {
   coveringRecord,
   createLeave,

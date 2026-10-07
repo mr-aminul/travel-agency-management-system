@@ -3,11 +3,11 @@ import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
 import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
-import type { Partner, PartnerDraft } from '@/types/partner'
+import type { SubAgent, SubAgentDraft } from '@/types/subAgent'
 
 type Listener = () => void
 
-const SEED_PARTNERS: Partner[] = [
+const SEED_SUB_AGENTS: SubAgent[] = [
   {
     id: 'AGT-T0001',
     tenantId: TENANT_IDS.full,
@@ -46,8 +46,9 @@ const SEED_PARTNERS: Partner[] = [
   },
 ]
 
-const STORAGE_KEY = 'pd-partners-created'
-const SEED_IDS = new Set(SEED_PARTNERS.map((partner) => partner.id))
+const STORAGE_KEY = 'pd-sub-agents-created'
+const LEGACY_STORAGE_KEY = 'pd-sub-agents-created'
+const SEED_IDS = new Set(SEED_SUB_AGENTS.map((subAgent) => subAgent.id))
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -59,7 +60,7 @@ function optionalString(value: unknown): string | undefined {
   return trimmed || undefined
 }
 
-function normalizeStoredPartner(value: unknown): Partner | undefined {
+function normalizeStoredSubAgent(value: unknown): SubAgent | undefined {
   if (!isRecord(value)) return undefined
   const id = optionalString(value.id)
   const tenantId = optionalString(value.tenantId)
@@ -81,77 +82,86 @@ function normalizeStoredPartner(value: unknown): Partner | undefined {
   }
 }
 
-function readCreatedPartners(): Partner[] {
+function readCreatedSubAgents(): SubAgent[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw =
+      localStorage.getItem(STORAGE_KEY) ??
+      localStorage.getItem(LEGACY_STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
-    return parsed
-      .map(normalizeStoredPartner)
-      .filter((partner): partner is Partner => partner != null)
+    const items = parsed
+      .map(normalizeStoredSubAgent)
+      .filter((subAgent): subAgent is SubAgent => subAgent != null)
+    if (!localStorage.getItem(STORAGE_KEY) && localStorage.getItem(LEGACY_STORAGE_KEY)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+      localStorage.removeItem(LEGACY_STORAGE_KEY)
+    }
+    return items
   } catch {
     return []
   }
 }
 
-function seedPartners(): Partner[] {
-  return SEED_PARTNERS.map((partner) => ({ ...partner }))
+function seedSubAgents(): SubAgent[] {
+  return SEED_SUB_AGENTS.map((subAgent) => ({ ...subAgent }))
 }
 
-function mergeWithSeeds(created: Partner[]): Partner[] {
-  const createdIds = new Set(created.map((partner) => partner.id))
+function mergeWithSeeds(created: SubAgent[]): SubAgent[] {
+  const createdIds = new Set(created.map((subAgent) => subAgent.id))
   return [
     ...created,
-    ...seedPartners().filter((partner) => !createdIds.has(partner.id)),
+    ...seedSubAgents().filter((subAgent) => !createdIds.has(subAgent.id)),
   ]
 }
 
-function persistCreatedPartners() {
-  const created = partners.filter((partner) => !SEED_IDS.has(partner.id))
+function persistCreatedSubAgents() {
+  const created = subAgents.filter((subAgent) => !SEED_IDS.has(subAgent.id))
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(created))
+    localStorage.removeItem(LEGACY_STORAGE_KEY)
   } catch {
     /* ignore quota / private mode */
   }
 }
 
-let partners: Partner[] = mergeWithSeeds(readCreatedPartners())
+let subAgents: SubAgent[] = mergeWithSeeds(readCreatedSubAgents())
 const listeners = new Set<Listener>()
 
 function emit(persist = true) {
-  if (persist) persistCreatedPartners()
+  if (persist) persistCreatedSubAgents()
   listeners.forEach((listener) => listener())
 }
 
-function hydratePartnersFromStorage() {
-  partners = mergeWithSeeds(readCreatedPartners())
+function hydrateSubAgentsFromStorage() {
+  subAgents = mergeWithSeeds(readCreatedSubAgents())
   emit(false)
 }
 
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
-    if (event.key !== STORAGE_KEY) return
-    hydratePartnersFromStorage()
+    if (event.key !== STORAGE_KEY && event.key !== LEGACY_STORAGE_KEY) return
+    hydrateSubAgentsFromStorage()
   })
-  window.addEventListener('focus', hydratePartnersFromStorage)
+  window.addEventListener('focus', hydrateSubAgentsFromStorage)
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') hydratePartnersFromStorage()
+    if (document.visibilityState === 'visible') hydrateSubAgentsFromStorage()
   })
 }
 
-export function resetPartners() {
+export function resetSubAgents() {
   try {
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(LEGACY_STORAGE_KEY)
   } catch {
     /* ignore */
   }
-  partners = seedPartners()
+  subAgents = seedSubAgents()
   emit(false)
 }
 
-export function reloadPartnersFromStorage() {
-  hydratePartnersFromStorage()
+export function reloadSubAgentsFromStorage() {
+  hydrateSubAgentsFromStorage()
 }
 
 function subscribe(listener: Listener) {
@@ -162,15 +172,15 @@ function subscribe(listener: Listener) {
 }
 
 function getSnapshot() {
-  return partners
+  return subAgents
 }
 
 function tenantId() {
   return getActiveTenantId() || DEFAULT_TENANT_ID
 }
 
-function inActiveTenant(partner: Partner) {
-  return partner.tenantId === tenantId()
+function inActiveTenant(subAgent: SubAgent) {
+  return subAgent.tenantId === tenantId()
 }
 
 function nextId(existing: string[]) {
@@ -181,31 +191,31 @@ function nextId(existing: string[]) {
   return `AGT-T${String(next).padStart(4, '0')}`
 }
 
-export function usePartners(): Partner[] {
+export function useSubAgents(): SubAgent[] {
   const { session } = useAuth()
   const all = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const activeId = session?.tenantId ?? DEFAULT_TENANT_ID
   return useMemo(
-    () => all.filter((partner) => partner.tenantId === activeId),
+    () => all.filter((subAgent) => subAgent.tenantId === activeId),
     [all, activeId],
   )
 }
 
-export function getPartnerById(id: string): Partner | undefined {
-  return partners.find(
-    (partner) => partner.id === id && inActiveTenant(partner),
+export function getSubAgentById(id: string): SubAgent | undefined {
+  return subAgents.find(
+    (subAgent) => subAgent.id === id && inActiveTenant(subAgent),
   )
 }
 
 /** Public intake: resolve a sub agent without requiring a signed-in tenant. */
-export function findPartnerById(id: string): Partner | undefined {
-  return partners.find((partner) => partner.id === id)
+export function findSubAgentById(id: string): SubAgent | undefined {
+  return subAgents.find((subAgent) => subAgent.id === id)
 }
 
-export function createPartner(draft: PartnerDraft): Partner {
-  const created: Partner = {
+export function createSubAgent(draft: SubAgentDraft): SubAgent {
+  const created: SubAgent = {
     ...draft,
-    id: nextId(partners.map((partner) => partner.id)),
+    id: nextId(subAgents.map((subAgent) => subAgent.id)),
     tenantId: tenantId(),
     name: draft.name.trim(),
     phone: draft.phone.trim(),
@@ -216,19 +226,19 @@ export function createPartner(draft: PartnerDraft): Partner {
     status: draft.status ?? 'Active',
     createdAt: new Date().toISOString(),
   }
-  partners = [created, ...partners]
+  subAgents = [created, ...subAgents]
   emit()
   return created
 }
 
-export function updatePartner(
+export function updateSubAgent(
   id: string,
-  patch: Partial<PartnerDraft>,
-): Partner | undefined {
-  let updated: Partner | undefined
-  partners = partners.map((partner) => {
-    if (partner.id !== id || !inActiveTenant(partner)) return partner
-    updated = { ...partner, ...patch }
+  patch: Partial<SubAgentDraft>,
+): SubAgent | undefined {
+  let updated: SubAgent | undefined
+  subAgents = subAgents.map((subAgent) => {
+    if (subAgent.id !== id || !inActiveTenant(subAgent)) return subAgent
+    updated = { ...subAgent, ...patch }
     return updated
   })
   if (updated) emit()

@@ -146,6 +146,10 @@ export type ServiceRequest = {
 /** @deprecated Use ServiceRequest */
 export type Case = ServiceRequest
 
+/**
+ * Create rules (locked) — see `caseServiceRules.ts`:
+ * required: clientId + service; everything else optional.
+ */
 export type CreateCaseInput = {
   clientId: string
   service: ServiceType

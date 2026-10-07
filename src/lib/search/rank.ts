@@ -68,7 +68,7 @@ export function scoreSearchItem(
   if (
     (item.kind === 'client' ||
       item.kind === 'employee' ||
-      item.kind === 'partner') &&
+      item.kind === 'subAgent') &&
     tokens.length === 1
   ) {
     const token = tokens[0].toLowerCase()

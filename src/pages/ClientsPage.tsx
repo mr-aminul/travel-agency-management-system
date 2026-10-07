@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Avatar, Badge, Button, EmptyState, FilterPopover, SearchField, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tooltip, TypeConfirmDialog } from '@/components/ui'
 import {
   CheckCircle2,
+  CircleDot,
   FolderOpen,
   LayoutGrid,
+  ListChecks,
   Table2,
   Users,
   Wallet,
@@ -13,23 +16,6 @@ import { ClientRowActions } from '@/components/clients/ClientRowActions'
 import { NewClientForm } from '@/components/clients/NewClientForm'
 import { caseStatusBadgeVariant } from '@/components/cases/CasesList'
 import { StatCards } from '@/components/StatCards'
-import {
-  Avatar,
-  Badge,
-  Button,
-  EmptyState,
-  SearchField,
-  SideDrawer,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Tooltip,
-  TypeConfirmDialog,
-} from '@/components/ui'
 import { useCases } from '@/lib/casesStore'
 import {
   clientMatchesServiceStatusFilters,
@@ -46,7 +32,7 @@ import {
   useClients,
 } from '@/lib/clientsStore'
 import { formatBdt } from '@/lib/dashboardMetrics'
-import { usePartners } from '@/lib/partnersStore'
+import { useSubAgents } from '@/lib/subAgentsStore'
 import type { Case } from '@/types/case'
 import type { Client, CreateClientInput, ServiceType } from '@/types/client'
 import '@/styles/layout-clients.css'
@@ -99,7 +85,7 @@ function matchesFilters(
   search: string,
   serviceFilters: string[],
   statusFilters: string[],
-  partnerName: string,
+  subAgentName: string,
   clientCases: Case[],
 ): boolean {
   const q = search.trim().toLowerCase()
@@ -111,7 +97,7 @@ function matchesFilters(
     client.phone.toLowerCase().includes(q) ||
     client.passport?.toLowerCase().includes(q) ||
     client.nid?.toLowerCase().includes(q) ||
-    partnerName.toLowerCase().includes(q) ||
+    subAgentName.toLowerCase().includes(q) ||
     (queryDigits.length > 0 && phoneDigits.includes(queryDigits))
   const matchService =
     serviceFilters.length === 0 ||
@@ -135,7 +121,7 @@ export default function ClientsPage() {
     archivedOnly: showArchived,
   })
   const cases = useCases()
-  const partners = usePartners()
+  const subAgents = useSubAgents()
   const [search, setSearch] = useState('')
   const [serviceFilters, setServiceFilters] = useState<string[]>([])
   const [statusFilters, setStatusFilters] = useState<string[]>([])
@@ -144,14 +130,14 @@ export default function ClientsPage() {
   const [listView, setListView] = useState<ClientsListView>(readClientsListView)
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null)
 
-  const partnersById = useMemo(
-    () => new Map(partners.map((partner) => [partner.id, partner.name])),
-    [partners],
+  const subAgentsById = useMemo(
+    () => new Map(subAgents.map((subAgent) => [subAgent.id, subAgent.name])),
+    [subAgents],
   )
   const casesByClientId = useMemo(() => groupCasesByClientId(cases), [cases])
 
-  const partnerNameFor = (client: Client) =>
-    client.partnerId ? (partnersById.get(client.partnerId) ?? '') : ''
+  const subAgentNameFor = (client: Client) =>
+    client.subAgentId ? (subAgentsById.get(client.subAgentId) ?? '') : ''
   const casesFor = (clientId: string) => casesByClientId.get(clientId) ?? []
   const statusFor = (clientId: string) =>
     deriveClientServiceStatus(casesFor(clientId))
@@ -189,7 +175,7 @@ export default function ClientsPage() {
       search,
       serviceFilters,
       statusFilters,
-      partnerNameFor(client),
+      subAgentNameFor(client),
       casesFor(client.id),
     )
   })
@@ -248,11 +234,7 @@ export default function ClientsPage() {
   const handleCreateClient = (input: CreateClientInput) => {
     const created = createClient(input)
     closeNewClientModal()
-    if (input.openFirstCase) {
-      navigate(`/clients/${created.id}?newCase=1`)
-      return
-    }
-    navigate(`/clients/${created.id}`)
+    navigate(`/clients/${created.id}?newCase=1`)
   }
 
   const handleArchive = (client: Client) => {
@@ -353,6 +335,33 @@ export default function ClientsPage() {
               </button>
             )}
           </div>
+          <FilterPopover
+            className="pd-clients__mobile-filters"
+            sectionLabel="Client attributes"
+            dimensions={[
+              {
+                id: 'service',
+                label: 'Service',
+                icon: ListChecks,
+                options: getEnabledServiceTypeOptions(),
+                value: serviceFilters,
+                onChange: setServiceFilters,
+              },
+              {
+                id: 'status',
+                label: 'Status',
+                icon: CircleDot,
+                options: STATUS_FILTERS,
+                value: statusFilters,
+                onChange: setStatusFilters,
+              },
+            ]}
+            onClearAll={() => {
+              setServiceFilters([])
+              setStatusFilters([])
+              setDueOnly(false)
+            }}
+          />
           <div className="pd-clients__views" role="group" aria-label="Client list view">
             <Tooltip content="Table view">
               <button
@@ -424,7 +433,7 @@ export default function ClientsPage() {
       ) : listView === 'grid' ? (
         <div className="pd-clients__grid">
           {filtered.map((client) => {
-            const partnerName = partnerNameFor(client)
+            const subAgentName = subAgentNameFor(client)
             const serviceStatus = statusFor(client.id)
             return (
               <div key={client.id} className="pd-clients__card">
@@ -467,7 +476,7 @@ export default function ClientsPage() {
                   <dl className="pd-clients__card-meta">
                     <div className="pd-clients__card-row">
                       <dt>Sub Agent</dt>
-                      <dd>{partnerName || '—'}</dd>
+                      <dd>{subAgentName || '—'}</dd>
                     </div>
                     <div className="pd-clients__card-row">
                       <dt>Mobile</dt>
@@ -526,7 +535,7 @@ export default function ClientsPage() {
                       <p className="pd-clients__name">{client.name}</p>
                     </div>
                   </TableCell>
-                  <TableCell>{partnerNameFor(client) || '—'}</TableCell>
+                  <TableCell>{subAgentNameFor(client) || '—'}</TableCell>
                   <TableCell>{formatMobile(client.phone)}</TableCell>
                   <TableCell>{client.passport || '—'}</TableCell>
                   <TableCell>{client.activeCases}</TableCell>

@@ -7,7 +7,7 @@ import {
 import {
   createClient,
   getClientById,
-  getClientsByPartnerId,
+  getClientsBySubAgentId,
   reloadClientsFromStorage,
   resetClients,
 } from '@/lib/clientsStore'
@@ -26,7 +26,7 @@ describe('persisted public client intake', () => {
         phone: '01844445555',
         primaryService: 'Tour Package',
         idChecked: true,
-        partnerId: 'AGT-T0001',
+        subAgentId: 'AGT-T0001',
       },
       { tenantId: TENANT_IDS.full },
     )
@@ -47,7 +47,7 @@ describe('persisted public client intake', () => {
 
     expect(getClientById(created.id)?.name).toBe('Public Form Lead')
     expect(
-      getClientsByPartnerId('AGT-T0001').some((client) => client.id === created.id),
+      getClientsBySubAgentId('AGT-T0001').some((client) => client.id === created.id),
     ).toBe(true)
   })
 

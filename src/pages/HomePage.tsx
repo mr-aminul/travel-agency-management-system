@@ -8,6 +8,7 @@ import {
   Users,
   UsersRound,
   Wallet,
+  Workflow,
   type LucideIcon,
 } from 'lucide-react'
 import { HomeGlobalSearch } from '@/components/home/HomeGlobalSearch'
@@ -37,6 +38,12 @@ const QUICK_LINKS: QuickLink[] = [
     icon: ClipboardList,
   },
   {
+    path: '/readiness',
+    label: 'Readiness',
+    description: 'Who is ready for which step',
+    icon: Workflow,
+  },
+  {
     path: '/payments',
     label: 'Payments',
     description: 'Collections & balances',
@@ -55,7 +62,7 @@ const QUICK_LINKS: QuickLink[] = [
     icon: UsersRound,
   },
   {
-    path: '/partners',
+    path: '/sub-agents',
     label: 'Sub Agents',
     description: 'Referring agencies',
     icon: Handshake,

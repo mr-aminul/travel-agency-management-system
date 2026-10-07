@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEMO_USER, writeSession } from '@/lib/authApi'
 import {
+  countClientDocumentAlerts,
   getClientIdentityRows,
   getClientServiceDocumentGroups,
   isIdentityCaseDocument,
@@ -45,10 +46,9 @@ describe('client documents inventory', () => {
     expect(identity.map((row) => row.kind)).toEqual(['passport', 'nid'])
     expect(identity[0]?.value).toBe('A11112222')
     expect(identity[1]?.value).toBe('1990111122222')
-    expect(identity[0]?.needsCopy.map((target) => target.service)).toEqual([
-      'Work Permit Visa',
-      'Air Ticket',
-    ])
+    // Client passport is already on the profile, so service files do not need a copy.
+    expect(identity[0]?.needsCopy).toEqual([])
+    expect(identity[0]?.value).toBe('A11112222')
 
     const groups = getClientServiceDocumentGroups([permit, ticket])
     expect(groups).toHaveLength(2)
@@ -100,5 +100,39 @@ describe('client documents inventory', () => {
       getCaseById(ticket.id)?.documents.find((doc) => doc.id === 'passport')
         ?.fileName,
     ).toBe('passport.pdf')
+  })
+
+  it('counts identity and unlocked service docs that still need a file upload', () => {
+    writeSession({
+      user: DEMO_USER,
+      tenantId: TENANT_IDS.full,
+      signedInAt: '2026-01-01T00:00:00.000Z',
+    })
+    const client = createClient({
+      name: 'Alert Docs Client',
+      phone: `017${Date.now().toString().slice(-8)}`,
+      passport: 'P99887766',
+      primaryService: 'Tourist Visa',
+      idChecked: true,
+    })
+    const visa = createCase({
+      clientId: client.id,
+      service: 'Tourist Visa',
+    })
+
+    // Number alone must not clear the passport alert — scan is still missing.
+    expect(countClientDocumentAlerts(client, [visa])).toBeGreaterThanOrEqual(2)
+
+    recordIdentityDocument(client.id, 'passport', {
+      fields: { number: 'P99887766' },
+      detail: 'P99887766',
+      fileName: 'passport-scan.pdf',
+    })
+    const refreshed = getClientById(client.id)!
+    const refreshedCase = getCaseById(visa.id)!
+    // Passport file attached; NID scan still missing.
+    expect(countClientDocumentAlerts(refreshed, [refreshedCase])).toBeGreaterThanOrEqual(
+      1,
+    )
   })
 })

@@ -412,3 +412,28 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+@media (max-width: 767px) {
+  .pd-docs__toolbar .pd-search {
+    flex: 1 1 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pd-docs__people button {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .pd-paper__stamps--five {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pd-mofa-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-paper {
+    padding: 1rem;
+  }
+}

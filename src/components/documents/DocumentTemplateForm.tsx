@@ -2,6 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button, Input, Select, Textarea } from '@/components/ui'
 import {
+  validateOptionalText,
+  validateRequiredText,
+} from '@/lib/fieldValidation'
+import { useTouchedFields } from '@/lib/useTouchedFields'
+import {
   DOCUMENT_TEMPLATE_GROUPS,
   PRINT_FIELD_LABELS,
   PRINT_FIELDS,
@@ -76,12 +81,15 @@ export function DocumentTemplateForm({
   const [headerRows, setHeaderRows] = useState<TemplateColumn[][]>(
     cloneColumns(initial?.headerRows?.length ? initial.headerRows : embassyHeaderRows()),
   )
-  const [triedSubmit, setTriedSubmit] = useState(false)
-
-  const nameError =
-    triedSubmit && name.trim().length < 2
-      ? 'Give the template a name.'
-      : undefined
+  const { markAllTouched, showError, blur } = useTouchedFields<
+    'name' | 'title' | 'licenseNo' | 'country' | 'declaration' | 'letterIntro'
+  >()
+  const nameError = validateRequiredText(name, 'Template name', 2)
+  const titleError = validateOptionalText(title, 'Printed title', 200)
+  const licenseError = validateOptionalText(licenseNo, 'License number', 40)
+  const countryError = validateOptionalText(country, 'Destination country', 80)
+  const declarationError = validateOptionalText(declaration, 'Declaration', 2000)
+  const letterIntroError = validateOptionalText(letterIntro, 'Letter intro', 2000)
 
   const columns = headerRows[0] ?? []
 
@@ -132,8 +140,24 @@ export function DocumentTemplateForm({
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    setTriedSubmit(true)
-    if (name.trim().length < 2) return
+    markAllTouched([
+      'name',
+      'title',
+      'licenseNo',
+      'country',
+      'declaration',
+      'letterIntro',
+    ])
+    if (
+      nameError ||
+      titleError ||
+      licenseError ||
+      countryError ||
+      declarationError ||
+      letterIntroError
+    ) {
+      return
+    }
     onSubmit({
       name,
       group,
@@ -160,8 +184,11 @@ export function DocumentTemplateForm({
         required
         value={name}
         onChange={(event) => setName(event.target.value)}
+        onBlur={blur('name')}
         placeholder="Embassy List"
-        error={nameError ?? error ?? undefined}
+        error={
+          (showError('name') ? nameError : undefined) ?? error ?? undefined
+        }
       />
       <Select
         label="Group"
@@ -191,18 +218,24 @@ export function DocumentTemplateForm({
         label="Printed title"
         value={title}
         onChange={(event) => setTitle(event.target.value)}
+        onBlur={blur('title')}
+        error={showError('title') ? titleError : undefined}
       />
       <Input
         label="License number"
         value={licenseNo}
         onChange={(event) => setLicenseNo(event.target.value)}
+        onBlur={blur('licenseNo')}
         placeholder="864"
+        error={showError('licenseNo') ? licenseError : undefined}
       />
       <Input
         label="Destination country"
         value={country}
         onChange={(event) => setCountry(event.target.value)}
+        onBlur={blur('country')}
         placeholder="সৌদি আরব"
+        error={showError('country') ? countryError : undefined}
       />
 
       {layout === 'letter' ? (
@@ -211,7 +244,9 @@ export function DocumentTemplateForm({
             label="Letter intro"
             value={letterIntro}
             onChange={(event) => setLetterIntro(event.target.value)}
+            onBlur={blur('letterIntro')}
             hint="Use {{agency}}, {{license}}, {{date}}, {{country}}"
+            error={showError('letterIntro') ? letterIntroError : undefined}
           />
           <Textarea
             label="Checklist lines"
@@ -275,6 +310,8 @@ export function DocumentTemplateForm({
             label="Declaration under the table"
             value={declaration}
             onChange={(event) => setDeclaration(event.target.value)}
+            onBlur={blur('declaration')}
+            error={showError('declaration') ? declarationError : undefined}
           />
         </>
       )}

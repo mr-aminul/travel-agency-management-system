@@ -2,15 +2,6 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Banknote, Receipt, Users, Wallet } from 'lucide-react'
 import { StatCards } from '@/components/StatCards'
-import {
-  EmptyState,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui'
 import { useCases } from '@/lib/casesStore'
 import { getClientById } from '@/lib/clientsStore'
 import { formatBdt } from '@/lib/dashboardMetrics'
@@ -18,6 +9,7 @@ import { formatDisplayDate } from '@/lib/formatDate'
 import { formatPaymentAmount, usePayments } from '@/lib/paymentsStore'
 import { workDetailPath } from '@/lib/workPaths'
 import '@/styles/layout-ops.css'
+import { EmptyState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui'
 
 type PaymentStatId = 'all' | 'collected' | 'clients' | 'due'
 

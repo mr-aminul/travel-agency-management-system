@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildExecutivePulse,
   casesByStatus,
-  clientsByPartner,
+  clientsBySubAgent,
   collectionsByMonth,
   computeOwnerKpis,
   formatCollectionRate,
@@ -23,7 +23,7 @@ import {
 import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { Employee } from '@/types/employee'
-import type { Partner } from '@/types/partner'
+import type { SubAgent } from '@/types/subAgent'
 import type { Payment } from '@/types/payment'
 import type { StatusUpdateRequest } from '@/types/request'
 import { TENANT_IDS } from '@/types/tenant'
@@ -36,7 +36,7 @@ const clients: Client[] = [
     tenantId: TENANT_IDS.full,
     name: 'Nadia',
     phone: '01711111111',
-    partnerId: 'p-1',
+    subAgentId: 'p-1',
     services: ['Work Permit Visa'],
     balance: 10000,
     activeCases: 1,
@@ -48,7 +48,7 @@ const clients: Client[] = [
     tenantId: TENANT_IDS.full,
     name: 'Rafi',
     phone: '01722222222',
-    partnerId: 'p-1',
+    subAgentId: 'p-1',
     services: ['Student Visa'],
     balance: 0,
     activeCases: 0,
@@ -60,7 +60,7 @@ const clients: Client[] = [
     tenantId: TENANT_IDS.full,
     name: 'Lina',
     phone: '01733333333',
-    partnerId: 'p-2',
+    subAgentId: 'p-2',
     services: ['Tour Package'],
     balance: 0,
     activeCases: 0,
@@ -183,7 +183,7 @@ const requests: StatusUpdateRequest[] = [
   {
     id: 'req-1',
     tenantId: TENANT_IDS.full,
-    partnerId: 'p-1',
+    subAgentId: 'p-1',
     clientId: 'c-1',
     caseId: 'case-open',
     fromStatus: 'Pending',
@@ -194,7 +194,7 @@ const requests: StatusUpdateRequest[] = [
   {
     id: 'req-old',
     tenantId: TENANT_IDS.full,
-    partnerId: 'p-1',
+    subAgentId: 'p-1',
     clientId: 'c-1',
     caseId: 'case-open',
     fromStatus: 'In-Progress',
@@ -204,7 +204,7 @@ const requests: StatusUpdateRequest[] = [
   },
 ]
 
-const partners: Partner[] = [
+const subAgents: SubAgent[] = [
   {
     id: 'p-1',
     tenantId: TENANT_IDS.full,
@@ -327,7 +327,7 @@ describe('owner dashboard insights', () => {
     expect(items[1]?.reason).toBe('on-hold')
   })
 
-  it('lists recent collections, top outstanding, departures, partners, and workload', () => {
+  it('lists recent collections, top outstanding, departures, subAgents, and workload', () => {
     expect(recentPayments(payments, clients, cases, 5).map((row) => row.id)).toEqual(
       ['pay-recent', 'pay-old'],
     )
@@ -339,8 +339,8 @@ describe('owner dashboard insights', () => {
       upcomingDepartures(cases, 5, asOf).map((row) => row.id),
     ).toEqual(['case-open'])
     expect(
-      clientsByPartner(clients, partners).map((row) => [
-        row.partnerId,
+      clientsBySubAgent(clients, subAgents).map((row) => [
+        row.subAgentId,
         row.clientCount,
       ]),
     ).toEqual([
@@ -371,7 +371,7 @@ describe('owner dashboard insights', () => {
     expect(computeOwnerKpis([], [], [], [], asOf).collectionRate).toBe(0)
     expect(recentPayments([], [], [])).toEqual([])
     expect(upcomingDepartures([], 5, asOf)).toEqual([])
-    expect(clientsByPartner([], partners)).toEqual([])
+    expect(clientsBySubAgent([], subAgents)).toEqual([])
     expect(workloadByAssignee([], employees)).toEqual([])
     expect(revenueByService([])).toEqual([])
   })

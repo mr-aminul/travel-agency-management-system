@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Tooltip } from '@/components/ui'
 import {
   ChevronDown,
   PanelLeftClose,
   PanelLeftOpen,
   X,
 } from 'lucide-react'
-import { Tooltip } from '@/components/ui'
 import type { NavItem, BrandConfig } from './types'
 import { applySidebarExpanded } from '@/lib/sidebarPrefs'
 import { useSidebarPrefs } from './useSidebarPrefs'

@@ -2,10 +2,9 @@ import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { NewClientForm } from '@/components/clients/NewClientForm'
-import { Alert } from '@/components/ui'
 import { layoutConfig } from '@/config/layout'
 import { createClient } from '@/lib/clientsStore'
-import { findPartnerById } from '@/lib/partnersStore'
+import { findSubAgentById } from '@/lib/subAgentsStore'
 import { publicUrl } from '@/lib/publicUrl'
 import { getTenantById, resolveTenantRef } from '@/lib/tenantsStore'
 import type { CreateClientInput } from '@/types/client'
@@ -13,19 +12,19 @@ import '@/styles/layout-track.css'
 import '@/styles/layout-clients.css'
 
 export default function PublicClientIntakePage() {
-  const { partnerId = '', tenantSlug: tenantFromRoute = '' } = useParams()
+  const { subAgentId = '', tenantSlug: tenantFromRoute = '' } = useParams()
   const isAgencyDirect = Boolean(tenantFromRoute)
-  const partner = useMemo(
-    () => (partnerId ? findPartnerById(partnerId) : undefined),
-    [partnerId],
+  const subAgent = useMemo(
+    () => (subAgentId ? findSubAgentById(subAgentId) : undefined),
+    [subAgentId],
   )
-  const activePartner =
-    partner && partner.status !== 'Inactive' ? partner : undefined
+  const activeSubAgent =
+    subAgent && subAgent.status !== 'Inactive' ? subAgent : undefined
   const tenant = useMemo(() => {
     if (tenantFromRoute) return resolveTenantRef(tenantFromRoute)
-    if (partner) return getTenantById(partner.tenantId)
+    if (subAgent) return getTenantById(subAgent.tenantId)
     return undefined
-  }, [tenantFromRoute, partner])
+  }, [tenantFromRoute, subAgent])
   const tenantAcceptsIntake =
     tenant != null && tenant.status !== 'suspended'
   const [submittedName, setSubmittedName] = useState<string | null>(null)
@@ -33,7 +32,7 @@ export default function PublicClientIntakePage() {
 
   const formReady = isAgencyDirect
     ? tenantAcceptsIntake
-    : Boolean(activePartner)
+    : Boolean(activeSubAgent)
 
   const handleSubmit = (input: CreateClientInput) => {
     if (!formReady || !tenant) return
@@ -42,8 +41,7 @@ export default function PublicClientIntakePage() {
       const created = createClient(
         {
           ...input,
-          partnerId: isAgencyDirect ? undefined : activePartner?.id,
-          openFirstCase: false,
+          subAgentId: isAgencyDirect ? undefined : activeSubAgent?.id,
           idChecked: true,
         },
         { tenantId: tenant.id },
@@ -62,15 +60,15 @@ export default function PublicClientIntakePage() {
     ? tenantAcceptsIntake
       ? undefined
       : 'This registration link is invalid or has expired.'
-    : !partner || partner.status === 'Inactive'
-      ? partner
+    : !subAgent || subAgent.status === 'Inactive'
+      ? subAgent
         ? 'This registration link is no longer active. Ask the agency for a new one.'
         : 'This registration link is invalid or has expired.'
       : undefined
 
   const referringName = isAgencyDirect
     ? (tenant?.name ?? layoutConfig.brand.name)
-    : (partner?.name ?? 'The agency')
+    : (subAgent?.name ?? 'The agency')
 
   return (
     <div className="pd-track">
@@ -110,14 +108,14 @@ export default function PublicClientIntakePage() {
             {formReady ? (
               <>
                 {submitError ? (
-                  <Alert variant="error" title="Could not submit">
+                  <p className="pd-field__error" role="alert">
                     {submitError}
-                  </Alert>
+                  </p>
                 ) : null}
                 <NewClientForm
                   variant="public"
-                  defaultPartnerId={
-                    isAgencyDirect ? undefined : activePartner?.id
+                  defaultSubAgentId={
+                    isAgencyDirect ? undefined : activeSubAgent?.id
                   }
                   serviceTenantId={tenant?.id}
                   submitLabel="Submit"
@@ -125,9 +123,9 @@ export default function PublicClientIntakePage() {
                 />
               </>
             ) : (
-              <Alert variant="warning" title="Form unavailable">
+              <p className="pd-field__error" role="status">
                 {unavailable}
-              </Alert>
+              </p>
             )}
           </>
         )}

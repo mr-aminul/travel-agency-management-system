@@ -99,7 +99,7 @@ describe('settings service catalog', () => {
       screen.getByRole('button', { name: 'Upload photo' }),
     ).toBeInTheDocument()
     const nameField = screen.getByLabelText('Business name')
-    expect(nameField.closest('.pd-partner-photo__name')).not.toBeNull()
+    expect(nameField.closest('.pd-profile-photo__name')).not.toBeNull()
   }, 15000)
 
   it('writes the section into the URL', async () => {

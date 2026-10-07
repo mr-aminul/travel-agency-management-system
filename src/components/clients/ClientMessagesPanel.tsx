@@ -1,3 +1,4 @@
+import { Button, Input, Textarea } from '@/components/ui'
 import {
   useEffect,
   useId,
@@ -8,7 +9,6 @@ import {
   type FormEvent,
 } from 'react'
 import { ImagePlus, X } from 'lucide-react'
-import { Button, Input, Textarea } from '@/components/ui'
 import {
   sendClientMessage,
   useClientMessages,
@@ -208,6 +208,15 @@ export function ClientMessagesPanel({
                 setBody(event.target.value)
                 if (error) setError(undefined)
               }}
+              onBlur={() => {
+                const validation = validateClientMessage(
+                  channel,
+                  body,
+                  address,
+                  attachment,
+                )
+                if (validation) setError(validation)
+              }}
               placeholder="Write your email…"
               aria-label="Email"
               disabled={!address}
@@ -274,6 +283,15 @@ export function ClientMessagesPanel({
               onChange={(event) => {
                 setBody(event.target.value)
                 if (error) setError(undefined)
+              }}
+              onBlur={() => {
+                const validation = validateClientMessage(
+                  channel,
+                  body,
+                  address,
+                  attachment,
+                )
+                if (validation) setError(validation)
               }}
               placeholder="Message"
               aria-label="Message"

@@ -1,20 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  Button,
-  EmptyState,
-  Input,
-  Modal,
-  PageHeader,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui'
 import { formatSalary, useEmployees } from '@/lib/employeesStore'
 import { useAttendance } from '@/lib/hrAttendance'
+import { Button, EmptyState, Input, Modal, PageHeader, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui'
 import {
   buildPayrollLines,
   currentYearMonth,

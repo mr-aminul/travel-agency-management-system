@@ -2,20 +2,12 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { Check, ClipboardList, FileText, Link2, SquarePen } from 'lucide-react'
 import { CasePipeline } from '@/components/cases/CasePipeline'
-import {
-  Badge,
-  Button,
-  EmptyState,
-  Input,
-  Modal,
-  Select,
-  Textarea,
-  type BadgeVariant,
-} from '@/components/ui'
 import { getCurrentStepLabel } from '@/lib/caseChecklist'
 import { formatDisplayDate } from '@/lib/formatDate'
 import { serviceDetailAriaLabel } from '@/lib/serviceDisplay'
 import { countMissingDocuments } from '@/lib/caseDocuments'
+import { listCaseInfoGaps } from '@/lib/caseServiceRules'
+import { Badge, Button, Input, Modal, Select, Textarea, type BadgeVariant } from '@/components/ui'
 import {
   CASE_STATUS_OPTIONS,
   getCaseById,
@@ -69,12 +61,19 @@ async function copyText(value: string) {
 function Fact({
   label,
   value,
+  attention = false,
 }: {
   label: string
   value: ReactNode
+  /** Recommended gap — highlight only, never blocks progress. */
+  attention?: boolean
 }) {
   return (
-    <div className="pd-case-detail__fact">
+    <div
+      className={['pd-case-detail__fact', attention ? 'is-attention' : '']
+        .filter(Boolean)
+        .join(' ')}
+    >
       <span className="pd-case-detail__fact-label">{label}</span>
       <span className="pd-case-detail__fact-value">{value}</span>
     </div>
@@ -124,6 +123,9 @@ export default function CaseDetailPage() {
   }
 
   const missingDocs = countMissingDocuments(item)
+  const setupGaps = listCaseInfoGaps(item)
+  const missingCountry = setupGaps.some((gap) => gap.id === 'country')
+  const missingAssignee = setupGaps.some((gap) => gap.id === 'assignee')
   const paidTotal = casePayments.reduce((sum, payment) => sum + payment.amount, 0)
   const serviceFee = caseServiceFee(item, paidTotal)
   const assignedName = getEmployeeDisplayName(item.assignedTo)
@@ -356,13 +358,18 @@ export default function CaseDetailPage() {
                 <Fact
                   label="Destination"
                   value={item.destination || '—'}
+                  attention={missingCountry}
                 />
                 <Fact
                   label="Departure"
                   value={formatDate(item.departureDate)}
                 />
                 <Fact label="Current step" value={currentLabel} />
-                <Fact label="Assigned to" value={assignedName || '—'} />
+                <Fact
+                  label="Assigned to"
+                  value={assignedName || '—'}
+                  attention={missingAssignee}
+                />
                 <Fact
                   label="Service fee"
                   value={formatBalance(serviceFee)}
@@ -380,6 +387,7 @@ export default function CaseDetailPage() {
                       ? `${missingDocs} needed`
                       : 'Complete'
                   }
+                  attention={missingDocs > 0}
                 />
               </div>
               {item.description ? (
@@ -402,9 +410,8 @@ export default function CaseDetailPage() {
             </Button>
             <Button
               onClick={() => {
-                if (!client?.partnerId) return
                 submitStatusRequest({
-                  partnerId: client.partnerId,
+                  subAgentId: client?.subAgentId,
                   clientId: item.clientId,
                   caseId: item.id,
                   fromStatus: item.status,
@@ -413,36 +420,27 @@ export default function CaseDetailPage() {
                 })
                 setRequestOpen(false)
               }}
-              disabled={!client?.partnerId || requestTo === item.status}
+              disabled={requestTo === item.status}
             >
               Submit request
             </Button>
           </>
         }
       >
-        {client?.partnerId ? (
-          <>
-            <Select
-              label="Move to"
-              value={requestTo}
-              onChange={(event) =>
-                setRequestTo(event.target.value as CaseStatus)
-              }
-              options={CASE_STATUS_OPTIONS}
-            />
-            <Textarea
-              label="Remarks"
-              rows={3}
-              value={requestRemarks}
-              onChange={(event) => setRequestRemarks(event.target.value)}
-            />
-          </>
-        ) : (
-          <EmptyState
-            title="No sub agent on this client"
-            description="Link a sub agent on the client profile before requesting a status change."
-          />
-        )}
+        <Select
+          label="Move to"
+          value={requestTo}
+          onChange={(event) =>
+            setRequestTo(event.target.value as CaseStatus)
+          }
+          options={CASE_STATUS_OPTIONS}
+        />
+        <Textarea
+          label="Remarks"
+          rows={3}
+          value={requestRemarks}
+          onChange={(event) => setRequestRemarks(event.target.value)}
+        />
       </Modal>
     </div>
   )

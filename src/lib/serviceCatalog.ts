@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react'
 import { useCustomServices } from '@/lib/customServicesStore'
 import { activeTenantAllowsService, resolveActiveTenant } from '@/lib/activeTenant'
 import { findCustomServiceBySlug, listCustomServices } from '@/lib/customServicesStore'
@@ -5,6 +6,8 @@ import {
   isCatalogServiceHidden,
   useHiddenServices,
 } from '@/lib/hiddenServicesStore'
+import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
+import { iconForService } from '@/lib/serviceIcons'
 import { getTenantById, tenantAllowsService } from '@/lib/tenantsStore'
 import {
   BUILTIN_SERVICE_OPTIONS,
@@ -13,6 +16,12 @@ import {
   type BuiltinServiceType,
   type ServiceType,
 } from '@/types/case'
+
+export type ServiceSelectOption = {
+  value: ServiceType
+  label: string
+  icon: LucideIcon
+}
 
 export type CatalogServiceRef = {
   key: ServiceType
@@ -121,10 +130,16 @@ export function resolveCatalogEditorService(
   return findCatalogServiceRef(name, forTenantId)
 }
 
-export function useEnabledServiceOptions(forTenantId?: string) {
+export function useEnabledServiceOptions(
+  forTenantId?: string,
+): ServiceSelectOption[] {
   useCustomServices()
   useHiddenServices()
-  return getEnabledServiceOptions(forTenantId)
+  useServiceIconOverrides()
+  return getEnabledServiceOptions(forTenantId).map((option) => ({
+    ...option,
+    icon: iconForService(option.value, forTenantId),
+  }))
 }
 
 export function useCatalogServiceRefs(forTenantId?: string) {

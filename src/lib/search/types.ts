@@ -1,19 +1,19 @@
 import type { LucideIcon } from 'lucide-react'
-import type { BadgeVariant } from '@/components/ui'
+import { type BadgeVariant } from '@/components/ui'
 
 export type SearchKind =
   | 'action'
   | 'page'
   | 'client'
   | 'service'
-  | 'partner'
+  | 'subAgent'
   | 'employee'
 
 export type SearchScope =
   | 'all'
   | 'clients'
   | 'services'
-  | 'partners'
+  | 'subAgents'
   | 'employees'
   | 'pages'
   | 'actions'
@@ -58,7 +58,7 @@ export const SEARCH_SCOPES: Array<{ id: SearchScope; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'clients', label: 'Clients' },
   { id: 'services', label: 'Files' },
-  { id: 'partners', label: 'Sub agents' },
+  { id: 'subAgents', label: 'Sub agents' },
   { id: 'employees', label: 'Employees' },
   { id: 'pages', label: 'Pages' },
 ]
@@ -69,7 +69,7 @@ export const SEARCH_KIND_GROUP: Record<SearchKind, { id: string; label: string }
     page: { id: 'page', label: 'Pages' },
     client: { id: 'client', label: 'Clients' },
     service: { id: 'service', label: 'Service files' },
-    partner: { id: 'partner', label: 'Sub agents' },
+    subAgent: { id: 'subAgent', label: 'Sub agents' },
     employee: { id: 'employee', label: 'Employees' },
   }
 
@@ -78,6 +78,6 @@ export const SEARCH_KIND_ORDER: SearchKind[] = [
   'page',
   'client',
   'service',
-  'partner',
+  'subAgent',
   'employee',
 ]

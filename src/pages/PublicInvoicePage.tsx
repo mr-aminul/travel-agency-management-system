@@ -1,8 +1,8 @@
 import { useParams } from 'react-router-dom'
-import { EmptyState } from '@/components/ui'
 import { InvoicePageView } from '@/components/invoices/InvoicePageView'
 import { InvoicePrintActions } from '@/components/invoices/InvoicePrintActions'
 import { layoutConfig } from '@/config/layout'
+import { EmptyState } from '@/components/ui'
 import {
   decodeInvoiceShare,
   invoiceForDocument,

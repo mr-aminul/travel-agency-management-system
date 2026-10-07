@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
 import {
   Briefcase,
   Building2,
@@ -15,8 +16,7 @@ import {
 } from 'lucide-react'
 import '@/styles/layout-clients.css'
 import '@/styles/layout-settings.css'
-import { PartnerPhotoField } from '@/components/PartnerPhotoField'
-import { Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
+import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { ServiceCatalogEditor } from '@/components/settings/ServiceCatalogEditor'
 import { ClientProfileFieldsSection } from '@/components/settings/ClientProfileFieldsSection'
@@ -250,7 +250,7 @@ export default function SettingsPage() {
           {activeSection === 'business' ? (
             <form className="pd-settings-form" onSubmit={handleAgencySave}>
               <div className="pd-settings-form__fields">
-                <PartnerPhotoField
+                <ProfilePhotoField
                   name={agencyDraft.businessName || DEFAULT_BRAND_NAME}
                   fallbackName={DEFAULT_BRAND_NAME}
                   value={agencyDraft.profilePicture ?? undefined}
@@ -269,7 +269,7 @@ export default function SettingsPage() {
                       updateAgencyField('businessName', e.target.value)
                     }
                   />
-                </PartnerPhotoField>
+                </ProfilePhotoField>
                 <Textarea
                   label="Address"
                   name="address"

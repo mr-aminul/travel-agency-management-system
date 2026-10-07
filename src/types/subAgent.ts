@@ -1,6 +1,6 @@
-export type PartnerStatus = 'Active' | 'Inactive'
+export type SubAgentStatus = 'Active' | 'Inactive'
 
-export type Partner = {
+export type SubAgent = {
   id: string
   tenantId: string
   name: string
@@ -10,13 +10,13 @@ export type Partner = {
   licenseNumber?: string
   branch?: string
   photoUrl?: string
-  status: PartnerStatus
+  status: SubAgentStatus
   createdAt: string
 }
 
-export type PartnerDraft = Omit<
-  Partner,
+export type SubAgentDraft = Omit<
+  SubAgent,
   'id' | 'tenantId' | 'createdAt' | 'status'
 > & {
-  status?: PartnerStatus
+  status?: SubAgentStatus
 }

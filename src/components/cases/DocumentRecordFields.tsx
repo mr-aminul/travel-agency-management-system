@@ -1,9 +1,9 @@
 import type { FormEvent, ReactNode } from 'react'
 import { FileViewer } from '@/components/cases/FileViewer'
-import { FileDropzone, Input } from '@/components/ui'
 import { formatDisplayDate } from '@/lib/formatDate'
 import type { DocumentFormDef } from '@/lib/caseDocumentForms'
 import type { CaseDocument } from '@/types/case'
+import { FileDropzone, Input } from '@/components/ui'
 
 function ReadOnlyField({
   label,
@@ -40,6 +40,7 @@ export function DocumentRecordFields({
   fileFirst = false,
   embedded = false,
   hideFileMeta = false,
+  highlightNeedsFile = false,
   afterFields,
 }: {
   document: CaseDocument
@@ -59,6 +60,8 @@ export function DocumentRecordFields({
   fileFirst?: boolean
   embedded?: boolean
   hideFileMeta?: boolean
+  /** Soft highlight on the dropzone when a scan is still required. */
+  highlightNeedsFile?: boolean
   afterFields?: ReactNode
 }) {
   const isView = mode === 'view'
@@ -133,7 +136,13 @@ export function DocumentRecordFields({
       onDelete={onRemoveFile}
     />
   ) : (
-    <FileDropzone onFile={onAttachFile} />
+    <div
+      className={
+        highlightNeedsFile ? 'pd-doc-inspect__drop is-attention' : undefined
+      }
+    >
+      <FileDropzone onFile={onAttachFile} />
+    </div>
   )
 
   const fieldsWithActions = (

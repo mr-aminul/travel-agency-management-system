@@ -1,3 +1,4 @@
+import { type BadgeVariant } from '@/components/ui'
 import {
   Briefcase,
   FileText,
@@ -8,6 +9,7 @@ import {
   UserPlus,
   UserRound,
   Users,
+  Workflow,
 } from 'lucide-react'
 import { searchablePages } from '@/config/layout'
 import { filterNavItems, flattenNavItems, isPathAllowed } from '@/lib/modules'
@@ -19,10 +21,9 @@ import {
 import type { Case, CaseStatus } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { Employee } from '@/types/employee'
-import type { Partner } from '@/types/partner'
+import type { SubAgent } from '@/types/subAgent'
 import type { ModuleId, UserRole } from '@/types/tenant'
 import { clientPath, hrEmployeePath, workDetailPath } from '@/lib/workPaths'
-import type { BadgeVariant } from '@/components/ui'
 import type { SearchItem } from './types'
 
 export type SearchCatalogUser = Pick<AuthUser, 'name' | 'role'>
@@ -32,7 +33,7 @@ export type SearchCatalogInput = {
   enabledModules: readonly ModuleId[]
   clients: Client[]
   cases: Case[]
-  partners: Partner[]
+  subAgents: SubAgent[]
   employees: Employee[]
 }
 
@@ -112,6 +113,22 @@ function actionItems(user: SearchCatalogUser | null): SearchItem[] {
       icon: LayoutDashboard,
     },
     {
+      id: 'action:readiness',
+      kind: 'action',
+      scope: 'actions',
+      label: 'Open Stage Readiness',
+      keywords: uniqueKeywords([
+        'medical',
+        'visa',
+        'vmt',
+        'pipeline',
+        'steps',
+        'ready',
+      ]),
+      path: '/readiness',
+      icon: Workflow,
+    },
+    {
       id: 'action:my-profile',
       kind: 'action',
       scope: 'actions',
@@ -134,7 +151,7 @@ function actionItems(user: SearchCatalogUser | null): SearchItem[] {
 }
 
 export function buildSearchCatalog(input: SearchCatalogInput): SearchItem[] {
-  const { user, enabledModules, clients, cases, partners, employees } = input
+  const { user, enabledModules, clients, cases, subAgents, employees } = input
   const role: UserRole = user?.role ?? 'agency_user'
   const items: SearchItem[] = [...actionItems(user)]
 
@@ -221,29 +238,29 @@ export function buildSearchCatalog(input: SearchCatalogInput): SearchItem[] {
     })
   }
 
-  if (isPathAllowed('/partners', enabledModules, role)) {
-    for (const partner of partners) {
+  if (isPathAllowed('/sub-agents', enabledModules, role)) {
+    for (const subAgent of subAgents) {
       items.push({
-        id: `partner:${partner.id}`,
-        kind: 'partner',
-        scope: 'partners',
-        label: partner.name,
-        description: [partner.id, partner.licenseNumber, partner.phone]
+        id: `subAgent:${subAgent.id}`,
+        kind: 'subAgent',
+        scope: 'subAgents',
+        label: subAgent.name,
+        description: [subAgent.id, subAgent.licenseNumber, subAgent.phone]
           .filter(Boolean)
           .join(' · '),
         keywords: uniqueKeywords([
-          partner.id,
-          partner.phone,
-          partner.email,
-          partner.licenseNumber,
-          partner.branch,
+          subAgent.id,
+          subAgent.phone,
+          subAgent.email,
+          subAgent.licenseNumber,
+          subAgent.branch,
         ]),
-        path: `/partners/${partner.id}`,
+        path: `/sub-agents/${subAgent.id}`,
         icon: Handshake,
-        avatarUrl: partner.photoUrl,
-        avatarName: partner.name,
-        status: partner.status,
-        statusVariant: partner.status === 'Active' ? 'completed' : 'neutral',
+        avatarUrl: subAgent.photoUrl,
+        avatarName: subAgent.name,
+        status: subAgent.status,
+        statusVariant: subAgent.status === 'Active' ? 'completed' : 'neutral',
       })
     }
   }

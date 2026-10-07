@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { PageHeader, type BadgeVariant } from '@/components/ui'
 import {
   AlertTriangle,
   CircleDollarSign,
@@ -17,12 +18,11 @@ import { InsightList } from '@/components/dashboard/InsightList'
 import { PulseStrip } from '@/components/dashboard/PulseStrip'
 import { TrendChart } from '@/components/dashboard/TrendChart'
 import { StatCards } from '@/components/StatCards'
-import { PageHeader, type BadgeVariant } from '@/components/ui'
 import { useCases } from '@/lib/casesStore'
 import { useClients } from '@/lib/clientsStore'
 import {
   buildExecutivePulse,
-  clientsByPartner,
+  clientsBySubAgent,
   collectionsByMonth,
   computeOwnerKpis,
   formatBdt,
@@ -41,8 +41,8 @@ import {
 } from '@/lib/dashboardInsights'
 import { useEmployees } from '@/lib/employeesStore'
 import { formatDisplayDate } from '@/lib/formatDate'
-import { usePartners } from '@/lib/partnersStore'
 import { usePayments } from '@/lib/paymentsStore'
+import { useSubAgents } from '@/lib/subAgentsStore'
 import { useRequests } from '@/lib/requestsStore'
 import '@/styles/layout-ops.css'
 import '@/styles/layout-dashboard.css'
@@ -67,7 +67,7 @@ export default function DashboardPage() {
   const clients = useClients()
   const cases = useCases()
   const payments = usePayments()
-  const partners = usePartners()
+  const subAgents = useSubAgents()
   const requests = useRequests()
   const employees = useEmployees()
 
@@ -89,9 +89,9 @@ export default function DashboardPage() {
   )
   const outstanding = useMemo(() => topOutstanding(cases, 6), [cases])
   const departures = useMemo(() => upcomingDepartures(cases, 6), [cases])
-  const partnerMix = useMemo(
-    () => clientsByPartner(clients, partners),
-    [clients, partners],
+  const subAgentMix = useMemo(
+    () => clientsBySubAgent(clients, subAgents),
+    [clients, subAgents],
   )
   const workload = useMemo(
     () => workloadByAssignee(cases, employees, 6),
@@ -344,7 +344,7 @@ export default function DashboardPage() {
         </DashboardPanel>
       </div>
 
-      {workload.length > 0 || partnerMix.length > 0 ? (
+      {workload.length > 0 || subAgentMix.length > 0 ? (
         <div className="pd-dash__secondary">
           {workload.length > 0 ? (
             <DashboardPanel
@@ -362,14 +362,14 @@ export default function DashboardPage() {
               />
             </DashboardPanel>
           ) : null}
-          {partnerMix.length > 0 ? (
+          {subAgentMix.length > 0 ? (
             <DashboardPanel
               title="Sub-agent referrals"
               meta="Clients referred"
             >
               <BarList
-                items={partnerMix.map((row) => ({
-                  key: row.partnerId,
+                items={subAgentMix.map((row) => ({
+                  key: row.subAgentId,
                   label: row.name,
                   value: row.clientCount,
                 }))}

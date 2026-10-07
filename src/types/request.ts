@@ -5,7 +5,8 @@ export type RequestReviewStatus = 'Pending' | 'Approved' | 'Rejected'
 export type StatusUpdateRequest = {
   id: string
   tenantId: string
-  partnerId: string
+  /** Present when the request is tied to a referring sub agent; optional for agency-direct clients. */
+  subAgentId?: string
   clientId: string
   caseId: string
   fromStatus: CaseStatus

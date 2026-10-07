@@ -197,6 +197,11 @@
 }
 
 @media (max-width: 30rem) {
+  .pd-home {
+    gap: 1.25rem;
+    padding-block: 0.25rem 1rem;
+  }
+
   .pd-home-quick {
     max-width: none;
     gap: 0.75rem;
@@ -213,5 +218,9 @@
 
   .pd-home-quick__description {
     font-size: 0.75rem;
+  }
+
+  .pd-home-search .pd-topbar__search {
+    height: 3rem;
   }
 }

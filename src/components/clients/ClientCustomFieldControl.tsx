@@ -11,12 +11,14 @@ export function ClientCustomFieldControl({
   readOnly,
   error,
   onChange,
+  onBlur,
 }: {
   field: ClientProfileField
   value: string
   readOnly?: boolean
   error?: string
   onChange: (value: string) => void
+  onBlur?: () => void
 }) {
   if (field.type === 'country') {
     return (
@@ -28,6 +30,7 @@ export function ClientCustomFieldControl({
         searchable
         error={error}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
         options={countrySelectOptions(value)}
       />
     )
@@ -42,6 +45,7 @@ export function ClientCustomFieldControl({
         readOnly={readOnly}
         error={error}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
         options={[
           { value: '', label: '—' },
           ...field.options.map((option) => ({ value: option, label: option })),
@@ -63,6 +67,7 @@ export function ClientCustomFieldControl({
       }
       error={error}
       onChange={(event) => onChange(event.target.value)}
+      onBlur={onBlur}
     />
   )
 }

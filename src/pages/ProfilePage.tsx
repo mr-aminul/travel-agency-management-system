@@ -1,6 +1,6 @@
-import { Avatar, CopyableText, PageHeader } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import '@/styles/layout-ops.css'
+import { Avatar, CopyableText, PageHeader } from '@/components/ui'
 
 export default function ProfilePage() {
   const { user } = useAuth()

@@ -34,6 +34,7 @@ describe('case progress spine', () => {
       phone: `016${Date.now().toString().slice(-8)}`,
       primaryService: 'Student Visa',
       idChecked: true,
+      passport: 'BP1234567',
     })
     const created = createCase({
       clientId: client.id,
@@ -45,12 +46,41 @@ describe('case progress spine', () => {
     expect(getCaseById(created.id)?.currentStepId).toBe('registered')
   })
 
+  it('blocks advance when the client passport number is missing', () => {
+    const client = createClient({
+      name: 'No Passport Client',
+      phone: `015${Date.now().toString().slice(-8)}`,
+      primaryService: 'Air Ticket',
+      idChecked: true,
+    })
+    const created = createCase({
+      clientId: client.id,
+      service: 'Air Ticket',
+      balance: 5000,
+    })
+
+    const blocked = completeCurrentStep(created.id, {
+      fields: {
+        route: 'DAC-JED',
+        travelDate: '2026-09-12',
+        passengers: '1',
+      },
+      uploads: [{ key: 'passportCopy', fileName: 'passport.pdf' }],
+    })
+
+    expect(blocked.ok).toBe(false)
+    if (blocked.ok) return
+    expect(blocked.errors.form).toMatch(/passport number/i)
+    expect(getCaseById(created.id)?.currentStepId).toBe('request')
+  })
+
   it('advances only after required fields and uploads are saved', () => {
     const client = createClient({
       name: 'Advance Client',
       phone: `018${Date.now().toString().slice(-8)}`,
       primaryService: 'Air Ticket',
       idChecked: true,
+      passport: 'AP9876543',
     })
     const created = createCase({
       clientId: client.id,

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Check, ChevronDown, Link2, Plus, UserPlus } from 'lucide-react'
-import { Button, DropdownMenu } from '@/components/ui'
 import { getActiveTenantId } from '@/lib/authApi'
-import { agencyClientFormUrl, partnerClientFormUrl } from '@/lib/publicUrl'
+import { agencyClientFormUrl, subAgentClientFormUrl } from '@/lib/publicUrl'
+import { Button, DropdownMenu } from '@/components/ui'
 
 async function copyText(value: string) {
   try {
@@ -23,14 +23,14 @@ async function copyText(value: string) {
 type AddClientSplitButtonProps = {
   onAddClient: () => void
   /** When set, the copied form onboards clients under this sub agent. */
-  partnerId?: string
+  subAgentId?: string
   size?: 'sm' | 'md'
   label?: string
 }
 
 export function AddClientSplitButton({
   onAddClient,
-  partnerId,
+  subAgentId,
   size = 'sm',
   label = 'Add Client',
 }: AddClientSplitButtonProps) {
@@ -45,8 +45,8 @@ export function AddClientSplitButton({
   }, [copied])
 
   const copyFormLink = async () => {
-    const url = partnerId
-      ? partnerClientFormUrl(partnerId)
+    const url = subAgentId
+      ? subAgentClientFormUrl(subAgentId)
       : agencyClientFormUrl(getActiveTenantId())
     await copyText(url)
     setCopied(true)

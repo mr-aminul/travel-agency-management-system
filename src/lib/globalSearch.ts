@@ -1,9 +1,9 @@
 import { clientPath } from '@/lib/workPaths'
 import { normalizePhone } from '@/lib/clientsStore'
 import type { Client } from '@/types/client'
-import type { Partner } from '@/types/partner'
+import type { SubAgent } from '@/types/subAgent'
 
-export type GlobalSearchHitKind = 'client' | 'partner'
+export type GlobalSearchHitKind = 'client' | 'subAgent'
 
 export type GlobalSearchHit = {
   key: string
@@ -92,20 +92,20 @@ function searchClients(query: string, clients: Client[]): GlobalSearchHit[] {
   return hits
 }
 
-function searchPartners(
+function searchSubAgents(
   query: string,
-  partners: Partner[],
+  subAgents: SubAgent[],
 ): GlobalSearchHit[] {
   const q = lower(query)
   const qDigits = normalizePhone(query)
   const hits: GlobalSearchHit[] = []
 
-  for (const partner of partners) {
-    const id = lower(partner.id)
-    const name = lower(partner.name)
-    const phone = lower(partner.phone)
-    const phoneDigits = normalizePhone(partner.phone)
-    const license = lower(partner.licenseNumber)
+  for (const subAgent of subAgents) {
+    const id = lower(subAgent.id)
+    const name = lower(subAgent.name)
+    const phone = lower(subAgent.phone)
+    const phoneDigits = normalizePhone(subAgent.phone)
+    const license = lower(subAgent.licenseNumber)
 
     const fields = [
       { label: 'Sub Agent ID', score: scoreField(id, q, 95) },
@@ -125,12 +125,12 @@ function searchPartners(
     if (!match) continue
 
     hits.push({
-      key: `partner:${partner.id}`,
-      kind: 'partner',
-      id: partner.id,
-      title: partner.name,
-      subtitle: `${match.label} · ${partner.id}`,
-      href: `/partners/${partner.id}`,
+      key: `subAgent:${subAgent.id}`,
+      kind: 'subAgent',
+      id: subAgent.id,
+      title: subAgent.name,
+      subtitle: `${match.label} · ${subAgent.id}`,
+      href: `/sub-agents/${subAgent.id}`,
       matchLabel: match.label,
       score: match.score,
     })
@@ -143,13 +143,13 @@ export function searchWorkspace(
   query: string,
   sources: {
     clients: Client[]
-    partners?: Partner[]
+    subAgents?: SubAgent[]
   },
 ): GlobalSearchHit[] {
   const trimmed = compact(query)
   if (trimmed.length < 2) return []
 
-  return [...searchClients(trimmed, sources.clients), ...searchPartners(trimmed, sources.partners ?? [])]
+  return [...searchClients(trimmed, sources.clients), ...searchSubAgents(trimmed, sources.subAgents ?? [])]
     .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
     .slice(0, MAX_HITS)
 }

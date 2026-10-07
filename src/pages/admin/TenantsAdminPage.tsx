@@ -1,22 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
-import {
-  Avatar,
-  Badge,
-  PageHeader,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  type BadgeVariant,
-} from '@/components/ui'
 import { useTenantMembers } from '@/lib/tenantMembersStore'
 import { useTenants } from '@/lib/tenantsStore'
 import { useAuth } from '@/lib/auth'
 import type { TenantStatus } from '@/types/tenant'
 import '@/styles/layout-admin.css'
+import { Avatar, Badge, PageHeader, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type BadgeVariant } from '@/components/ui'
 
 function statusBadgeVariant(status: TenantStatus): BadgeVariant {
   if (status === 'active') return 'completed'

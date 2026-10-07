@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Badge, Button, EmptyState, FilterChip, FilterChips, FilterPopover, SearchField, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type BadgeVariant } from '@/components/ui'
 import {
   CheckCircle2,
+  CircleDot,
   CircleOff,
   Clock,
   Folder,
@@ -13,25 +15,9 @@ import {
 } from 'lucide-react'
 import { NewCaseForm } from '@/components/cases/NewCaseForm'
 import { StatCards } from '@/components/StatCards'
-import {
-  Badge,
-  Button,
-  EmptyState,
-  FilterChip,
-  FilterChips,
-  SearchField,
-  SideDrawer,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  type BadgeVariant,
-} from '@/components/ui'
 import { getCurrentStepLabel } from '@/lib/caseChecklist'
 import { createCase, getEnabledServiceOptions } from '@/lib/casesStore'
+import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 import { formatBalance } from '@/lib/clientsStore'
 import { caseServiceFee } from '@/lib/caseMoney'
 import { getEmployeeDisplayName } from '@/lib/employeesStore'
@@ -167,6 +153,7 @@ export function CasesList({
   const [dueOnly, setDueOnly] = useState(false)
   const [highlightServiceFee, setHighlightServiceFee] = useState(false)
   const catalog = useCatalogServiceRefs()
+  const serviceFilterOptions = useEnabledServiceOptions()
   useServiceIconOverrides()
   const showServiceChips = showServiceColumn && showToolbar && !embedded
   const urlService = syncNewWithSearchParams
@@ -252,7 +239,7 @@ export function CasesList({
   const selectedStat: ServiceStatId | undefined = dueOnly
     ? 'due'
     : statusFilters.length === 1 &&
-        CASE_STATUSES.includes(statusFilters[0] as CaseStatus)
+      CASE_STATUSES.includes(statusFilters[0] as CaseStatus)
       ? (statusFilters[0] as CaseStatus)
       : statusFilters.length === 0
         ? 'all'
@@ -357,7 +344,7 @@ export function CasesList({
       />
     ) : (
       <Table>
-          <TableHeader>
+        <TableHeader>
           <TableRow>
             <TableHead>Service</TableHead>
             <TableHead>ID</TableHead>
@@ -376,40 +363,48 @@ export function CasesList({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filtered.map((item) => (
-            <TableRow
-              key={item.id}
-              className={cx(
-                'pd-cases__row',
-                item.id === selectedId && 'is-selected',
-              )}
-              aria-selected={item.id === selectedId ? true : undefined}
-              onClick={() => navigate(workDetailPath(item))}
-            >
-              <TableCell>
-                <p className="pd-cases__name">{item.service}</p>
-              </TableCell>
-              <TableCell className="pd-table__code">{item.caseId}</TableCell>
-              <TableCell>{formatCaseDate(item.createdAt)}</TableCell>
-              {showClientColumn && <TableCell>{item.clientName}</TableCell>}
-              <TableCell>
-                <span className="pd-cases__step">{getCurrentStepLabel(item)}</span>
-              </TableCell>
-              <TableCell>{item.destination || '—'}</TableCell>
-              <TableCell>{formatCaseDate(item.departureDate)}</TableCell>
-              <TableCell className={feeCellClass}>
-                {formatBalance(caseServiceFee(item))}
-              </TableCell>
-              <TableCell className="pd-cases__balance">
-                {formatBalance(item.balance)}
-              </TableCell>
-              <TableCell>
-                <Badge variant={caseStatusBadgeVariant(item.status)}>
-                  {item.status}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))}
+          {filtered.map((item) => {
+            const ServiceIcon = iconForService(item.service)
+            return (
+              <TableRow
+                key={item.id}
+                className={cx(
+                  'pd-cases__row',
+                  item.id === selectedId && 'is-selected',
+                )}
+                aria-selected={item.id === selectedId ? true : undefined}
+                onClick={() => navigate(workDetailPath(item))}
+              >
+                <TableCell>
+                  <span className="pd-cases__service">
+                    <span className="pd-cases__service-icon" aria-hidden>
+                      <ServiceIcon size={15} strokeWidth={2} />
+                    </span>
+                    <p className="pd-cases__name">{item.service}</p>
+                  </span>
+                </TableCell>
+                <TableCell className="pd-table__code">{item.caseId}</TableCell>
+                <TableCell>{formatCaseDate(item.createdAt)}</TableCell>
+                {showClientColumn && <TableCell>{item.clientName}</TableCell>}
+                <TableCell>
+                  <span className="pd-cases__step">{getCurrentStepLabel(item)}</span>
+                </TableCell>
+                <TableCell>{item.destination || '—'}</TableCell>
+                <TableCell>{formatCaseDate(item.departureDate)}</TableCell>
+                <TableCell className={feeCellClass}>
+                  {formatBalance(caseServiceFee(item))}
+                </TableCell>
+                <TableCell className="pd-cases__balance">
+                  {formatBalance(item.balance)}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={caseStatusBadgeVariant(item.status)}>
+                    {item.status}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
     )
@@ -499,7 +494,7 @@ export function CasesList({
                   searchPlaceholder="Search services…"
                   value={serviceFilters}
                   onChange={(event) => setServiceFilters(event.target.value)}
-                  options={getEnabledServiceOptions()}
+                  options={serviceFilterOptions}
                 />
               )}
               <Select
@@ -530,6 +525,45 @@ export function CasesList({
                 </button>
               )}
             </div>
+            <FilterPopover
+              className="pd-cases__mobile-filters"
+              sectionLabel="Service attributes"
+              dimensions={[
+                ...(showServiceColumn && !showServiceChips
+                  ? [
+                    {
+                      id: 'service',
+                      label: 'Service',
+                      icon: ListChecks,
+                      options: serviceFilterOptions,
+                      value: serviceFilters,
+                      onChange: (value: string[]) => {
+                        setServiceFilters(value)
+                        writeServiceQuery(
+                          value.length === 1 ? value[0] : undefined,
+                        )
+                      },
+                    },
+                  ]
+                  : []),
+                {
+                  id: 'status',
+                  label: 'Status',
+                  icon: CircleDot,
+                  options: STATUS_FILTERS,
+                  value: statusFilters,
+                  onChange: setStatusFilters,
+                },
+              ]}
+              onClearAll={() => {
+                setStatusFilters([])
+                setDueOnly(false)
+                if (!showServiceChips) {
+                  setServiceFilters([])
+                  writeServiceQuery()
+                }
+              }}
+            />
             {newCaseButton}
           </div>
         </div>

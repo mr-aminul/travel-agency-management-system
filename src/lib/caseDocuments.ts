@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
+import { type BadgeVariant } from '@/components/ui'
 import {
   BookOpen,
   Briefcase,
@@ -8,7 +9,6 @@ import {
   Stethoscope,
   Ticket,
 } from 'lucide-react'
-import type { BadgeVariant } from '@/components/ui'
 import { getStepDef, getStepIndex, templateCountry } from '@/lib/caseChecklist'
 import { findStepForDocument } from '@/lib/caseStepRequirements'
 import { resolveServiceTemplateOverride } from '@/lib/serviceTemplatesStore'

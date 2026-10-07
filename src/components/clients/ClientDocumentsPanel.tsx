@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import { Check, ChevronDown, Circle, IdCard, Plus } from 'lucide-react'
 import { DocumentWorkspace } from '@/components/cases/DocumentWorkspace'
-import { Button, EmptyState } from '@/components/ui'
 import { cx } from '@/lib/cx'
+import { Button, EmptyState } from '@/components/ui'
 import {
   buildIdentityCaseDocument,
+  documentHasFile,
   getClientIdentityRows,
   getClientServiceDocumentGroups,
   type IdentityKind,
 } from '@/lib/clientDocuments'
 import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { iconForService } from '@/lib/serviceIcons'
-import type { Case, CaseDocument } from '@/types/case'
+import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { ComplianceDocument } from '@/lib/caseDocuments'
 import '@/styles/layout-cases.css'
@@ -23,17 +24,9 @@ type SelectedDoc = {
   docId: string
 }
 
-function documentHasRecord(doc: Pick<CaseDocument, 'status' | 'fileName' | 'fileId' | 'detail'>): boolean {
-  return (
-    doc.status === 'approved' ||
-    doc.status === 'under_review' ||
-    Boolean(doc.fileName || doc.fileId || doc.detail)
-  )
-}
-
-function childTone(locked: boolean, hasRecord: boolean): 'done' | 'need' | 'idle' {
+function childTone(locked: boolean, hasFile: boolean): 'done' | 'need' | 'idle' {
   if (locked) return 'idle'
-  return hasRecord ? 'done' : 'need'
+  return hasFile ? 'done' : 'need'
 }
 
 export function ClientDocumentsPanel({
@@ -164,7 +157,7 @@ export function ClientDocumentsPanel({
                   const active =
                     selected.groupId === IDENTITY_GROUP_ID &&
                     selected.docId === doc.id
-                  const tone = childTone(false, documentHasRecord(doc))
+                  const tone = childTone(false, documentHasFile(doc))
                   return (
                     <button
                       key={doc.id}
@@ -172,6 +165,7 @@ export function ClientDocumentsPanel({
                       className={cx(
                         'pd-doc-tree__doc',
                         active && 'is-selected',
+                        tone === 'need' && 'is-attention',
                       )}
                       aria-current={active ? 'page' : undefined}
                       onClick={() => selectIdentityDoc(doc.id as IdentityKind)}
@@ -246,10 +240,7 @@ export function ClientDocumentsPanel({
                       const active =
                         selected.groupId === group.caseId &&
                         selected.docId === doc.id
-                      const tone = childTone(
-                        doc.locked,
-                        documentHasRecord(doc),
-                      )
+                      const tone = childTone(doc.locked, documentHasFile(doc))
                       return (
                         <button
                           key={doc.id}
@@ -258,6 +249,7 @@ export function ClientDocumentsPanel({
                             'pd-doc-tree__doc',
                             doc.locked && 'is-later',
                             active && 'is-selected',
+                            tone === 'need' && 'is-attention',
                           )}
                           aria-current={active ? 'page' : undefined}
                           onClick={() => selectServiceDoc(group.caseId, doc.id)}

@@ -1,12 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Trash2 } from 'lucide-react'
-import { BackButton, Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
 import { ServiceIconPicker } from '@/components/settings/ServiceIconPicker'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { ServiceTemplateEditor } from '@/components/settings/ServiceTemplateEditor'
 import { renameServiceOnCases } from '@/lib/casesStore'
 import { renameServiceOnClients } from '@/lib/clientsStore'
+import { BackButton, Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
 import {
   deleteCustomService,
   updateCustomService,
@@ -25,6 +25,11 @@ import {
   selectedIconIdForService,
   type ServiceIconId,
 } from '@/lib/serviceIcons'
+import {
+  validateOptionalText,
+  validateRequiredText,
+} from '@/lib/fieldValidation'
+import { useTouchedFields } from '@/lib/useTouchedFields'
 import {
   serviceCatalogEditorPath,
   serviceCatalogPath,
@@ -51,6 +56,11 @@ export function ServiceCatalogEditor({
   const [templateDirty, setTemplateDirty] = useState(false)
   const [pendingLeave, setPendingLeave] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState(false)
+  const { markAllTouched, showError, blur } = useTouchedFields<
+    'name' | 'description'
+  >()
+  const nameError = validateRequiredText(name, 'Service name', 2)
+  const descriptionError = validateOptionalText(description, 'Description', 500)
 
   const savedIconId = item ? (selectedIconIdForService(item.key) ?? null) : null
   const iconDirty = iconId !== savedIconId
@@ -92,6 +102,10 @@ export function ServiceCatalogEditor({
     event.preventDefault()
     if (!item) return
     setIdentityError(null)
+    if (item.kind === 'custom') {
+      markAllTouched(['name', 'description'])
+      if (nameError || descriptionError) return
+    }
     try {
       if (item.kind === 'custom' && item.customId) {
         const updated = updateCustomService(item.customId, {
@@ -194,12 +208,15 @@ export function ServiceCatalogEditor({
               <Input
                 label="Service name"
                 name="customServiceName"
+                required
                 value={name}
                 onChange={(event) => {
                   setName(event.target.value)
                   setIdentityError(null)
                   setIdentityStatus(null)
                 }}
+                onBlur={blur('name')}
+                error={showError('name') ? nameError : undefined}
               />
               <Textarea
                 label="Description"
@@ -211,6 +228,8 @@ export function ServiceCatalogEditor({
                   setIdentityError(null)
                   setIdentityStatus(null)
                 }}
+                onBlur={blur('description')}
+                error={showError('description') ? descriptionError : undefined}
               />
             </>
           ) : null}

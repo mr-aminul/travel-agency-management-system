@@ -1,6 +1,6 @@
 import { Archive, MoreHorizontal, RotateCcw, Trash2 } from 'lucide-react'
-import { DropdownMenu } from '@/components/ui'
 import type { Client } from '@/types/client'
+import { DropdownMenu } from '@/components/ui'
 
 export type ClientRowActionsProps = {
   client: Client

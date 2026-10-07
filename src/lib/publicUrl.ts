@@ -14,12 +14,12 @@ export function absolutePublicUrl(path: string): string {
   return new URL(relative, window.location.origin).toString()
 }
 
-export function partnerClientFormPath(partnerId: string): string {
-  return `join/${encodeURIComponent(partnerId)}`
+export function subAgentClientFormPath(subAgentId: string): string {
+  return `join/${encodeURIComponent(subAgentId)}`
 }
 
-export function partnerClientFormUrl(partnerId: string): string {
-  return absolutePublicUrl(partnerClientFormPath(partnerId))
+export function subAgentClientFormUrl(subAgentId: string): string {
+  return absolutePublicUrl(subAgentClientFormPath(subAgentId))
 }
 
 function agencyPublicSlug(tenantIdOrSlug: string): string {

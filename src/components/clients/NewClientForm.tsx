@@ -1,17 +1,21 @@
-import { useState, type FormEvent } from 'react'
-import { PartnerPhotoField } from '@/components/PartnerPhotoField'
+import { useState, type FormEvent, type FocusEvent } from 'react'
+import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import { ClientCustomFieldControl } from '@/components/clients/ClientCustomFieldControl'
-import { Badge, Button, Checkbox, Input, Select } from '@/components/ui'
+import { Button, Input, Select } from '@/components/ui'
 import {
   compactCustomFieldValues,
   emptyCustomFieldValues,
-  missingRequiredCustomFields,
 } from '@/lib/clientCustomFields'
+import {
+  type NewClientFormField,
+  type NewClientFormValues,
+  validateNewClientField,
+} from '@/lib/clientFormValidation'
 import {
   useClientProfileFields,
   useClientProfileFieldsForTenant,
 } from '@/lib/clientProfileFieldsStore'
-import { usePartners } from '@/lib/partnersStore'
+import { useSubAgents } from '@/lib/subAgentsStore'
 import { getClientByPhone, normalizePhone } from '@/lib/clientsStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 import type { CreateClientInput, ServiceType } from '@/types/client'
@@ -19,7 +23,7 @@ import type { CreateClientInput, ServiceType } from '@/types/client'
 type NewClientFormProps = {
   onSubmit: (input: CreateClientInput) => void
   onCancel?: () => void
-  defaultPartnerId?: string
+  defaultSubAgentId?: string
   variant?: 'staff' | 'public'
   serviceTenantId?: string
   submitLabel?: string
@@ -28,7 +32,7 @@ type NewClientFormProps = {
 export function NewClientForm({
   onSubmit,
   onCancel,
-  defaultPartnerId,
+  defaultSubAgentId,
   variant = 'staff',
   serviceTenantId,
   submitLabel = 'Register client',
@@ -38,7 +42,7 @@ export function NewClientForm({
   const tenantCustomFields = useClientProfileFieldsForTenant(serviceTenantId)
   const sessionCustomFields = useClientProfileFields()
   const customFieldDefs = isPublic ? tenantCustomFields : sessionCustomFields
-  const partners = usePartners()
+  const subAgents = useSubAgents()
   const [name, setName] = useState('')
   const [banglaName, setBanglaName] = useState('')
   const [fatherName, setFatherName] = useState('')
@@ -54,48 +58,100 @@ export function NewClientForm({
   const [passportPlaceOfIssue, setPassportPlaceOfIssue] = useState('')
   const [address, setAddress] = useState('')
   const [customFields, setCustomFields] = useState<Record<string, string>>({})
-  const [partnerId, setPartnerId] = useState(defaultPartnerId ?? '')
+  const [subAgentId, setSubAgentId] = useState(defaultSubAgentId ?? '')
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>()
   const [primaryService, setPrimaryService] = useState<ServiceType>(
     () => serviceOptions[0]?.value ?? 'Tour Package',
   )
-  const [idChecked, setIdChecked] = useState(isPublic)
-  const [openFirstCase, setOpenFirstCase] = useState(!isPublic)
+  const [touched, setTouched] = useState<Partial<Record<NewClientFormField, boolean>>>(
+    {},
+  )
   const [triedSubmit, setTriedSubmit] = useState(false)
 
   const phoneDigits = normalizePhone(phone)
   const existingClient = phoneDigits
     ? getClientByPhone(phoneDigits, undefined, serviceTenantId)
     : undefined
-
-  const nameError =
-    triedSubmit && !name.trim() ? 'Full name is required.' : undefined
-  const phoneError = (() => {
-    if (!triedSubmit) return undefined
-    if (!phone.trim()) return 'Mobile number is required.'
-    if (existingClient) {
-      return `This mobile number is already registered to ${existingClient.name}.`
-    }
-    return undefined
-  })()
-  const checkError =
-    triedSubmit && !idChecked
-      ? 'Confirm the mobile number duplicate check.'
-      : undefined
   const customFieldValues = emptyCustomFieldValues(customFieldDefs, customFields)
-  const missingCustom = missingRequiredCustomFields(
-    customFieldDefs,
-    customFieldValues,
-  )
+  const requiredCustomFields = customFieldDefs.filter((field) => field.required)
+  const optionalCustomFields = customFieldDefs.filter((field) => !field.required)
+
+  const values: NewClientFormValues = {
+    name,
+    phone,
+    email,
+    banglaName,
+    fatherName,
+    dateOfBirth,
+    placeOfBirth,
+    address,
+    nid,
+    passport,
+    passportIssuedOn,
+    passportExpiry,
+    passportPlaceOfIssue,
+    primaryService,
+    customFields: customFieldValues,
+  }
+
+  const markTouched = (field: NewClientFormField) => {
+    setTouched((current) =>
+      current[field] ? current : { ...current, [field]: true },
+    )
+  }
+
+  const showError = (field: NewClientFormField) =>
+    triedSubmit || Boolean(touched[field])
+
+  const fieldError = (field: NewClientFormField) => {
+    if (!showError(field)) return undefined
+    return validateNewClientField(field, values, {
+      duplicateName: existingClient?.name,
+      customFieldDefs,
+    })
+  }
+
+  const handleBlur =
+    (field: NewClientFormField) =>
+    (_event?: FocusEvent<HTMLInputElement>) => {
+      markTouched(field)
+    }
+
+  const allFieldKeys = (): NewClientFormField[] => [
+    'name',
+    'phone',
+    'primaryService',
+    'passport',
+    'passportPlaceOfIssue',
+    'passportIssuedOn',
+    'passportExpiry',
+    'nid',
+    'email',
+    'address',
+    'banglaName',
+    'fatherName',
+    'dateOfBirth',
+    'placeOfBirth',
+    ...customFieldDefs.map((field) => `custom:${field.id}` as const),
+  ]
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     setTriedSubmit(true)
-    if (!name.trim() || !phone.trim() || existingClient) return
-    if (!isPublic && !idChecked) return
-    if (missingRequiredCustomFields(customFieldDefs, customFieldValues).length) {
-      return
+    const nextTouched: Partial<Record<NewClientFormField, boolean>> = {
+      ...touched,
     }
+    for (const key of allFieldKeys()) nextTouched[key] = true
+    setTouched(nextTouched)
+
+    const hasError = allFieldKeys().some(
+      (field) =>
+        validateNewClientField(field, values, {
+          duplicateName: existingClient?.name,
+          customFieldDefs,
+        }) != null,
+    )
+    if (hasError) return
 
     onSubmit({
       name,
@@ -109,7 +165,7 @@ export function NewClientForm({
       address,
       presentAddress: address,
       customFields: compactCustomFieldValues(customFieldValues),
-      partnerId: defaultPartnerId || partnerId || undefined,
+      subAgentId: defaultSubAgentId || subAgentId || undefined,
       avatarUrl,
       nid,
       passport,
@@ -117,8 +173,7 @@ export function NewClientForm({
       passportIssuedOn,
       passportPlaceOfIssue,
       primaryService,
-      idChecked: isPublic ? true : idChecked,
-      openFirstCase: isPublic ? false : openFirstCase,
+      idChecked: true,
     })
   }
 
@@ -132,7 +187,7 @@ export function NewClientForm({
     >
       <div className="pd-clients-form__scroll">
         <div className="pd-clients-form__block">
-          <PartnerPhotoField
+          <ProfilePhotoField
             name={name}
             fallbackName="Client"
             value={avatarUrl}
@@ -143,26 +198,137 @@ export function NewClientForm({
               required
               value={name}
               onChange={(event) => setName(event.target.value)}
+              onBlur={handleBlur('name')}
               placeholder="Client name"
-              error={nameError}
+              error={fieldError('name')}
             />
-          </PartnerPhotoField>
+          </ProfilePhotoField>
 
+          <div className="pd-clients-form__grid">
+            <Input
+              label="Mobile number"
+              type="tel"
+              required
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              onBlur={handleBlur('phone')}
+              placeholder="01XXXXXXXXX"
+              error={fieldError('phone')}
+            />
+            <Select
+              label="Primary service"
+              value={primaryService}
+              onChange={(event) => {
+                setPrimaryService(event.target.value as ServiceType)
+                markTouched('primaryService')
+              }}
+              onBlur={handleBlur('primaryService')}
+              options={serviceOptions}
+              error={fieldError('primaryService')}
+            />
+            {requiredCustomFields.map((field) => {
+              const key = `custom:${field.id}` as const
+              return (
+                <ClientCustomFieldControl
+                  key={field.id}
+                  field={field}
+                  value={customFieldValues[field.id] ?? ''}
+                  error={fieldError(key)}
+                  onChange={(value) =>
+                    setCustomFields((current) => ({
+                      ...current,
+                      [field.id]: value,
+                    }))
+                  }
+                  onBlur={handleBlur(key)}
+                />
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="pd-clients-form__block">
+          <div className="pd-clients-form__grid">
+            <Input
+              label="Passport number"
+              value={passport}
+              onChange={(event) => setPassport(event.target.value)}
+              onBlur={handleBlur('passport')}
+              error={fieldError('passport')}
+            />
+            <Input
+              label="Place of issue"
+              value={passportPlaceOfIssue}
+              onChange={(event) => setPassportPlaceOfIssue(event.target.value)}
+              onBlur={handleBlur('passportPlaceOfIssue')}
+              error={fieldError('passportPlaceOfIssue')}
+            />
+            <Input
+              label="Date of issue"
+              type="date"
+              required={Boolean(passport.trim())}
+              value={passportIssuedOn}
+              onChange={(event) => setPassportIssuedOn(event.target.value)}
+              onBlur={handleBlur('passportIssuedOn')}
+              error={fieldError('passportIssuedOn')}
+            />
+            <Input
+              label="Date of expiry"
+              type="date"
+              required={Boolean(passport.trim())}
+              value={passportExpiry}
+              onChange={(event) => setPassportExpiry(event.target.value)}
+              onBlur={handleBlur('passportExpiry')}
+              error={fieldError('passportExpiry')}
+            />
+            <Input
+              label="NID number"
+              value={nid}
+              onChange={(event) => setNid(event.target.value)}
+              onBlur={handleBlur('nid')}
+              error={fieldError('nid')}
+            />
+          </div>
+        </div>
+
+        <div className="pd-clients-form__block">
+          <div className="pd-clients-form__grid">
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              onBlur={handleBlur('email')}
+              placeholder="client@email.com"
+              error={fieldError('email')}
+            />
+            <Input
+              label="Address"
+              value={address}
+              onChange={(event) => setAddress(event.target.value)}
+              onBlur={handleBlur('address')}
+              placeholder="Present address"
+              error={fieldError('address')}
+            />
+          </div>
+        </div>
+
+        <div className="pd-clients-form__block">
           <div className="pd-clients-form__grid">
             <Input
               label="Bangla name"
               value={banglaName}
               onChange={(event) => setBanglaName(event.target.value)}
+              onBlur={handleBlur('banglaName')}
               placeholder="বাংলা নাম"
+              error={fieldError('banglaName')}
             />
-            <Select
-              label="Primary service"
-              required
-              value={primaryService}
-              onChange={(event) =>
-                setPrimaryService(event.target.value as ServiceType)
-              }
-              options={serviceOptions}
+            <Input
+              label="Father name"
+              value={fatherName}
+              onChange={(event) => setFatherName(event.target.value)}
+              onBlur={handleBlur('fatherName')}
+              error={fieldError('fatherName')}
             />
             <Select
               label="Gender"
@@ -181,138 +347,50 @@ export function NewClientForm({
               type="date"
               value={dateOfBirth}
               onChange={(event) => setDateOfBirth(event.target.value)}
+              onBlur={handleBlur('dateOfBirth')}
+              error={fieldError('dateOfBirth')}
             />
             <Input
               label="Place of birth"
               value={placeOfBirth}
               onChange={(event) => setPlaceOfBirth(event.target.value)}
+              onBlur={handleBlur('placeOfBirth')}
+              error={fieldError('placeOfBirth')}
             />
-            <Input
-              label="Mobile number"
-              type="tel"
-              required
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              placeholder="01XXXXXXXXX"
-              error={phoneError}
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="client@email.com"
-            />
-            <Input
-              label="Father name"
-              value={fatherName}
-              onChange={(event) => setFatherName(event.target.value)}
-            />
-            <Input
-              label="Address"
-              value={address}
-              onChange={(event) => setAddress(event.target.value)}
-              placeholder="Present address"
-            />
-            <Input
-              label="NID number"
-              value={nid}
-              onChange={(event) => setNid(event.target.value)}
-            />
-            <Input
-              label="Passport number"
-              value={passport}
-              onChange={(event) => setPassport(event.target.value)}
-            />
-            <Input
-              label="Date of issue"
-              type="date"
-              value={passportIssuedOn}
-              onChange={(event) => setPassportIssuedOn(event.target.value)}
-            />
-            <Input
-              label="Date of expiry"
-              type="date"
-              value={passportExpiry}
-              onChange={(event) => setPassportExpiry(event.target.value)}
-            />
-            <Input
-              label="Place of issue"
-              value={passportPlaceOfIssue}
-              onChange={(event) => setPassportPlaceOfIssue(event.target.value)}
-            />
-            {customFieldDefs.map((field) => (
-              <ClientCustomFieldControl
-                key={field.id}
-                field={field}
-                value={customFieldValues[field.id] ?? ''}
-                error={
-                  triedSubmit && missingCustom.includes(field.label)
-                    ? `${field.label} is required.`
-                    : undefined
-                }
-                onChange={(value) =>
-                  setCustomFields((current) => ({
-                    ...current,
-                    [field.id]: value,
-                  }))
-                }
-              />
-            ))}
+            {optionalCustomFields.map((field) => {
+              const key = `custom:${field.id}` as const
+              return (
+                <ClientCustomFieldControl
+                  key={field.id}
+                  field={field}
+                  value={customFieldValues[field.id] ?? ''}
+                  error={fieldError(key)}
+                  onChange={(value) =>
+                    setCustomFields((current) => ({
+                      ...current,
+                      [field.id]: value,
+                    }))
+                  }
+                  onBlur={handleBlur(key)}
+                />
+              )
+            })}
             {isPublic ? null : (
               <Select
                 label="Sub Agent"
-                value={partnerId}
-                onChange={(event) => setPartnerId(event.target.value)}
+                value={subAgentId}
+                onChange={(event) => setSubAgentId(event.target.value)}
                 options={[
                   { value: '', label: 'None' },
-                  ...partners.map((partner) => ({
-                    value: partner.id,
-                    label: partner.name,
+                  ...subAgents.map((subAgent) => ({
+                    value: subAgent.id,
+                    label: subAgent.name,
                   })),
                 ]}
               />
             )}
           </div>
         </div>
-
-        {isPublic ? null : (
-          <>
-            <div className="pd-clients-form__block">
-              <p className="pd-clients-form__heading">Duplicate check</p>
-              <p className="pd-clients-form__hint">
-                Confirm this mobile number is not already registered to another
-                client.
-              </p>
-              <Checkbox
-                label="I confirm this mobile number is unique"
-                checked={idChecked}
-                onChange={(event) => setIdChecked(event.target.checked)}
-              />
-              {checkError ? (
-                <p className="pd-field__error" role="alert">
-                  {checkError}
-                </p>
-              ) : null}
-              {idChecked ? (
-                <Badge variant="completed">ID check cleared</Badge>
-              ) : null}
-            </div>
-
-            <div className="pd-clients-form__block">
-              <p className="pd-clients-form__heading">Next step</p>
-              <Checkbox
-                label="Add first service after registration"
-                checked={openFirstCase}
-                onChange={(event) => setOpenFirstCase(event.target.checked)}
-              />
-              <p className="pd-clients-form__hint">
-                Recommended — capture why they came while the conversation is
-                fresh.
-              </p>
-            </div>
-          </>
-        )}
       </div>
 
       <div className="pd-clients-form__footer">

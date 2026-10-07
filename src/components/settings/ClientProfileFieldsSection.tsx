@@ -1,27 +1,17 @@
 import { useState, type FormEvent } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import {
-  Button,
-  Checkbox,
-  ConfirmDialog,
-  EmptyState,
-  Input,
-  Select,
-  SideDrawer,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Textarea,
-} from '@/components/ui'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
+import { Button, Checkbox, ConfirmDialog, EmptyState, Input, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@/components/ui'
 import {
   createClientProfileField,
   deleteClientProfileField,
   useClientProfileFields,
 } from '@/lib/clientProfileFieldsStore'
+import {
+  validateOptionalText,
+  validateRequiredText,
+} from '@/lib/fieldValidation'
+import { useTouchedFields } from '@/lib/useTouchedFields'
 import type { ClientProfileFieldType } from '@/types/clientProfileField'
 
 const TYPE_OPTIONS: { value: ClientProfileFieldType; label: string }[] = [
@@ -50,6 +40,20 @@ export function ClientProfileFieldsSection({
   const [optionsText, setOptionsText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const { markAllTouched, showError, blur } = useTouchedFields<
+    'label' | 'options'
+  >()
+  const labelError = validateRequiredText(label, 'Field name', 2)
+  const optionsError =
+    type === 'select'
+      ? validateRequiredText(optionsText, 'Choices', 1) ??
+        (optionsText
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean).length === 0
+          ? 'Add at least one choice.'
+          : undefined)
+      : validateOptionalText(optionsText, 'Choices', 500)
 
   const closeComposer = () => {
     setComposerOpen(false)
@@ -63,6 +67,8 @@ export function ClientProfileFieldsSection({
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     setError(null)
+    markAllTouched(['label', 'options'])
+    if (labelError || optionsError) return
     try {
       createClientProfileField({
         label,
@@ -161,6 +167,7 @@ export function ClientProfileFieldsSection({
           <Input
             label="Field name"
             name="customFieldLabel"
+            required
             placeholder="e.g. Profession"
             value={label}
             autoFocus
@@ -168,6 +175,8 @@ export function ClientProfileFieldsSection({
               setLabel(event.target.value)
               setError(null)
             }}
+            onBlur={blur('label')}
+            error={showError('label') ? labelError : undefined}
           />
           <Select
             label="Type"
@@ -182,11 +191,14 @@ export function ClientProfileFieldsSection({
             <Textarea
               label="Choices"
               name="customFieldOptions"
+              required
               rows={3}
               hint="One choice per line"
               placeholder={'Mason\nElectrician\nDriver'}
               value={optionsText}
               onChange={(event) => setOptionsText(event.target.value)}
+              onBlur={blur('options')}
+              error={showError('options') ? optionsError : undefined}
             />
           ) : null}
           <Checkbox

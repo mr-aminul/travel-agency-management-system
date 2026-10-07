@@ -178,7 +178,7 @@ describe('client signals', () => {
 
   it('splits clients into sub-agent referrals and direct walk-ins', () => {
     const clients = [
-      buildClient({ id: 'a', partnerId: 'p-1' }),
+      buildClient({ id: 'a', subAgentId: 'p-1' }),
       buildClient({ id: 'b' }),
       buildClient({ id: 'c' }),
     ]

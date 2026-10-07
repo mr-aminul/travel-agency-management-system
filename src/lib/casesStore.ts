@@ -27,6 +27,10 @@ import {
 import { getDocumentForm } from '@/lib/caseDocumentForms'
 import { getStepIndex } from '@/lib/caseChecklist'
 import {
+  clientProgressBlockers,
+  progressBlockedMessage,
+} from '@/lib/clientMissingInfo'
+import {
   findClientRecord,
   getClientById,
   updateClient,
@@ -743,6 +747,17 @@ export function completeCurrentStep(
   }
   if (item.status === 'Completed') {
     return { ok: false, errors: { form: 'This case is already completed.' } }
+  }
+
+  const client = getClientById(item.clientId)
+  if (client) {
+    const blockers = clientProgressBlockers(client)
+    if (blockers.length > 0) {
+      return {
+        ok: false,
+        errors: { form: progressBlockedMessage(blockers) },
+      }
+    }
   }
 
   const requirement = getCaseStepRequirement(item, item.currentStepId)

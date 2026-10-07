@@ -1,15 +1,10 @@
 import { NavLink, Navigate, Outlet, useParams } from 'react-router-dom'
-import {
-  Badge,
-  Breadcrumbs,
-  PageHeader,
-  type BadgeVariant,
-} from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { useTenantById } from '@/lib/tenantsStore'
 import { cx } from '@/lib/cx'
 import type { TenantStatus } from '@/types/tenant'
 import '@/styles/layout-admin.css'
+import { Badge, Breadcrumbs, PageHeader, type BadgeVariant } from '@/components/ui'
 
 const SECTIONS = [
   { to: 'overview', label: 'Overview' },

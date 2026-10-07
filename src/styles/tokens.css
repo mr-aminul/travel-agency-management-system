@@ -43,6 +43,9 @@
   --pd-page-enter-stagger: 45ms;
   --pd-page-enter-ease: cubic-bezier(0.23, 1, 0.32, 1);
   --pd-page-enter-distance: 0.75rem;
+
+  /* Keep in sync with useBreakpoint.ts MOBILE_QUERY (max-width: 767px). */
+  --pd-mobile-max: 767px;
 }
 
 /*

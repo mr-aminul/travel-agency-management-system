@@ -1,20 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArchiveRestore, Trash2 } from 'lucide-react'
-import {
-  Avatar,
-  Button,
-  ConfirmDialog,
-  EmptyState,
-  PageHeader,
-  SearchField,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TypeConfirmDialog,
-} from '@/components/ui'
+import { Avatar, Button, ConfirmDialog, EmptyState, PageHeader, SearchField, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TypeConfirmDialog } from '@/components/ui'
 import {
   CLIENT_TRASH_RETENTION_DAYS,
   emptyClientTrash,

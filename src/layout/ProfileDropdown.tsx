@@ -2,10 +2,10 @@ import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LogOut, Settings, UserRound } from 'lucide-react'
 import { SignOutConfirmModal } from '@/components/ConfirmModal'
-import { CopyableText } from '@/components/ui'
 import { settingsNavItem, profileNavItem } from '@/config/layout'
 import { useAuth } from '@/lib/useAuth'
 import { useHoverMenu } from './useHoverMenu'
+import { CopyableText } from '@/components/ui'
 
 export function ProfileDropdown({
   userName,

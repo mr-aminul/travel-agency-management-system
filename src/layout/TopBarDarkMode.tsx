@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, type MouseEvent } from 'react'
 import { Moon, Sun } from 'lucide-react'
-import { Tooltip } from '@/components/ui'
 import { applyAppearance } from '@/lib/brand'
+import { Tooltip } from '@/components/ui'
 
 const THEME_TRANSITION_MS = 450
 

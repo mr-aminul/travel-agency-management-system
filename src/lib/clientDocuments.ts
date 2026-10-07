@@ -172,6 +172,48 @@ export function getCaseServicePapers(item: Case): ComplianceDocument[] {
   )
 }
 
+/** True when a scan/file is attached (number-only is not enough). */
+export function documentHasFile(
+  doc: Pick<CaseDocument, 'fileId' | 'fileName'>,
+): boolean {
+  return Boolean(doc.fileId || doc.fileName?.trim())
+}
+
+function identityHasFile(
+  client: Client,
+  cases: Case[],
+  kind: IdentityKind,
+): boolean {
+  if (kind === 'passport' && client.passportFile) return true
+  if (kind === 'nid' && client.nidFile) return true
+  return documentHasFile(buildIdentityCaseDocument(client, cases, kind))
+}
+
+/**
+ * Documents tab alert count: unlocked required papers / identity scans
+ * still missing an uploaded file (status alone is not enough — a number
+ * without a scan still needs attention).
+ */
+export function countClientDocumentAlerts(
+  client: Client,
+  cases: Case[],
+): number {
+  let count = 0
+
+  for (const kind of ['passport', 'nid'] as const) {
+    if (!identityHasFile(client, cases, kind)) count += 1
+  }
+
+  for (const group of getClientServiceDocumentGroups(cases)) {
+    for (const paper of group.papers) {
+      if (paper.locked || !paper.required) continue
+      if (!documentHasFile(paper)) count += 1
+    }
+  }
+
+  return count
+}
+
 export function getClientServiceDocumentGroups(
   cases: Case[],
 ): ClientServiceDocumentGroup[] {
@@ -184,7 +226,10 @@ export function getClientServiceDocumentGroups(
       destination: item.destination?.trim() || undefined,
       papers,
       needed: papers.filter(
-        (doc) => !doc.locked && doc.status === 'missing' && doc.required,
+        (doc) =>
+          !doc.locked &&
+          doc.required &&
+          (!documentHasFile(doc) || doc.status === 'missing'),
       ).length,
     }
   })

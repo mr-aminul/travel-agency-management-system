@@ -46,6 +46,8 @@ type SelectPropsBase = {
   searchable?: boolean
   searchPlaceholder?: string
   readOnly?: boolean
+  /** Fired when the trigger loses focus (used for touched-field validation). */
+  onBlur?: () => void
 }
 
 export type SelectProps =
@@ -115,6 +117,7 @@ export function Select(props: SelectProps) {
     searchable = false,
     searchPlaceholder = 'Search…',
     readOnly = false,
+    onBlur,
   } = props
   const ariaLabel = props['aria-label']
   const outlined = Boolean(label) && labelVariant === 'outlined'
@@ -567,6 +570,7 @@ export function Select(props: SelectProps) {
             if (!disabled && !readOnly) setOpen((current) => !current)
           }}
           onKeyDown={handleTriggerKeyDown}
+          onBlur={onBlur}
         >
           <span className="pd-select__value">
             {SelectedIcon ? (

@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Folder, Plus } from 'lucide-react'
-import { Badge, Button, EmptyState } from '@/components/ui'
 import { cx } from '@/lib/cx'
 import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { iconForService } from '@/lib/serviceIcons'
@@ -9,6 +8,7 @@ import { workDetailPath } from '@/lib/workPaths'
 import type { Case } from '@/types/case'
 import { caseStatusBadgeVariant } from '@/components/cases/CasesList'
 import '@/styles/layout-cases.css'
+import { Badge, Button, EmptyState } from '@/components/ui'
 
 export type ClientServicesWorkspaceProps = {
   cases: Case[]
@@ -30,7 +30,7 @@ export function ClientServicesWorkspace({
   if (cases.length === 0) {
     return (
       <section
-        className="pd-service-workspace"
+        className="pd-service-workspace pd-service-workspace--empty"
         aria-label={`${clientName} services`}
       >
         <EmptyState

@@ -1,28 +1,22 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Eye, FileText, Plus, Wallet } from 'lucide-react'
-import {
-  Button,
-  EmptyState,
-  Input,
-  Select,
-  SideDrawer,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui'
 import { getCaseById } from '@/lib/casesStore'
 import { workInvoicePath } from '@/lib/workPaths'
 import { formatDisplayDate } from '@/lib/formatDate'
+import { Button, EmptyState, Input, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui'
+import {
+  validateOptionalText,
+  validateRequiredMoney,
+  validateRequiredSelect,
+} from '@/lib/fieldValidation'
 import {
   createPayment,
   formatPaymentAmount,
   usePaymentsByCaseId,
   usePaymentsByClientId,
 } from '@/lib/paymentsStore'
+import { useTouchedFields } from '@/lib/useTouchedFields'
 import type { Case } from '@/types/case'
 
 function formatDate(value: string): string {
@@ -67,6 +61,14 @@ export function PaymentsList({
   const [note, setNote] = useState('')
   const [selectedCaseId, setSelectedCaseId] = useState(caseId ?? '')
   const [error, setError] = useState<string | undefined>()
+  const { markAllTouched, showError, blur, markTouched } = useTouchedFields<
+    'caseId' | 'amount' | 'note'
+  >()
+  const caseFieldError = caseId
+    ? undefined
+    : validateRequiredSelect(selectedCaseId, 'service')
+  const amountError = validateRequiredMoney(amount)
+  const noteError = validateOptionalText(note, 'Note', 200)
 
   const openCases = cases.filter(
     (item) => item.status !== 'Completed' && item.status !== 'Cancelled',
@@ -118,16 +120,10 @@ export function PaymentsList({
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
+    markAllTouched(['caseId', 'amount', 'note'])
+    if (caseFieldError || amountError || noteError) return
     const targetCaseId = caseId || selectedCaseId
     const parsed = Number(amount.replace(/,/g, ''))
-    if (!targetCaseId) {
-      setError('Select a service for this payment.')
-      return
-    }
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      setError('Enter a valid amount.')
-      return
-    }
     try {
       createPayment({
         clientId,
@@ -263,12 +259,17 @@ export function PaymentsList({
         <form className="pd-payments__form" onSubmit={handleSubmit} noValidate>
           {!caseId ? (
             <Select
-              label="Case"
+              label="Service"
               required
               value={selectedCaseId}
-              onChange={(event) => setSelectedCaseId(event.target.value)}
+              onChange={(event) => {
+                setSelectedCaseId(event.target.value)
+                markTouched('caseId')
+              }}
+              onBlur={blur('caseId')}
               options={caseOptions}
-              placeholder="Select case"
+              placeholder="Select service"
+              error={showError('caseId') ? caseFieldError : undefined}
             />
           ) : null}
           <Input
@@ -277,7 +278,9 @@ export function PaymentsList({
             inputMode="decimal"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
+            onBlur={blur('amount')}
             placeholder="e.g. 10000"
+            error={showError('amount') ? amountError : undefined}
           />
           <Select
             label="Method"
@@ -294,7 +297,9 @@ export function PaymentsList({
             label="Note"
             value={note}
             onChange={(event) => setNote(event.target.value)}
+            onBlur={blur('note')}
             placeholder="Optional"
+            error={showError('note') ? noteError : undefined}
           />
           {error ? (
             <p className="pd-field__error" role="alert">

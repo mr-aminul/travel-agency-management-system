@@ -2,19 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Printer, Trash2 } from 'lucide-react'
 import { DocumentPaper } from '@/components/documents/DocumentPaper'
 import { DocumentTemplateForm } from '@/components/documents/DocumentTemplateForm'
-import {
-  Button,
-  ConfirmDialog,
-  EmptyState,
-  Modal,
-  PageHeader,
-  SearchField,
-} from '@/components/ui'
 import { DEFAULT_BRAND_NAME } from '@/lib/agencyProfile'
 import { useAgencyProfile } from '@/layout/useAgencyProfile'
 import { useClients } from '@/lib/clientsStore'
 import { cx } from '@/lib/cx'
 import { clientToPrintRow, formatPrintDate } from '@/lib/documentPrint'
+import { Button, ConfirmDialog, EmptyState, Modal, PageHeader, SearchField } from '@/components/ui'
 import {
   createDocumentTemplate,
   deleteDocumentTemplate,

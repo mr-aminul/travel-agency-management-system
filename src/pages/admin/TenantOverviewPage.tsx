@@ -1,7 +1,7 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { MetricTile } from '@/components/ui'
 import { useTenantMembersByTenantId } from '@/lib/tenantMembersStore'
 import { useTenantById } from '@/lib/tenantsStore'
+import { MetricTile } from '@/components/ui'
 
 export default function TenantOverviewPage() {
   const { tenantId = '' } = useParams()

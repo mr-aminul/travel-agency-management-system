@@ -863,8 +863,12 @@
   }
 }
 
-@media (max-width: 640px) {
-  .pd-dash__kpis .pd-ops__metrics,
+@media (max-width: 767px) {
+  /* Dashboard has 7 KPIs — 2-up is denser than a single stack. */
+  .pd-dash__kpis .pd-ops__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .pd-dash__hero-charts,
   .pd-dash__charts,
   .pd-dash__actions,

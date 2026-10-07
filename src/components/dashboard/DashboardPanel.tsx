@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { EmptyState } from '@/components/ui'
 import { cx } from '@/lib/cx'
+import { EmptyState } from '@/components/ui'
 
 type DashboardPanelProps = {
   title: string

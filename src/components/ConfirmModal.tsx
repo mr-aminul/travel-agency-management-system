@@ -1,4 +1,4 @@
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ConfirmDialog } from '@/components/ui'
 
 interface SignOutConfirmModalProps {
   open: boolean

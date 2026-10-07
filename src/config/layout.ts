@@ -15,6 +15,7 @@ import {
   Users,
   UsersRound,
   Wallet,
+  Workflow,
 } from 'lucide-react'
 import type { AppLayoutConfig, NavItem } from '@/layout/types'
 import { flattenNavItems } from '@/lib/modules'
@@ -42,12 +43,13 @@ export const layoutConfig: AppLayoutConfig = {
   navItems: [
     { path: '/', label: 'Home', icon: Home, end: true },
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/readiness', label: 'Readiness', icon: Workflow },
     { path: '/clients', label: 'Clients', icon: Users },
     {
-      path: '/partners',
+      path: '/sub-agents',
       label: 'Sub Agents',
       icon: Handshake,
-      moduleId: 'partners',
+      moduleId: 'subAgents',
     },
     { path: '/services', label: 'Services', icon: ListChecks },
     { path: '/payments', label: 'Payments', icon: Wallet, moduleId: 'finance' },

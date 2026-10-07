@@ -43,7 +43,7 @@ describe('buildSearchCatalog', () => {
       enabledModules: ALL_MODULE_IDS,
       clients: [rahim],
       cases: [workFile],
-      partners: [],
+      subAgents: [],
       employees: [],
     })
 
@@ -70,7 +70,7 @@ describe('buildSearchCatalog', () => {
       enabledModules: ALL_MODULE_IDS,
       clients: [rahim],
       cases: [workFile],
-      partners: [],
+      subAgents: [],
       employees: [],
     })
 

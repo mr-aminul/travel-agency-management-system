@@ -1,21 +1,9 @@
 import { Users } from 'lucide-react'
 import { Navigate, useParams } from 'react-router-dom'
-import {
-  Avatar,
-  Badge,
-  CopyableText,
-  EmptyState,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  type BadgeVariant,
-} from '@/components/ui'
 import { useTenantMembersByTenantId } from '@/lib/tenantMembersStore'
 import { useTenantById } from '@/lib/tenantsStore'
 import type { TenantMemberRole, TenantMemberStatus } from '@/types/tenant'
+import { Avatar, Badge, CopyableText, EmptyState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type BadgeVariant } from '@/components/ui'
 
 function statusBadgeVariant(status: TenantMemberStatus): BadgeVariant {
   if (status === 'active') return 'completed'

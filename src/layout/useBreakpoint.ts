@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 
+/** Keep in sync with --pd-mobile-max in tokens.css */
 const MOBILE_QUERY = '(max-width: 767px)'
 
 function readIsMobile() {
