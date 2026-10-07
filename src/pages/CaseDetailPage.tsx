@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { ClipboardList, FileText, SquarePen } from 'lucide-react'
+import { Check, ClipboardList, FileText, Link2, SquarePen } from 'lucide-react'
 import { CasePipeline } from '@/components/cases/CasePipeline'
 import {
   Badge,
@@ -34,6 +34,7 @@ import { submitStatusRequest } from '@/lib/requestsStore'
 import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { iconForService } from '@/lib/serviceIcons'
 import { clientPath, workDetailPath, workInvoicePath } from '@/lib/workPaths'
+import { clientTrackingUrl } from '@/lib/publicUrl'
 import type { CaseStatus } from '@/types/case'
 import '@/styles/layout-cases.css'
 
@@ -47,6 +48,22 @@ function statusBadgeVariant(status: CaseStatus): BadgeVariant {
 
 function formatDate(value?: string): string {
   return formatDisplayDate(value)
+}
+
+async function copyText(value: string) {
+  try {
+    await navigator.clipboard.writeText(value)
+  } catch {
+    const field = document.createElement('textarea')
+    field.value = value
+    field.setAttribute('readonly', '')
+    field.style.position = 'fixed'
+    field.style.opacity = '0'
+    document.body.appendChild(field)
+    field.select()
+    document.execCommand('copy')
+    field.remove()
+  }
 }
 
 function Fact({
@@ -84,11 +101,19 @@ export default function CaseDetailPage() {
   const [requestOpen, setRequestOpen] = useState(false)
   const [requestTo, setRequestTo] = useState<CaseStatus>('In-Progress')
   const [requestRemarks, setRequestRemarks] = useState('')
+  const [trackingCopied, setTrackingCopied] = useState(false)
 
   useEffect(() => {
     setEditing(false)
     setRequestOpen(false)
+    setTrackingCopied(false)
   }, [caseId])
+
+  useEffect(() => {
+    if (!trackingCopied) return
+    const timer = window.setTimeout(() => setTrackingCopied(false), 1500)
+    return () => window.clearTimeout(timer)
+  }, [trackingCopied])
 
   if (!item) {
     return <Navigate to={clientPath(clientId, 'services')} replace />
@@ -171,6 +196,39 @@ export default function CaseDetailPage() {
           </>
         ) : (
           <>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="pd-btn--icon"
+              aria-label={
+                trackingCopied
+                  ? 'Tracking link copied'
+                  : client?.passport.trim()
+                    ? 'Copy tracking link'
+                    : 'Add a passport number to share tracking'
+              }
+              title={
+                trackingCopied
+                  ? 'Copied'
+                  : client?.passport.trim()
+                    ? 'Copy tracking link'
+                    : 'Add a passport number to share tracking'
+              }
+              disabled={!client?.passport.trim()}
+              onClick={() => {
+                const passport = client?.passport.trim()
+                if (!passport) return
+                void copyText(clientTrackingUrl(passport)).then(() => {
+                  setTrackingCopied(true)
+                })
+              }}
+            >
+              {trackingCopied ? (
+                <Check size={14} strokeWidth={2.25} aria-hidden />
+              ) : (
+                <Link2 size={14} strokeWidth={2.25} aria-hidden />
+              )}
+            </Button>
             <Button
               variant="secondary"
               size="sm"

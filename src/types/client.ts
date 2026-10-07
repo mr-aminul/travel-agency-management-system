@@ -65,6 +65,14 @@ export type Client = {
   activeCases: number
   idChecked: boolean
   createdAt: string
+  /** When set, client is archived and hidden from the default list. */
+  archivedAt?: string
+}
+
+/** Soft-deleted client kept in Trash until expiry or permanent delete. */
+export type TrashedClient = {
+  client: Client
+  deletedAt: string
 }
 
 export type CreateClientInput = {

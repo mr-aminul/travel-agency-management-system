@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { AuthProvider } from '@/lib/AuthProvider'
@@ -6,6 +6,7 @@ import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import { TENANT_IDS } from '@/types/tenant'
 import ClientDetailPage from '@/pages/ClientDetailPage'
 import CaseDetailPage from '@/pages/CaseDetailPage'
+import { clientTrackingUrl } from '@/lib/publicUrl'
 
 afterEach(() => {
   cleanup()
@@ -53,11 +54,17 @@ describe('client overview', () => {
 
     const profile = screen.getByLabelText('Client profile')
     expect(within(profile).getByText('01712345678')).toBeInTheDocument()
+    expect(
+      within(profile).queryByRole('link', { name: '01712345678' }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(profile).getByRole('button', { name: 'Copy phone number' }),
+    ).toBeInTheDocument()
     expect(within(profile).getByText('মোঃ রহিম উদ্দিন')).toBeInTheDocument()
     expect(within(profile).getByText('rahim.uddin@email.com')).toBeInTheDocument()
     expect(
-      within(profile).getByRole('link', { name: 'rahim.uddin@email.com' }),
-    ).toHaveAttribute('href', 'mailto:rahim.uddin@email.com')
+      within(profile).queryByRole('link', { name: 'rahim.uddin@email.com' }),
+    ).not.toBeInTheDocument()
     expect(
       within(profile).getByRole('button', { name: 'Copy email address' }),
     ).toBeInTheDocument()
@@ -158,7 +165,13 @@ describe('service detail', () => {
     expect(within(facts).getByText('Balance due')).toBeInTheDocument()
     expect(within(service).getByLabelText('Pipeline')).toBeInTheDocument()
     expect(within(service).getByRole('heading', { name: 'Pipeline' })).toBeInTheDocument()
+    expect(within(service).getByText('Stage 5 of 9')).toBeInTheDocument()
+    expect(within(service).getByText('Now')).toBeInTheDocument()
+    expect(within(service).getAllByText('Upcoming').length).toBeGreaterThan(0)
     expect(within(service).getByRole('button', { name: 'Request update' })).toBeInTheDocument()
+    expect(
+      within(service).getByRole('button', { name: 'Copy tracking link' }),
+    ).toBeInTheDocument()
     expect(within(facts).getByText('Md. Karim Ahmed')).toBeInTheDocument()
     expect(within(facts).getByText('1 needed')).toBeInTheDocument()
     expect(
@@ -166,6 +179,20 @@ describe('service detail', () => {
         'Nurse recruitment for Al Rajhi Hospital. Medical + police clearance in progress.',
       ),
     ).toBeInTheDocument()
+  })
+
+  it('copies the public tracking URL from the service header', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { writeText } })
+
+    renderClient('/clients/c-284/services/case-101')
+
+    const service = screen.getByLabelText('Work Permit Visa (SR-00101)')
+    fireEvent.click(
+      within(service).getByRole('button', { name: 'Copy tracking link' }),
+    )
+
+    expect(writeText).toHaveBeenCalledWith(clientTrackingUrl('A12345678'))
   })
 
   it('opens the first file when landing on Services, then switches files from the list', () => {
@@ -186,7 +213,7 @@ describe('service detail', () => {
 })
 
 describe('client documents tab', () => {
-  it('shows identity once and service papers grouped by file', () => {
+  it('nests papers under each group and opens a document in the workspace', () => {
     renderClient('/clients/c-284?tab=documents')
 
     expect(screen.getByRole('tab', { name: 'Documents' })).toHaveAttribute(
@@ -194,43 +221,71 @@ describe('client documents tab', () => {
       'true',
     )
 
-    const identity = screen.getByLabelText('Identity')
-    expect(within(identity).getByText('Passport')).toBeInTheDocument()
-    expect(within(identity).getByText('A12345678')).toBeInTheDocument()
-    expect(within(identity).getByText('National ID')).toBeInTheDocument()
-    expect(within(identity).getByText('1990123456789')).toBeInTheDocument()
+    const files = screen.getByLabelText('Md. Rahim Uddin documents')
+    expect(
+      within(files).getByRole('button', { name: 'Collapse Identity' }),
+    ).toHaveAttribute('aria-expanded', 'true')
+    expect(
+      within(files).getByRole('button', { name: 'Collapse Work Permit Visa' }),
+    ).toHaveAttribute('aria-expanded', 'true')
 
-    const workPermitTrigger = screen.getByRole('button', {
-      name: 'Work Permit Visa',
-    })
-    if (workPermitTrigger.getAttribute('aria-expanded') !== 'true') {
-      fireEvent.click(workPermitTrigger)
-    }
+    const identity = within(files).getByRole('group', { name: 'Identity' })
+    expect(within(identity).getByRole('button', { name: 'Passport' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(within(identity).getByRole('button', { name: 'National ID' })).toBeInTheDocument()
 
-    const workPermit = screen.getByLabelText('Work Permit Visa papers')
-    expect(within(workPermit).getByText('Medical Fitness Report')).toBeInTheDocument()
-    expect(within(workPermit).getByText('Demand Letter')).toBeInTheDocument()
+    const passport = screen.getByLabelText('Passport')
+    expect(within(passport).getByRole('heading', { name: 'Passport' })).toBeInTheDocument()
+    expect(within(passport).getByLabelText('Passport number')).toHaveValue('A12345678')
+    expect(within(passport).getByLabelText('Expiry date')).toHaveValue('2030-06-15')
+    expect(screen.queryByRole('dialog', { name: 'Passport' })).not.toBeInTheDocument()
+
+    const workPermit = within(files).getByRole('group', { name: 'Work Permit Visa' })
+    expect(within(workPermit).getByRole('button', { name: 'Medical Fitness Report' })).toBeInTheDocument()
+    expect(within(workPermit).getByRole('button', { name: 'Demand Letter' })).toBeInTheDocument()
     expect(
       within(workPermit).queryByText('Machine Readable Passport'),
     ).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Air Ticket' })).toBeInTheDocument()
     expect(screen.queryByText(/SR-00101/)).not.toBeInTheDocument()
+
+    fireEvent.click(
+      within(workPermit).getByRole('button', { name: 'Medical Fitness Report' }),
+    )
+    expect(
+      within(workPermit).getByRole('button', { name: 'Medical Fitness Report' }),
+    ).toHaveAttribute('aria-current', 'page')
+    expect(
+      screen.getByRole('heading', { name: 'Medical Fitness Report' }),
+    ).toBeInTheDocument()
   })
 
-  it('opens the same document drawer for passport as for service papers', () => {
+  it('edits passport fields in the document workspace', () => {
     renderClient('/clients/c-284?tab=documents')
 
-    const identity = screen.getByLabelText('Identity')
-    fireEvent.click(within(identity).getAllByRole('button', { name: 'View' })[0])
-
-    const drawer = screen.getByRole('dialog', { name: 'Passport' })
-    fireEvent.click(within(drawer).getByRole('button', { name: 'Edit' }))
-
-    expect(within(drawer).getByLabelText('Passport number')).toHaveValue(
+    const passport = screen.getByLabelText('Passport')
+    expect(within(passport).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+    expect(within(passport).queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
+    expect(within(passport).getByLabelText('Passport number')).toHaveValue(
       'A12345678',
     )
-    expect(within(drawer).getByLabelText('Expiry date')).toHaveValue('2030-06-15')
-    expect(within(drawer).getByText('Scan / file')).toBeInTheDocument()
+    expect(within(passport).getByLabelText('Expiry date')).toHaveValue('2030-06-15')
+    expect(within(passport).getByRole('button', { name: 'Browse File' })).toBeInTheDocument()
+    expect(
+      within(passport).getByText('Choose a file or drag & drop it here.'),
+    ).toBeInTheDocument()
+
+    fireEvent.change(within(passport).getByLabelText('Passport number'), {
+      target: { value: 'B99998888' },
+    })
+    expect(within(passport).getByRole('button', { name: 'Save' })).toBeInTheDocument()
+
+    fireEvent.click(within(passport).getByRole('button', { name: 'Discard changes' }))
+    expect(within(passport).getByLabelText('Passport number')).toHaveValue(
+      'A12345678',
+    )
+    expect(within(passport).queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
   })
 })
 

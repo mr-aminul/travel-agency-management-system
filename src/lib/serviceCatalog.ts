@@ -49,9 +49,14 @@ export function resolveServiceFromSlug(
 ): ServiceType | undefined {
   if (isCaseServiceSlug(slug)) {
     const service = CASE_SERVICE_SLUGS[slug]
-    return activeTenantAllowsService(service) ? service : undefined
+    if (!activeTenantAllowsService(service)) return undefined
+    if (isCatalogServiceHidden(service)) return undefined
+    return service
   }
-  return findCustomServiceBySlug(slug)?.name
+  const custom = findCustomServiceBySlug(slug)
+  if (!custom) return undefined
+  if (isCatalogServiceHidden(custom.name)) return undefined
+  return custom.name
 }
 
 export function listCatalogServiceRefs(

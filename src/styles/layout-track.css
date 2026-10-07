@@ -10,6 +10,10 @@
   --track-muted-bg: color-mix(in srgb, var(--color-theme) 6%, white);
   --track-radius: var(--radius-card-lg, 1.25rem);
   --track-control-radius: var(--radius-button, 0.75rem);
+  --journey-ink: var(--track-ink);
+  --journey-ink-muted: var(--track-ink-muted);
+  --journey-line: var(--track-panel-border);
+  --journey-surface: var(--track-panel);
 
   position: relative;
   isolation: isolate;
@@ -186,6 +190,11 @@
   min-height: 2.875rem;
   border-radius: var(--track-control-radius);
   font-weight: 600;
+  padding-inline: 1.15rem;
+}
+
+.pd-track__form .pd-btn__label {
+  gap: 0.45rem;
 }
 
 .pd-track__result {
@@ -239,156 +248,58 @@
   text-transform: uppercase;
 }
 
+.pd-track__services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.pd-track__service-chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--track-panel-border);
+  border-radius: 999px;
+  background: var(--track-muted-bg);
+  color: var(--track-ink-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pd-track__service-chip svg {
+  flex-shrink: 0;
+}
+
+.pd-track__service-chip:hover:not(.is-active) {
+  border-color: color-mix(in srgb, var(--color-theme) 35%, var(--track-panel-border));
+  color: var(--track-ink);
+}
+
+.pd-track__service-chip.is-active {
+  border-color: color-mix(in srgb, var(--color-theme) 45%, var(--track-panel-border));
+  background: color-mix(in srgb, var(--color-theme) 14%, white);
+  color: var(--track-ink);
+}
+
+.pd-track__service-chip:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-theme) 55%, transparent);
+  outline-offset: 2px;
+}
+
 @media (min-width: 40rem) {
   .pd-track__current {
     align-items: flex-end;
   }
-}
-
-.pd-track__progress {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-}
-
-.pd-track__progress-copy {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  align-items: baseline;
-}
-
-.pd-track__progress-label {
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--track-ink);
-}
-
-.pd-track__progress-hint {
-  margin: 0;
-  color: var(--track-ink-muted);
-  font-size: 0.8125rem;
-}
-
-.pd-track__bar {
-  height: 0.45rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-theme) 12%, #e5e7eb);
-}
-
-.pd-track__bar span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--color-theme);
-}
-
-.pd-track__steps {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.pd-track__step {
-  display: grid;
-  grid-template-columns: 1.75rem minmax(0, 1fr);
-  gap: 0.85rem;
-  position: relative;
-  padding-bottom: 1rem;
-}
-
-.pd-track__step:last-child {
-  padding-bottom: 0;
-}
-
-.pd-track__step:not(:last-child)::before {
-  content: '';
-  position: absolute;
-  left: 0.8rem;
-  top: 1.85rem;
-  bottom: 0.15rem;
-  width: 2px;
-  background: var(--track-panel-border);
-}
-
-.pd-track__step--done:not(:last-child)::before,
-.pd-track__step--current:not(:last-child)::before {
-  background: color-mix(in srgb, var(--color-theme) 55%, var(--track-panel-border));
-}
-
-.pd-track__marker {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 999px;
-  border: 2px solid var(--track-panel-border);
-  background: var(--track-panel);
-  color: var(--track-ink-muted);
-  font-size: 0.7rem;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.pd-track__step--done .pd-track__marker {
-  border-color: var(--color-theme-ink);
-  background: var(--color-theme);
-  color: var(--color-on-theme);
-}
-
-.pd-track__step--current .pd-track__marker {
-  border-color: var(--color-theme-ink);
-  color: var(--color-theme-ink);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-theme) 16%, transparent);
-}
-
-.pd-track__step--upcoming {
-  opacity: 0.62;
-}
-
-.pd-track__step-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 0;
-  padding-top: 0.15rem;
-}
-
-.pd-track__step-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.25rem 0.75rem;
-}
-
-.pd-track__step-title {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: 0.95rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.pd-track__step-date {
-  color: var(--track-ink-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.pd-track__step-note {
-  margin: 0;
-  color: var(--track-ink-muted);
-  font-size: 0.8125rem;
-  line-height: 1.4;
-}
-
-.pd-track__step--current .pd-track__step-note {
-  color: var(--track-ink);
 }
 
 .pd-track__privacy {
@@ -423,12 +334,8 @@
 
   .pd-track__sheet--wide .pd-track__form .pd-btn {
     width: auto;
-    padding-inline: 1.25rem;
+    min-width: 7.5rem;
+    padding-inline: 1.15rem;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pd-track__step--current .pd-track__marker {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-theme) 16%, transparent);
-  }
-}

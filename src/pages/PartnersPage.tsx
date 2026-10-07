@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Handshake, Plus, UserMinus, Users, UserCheck } from 'lucide-react'
+import {
+  Handshake,
+  LayoutGrid,
+  Plus,
+  Table2,
+  UserMinus,
+  Users,
+  UserCheck,
+} from 'lucide-react'
 import { NewPartnerForm } from '@/components/partners/NewPartnerForm'
 import { StatCards } from '@/components/StatCards'
 import {
@@ -17,6 +25,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Tooltip,
   type BadgeVariant,
 } from '@/components/ui'
 import { createPartner, usePartners } from '@/lib/partnersStore'
@@ -28,10 +37,32 @@ import type { Partner, PartnerDraft, PartnerStatus } from '@/types/partner'
 import type { Case } from '@/types/case'
 import '@/styles/layout-clients.css'
 
+type PartnersListView = 'table' | 'grid'
+
+const PARTNERS_LIST_VIEW_KEY = 'partners-list-view'
+
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'Active', label: 'Active' },
   { value: 'Inactive', label: 'Inactive' },
 ]
+
+function readPartnersListView(): PartnersListView {
+  try {
+    return localStorage.getItem(PARTNERS_LIST_VIEW_KEY) === 'grid'
+      ? 'grid'
+      : 'table'
+  } catch {
+    return 'table'
+  }
+}
+
+function persistPartnersListView(view: PartnersListView) {
+  try {
+    localStorage.setItem(PARTNERS_LIST_VIEW_KEY, view)
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
 
 function statusBadgeVariant(status: PartnerStatus): BadgeVariant {
   return status === 'Active' ? 'completed' : 'on-hold'
@@ -78,6 +109,9 @@ export default function PartnersPage() {
   const [newPartnerOpen, setNewPartnerOpen] = useState(false)
   const [clientFilter, setClientFilter] = useState<'all' | 'referred' | 'idle'>(
     'all',
+  )
+  const [listView, setListView] = useState<PartnersListView>(
+    readPartnersListView,
   )
 
   useEffect(() => {
@@ -188,6 +222,11 @@ export default function PartnersPage() {
     setStatusFilters(['Active'])
   }
 
+  const selectListView = (view: PartnersListView) => {
+    setListView(view)
+    persistPartnersListView(view)
+  }
+
   const openNewPartnerModal = () => {
     setNewPartnerOpen(true)
     if (searchParams.get('new') !== '1') {
@@ -292,6 +331,42 @@ export default function PartnersPage() {
               </button>
             ) : null}
           </div>
+          <div
+            className="pd-clients__views"
+            role="group"
+            aria-label="Sub agent list view"
+          >
+            <Tooltip content="Table view">
+              <button
+                type="button"
+                className={
+                  listView === 'table'
+                    ? 'pd-clients__view is-active'
+                    : 'pd-clients__view'
+                }
+                aria-pressed={listView === 'table'}
+                aria-label="Table view"
+                onClick={() => selectListView('table')}
+              >
+                <Table2 size={16} strokeWidth={2.25} aria-hidden />
+              </button>
+            </Tooltip>
+            <Tooltip content="Grid view">
+              <button
+                type="button"
+                className={
+                  listView === 'grid'
+                    ? 'pd-clients__view is-active'
+                    : 'pd-clients__view'
+                }
+                aria-pressed={listView === 'grid'}
+                aria-label="Grid view"
+                onClick={() => selectListView('grid')}
+              >
+                <LayoutGrid size={16} strokeWidth={2.25} aria-hidden />
+              </button>
+            </Tooltip>
+          </div>
           <Button onClick={openNewPartnerModal}>
             <Plus size={16} strokeWidth={2.25} aria-hidden />
             New sub agent
@@ -319,6 +394,57 @@ export default function PartnersPage() {
             </Button>
           }
         />
+      ) : listView === 'grid' ? (
+        <div className="pd-clients__grid">
+          {filtered.map((partner) => {
+            const activityStatus =
+              activityStatusByPartner.get(partner.id) ?? 'Inactive'
+            return (
+              <button
+                key={partner.id}
+                type="button"
+                className="pd-clients__card"
+                onClick={() => navigate(`/partners/${partner.id}`)}
+              >
+                <div className="pd-clients__card-top">
+                  <div className="pd-clients__identity">
+                    <Avatar
+                      name={partner.name}
+                      src={partner.photoUrl}
+                      size="md"
+                    />
+                    <p className="pd-clients__name">{partner.name}</p>
+                  </div>
+                  <Badge variant={statusBadgeVariant(activityStatus)}>
+                    {activityStatus}
+                  </Badge>
+                </div>
+                <dl className="pd-clients__card-meta">
+                  <div className="pd-clients__card-row">
+                    <dt>ID</dt>
+                    <dd>{partner.id}</dd>
+                  </div>
+                  <div className="pd-clients__card-row">
+                    <dt>Mobile</dt>
+                    <dd>{normalizePhone(partner.phone) || partner.phone}</dd>
+                  </div>
+                  <div className="pd-clients__card-row">
+                    <dt>Branch</dt>
+                    <dd>{partner.branch || '—'}</dd>
+                  </div>
+                  <div className="pd-clients__card-row">
+                    <dt>License</dt>
+                    <dd>{partner.licenseNumber || '—'}</dd>
+                  </div>
+                  <div className="pd-clients__card-row">
+                    <dt>Customers</dt>
+                    <dd>{customerCountByPartner.get(partner.id) ?? 0}</dd>
+                  </div>
+                </dl>
+              </button>
+            )
+          })}
+        </div>
       ) : (
         <Table>
           <TableHeader>

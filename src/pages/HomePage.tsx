@@ -4,7 +4,6 @@ import {
   FileText,
   Handshake,
   HelpCircle,
-  LayoutDashboard,
   UserRoundSearch,
   Users,
   UsersRound,
@@ -25,12 +24,6 @@ type QuickLink = {
 }
 
 const QUICK_LINKS: QuickLink[] = [
-  {
-    path: '/dashboard',
-    label: 'Dashboard',
-    description: 'Overview & metrics',
-    icon: LayoutDashboard,
-  },
   {
     path: '/clients',
     label: 'Clients',

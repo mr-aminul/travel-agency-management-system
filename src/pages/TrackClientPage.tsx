@@ -1,22 +1,37 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Check } from 'lucide-react'
+import { Search } from 'lucide-react'
+import { ServiceJourney } from '@/components/cases/ServiceJourney'
 import { Alert, Badge, Button, Input } from '@/components/ui'
 import { layoutConfig } from '@/config/layout'
-import {
-  getStepDefsForCase,
-  getStepIndex,
-  isPipelineStepComplete,
-  templateCountry,
-} from '@/lib/caseChecklist'
 import { findCasesByClientIdAnyTenant } from '@/lib/casesStore'
 import { findClientByPassport } from '@/lib/clientsStore'
+import { cx } from '@/lib/cx'
 import { publicUrl } from '@/lib/publicUrl'
-import { formatDisplayDate } from '@/lib/formatDate'
+import { iconForService } from '@/lib/serviceIcons'
+import { buildServiceJourney } from '@/lib/serviceJourney'
+import type { Case } from '@/types/case'
 import '@/styles/layout-track.css'
 
-function formatDate(value?: string | null) {
-  return formatDisplayDate(value, '') || null
+function pickDefaultCase(cases: Case[], preferredId?: string | null): Case | undefined {
+  if (preferredId) {
+    const match = cases.find((item) => item.id === preferredId)
+    if (match) return match
+  }
+  return (
+    cases.find(
+      (item) => item.status !== 'Completed' && item.status !== 'Cancelled',
+    ) ?? cases[0]
+  )
+}
+
+function serviceChipLabel(item: Case, cases: Case[]): string {
+  const sameServiceCount = cases.filter(
+    (entry) => entry.service === item.service,
+  ).length
+  if (sameServiceCount <= 1) return item.service
+  if (item.destination) return `${item.service} · ${item.destination}`
+  return `${item.service} (${item.caseId})`
 }
 
 export default function TrackClientPage() {
@@ -34,25 +49,19 @@ export default function TrackClientPage() {
     () => (client ? findCasesByClientIdAnyTenant(client.id) : []),
     [client],
   )
-  const activeCase =
-    cases.find(
-      (item) => item.status !== 'Completed' && item.status !== 'Cancelled',
-    ) ?? cases[0]
-  const steps = activeCase ? getStepDefsForCase(activeCase) : []
-  const currentIndex = activeCase
-    ? getStepIndex(
-        activeCase.service,
-        activeCase.currentStepId,
-        templateCountry(activeCase),
-      )
-    : -1
-  const completedCount =
-    activeCase && currentIndex >= 0
-      ? steps.filter((step) => isPipelineStepComplete(activeCase, step.id))
-          .length
-      : 0
-  const progressPercent =
-    steps.length > 0 ? (completedCount / steps.length) * 100 : 0
+  const selectedCase = useMemo(
+    () => pickDefaultCase(cases, params.get('case')),
+    [cases, params],
+  )
+  const journey = useMemo(
+    () => (selectedCase ? buildServiceJourney(selectedCase) : null),
+    [selectedCase],
+  )
+  const currentLabel =
+    journey?.steps.find((step) => step.state === 'current')?.label ??
+    journey?.steps.at(-1)?.label ??
+    selectedCase?.status
+  const hasMultipleServices = cases.length > 1
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -66,6 +75,11 @@ export default function TrackClientPage() {
     setFieldError(undefined)
     setSubmitted(value)
     setSearchParams({ passport: value })
+  }
+
+  const selectService = (caseId: string) => {
+    if (!submitted) return
+    setSearchParams({ passport: submitted, case: caseId })
   }
 
   const searchedAndMissing = Boolean(submitted) && !client
@@ -114,7 +128,8 @@ export default function TrackClientPage() {
             error={fieldError}
           />
           <Button type="submit" size="lg">
-            Look up status
+            <Search size={18} strokeWidth={2.25} aria-hidden />
+            Search
           </Button>
         </form>
 
@@ -126,88 +141,53 @@ export default function TrackClientPage() {
           </Alert>
         ) : null}
 
-        {client && activeCase ? (
+        {client && selectedCase && journey ? (
           <section className="pd-track__result" aria-live="polite">
             <div className="pd-track__identity">
               <div className="pd-track__identity-copy">
                 <h2 className="pd-track__name">{client.name}</h2>
                 <p className="pd-track__meta">
                   Passport {client.passport}
-                  {activeCase.destination ? ` · ${activeCase.destination}` : ''}
-                  {` · ${activeCase.service}`}
+                  {selectedCase.destination
+                    ? ` · ${selectedCase.destination}`
+                    : ''}
+                  {hasMultipleServices ? '' : ` · ${selectedCase.service}`}
                 </p>
               </div>
               <p className="pd-track__current">
                 <span>Current stage</span>
-                <Badge variant="in-progress">
-                  {steps[currentIndex]?.label ?? activeCase.status}
-                </Badge>
+                <Badge variant="in-progress">{currentLabel}</Badge>
               </p>
             </div>
 
-            <div className="pd-track__progress">
-              <div className="pd-track__progress-copy">
-                <p className="pd-track__progress-label">
-                  Stage {Math.min(completedCount + 1, steps.length)} of{' '}
-                  {steps.length}
-                </p>
-              </div>
-              <div
-                className="pd-track__bar"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(progressPercent)}
-                aria-label="Application progress"
+            {hasMultipleServices ? (
+              <nav
+                className="pd-track__services"
+                aria-label="Services for this passport"
               >
-                <span style={{ width: `${progressPercent}%` }} />
-              </div>
-            </div>
-
-            <ol className="pd-track__steps" aria-label="Service journey">
-              {steps.map((step, index) => {
-                const done = isPipelineStepComplete(activeCase, step.id)
-                const state =
-                  done && index !== currentIndex
-                    ? 'done'
-                    : index === currentIndex
-                      ? 'current'
-                      : done
-                        ? 'done'
-                        : 'upcoming'
-                const record = activeCase.steps[step.id]
-                return (
-                  <li
-                    key={step.id}
-                    className={`pd-track__step pd-track__step--${state}`}
-                  >
-                    <span className="pd-track__marker" aria-hidden>
-                      {state === 'done' ? (
-                        <Check size={14} strokeWidth={3} />
-                      ) : (
-                        index + 1
+                {cases.map((item) => {
+                  const selected = item.id === selectedCase.id
+                  const ServiceIcon = iconForService(item.service)
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={cx(
+                        'pd-track__service-chip',
+                        selected && 'is-active',
                       )}
-                    </span>
-                    <div className="pd-track__step-body">
-                      <div className="pd-track__step-head">
-                        <h3 className="pd-track__step-title">{step.label}</h3>
-                        <time className="pd-track__step-date">
-                          {formatDate(record?.completedAt) ??
-                            (state === 'upcoming'
-                              ? 'Upcoming'
-                              : state === 'done'
-                                ? 'Completed'
-                                : 'Now')}
-                        </time>
-                      </div>
-                      {record?.detail ? (
-                        <p className="pd-track__step-note">{record.detail}</p>
-                      ) : null}
-                    </div>
-                  </li>
-                )
-              })}
-            </ol>
+                      aria-pressed={selected}
+                      onClick={() => selectService(item.id)}
+                    >
+                      <ServiceIcon size={15} strokeWidth={2} aria-hidden />
+                      {serviceChipLabel(item, cases)}
+                    </button>
+                  )
+                })}
+              </nav>
+            ) : null}
+
+            <ServiceJourney item={selectedCase} />
           </section>
         ) : null}
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { formatDisplayDate, formatDisplayDateFromDate } from '@/lib/formatDate'
+import {
+  formatDisplayDate,
+  formatDisplayDateFromDate,
+  formatDisplayDateTime,
+} from '@/lib/formatDate'
 
 describe('formatDisplayDate', () => {
   it('formats ISO calendar dates as DD-MMM-YYYY', () => {
@@ -29,5 +33,22 @@ describe('formatDisplayDate', () => {
 describe('formatDisplayDateFromDate', () => {
   it('formats a local Date', () => {
     expect(formatDisplayDateFromDate(new Date(2026, 8, 5))).toBe('05-Sep-2026')
+  })
+})
+
+describe('formatDisplayDateTime', () => {
+  it('formats a local datetime as DD-MMM-YYYY h:mm AM/PM', () => {
+    expect(
+      formatDisplayDateTime(new Date(2026, 9, 5, 14, 30).toISOString()),
+    ).toBe('05-Oct-2026 2:30 PM')
+  })
+
+  it('treats a calendar date as local midnight', () => {
+    expect(formatDisplayDateTime('2026-10-05')).toBe('05-Oct-2026 12:00 AM')
+  })
+
+  it('returns the empty placeholder when missing', () => {
+    expect(formatDisplayDateTime(undefined)).toBe('—')
+    expect(formatDisplayDateTime('', '')).toBe('')
   })
 })

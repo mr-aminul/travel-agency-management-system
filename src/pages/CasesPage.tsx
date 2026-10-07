@@ -1,28 +1,23 @@
-import { useSearchParams } from 'react-router-dom'
+import { useMemo } from 'react'
 import { CasesList } from '@/components/cases/CasesList'
 import { useCases } from '@/lib/casesStore'
-import { resolveServiceFromSlug } from '@/lib/serviceCatalog'
-import type { ServiceType } from '@/types/case'
+import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 
-export default function CasesPage({ service: serviceProp }: { service?: ServiceType } = {}) {
-  const [searchParams] = useSearchParams()
-  const slug = searchParams.get('service') ?? ''
-  const fromQuery = resolveServiceFromSlug(slug)
-  const service = serviceProp ?? fromQuery
+export default function CasesPage() {
   const allRequests = useCases()
-  const requests = service
-    ? allRequests.filter((item) => item.service === service)
-    : allRequests
-  const isAllServices = !service
+  const enabled = useEnabledServiceOptions()
+  const enabledKeys = useMemo(
+    () => new Set(enabled.map((option) => option.value)),
+    [enabled],
+  )
+  const requests = allRequests.filter((item) => enabledKeys.has(item.service))
 
   return (
     <CasesList
       cases={requests}
-      label={isAllServices ? 'Services' : service}
+      label="Services"
       showClientColumn
-      showServiceColumn={isAllServices}
-      defaultService={service}
-      lockService={!isAllServices}
+      showServiceColumn
       syncNewWithSearchParams
     />
   )

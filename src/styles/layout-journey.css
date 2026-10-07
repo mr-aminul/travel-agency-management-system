@@ -1,0 +1,174 @@
+.pd-journey {
+  --journey-ink: var(--color-text);
+  --journey-ink-muted: var(--color-text-secondary);
+  --journey-line: var(--color-border);
+  --journey-surface: var(--color-surface-raised, var(--color-bg));
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.pd-journey__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.pd-journey__progress-label {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--journey-ink);
+}
+
+.pd-journey__bar {
+  height: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-theme) 12%, var(--journey-line));
+}
+
+.pd-journey__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-theme);
+}
+
+.pd-journey__steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-journey__step {
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+.pd-journey__step:last-child {
+  padding-bottom: 0;
+}
+
+.pd-journey__step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 0.8rem;
+  top: 1.85rem;
+  bottom: 0.15rem;
+  width: 2px;
+  background: var(--journey-line);
+}
+
+.pd-journey__step--done:not(:last-child)::before,
+.pd-journey__step--current:not(:last-child)::before {
+  background: color-mix(in srgb, var(--color-theme) 55%, var(--journey-line));
+}
+
+.pd-journey__row {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  gap: 0.85rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.pd-journey__row--hit {
+  cursor: pointer;
+  border-radius: 0.5rem;
+}
+
+.pd-journey__row--hit:hover .pd-journey__title {
+  color: var(--color-theme-ink);
+}
+
+.pd-journey__row--hit:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-theme) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.pd-journey__marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--journey-line);
+  background: var(--journey-surface);
+  color: var(--journey-ink-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pd-journey__step--done .pd-journey__marker {
+  border-color: var(--color-theme-ink);
+  background: var(--color-theme);
+  color: var(--color-on-theme);
+}
+
+.pd-journey__step--current .pd-journey__marker {
+  border-color: var(--color-theme-ink);
+  color: var(--color-theme-ink);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-theme) 16%, transparent);
+}
+
+.pd-journey__step--upcoming {
+  opacity: 0.62;
+}
+
+.pd-journey__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  padding-top: 0.15rem;
+}
+
+.pd-journey__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+
+.pd-journey__title {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--journey-ink);
+}
+
+.pd-journey__date {
+  color: var(--journey-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pd-journey__note {
+  color: var(--journey-ink-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.pd-journey__step--current .pd-journey__note {
+  color: var(--journey-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-journey__step--current .pd-journey__marker {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-theme) 16%, transparent);
+  }
+}

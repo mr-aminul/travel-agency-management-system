@@ -510,7 +510,6 @@ export default function PartnerDetailPage() {
               <dt>Phone</dt>
               <dd>
                 <ContactChip
-                  href={`tel:${displayPhone}`}
                   value={displayPhone}
                   label="phone number"
                 />
@@ -521,7 +520,6 @@ export default function PartnerDetailPage() {
               <dd>
                 {displayEmail ? (
                   <ContactChip
-                    href={`mailto:${displayEmail}`}
                     value={displayEmail}
                     label="email address"
                   />
@@ -621,12 +619,7 @@ export default function PartnerDetailPage() {
                         <div className="pd-client-detail__field">
                           <FieldLabel icon={Phone}>Phone</FieldLabel>
                           <dd>
-                            <a
-                              href={`tel:${displayPhone}`}
-                              className="pd-client-detail__link"
-                            >
-                              {displayPhone}
-                            </a>
+                            {displayPhone}
                           </dd>
                         </div>
                         <div className="pd-client-detail__field">

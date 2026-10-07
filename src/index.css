@@ -11,6 +11,12 @@ html {
   font-family: var(--font-body);
 }
 
+/* Click/tap should not draw a ring. Keyboard navigation still does. */
+html:not([data-kb-nav]) :focus,
+html:not([data-kb-nav]) :focus-visible {
+  outline: none !important;
+}
+
 body {
   margin: 0;
   font-family: inherit;

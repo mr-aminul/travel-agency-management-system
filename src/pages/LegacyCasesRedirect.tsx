@@ -1,7 +1,7 @@
 import { Navigate, useLocation, useParams } from 'react-router-dom'
 import { getCaseById, useCases } from '@/lib/casesStore'
+import { resolveServiceFromSlug } from '@/lib/serviceCatalog'
 import { workDetailPath, workInvoicePath, workListPath } from '@/lib/workPaths'
-import { isCaseServiceSlug } from '@/types/case'
 
 /** Old Cases / Work / Services-detail URLs → the client who owns the file. */
 export default function LegacyCasesRedirect() {
@@ -9,9 +9,10 @@ export default function LegacyCasesRedirect() {
   const { id = '' } = useParams()
   const { search, pathname } = useLocation()
   const isInvoice = pathname.endsWith('/invoice')
+  const queueService = resolveServiceFromSlug(id)
 
-  if (isCaseServiceSlug(id)) {
-    return <Navigate to={`${workListPath()}?service=${id}`} replace />
+  if (queueService) {
+    return <Navigate to={workListPath(queueService)} replace />
   }
 
   if (!id) {

@@ -1,0 +1,1504 @@
+/* Bento dashboard tiles and charts (see src/components/dashboard). */
+
+/* ── Page ─────────────────────────────────────────────────────────── */
+
+.pd-bento-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5, 1.25rem);
+}
+
+.pd-bento-page__asof {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Grid ─────────────────────────────────────────────────────────── */
+
+.pd-bento {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  gap: var(--spacing-4, 1rem);
+}
+
+.pd-bento__health {
+  grid-column: span 4;
+}
+
+.pd-bento__cash {
+  grid-column: span 8;
+}
+
+.pd-kpi {
+  grid-column: span 3;
+}
+
+.pd-bento__pipeline,
+.pd-bento__paperwork,
+.pd-bento__departures {
+  grid-column: span 7;
+}
+
+.pd-bento__receivables {
+  grid-column: span 5;
+  grid-row: span 2;
+}
+
+.pd-bento__attention {
+  grid-column: span 5;
+}
+
+.pd-bento__mix,
+.pd-bento__team,
+.pd-bento__referrals {
+  grid-column: span 4;
+}
+
+.pd-bento--no-referrals .pd-bento__mix,
+.pd-bento--no-referrals .pd-bento__team {
+  grid-column: span 6;
+}
+
+/* ── Tile ─────────────────────────────────────────────────────────── */
+
+.pd-bento-tile {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--spacing-4, 1rem);
+  padding: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: var(--radius-card-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-low);
+  transition: border-color 160ms ease, box-shadow 200ms ease;
+}
+
+.pd-bento-tile:hover {
+  border-color: color-mix(in srgb, var(--color-theme-ink) 22%, var(--color-border));
+}
+
+.pd-bento-tile__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.pd-bento-tile__icon {
+  display: inline-grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 0.6rem;
+  background: var(--color-theme-subtle);
+  color: var(--color-theme-ink);
+}
+
+.pd-bento-tile__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.pd-bento-tile__meta {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-bento-tile__link {
+  display: inline-grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.pd-bento-tile__head .pd-bento-tile__title + .pd-bento-tile__link {
+  margin-left: auto;
+}
+
+.pd-bento-tile__link:hover,
+.pd-bento-tile__link:focus-visible {
+  background: var(--color-theme-subtle);
+  color: var(--color-theme-ink);
+}
+
+.pd-bento-tile__body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--spacing-4, 1rem);
+}
+
+.pd-bento-tile .pd-empty {
+  flex: 1;
+  justify-content: center;
+  padding: 1.25rem 0.5rem;
+}
+
+/* ── Shared figures + tones ───────────────────────────────────────── */
+
+.pd-bento-subhead {
+  margin: 0 0 -0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.pd-figure {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.pd-figure__value {
+  font-family: var(--font-heading);
+  font-size: 1.875rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-figure__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.pd-tone--brand {
+  --tone: var(--color-theme-ink);
+}
+
+.pd-tone--brand-soft {
+  --tone: color-mix(in srgb, var(--color-theme-ink) 32%, var(--color-surface));
+}
+
+.pd-tone--info {
+  --tone: var(--color-blue);
+}
+
+.pd-tone--success {
+  --tone: var(--color-status-completed);
+}
+
+.pd-tone--warning {
+  --tone: var(--color-amber);
+}
+
+.pd-tone--danger {
+  --tone: var(--color-red);
+}
+
+.pd-tone--critical {
+  --tone: color-mix(in srgb, var(--color-red) 62%, black);
+}
+
+.pd-tone--muted {
+  --tone: color-mix(in srgb, var(--color-text-muted) 55%, var(--color-surface));
+}
+
+.pd-delta {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-delta--up {
+  background: var(--color-status-completed-surface);
+  color: var(--color-status-completed);
+}
+
+.pd-delta--down {
+  background: var(--color-red-light);
+  color: var(--color-red);
+}
+
+/* ── Business health (hero) ───────────────────────────────────────── */
+
+.pd-health {
+  --health-accent: color-mix(in srgb, var(--color-status-completed) 55%, white);
+  position: relative;
+  overflow: hidden;
+  container-type: inline-size;
+  border-color: transparent;
+  background:
+    radial-gradient(120% 80% at 100% 0%,
+      color-mix(in srgb, var(--color-theme-bright) 30%, transparent) 0%,
+      transparent 60%),
+    linear-gradient(160deg, var(--color-theme) 0%, var(--color-theme-darkest) 100%);
+  color: var(--color-white);
+}
+
+.pd-health:hover {
+  border-color: transparent;
+}
+
+.pd-health--watch {
+  --health-accent: color-mix(in srgb, var(--color-amber) 60%, white);
+}
+
+.pd-health--at-risk {
+  --health-accent: color-mix(in srgb, var(--color-red) 55%, white);
+}
+
+.pd-health__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.pd-health__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-heading);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.pd-health__verdict {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--health-accent) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--health-accent) 16%, transparent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--health-accent);
+}
+
+.pd-health__hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pd-health__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pd-health__summary {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.pd-health__drag {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, white 72%, transparent);
+}
+
+.pd-health__drag strong {
+  color: var(--color-white);
+}
+
+.pd-health-gauge {
+  position: relative;
+  width: 8.5rem;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.pd-health-gauge__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: rotate(135deg);
+}
+
+.pd-health-gauge__track,
+.pd-health-gauge__value {
+  fill: none;
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+
+.pd-health-gauge__track {
+  stroke: color-mix(in srgb, white 14%, transparent);
+}
+
+.pd-health-gauge__value {
+  stroke: var(--health-accent);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--health-accent) 55%, transparent));
+}
+
+.pd-health-gauge__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0.35rem;
+}
+
+.pd-health-gauge__score {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-health-gauge__out-of {
+  margin-top: 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: color-mix(in srgb, white 65%, transparent);
+}
+
+.pd-health__signals {
+  display: grid;
+  gap: 0.8rem;
+  margin: auto 0 0;
+  padding: 1rem 0 0;
+  border-top: 1px solid color-mix(in srgb, white 14%, transparent);
+  list-style: none;
+}
+
+.pd-health__signal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.3rem 0.75rem;
+}
+
+.pd-health__signal-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.pd-health__signal-rating {
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+}
+
+.pd-health__signal-rating--good {
+  background: color-mix(in srgb, var(--color-status-completed) 40%, transparent);
+}
+
+.pd-health__signal-rating--okay {
+  background: color-mix(in srgb, var(--color-amber) 45%, transparent);
+}
+
+.pd-health__signal-rating--poor {
+  background: color-mix(in srgb, var(--color-red) 50%, transparent);
+}
+
+.pd-health__signal-track {
+  grid-column: 1 / -1;
+  height: 0.3rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, white 14%, transparent);
+}
+
+.pd-health__signal-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, white 88%, transparent);
+  transform-origin: left;
+}
+
+.pd-health__signal-detail {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  color: color-mix(in srgb, white 64%, transparent);
+}
+
+@container (min-width: 38rem) {
+  .pd-health__signals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.5rem;
+  }
+}
+
+/* ── KPI tiles ────────────────────────────────────────────────────── */
+
+.pd-kpi {
+  gap: 0.45rem;
+  padding: 1rem 1.15rem;
+}
+
+.pd-kpi__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.pd-kpi__label svg {
+  color: var(--color-theme-ink);
+}
+
+.pd-kpi__value {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-kpi__hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Cash flow ────────────────────────────────────────────────────── */
+
+.pd-cash-headline {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+}
+
+.pd-cash-headline__primary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.pd-cash-headline__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.pd-cash-headline__value {
+  font-family: var(--font-heading);
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-cash-headline__stats {
+  display: flex;
+  gap: 1.75rem;
+  margin: 0;
+}
+
+.pd-cash-headline__stats dt {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.pd-cash-headline__stats dd {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-heading);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-month-bars {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  flex: 1;
+  min-height: 11rem;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.85rem 0.9rem 0.6rem;
+  border-radius: var(--radius-card);
+  background: var(--color-bg-muted);
+  list-style: none;
+}
+
+.pd-month-bars__month {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pd-month-bars__amount {
+  min-height: 1rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pd-month-bars__track {
+  display: flex;
+  width: 100%;
+  max-width: 2.25rem;
+  flex: 1;
+  align-items: flex-end;
+}
+
+.pd-month-bars__fill {
+  display: block;
+  width: 100%;
+  min-height: 3px;
+  border-radius: 0.45rem 0.45rem 0.2rem 0.2rem;
+  background: color-mix(in srgb, var(--color-status-completed) 55%, var(--color-surface));
+  transform-origin: bottom;
+}
+
+.pd-month-bars__month--current .pd-month-bars__fill {
+  background: var(--color-status-completed);
+}
+
+.pd-month-bars__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.pd-month-bars__month--current .pd-month-bars__label {
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+/* ── Pipeline by stage ────────────────────────────────────────────── */
+
+.pd-stage-flow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-stage-flow__stage {
+  --stage-color: color-mix(in srgb, var(--color-theme-ink) 30%, var(--color-surface));
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pd-stage-flow__stage--processing {
+  --stage-color: color-mix(in srgb, var(--color-theme-ink) 50%, var(--color-surface));
+}
+
+.pd-stage-flow__stage--documents {
+  --stage-color: color-mix(in srgb, var(--color-theme-ink) 74%, var(--color-surface));
+}
+
+.pd-stage-flow__stage--travel {
+  --stage-color: var(--color-theme-ink);
+}
+
+.pd-stage-flow__stage--closed {
+  --stage-color: var(--color-status-completed);
+}
+
+.pd-stage-flow__column {
+  position: relative;
+  display: flex;
+  height: 5.5rem;
+  align-items: flex-end;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: var(--color-bg-muted);
+}
+
+.pd-stage-flow__fill {
+  display: block;
+  width: 100%;
+  border-radius: 0.75rem;
+  background: var(--stage-color);
+  transform-origin: bottom;
+}
+
+.pd-stage-flow__count {
+  font-family: var(--font-heading);
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-stage-flow__label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.pd-stage-flow__arrow {
+  position: absolute;
+  top: 2.3rem;
+  right: -0.65rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Stacked bar ──────────────────────────────────────────────────── */
+
+.pd-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pd-stacked__bar {
+  display: flex;
+  height: 0.75rem;
+  gap: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+}
+
+.pd-stacked__segment {
+  min-width: 0.4rem;
+  background: var(--tone);
+  transform-origin: left;
+}
+
+.pd-stacked__segment:first-child {
+  border-radius: 999px 0 0 999px;
+}
+
+.pd-stacked__segment:last-child {
+  border-radius: 0 999px 999px 0;
+}
+
+.pd-stacked__segment:only-child {
+  border-radius: 999px;
+}
+
+.pd-stacked__empty {
+  flex: 1;
+}
+
+.pd-stacked__legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.5rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-stacked__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.45rem;
+}
+
+.pd-stacked__swatch {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 0.2rem;
+  background: var(--tone);
+}
+
+.pd-stacked__label {
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-stacked__value {
+  grid-column: 2;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Trips ────────────────────────────────────────────────────────── */
+
+.pd-trips {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -0.35rem;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-trips li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.pd-trips__row {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.65rem 0.35rem;
+  border-radius: 0.65rem;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 160ms ease;
+}
+
+.pd-trips__row:hover,
+.pd-trips__row:focus-visible {
+  background: var(--color-bg-muted);
+}
+
+.pd-trips__when {
+  justify-self: start;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--color-blue-light);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--color-blue);
+  white-space: nowrap;
+}
+
+.pd-trips__when--late {
+  background: var(--color-red-light);
+  color: var(--color-red);
+}
+
+.pd-trips__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.pd-trips__name {
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-trips__detail {
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-trips__papers {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-amber);
+  white-space: nowrap;
+}
+
+.pd-trips__papers--ready {
+  color: var(--color-status-completed);
+}
+
+/* ── Needs a decision ─────────────────────────────────────────────── */
+
+.pd-reason-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-reason-chip {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.pd-reason-chip strong {
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.pd-reason-chip--pending-request {
+  background: var(--color-status-pending-surface);
+}
+
+.pd-reason-chip--on-hold {
+  background: var(--color-status-on-hold-surface);
+}
+
+.pd-reason-chip--missing-docs {
+  background: var(--color-red-light);
+}
+
+/* ── Paperwork ────────────────────────────────────────────────────── */
+
+.pd-paperwork {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+}
+
+.pd-paperwork__passports {
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: var(--color-status-completed-surface);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-status-completed);
+}
+
+.pd-paperwork__passports--alert {
+  background: var(--color-amber-light);
+  color: var(--color-amber);
+}
+
+/* ── Cash flow chart (booked vs collected) ────────────────────────── */
+
+.pd-cashflow {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem 0.9rem 0.4rem;
+  border-radius: var(--radius-card);
+  background: var(--color-bg-muted);
+}
+
+.pd-cashflow__readout {
+  display: flex;
+  gap: 1.75rem;
+  margin: 0;
+}
+
+.pd-cashflow__readout dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.pd-cashflow__readout dd {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-heading);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-cashflow__key {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 0.2rem;
+}
+
+.pd-cashflow__key--collected {
+  border-radius: 999px;
+  background: var(--color-status-completed);
+}
+
+.pd-cashflow__key--booked {
+  background: color-mix(in srgb, var(--color-theme-ink) 35%, var(--color-surface));
+}
+
+.pd-cashflow__plot {
+  --cashflow-axis: 1.6rem;
+  position: relative;
+  flex: 1;
+  min-height: 11rem;
+}
+
+.pd-cashflow__svg {
+  position: absolute;
+  inset: 0 0 var(--cashflow-axis) 0;
+  width: 100%;
+  height: calc(100% - var(--cashflow-axis));
+  overflow: visible;
+}
+
+.pd-cashflow__grid {
+  stroke: color-mix(in srgb, var(--color-text-muted) 28%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.pd-cashflow__bar {
+  fill: color-mix(in srgb, var(--color-theme-ink) 20%, var(--color-surface));
+  transition: fill 160ms ease;
+}
+
+.pd-cashflow__bar--active {
+  fill: color-mix(in srgb, var(--color-theme-ink) 42%, var(--color-surface));
+}
+
+.pd-cashflow__area {
+  fill: url(#pd-cashflow-area);
+}
+
+.pd-cashflow__area-top {
+  stop-color: var(--color-status-completed);
+  stop-opacity: 0.26;
+}
+
+.pd-cashflow__area-bottom {
+  stop-color: var(--color-status-completed);
+  stop-opacity: 0;
+}
+
+.pd-cashflow__line {
+  stroke: var(--color-status-completed);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pd-cashflow__columns {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-cashflow__column {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pd-cashflow__lane {
+  position: absolute;
+  inset: 0 0 var(--cashflow-axis) 0;
+  border-radius: 0.5rem;
+  transition: background-color 160ms ease;
+}
+
+.pd-cashflow__column[aria-pressed='true'] .pd-cashflow__lane {
+  background: color-mix(in srgb, var(--color-theme-ink) 6%, transparent);
+}
+
+.pd-cashflow__column:focus-visible {
+  outline: none;
+}
+
+.pd-cashflow__column:focus-visible .pd-cashflow__lane {
+  box-shadow: inset 0 0 0 2px var(--color-theme-ink);
+}
+
+.pd-cashflow__dot {
+  position: absolute;
+  bottom: var(--dot-bottom);
+  left: 50%;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid var(--color-surface);
+  border-radius: 999px;
+  background: var(--color-status-completed);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-status-completed) 20%, transparent);
+  transform: translate(-50%, 50%);
+}
+
+.pd-cashflow__month {
+  position: absolute;
+  right: 0;
+  bottom: 0.3rem;
+  left: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.pd-cashflow__column[aria-pressed='true'] .pd-cashflow__month {
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+/* ── Departure timeline ───────────────────────────────────────────── */
+
+.pd-departures {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pd-departures__axis {
+  position: relative;
+  height: 3.5rem;
+  margin-inline: 0.6rem;
+}
+
+.pd-departures__missed-zone {
+  position: absolute;
+  top: 0.55rem;
+  left: -0.6rem;
+  height: 1.5rem;
+  border-radius: 999px 0 0 999px;
+  background: linear-gradient(90deg,
+      color-mix(in srgb, var(--color-red) 16%, transparent),
+      color-mix(in srgb, var(--color-red) 4%, transparent));
+}
+
+.pd-departures__rail {
+  position: absolute;
+  top: 1.3rem;
+  right: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.pd-departures__tick {
+  position: absolute;
+  bottom: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.pd-departures__tick--today {
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.pd-departures__tick--today::before {
+  position: absolute;
+  bottom: 1.15rem;
+  left: 50%;
+  width: 2px;
+  height: 1.55rem;
+  border-radius: 999px;
+  background: var(--color-text);
+  content: '';
+  transform: translateX(-50%);
+}
+
+.pd-departures__marker {
+  position: absolute;
+  top: 1.3rem;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 2px solid var(--color-surface);
+  border-radius: 999px;
+  background: var(--color-status-completed);
+  box-shadow: 0 1px 4px color-mix(in srgb, black 18%, transparent);
+  transform: translate(-50%, -45%);
+  transition: transform 160ms ease;
+}
+
+.pd-departures__marker:hover,
+.pd-departures__marker:focus-visible {
+  z-index: 1;
+  transform: translate(-50%, -45%) scale(1.35);
+}
+
+.pd-departures__marker--partial {
+  background: var(--color-amber);
+}
+
+.pd-departures__marker--blocked {
+  background: var(--color-red);
+}
+
+.pd-departures__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-departures__list li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.pd-departures__row {
+  display: grid;
+  grid-template-columns: 6.75rem minmax(0, 1fr) 7.5rem;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.65rem 0.35rem;
+  border-radius: 0.65rem;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 160ms ease;
+}
+
+.pd-departures__row:hover {
+  background: var(--color-bg-muted);
+}
+
+.pd-departures__when {
+  justify-self: start;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pd-departures__when--upcoming {
+  background: var(--color-blue-light);
+  color: var(--color-blue);
+}
+
+.pd-departures__when--missed {
+  background: var(--color-red-light);
+  color: var(--color-red);
+}
+
+.pd-departures__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.pd-departures__name {
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-departures__detail {
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-departures__ready {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pd-departures__meter {
+  display: block;
+  height: 0.3rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+}
+
+.pd-departures__meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-status-completed);
+}
+
+.pd-departures__meter-fill--partial {
+  background: var(--color-amber);
+}
+
+.pd-departures__meter-fill--blocked {
+  background: var(--color-red);
+}
+
+.pd-departures__ready-value {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Donut chart ──────────────────────────────────────────────────── */
+
+.pd-donut {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.pd-donut__figure {
+  position: relative;
+  width: 8.25rem;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.pd-donut__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: rotate(-90deg);
+}
+
+.pd-donut__track,
+.pd-donut__slice {
+  fill: none;
+  stroke-width: 11;
+}
+
+.pd-donut__track {
+  stroke: var(--color-bg-muted);
+}
+
+.pd-donut__slice {
+  stroke: var(--tone);
+  transition: stroke-width 160ms ease;
+}
+
+.pd-donut__slice:hover {
+  stroke-width: 14;
+}
+
+.pd-donut__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.pd-donut__value {
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-donut__label {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.pd-donut__legend {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-donut__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.5rem;
+}
+
+.pd-donut__swatch {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 0.2rem;
+  background: var(--tone);
+}
+
+.pd-donut__name {
+  overflow: hidden;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-donut__share {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-donut__amount {
+  grid-column: 2 / -1;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Motion ───────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .pd-bento > * {
+    animation: pd-bento-rise 460ms var(--pd-page-enter-ease) both;
+  }
+
+  .pd-bento > :nth-child(2) { animation-delay: 40ms; }
+  .pd-bento > :nth-child(3) { animation-delay: 80ms; }
+  .pd-bento > :nth-child(4) { animation-delay: 100ms; }
+  .pd-bento > :nth-child(5) { animation-delay: 120ms; }
+  .pd-bento > :nth-child(6) { animation-delay: 140ms; }
+  .pd-bento > :nth-child(n + 7) { animation-delay: 180ms; }
+
+  .pd-health-gauge__value {
+    animation: pd-gauge-fill 1100ms var(--pd-page-enter-ease) 160ms both;
+  }
+
+  .pd-stage-flow__fill,
+  .pd-month-bars__fill {
+    animation: pd-grow-up 700ms var(--pd-page-enter-ease) 220ms both;
+  }
+
+  .pd-health__signal-fill,
+  .pd-stacked__segment {
+    animation: pd-grow-right 700ms var(--pd-page-enter-ease) 220ms both;
+  }
+
+}
+
+@keyframes pd-bento-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+@keyframes pd-gauge-fill {
+  from {
+    stroke-dashoffset: var(--gauge-length);
+  }
+}
+
+@keyframes pd-grow-up {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes pd-grow-right {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+
+@media (max-width: 1240px) {
+  .pd-bento {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .pd-bento > .pd-bento-tile {
+    grid-column: span 6;
+    grid-row: auto;
+  }
+
+  .pd-bento > .pd-kpi,
+  .pd-bento > .pd-bento__mix,
+  .pd-bento > .pd-bento__team {
+    grid-column: span 3;
+  }
+}
+
+@media (max-width: 680px) {
+  .pd-bento {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-3, 0.75rem);
+  }
+
+  .pd-bento > .pd-bento-tile,
+  .pd-bento > .pd-bento__mix,
+  .pd-bento > .pd-bento__team {
+    grid-column: span 2;
+  }
+
+  .pd-bento > .pd-kpi {
+    grid-column: span 1;
+  }
+
+  .pd-health__hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pd-stage-flow {
+    gap: 0.4rem;
+  }
+
+  .pd-stage-flow__arrow {
+    display: none;
+  }
+
+  .pd-trips__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pd-trips__when {
+    grid-column: 1 / -1;
+  }
+
+  .pd-cash-headline__stats {
+    gap: 1rem;
+  }
+}

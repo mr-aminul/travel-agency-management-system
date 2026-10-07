@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import { AuthProvider } from '@/lib/auth'
 import { initAppearanceListener } from './lib/brand'
+import { initKeyboardFocus } from './lib/keyboardFocus'
 
 /* Login-critical fonts only — shell weights load with AuthenticatedLayout */
 import '@fontsource/inter/latin-400.css'
@@ -12,6 +13,7 @@ import '@fontsource/plus-jakarta-sans/latin-800.css'
 import './index.css'
 
 initAppearanceListener()
+initKeyboardFocus()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

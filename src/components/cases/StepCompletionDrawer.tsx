@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { FileViewer } from '@/components/cases/FileViewer'
-import { Button, Input, SideDrawer, Textarea } from '@/components/ui'
+import { Button, FileDropzone, Input, SideDrawer, Textarea } from '@/components/ui'
 import { getStepDef, templateCountry } from '@/lib/caseChecklist'
 import {
   getCaseStepRequirement,
@@ -11,7 +11,7 @@ import type {
   StepUploadDef,
   StepUploadValue,
 } from '@/lib/caseStepRequirements'
-import { formatDisplayDate } from '@/lib/formatDate'
+import { formatDisplayDate, formatDisplayDateTime } from '@/lib/formatDate'
 import { updateCaseStep } from '@/lib/casesStore'
 import { completeCaseStepWithSync } from '@/lib/caseWorkflow'
 import { storeFile } from '@/lib/fileStore'
@@ -78,6 +78,7 @@ function UploadBlocks({
   errors,
   readOnly,
   onPick,
+  onClear,
 }: {
   uploads: StepUploadDef[]
   title: string
@@ -86,6 +87,7 @@ function UploadBlocks({
   errors: Record<string, string>
   readOnly?: boolean
   onPick?: (key: string, draft: UploadDraft) => void
+  onClear?: (key: string) => void
 }) {
   if (uploads.length === 0) return null
 
@@ -119,19 +121,38 @@ function UploadBlocks({
         const draft = drafts[upload.key]
         return (
           <div key={upload.key} className="pd-step-panel__upload-block">
-            <label className="pd-step-panel__upload">
+            <div className="pd-step-panel__upload">
               <span className="pd-step-panel__upload-label">
                 {upload.label}
                 {upload.required ? ' *' : ''}
               </span>
-              <span className="pd-doc-modal__file-btn">
-                {draft?.fileName || 'Choose file'}
-                <input
-                  type="file"
-                  accept="image/*,.pdf,application/pdf,text/*,.doc,.docx,.xls,.xlsx"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    if (!file || !onPick) return
+              {draft?.fileId ? (
+                <FileViewer
+                  fileId={draft.fileId}
+                  fileName={draft.fileName}
+                  mimeType={draft.mimeType}
+                  compact
+                  onUpload={
+                    onPick
+                      ? (file) => {
+                          const stored = storeFile(file)
+                          onPick(upload.key, {
+                            fileName: stored.fileName,
+                            fileId: stored.id,
+                            mimeType: stored.mimeType,
+                          })
+                        }
+                      : undefined
+                  }
+                  onDelete={
+                    onClear ? () => onClear(upload.key) : undefined
+                  }
+                />
+              ) : (
+                <FileDropzone
+                  label={upload.label}
+                  onFile={(file) => {
+                    if (!onPick) return
                     const stored = storeFile(file)
                     onPick(upload.key, {
                       fileName: stored.fileName,
@@ -140,21 +161,13 @@ function UploadBlocks({
                     })
                   }}
                 />
-              </span>
+              )}
               {triedSubmit && errors[errorKey] ? (
                 <span className="pd-field__error" role="alert">
                   {errors[errorKey]}
                 </span>
               ) : null}
-            </label>
-            {draft?.fileId ? (
-              <FileViewer
-                fileId={draft.fileId}
-                fileName={draft.fileName}
-                mimeType={draft.mimeType}
-                compact
-              />
-            ) : null}
+            </div>
           </div>
         )
       })}
@@ -275,6 +288,13 @@ export function StepCompletionDrawer({
           setUploads((current) => ({ ...current, [key]: draft }))
           clearError(`upload:${key}`)
         }}
+        onClear={(key) => {
+          setUploads((current) => {
+            const next = { ...current }
+            delete next[key]
+            return next
+          })
+        }}
       />
       <UploadBlocks
         uploads={attachments}
@@ -286,6 +306,13 @@ export function StepCompletionDrawer({
         onPick={(key, draft) => {
           setUploads((current) => ({ ...current, [key]: draft }))
           clearError(`upload:${key}`)
+        }}
+        onClear={(key) => {
+          setUploads((current) => {
+            const next = { ...current }
+            delete next[key]
+            return next
+          })
         }}
       />
     </>
@@ -339,7 +366,7 @@ export function StepCompletionDrawer({
         <div className="pd-step-view">
           {item.steps[activeStepId]?.completedAt ? (
             <p className="pd-step-view__meta">
-              Completed {formatDisplayDate(item.steps[activeStepId].completedAt)}
+              Completed {formatDisplayDateTime(item.steps[activeStepId].completedAt)}
             </p>
           ) : null}
 

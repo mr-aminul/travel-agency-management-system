@@ -10,6 +10,7 @@ import {
   ListChecks,
   Settings,
   Shield,
+  Trash2,
   User,
   Users,
   UsersRound,
@@ -88,6 +89,7 @@ export const layoutConfig: AppLayoutConfig = {
       icon: Shield,
       adminOnly: true,
     },
+    { path: '/trash', label: 'Trash', icon: Trash2 },
     settingsNavItem,
   ],
 }

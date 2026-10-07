@@ -12,8 +12,12 @@ import type {
   ClientFileRef,
   CreateClientInput,
   ServiceType,
+  TrashedClient,
   UpdateClientInput,
 } from '@/types/client'
+
+export const CLIENT_TRASH_RETENTION_DAYS = 30
+const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 type Listener = () => void
 
@@ -244,6 +248,8 @@ const SEED_CLIENTS: Client[] = [
 ]
 
 const STORAGE_KEY = 'pd-clients-created'
+const TRASH_STORAGE_KEY = 'pd-clients-trash'
+const REMOVED_IDS_STORAGE_KEY = 'pd-clients-removed'
 const SEED_IDS = new Set(SEED_CLIENTS.map((client) => client.id))
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -348,7 +354,80 @@ function normalizeStoredClient(value: unknown): Client | undefined {
     activeCases: typeof value.activeCases === 'number' ? value.activeCases : 0,
     idChecked: value.idChecked === true,
     createdAt: optionalString(value.createdAt) ?? new Date().toISOString().slice(0, 10),
+    archivedAt: optionalString(value.archivedAt),
   }
+}
+
+function normalizeTrashedClient(value: unknown): TrashedClient | undefined {
+  if (!isRecord(value)) return undefined
+  const client = normalizeStoredClient(value.client)
+  const deletedAt = optionalString(value.deletedAt)
+  if (!client || !deletedAt) return undefined
+  return { client, deletedAt }
+}
+
+function readRemovedClientIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(REMOVED_IDS_STORAGE_KEY)
+    if (!raw) return new Set()
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return new Set()
+    return new Set(
+      parsed.filter((id): id is string => typeof id === 'string' && id.trim() !== ''),
+    )
+  } catch {
+    return new Set()
+  }
+}
+
+function persistRemovedClientIds() {
+  try {
+    localStorage.setItem(
+      REMOVED_IDS_STORAGE_KEY,
+      JSON.stringify(Array.from(removedClientIds)),
+    )
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function readTrash(): TrashedClient[] {
+  try {
+    const raw = localStorage.getItem(TRASH_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .map(normalizeTrashedClient)
+      .filter((entry): entry is TrashedClient => entry != null)
+  } catch {
+    return []
+  }
+}
+
+function persistTrash() {
+  try {
+    localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(trash))
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function trashExpiresAt(deletedAt: string): number {
+  return new Date(deletedAt).getTime() + CLIENT_TRASH_RETENTION_DAYS * MS_PER_DAY
+}
+
+export function trashDaysRemaining(
+  deletedAt: string,
+  now = Date.now(),
+): number {
+  const remainingMs = trashExpiresAt(deletedAt) - now
+  if (remainingMs <= 0) return 0
+  return Math.ceil(remainingMs / MS_PER_DAY)
+}
+
+export function isTrashExpired(deletedAt: string, now = Date.now()): boolean {
+  return trashExpiresAt(deletedAt) <= now
 }
 
 function readCreatedClients(): Client[] {
@@ -369,16 +448,23 @@ function seedClients(): Client[] {
   return SEED_CLIENTS.map((client) => ({ ...client }))
 }
 
-function mergeWithSeeds(created: Client[]): Client[] {
+function mergeWithSeeds(created: Client[], removedIds: Set<string>): Client[] {
   const createdIds = new Set(created.map((client) => client.id))
   return [
     ...created,
-    ...seedClients().filter((client) => !createdIds.has(client.id)),
+    ...seedClients().filter(
+      (client) => !createdIds.has(client.id) && !removedIds.has(client.id),
+    ),
   ]
 }
 
+function shouldPersistClient(client: Client): boolean {
+  if (!SEED_IDS.has(client.id)) return true
+  return Boolean(client.archivedAt)
+}
+
 function persistCreatedClients() {
-  const created = clients.filter((client) => !SEED_IDS.has(client.id))
+  const created = clients.filter(shouldPersistClient)
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(created))
   } catch {
@@ -386,16 +472,33 @@ function persistCreatedClients() {
   }
 }
 
-let clients: Client[] = mergeWithSeeds(readCreatedClients())
+let removedClientIds = readRemovedClientIds()
+let trash: TrashedClient[] = readTrash()
+let clients: Client[] = mergeWithSeeds(readCreatedClients(), removedClientIds)
 const listeners = new Set<Listener>()
 
 function emit(persist = true) {
-  if (persist) persistCreatedClients()
+  if (persist) {
+    persistCreatedClients()
+    persistTrash()
+    persistRemovedClientIds()
+  }
   listeners.forEach((listener) => listener())
 }
 
+function purgeExpiredTrashEntries(now = Date.now()): boolean {
+  const next = trash.filter((entry) => !isTrashExpired(entry.deletedAt, now))
+  if (next.length === trash.length) return false
+  trash = next
+  return true
+}
+
 function hydrateClientsFromStorage() {
-  clients = mergeWithSeeds(readCreatedClients())
+  removedClientIds = readRemovedClientIds()
+  trash = readTrash()
+  const purgedExpired = purgeExpiredTrashEntries()
+  clients = mergeWithSeeds(readCreatedClients(), removedClientIds)
+  if (purgedExpired) persistTrash()
   emit(false)
 }
 
@@ -405,7 +508,13 @@ export function reloadClientsFromStorage() {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
-    if (event.key !== STORAGE_KEY) return
+    if (
+      event.key !== STORAGE_KEY &&
+      event.key !== TRASH_STORAGE_KEY &&
+      event.key !== REMOVED_IDS_STORAGE_KEY
+    ) {
+      return
+    }
     hydrateClientsFromStorage()
   })
   window.addEventListener('focus', hydrateClientsFromStorage)
@@ -417,9 +526,13 @@ if (typeof window !== 'undefined') {
 export function resetClients() {
   try {
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(TRASH_STORAGE_KEY)
+    localStorage.removeItem(REMOVED_IDS_STORAGE_KEY)
   } catch {
     /* ignore */
   }
+  removedClientIds = new Set()
+  trash = []
   clients = seedClients()
   emit(false)
 }
@@ -433,6 +546,10 @@ function subscribe(listener: Listener) {
 
 function getSnapshot() {
   return clients
+}
+
+function getTrashSnapshot() {
+  return trash
 }
 
 function tenantId() {
@@ -451,12 +568,40 @@ export function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '')
 }
 
-export function useClients(): Client[] {
+export type UseClientsOptions = {
+  /** Include archived clients. Default excludes them. */
+  includeArchived?: boolean
+  /** Only archived clients. */
+  archivedOnly?: boolean
+}
+
+export function useClients(options: UseClientsOptions = {}): Client[] {
+  const { includeArchived = false, archivedOnly = false } = options
   const { session } = useAuth()
   const all = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const activeId = session?.tenantId ?? DEFAULT_TENANT_ID
+  return useMemo(() => {
+    return all.filter((client) => {
+      if (client.tenantId !== activeId) return false
+      const isArchived = Boolean(client.archivedAt)
+      if (archivedOnly) return isArchived
+      if (!includeArchived && isArchived) return false
+      return true
+    })
+  }, [all, activeId, includeArchived, archivedOnly])
+}
+
+export function useTrashedClients(): TrashedClient[] {
+  const { session } = useAuth()
+  const all = useSyncExternalStore(subscribe, getTrashSnapshot, getTrashSnapshot)
+  const activeId = session?.tenantId ?? DEFAULT_TENANT_ID
   return useMemo(
-    () => all.filter((client) => client.tenantId === activeId),
+    () =>
+      all
+        .filter((entry) => entry.client.tenantId === activeId)
+        .filter((entry) => !isTrashExpired(entry.deletedAt))
+        .slice()
+        .sort((a, b) => b.deletedAt.localeCompare(a.deletedAt)),
     [all, activeId],
   )
 }
@@ -634,6 +779,95 @@ export function renameServiceOnClients(
   })
   if (changed) emit()
   return changed
+}
+
+export function archiveClient(id: string): Client | undefined {
+  const client = getClientById(id)
+  if (!client) return undefined
+  if (client.archivedAt) return client
+  return updateClient(id, { archivedAt: new Date().toISOString() })
+}
+
+export function unarchiveClient(id: string): Client | undefined {
+  const client = getClientById(id)
+  if (!client) return undefined
+  if (!client.archivedAt) return client
+  return updateClient(id, { archivedAt: undefined })
+}
+
+export function softDeleteClient(id: string): TrashedClient | undefined {
+  const client = getClientById(id)
+  if (!client) return undefined
+
+  const entry: TrashedClient = {
+    client: { ...client, archivedAt: undefined },
+    deletedAt: new Date().toISOString(),
+  }
+  clients = clients.filter((item) => item.id !== id)
+  trash = [entry, ...trash.filter((item) => item.client.id !== id)]
+  removedClientIds.add(id)
+  emit()
+  return entry
+}
+
+export function restoreClientFromTrash(id: string): Client | undefined {
+  const entry = trash.find((item) => item.client.id === id)
+  if (!entry) return undefined
+  if (entry.client.tenantId !== tenantId()) return undefined
+
+  if (getClientByPhone(entry.client.phone, id)) {
+    throw new Error(
+      'Cannot restore: another client already uses this phone number.',
+    )
+  }
+
+  trash = trash.filter((item) => item.client.id !== id)
+  removedClientIds.delete(id)
+  const restored: Client = {
+    ...entry.client,
+    archivedAt: undefined,
+  }
+  clients = [restored, ...clients.filter((item) => item.id !== id)]
+  emit()
+  return restored
+}
+
+export function permanentlyDeleteFromTrash(id: string): boolean {
+  const entry = trash.find((item) => item.client.id === id)
+  if (!entry) return false
+  if (entry.client.tenantId !== tenantId()) return false
+
+  trash = trash.filter((item) => item.client.id !== id)
+  removedClientIds.add(id)
+  emit()
+  return true
+}
+
+export function emptyClientTrash(): number {
+  const activeTrash = trash.filter((entry) => entry.client.tenantId === tenantId())
+  if (activeTrash.length === 0) return 0
+  const ids = new Set(activeTrash.map((entry) => entry.client.id))
+  trash = trash.filter((entry) => !ids.has(entry.client.id))
+  for (const id of ids) removedClientIds.add(id)
+  emit()
+  return activeTrash.length
+}
+
+/** Drop expired trash entries. Returns how many were removed. */
+export function purgeExpiredClientTrash(now = Date.now()): number {
+  const before = trash.length
+  if (!purgeExpiredTrashEntries(now)) return 0
+  emit()
+  return before - trash.length
+}
+
+export function getTrashedClientById(id: string): TrashedClient | undefined {
+  return trash.find(
+    (entry) =>
+      entry.client.id === id &&
+      entry.client.tenantId === tenantId() &&
+      !isTrashExpired(entry.deletedAt),
+  )
 }
 
 export function formatBalance(amount: number): string {

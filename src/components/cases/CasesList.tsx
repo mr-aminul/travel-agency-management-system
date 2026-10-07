@@ -1,12 +1,24 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { CheckCircle2, CircleDot, Folder, Plus, Wallet } from 'lucide-react'
+import {
+  CheckCircle2,
+  CircleOff,
+  Clock,
+  Folder,
+  ListChecks,
+  PauseCircle,
+  PlayCircle,
+  Plus,
+  Wallet,
+} from 'lucide-react'
 import { NewCaseForm } from '@/components/cases/NewCaseForm'
 import { StatCards } from '@/components/StatCards'
 import {
   Badge,
   Button,
   EmptyState,
+  FilterChip,
+  FilterChips,
   SearchField,
   SideDrawer,
   Select,
@@ -26,8 +38,20 @@ import { getEmployeeDisplayName } from '@/lib/employeesStore'
 import { formatBdt } from '@/lib/dashboardMetrics'
 import { formatDisplayDate } from '@/lib/formatDate'
 import { cx } from '@/lib/cx'
+import {
+  resolveServiceFromSlug,
+  useCatalogServiceRefs,
+} from '@/lib/serviceCatalog'
+import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
+import { iconForService } from '@/lib/serviceIcons'
 import { workDetailPath } from '@/lib/workPaths'
-import type { Case, CaseStatus, ServiceType, CreateCaseInput } from '@/types/case'
+import {
+  serviceToSlug,
+  type Case,
+  type CaseStatus,
+  type CreateCaseInput,
+  type ServiceType,
+} from '@/types/case'
 import '@/styles/layout-cases.css'
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
@@ -38,19 +62,18 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'Cancelled', label: 'Cancelled' },
 ]
 
-const OPEN_STATUSES = ['Pending', 'In-Progress', 'On-Hold'] as const
+const CASE_STATUSES: CaseStatus[] = [
+  'Pending',
+  'In-Progress',
+  'On-Hold',
+  'Completed',
+  'Cancelled',
+]
 
-type ServiceStatId = 'all' | 'open' | 'Completed' | 'due'
+type ServiceStatId = 'all' | CaseStatus | 'due'
 
 function isOpenService(item: Case): boolean {
   return item.status !== 'Completed' && item.status !== 'Cancelled'
-}
-
-function isOpenStatusFilter(statusFilters: string[]): boolean {
-  return (
-    statusFilters.length === OPEN_STATUSES.length &&
-    OPEN_STATUSES.every((status) => statusFilters.includes(status))
-  )
 }
 
 export function caseStatusBadgeVariant(status: CaseStatus): BadgeVariant {
@@ -143,6 +166,12 @@ export function CasesList({
   const [newCaseOpen, setNewCaseOpen] = useState(false)
   const [dueOnly, setDueOnly] = useState(false)
   const [highlightServiceFee, setHighlightServiceFee] = useState(false)
+  const catalog = useCatalogServiceRefs()
+  useServiceIconOverrides()
+  const showServiceChips = showServiceColumn && showToolbar && !embedded
+  const urlService = syncNewWithSearchParams
+    ? resolveServiceFromSlug(searchParams.get('service') ?? '')
+    : undefined
 
   useEffect(() => {
     if (!serviceFeeHighlightToken) return
@@ -153,30 +182,41 @@ export function CasesList({
     return () => window.clearTimeout(timer)
   }, [serviceFeeHighlightToken])
 
+  useEffect(() => {
+    if (!showServiceChips || !syncNewWithSearchParams) return
+    setServiceFilters(urlService ? [urlService] : [])
+  }, [showServiceChips, syncNewWithSearchParams, urlService])
+
   const feeCellClass = cx(
     'pd-cases__balance',
     'pd-cases__fee',
     highlightServiceFee && 'is-highlight',
   )
 
+  const serviceScoped = useMemo(() => {
+    if (!showServiceColumn || serviceFilters.length === 0) return cases
+    return cases.filter((item) => serviceFilters.includes(item.service))
+  }, [cases, serviceFilters, showServiceColumn])
+
   const stats = useMemo(() => {
-    let open = 0
-    let completed = 0
+    const byStatus: Record<CaseStatus, number> = {
+      Pending: 0,
+      'In-Progress': 0,
+      'On-Hold': 0,
+      Completed: 0,
+      Cancelled: 0,
+    }
     let outstanding = 0
-    for (const item of cases) {
-      if (item.status === 'Completed') completed += 1
-      if (isOpenService(item)) {
-        open += 1
-        outstanding += item.balance
-      }
+    for (const item of serviceScoped) {
+      byStatus[item.status] += 1
+      if (isOpenService(item)) outstanding += item.balance
     }
     return {
-      total: cases.length,
-      open,
-      completed,
+      total: serviceScoped.length,
+      byStatus,
       outstanding,
     }
-  }, [cases])
+  }, [serviceScoped])
 
   const resolvedClientId =
     defaultClientId ??
@@ -184,10 +224,9 @@ export function CasesList({
       ? (searchParams.get('client') ?? undefined)
       : undefined)
   const resolvedService =
-    (syncNewWithSearchParams
-      ? (searchParams.get('service') as ServiceType | null)
-      : null) ??
+    (serviceFilters.length === 1 ? serviceFilters[0] : undefined) ??
     defaultService ??
+    getEnabledServiceOptions()[0]?.value ??
     'Work Permit Visa'
 
   useEffect(() => {
@@ -195,30 +234,29 @@ export function CasesList({
     setNewCaseOpen(searchParams.get('new') === '1')
   }, [searchParams, syncNewWithSearchParams])
 
-  const filtered = cases.filter((item) => {
+  const filtered = serviceScoped.filter((item) => {
     if (dueOnly && (!isOpenService(item) || item.balance <= 0)) return false
     return matchesFilters(
       item,
       search,
       statusFilters,
-      showServiceColumn ? serviceFilters : [],
+      showServiceChips ? [] : showServiceColumn ? serviceFilters : [],
     )
   })
 
   const hasActiveFilters =
     statusFilters.length > 0 ||
     dueOnly ||
-    (showServiceColumn && serviceFilters.length > 0)
+    (!showServiceChips && showServiceColumn && serviceFilters.length > 0)
 
   const selectedStat: ServiceStatId | undefined = dueOnly
     ? 'due'
-    : isOpenStatusFilter(statusFilters)
-      ? 'open'
-      : statusFilters.length === 1 && statusFilters[0] === 'Completed'
-        ? 'Completed'
-        : statusFilters.length === 0
-          ? 'all'
-          : undefined
+    : statusFilters.length === 1 &&
+        CASE_STATUSES.includes(statusFilters[0] as CaseStatus)
+      ? (statusFilters[0] as CaseStatus)
+      : statusFilters.length === 0
+        ? 'all'
+        : undefined
 
   const selectStat = (id: string) => {
     const next = id as ServiceStatId
@@ -233,11 +271,23 @@ export function CasesList({
       return
     }
     setDueOnly(false)
-    if (next === 'open') {
-      setStatusFilters([...OPEN_STATUSES])
-      return
-    }
-    setStatusFilters(['Completed'])
+    setStatusFilters([next])
+  }
+
+  const writeServiceQuery = (service?: string) => {
+    if (!syncNewWithSearchParams) return
+    const next = new URLSearchParams(searchParams)
+    if (service) next.set('service', serviceToSlug(service))
+    else next.delete('service')
+    setSearchParams(next, { replace: true })
+  }
+
+  const selectServiceChip = (key: string | null) => {
+    const alreadySelected =
+      key != null && serviceFilters.length === 1 && serviceFilters[0] === key
+    const next = !key || alreadySelected ? [] : [key]
+    setServiceFilters(next)
+    writeServiceQuery(next[0])
   }
 
   const openNewCaseModal = () => {
@@ -269,6 +319,7 @@ export function CasesList({
     setStatusFilters([])
     setServiceFilters([])
     setDueOnly(false)
+    writeServiceQuery()
   }
 
   const newCaseButton = (
@@ -310,6 +361,7 @@ export function CasesList({
           <TableRow>
             <TableHead>Service</TableHead>
             <TableHead>ID</TableHead>
+            <TableHead>Created at</TableHead>
             {showClientColumn && <TableHead>Client</TableHead>}
             <TableHead>Current step</TableHead>
             <TableHead>Destination</TableHead>
@@ -338,6 +390,7 @@ export function CasesList({
                 <p className="pd-cases__name">{item.service}</p>
               </TableCell>
               <TableCell className="pd-table__code">{item.caseId}</TableCell>
+              <TableCell>{formatCaseDate(item.createdAt)}</TableCell>
               {showClientColumn && <TableCell>{item.clientName}</TableCell>}
               <TableCell>
                 <span className="pd-cases__step">{getCurrentStepLabel(item)}</span>
@@ -380,18 +433,39 @@ export function CasesList({
               tone: 'brand',
             },
             {
-              id: 'open',
-              label: 'Open',
-              value: String(stats.open),
-              icon: CircleDot,
+              id: 'Pending',
+              label: 'Pending',
+              value: String(stats.byStatus.Pending),
+              icon: Clock,
+              tone: 'warning',
+            },
+            {
+              id: 'In-Progress',
+              label: 'In progress',
+              value: String(stats.byStatus['In-Progress']),
+              icon: PlayCircle,
               tone: 'info',
+            },
+            {
+              id: 'On-Hold',
+              label: 'On hold',
+              value: String(stats.byStatus['On-Hold']),
+              icon: PauseCircle,
+              tone: 'muted',
             },
             {
               id: 'Completed',
               label: 'Completed',
-              value: String(stats.completed),
+              value: String(stats.byStatus.Completed),
               icon: CheckCircle2,
               tone: 'success',
+            },
+            {
+              id: 'Cancelled',
+              label: 'Cancelled',
+              value: String(stats.byStatus.Cancelled),
+              icon: CircleOff,
+              tone: 'muted',
             },
             {
               id: 'due',
@@ -415,7 +489,7 @@ export function CasesList({
 
           <div className="pd-cases__toolbar-end">
             <div className="pd-cases__filters">
-              {showServiceColumn && (
+              {showServiceColumn && !showServiceChips && (
                 <Select
                   className="pd-cases__filter"
                   label="Service"
@@ -445,8 +519,11 @@ export function CasesList({
                   className="pd-cases__clear"
                   onClick={() => {
                     setStatusFilters([])
-                    setServiceFilters([])
                     setDueOnly(false)
+                    if (!showServiceChips) {
+                      setServiceFilters([])
+                      writeServiceQuery()
+                    }
                   }}
                 >
                   Clear
@@ -456,6 +533,33 @@ export function CasesList({
             {newCaseButton}
           </div>
         </div>
+      ) : null}
+
+      {showServiceChips ? (
+        <FilterChips label="Filter by service type">
+          <FilterChip
+            active={serviceFilters.length === 0}
+            onClick={() => selectServiceChip(null)}
+          >
+            <ListChecks size={15} strokeWidth={2} aria-hidden />
+            All services
+          </FilterChip>
+          {catalog.map((item) => {
+            const Icon = iconForService(item.key)
+            const selected =
+              serviceFilters.length === 1 && serviceFilters[0] === item.key
+            return (
+              <FilterChip
+                key={item.key}
+                active={selected}
+                onClick={() => selectServiceChip(item.key)}
+              >
+                <Icon size={15} strokeWidth={2} aria-hidden />
+                {item.label}
+              </FilterChip>
+            )
+          })}
+        </FilterChips>
       ) : null}
 
       {body}

@@ -26,6 +26,7 @@ const PartnerDetailPage = lazy(() => import('@/pages/PartnerDetailPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const TrackClientPage = lazy(() => import('@/pages/TrackClientPage'))
+const TrashPage = lazy(() => import('@/pages/TrashPage'))
 const PublicClientIntakePage = lazy(() => import('@/pages/PublicClientIntakePage'))
 const TenantsAdminPage = lazy(() => import('@/pages/admin/TenantsAdminPage'))
 const TenantAdminLayout = lazy(() => import('@/pages/admin/TenantAdminLayout'))
@@ -121,6 +122,7 @@ function App() {
               path="settings/services/:serviceKey"
               element={<SettingsPage />}
             />
+            <Route path="trash" element={<TrashPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="components" element={<ComponentsPage />} />
           </Route>

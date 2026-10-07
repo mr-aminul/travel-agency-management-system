@@ -5,10 +5,12 @@ import {
   FolderOpen,
   LayoutGrid,
   Table2,
+  Trash2,
   Users,
   Wallet,
 } from 'lucide-react'
 import { AddClientSplitButton } from '@/components/clients/AddClientSplitButton'
+import { ClientRowActions } from '@/components/clients/ClientRowActions'
 import { NewClientForm } from '@/components/clients/NewClientForm'
 import { caseStatusBadgeVariant } from '@/components/cases/CasesList'
 import { StatCards } from '@/components/StatCards'
@@ -27,6 +29,7 @@ import {
   TableHeader,
   TableRow,
   Tooltip,
+  TypeConfirmDialog,
 } from '@/components/ui'
 import { useCases } from '@/lib/casesStore'
 import {
@@ -34,7 +37,15 @@ import {
   deriveClientServiceStatus,
   groupCasesByClientId,
 } from '@/lib/clientServiceStatus'
-import { createClient, formatBalance, getEnabledServiceTypeOptions, useClients } from '@/lib/clientsStore'
+import {
+  archiveClient,
+  createClient,
+  formatBalance,
+  getEnabledServiceTypeOptions,
+  softDeleteClient,
+  unarchiveClient,
+  useClients,
+} from '@/lib/clientsStore'
 import { formatBdt } from '@/lib/dashboardMetrics'
 import { usePartners } from '@/lib/partnersStore'
 import type { Case } from '@/types/case'
@@ -118,7 +129,12 @@ function matchesFilters(
 export default function ClientsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const clients = useClients()
+  const [showArchived, setShowArchived] = useState(false)
+  const activeClients = useClients()
+  const clients = useClients({
+    includeArchived: showArchived,
+    archivedOnly: showArchived,
+  })
   const cases = useCases()
   const partners = usePartners()
   const [search, setSearch] = useState('')
@@ -127,6 +143,7 @@ export default function ClientsPage() {
   const [newClientOpen, setNewClientOpen] = useState(false)
   const [dueOnly, setDueOnly] = useState(false)
   const [listView, setListView] = useState<ClientsListView>(readClientsListView)
+  const [deleteTarget, setDeleteTarget] = useState<Client | null>(null)
 
   const partnersById = useMemo(
     () => new Map(partners.map((partner) => [partner.id, partner.name])),
@@ -148,7 +165,7 @@ export default function ClientsPage() {
     let open = 0
     let completed = 0
     let outstanding = 0
-    for (const client of clients) {
+    for (const client of activeClients) {
       if (client.activeCases > 0) open += 1
       if (
         deriveClientServiceStatus(casesByClientId.get(client.id) ?? []) ===
@@ -159,12 +176,12 @@ export default function ClientsPage() {
       outstanding += client.balance
     }
     return {
-      total: clients.length,
+      total: activeClients.length,
       open,
       completed,
       outstanding,
     }
-  }, [clients, casesByClientId])
+  }, [activeClients, casesByClientId])
 
   const filtered = clients.filter((client) => {
     if (dueOnly && client.balance <= 0) return false
@@ -237,6 +254,20 @@ export default function ClientsPage() {
       return
     }
     navigate(`/clients/${created.id}`)
+  }
+
+  const handleArchive = (client: Client) => {
+    archiveClient(client.id)
+  }
+
+  const handleUnarchive = (client: Client) => {
+    unarchiveClient(client.id)
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return
+    softDeleteClient(deleteTarget.id)
+    setDeleteTarget(null)
   }
 
   return (
@@ -355,6 +386,23 @@ export default function ClientsPage() {
               </button>
             </Tooltip>
           </div>
+          <Button
+            variant={showArchived ? 'primary' : 'secondary'}
+            size="sm"
+            aria-pressed={showArchived}
+            onClick={() => setShowArchived((value) => !value)}
+          >
+            {showArchived ? 'Viewing archived' : 'Archived'}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-label="Open trash"
+            onClick={() => navigate('/trash')}
+          >
+            <Trash2 size={14} strokeWidth={2} aria-hidden />
+            Trash
+          </Button>
           <AddClientSplitButton
             size="md"
             label="New client"
@@ -389,52 +437,69 @@ export default function ClientsPage() {
             const partnerName = partnerNameFor(client)
             const serviceStatus = statusFor(client.id)
             return (
-              <button
-                key={client.id}
-                type="button"
-                className="pd-clients__card"
-                onClick={() => navigate(`/clients/${client.id}`)}
-              >
+              <div key={client.id} className="pd-clients__card">
                 <div className="pd-clients__card-top">
-                  <div className="pd-clients__identity">
-                    <Avatar
-                      name={client.name}
-                      src={client.avatarUrl}
-                      size="md"
+                  <button
+                    type="button"
+                    className="pd-clients__card-main"
+                    onClick={() => navigate(`/clients/${client.id}`)}
+                  >
+                    <div className="pd-clients__identity">
+                      <Avatar
+                        name={client.name}
+                        src={client.avatarUrl}
+                        size="md"
+                      />
+                      <p className="pd-clients__name">{client.name}</p>
+                    </div>
+                  </button>
+                  <div className="pd-clients__card-top-end">
+                    {client.archivedAt ? (
+                      <Badge variant="neutral">Archived</Badge>
+                    ) : serviceStatus ? (
+                      <Badge variant={caseStatusBadgeVariant(serviceStatus)}>
+                        {serviceStatus}
+                      </Badge>
+                    ) : null}
+                    <ClientRowActions
+                      client={client}
+                      onArchive={handleArchive}
+                      onUnarchive={handleUnarchive}
+                      onDelete={setDeleteTarget}
                     />
-                    <p className="pd-clients__name">{client.name}</p>
                   </div>
-                  {serviceStatus ? (
-                    <Badge variant={caseStatusBadgeVariant(serviceStatus)}>
-                      {serviceStatus}
-                    </Badge>
-                  ) : null}
                 </div>
-                <dl className="pd-clients__card-meta">
-                  <div className="pd-clients__card-row">
-                    <dt>Sub Agent</dt>
-                    <dd>{partnerName || '—'}</dd>
-                  </div>
-                  <div className="pd-clients__card-row">
-                    <dt>Mobile</dt>
-                    <dd>{formatMobile(client.phone)}</dd>
-                  </div>
-                  <div className="pd-clients__card-row">
-                    <dt>Passport</dt>
-                    <dd>{client.passport || '—'}</dd>
-                  </div>
-                  <div className="pd-clients__card-row">
-                    <dt>Open services</dt>
-                    <dd>{client.activeCases}</dd>
-                  </div>
-                  <div className="pd-clients__card-row">
-                    <dt>Balance due</dt>
-                    <dd className="pd-clients__balance">
-                      {formatBalance(client.balance)}
-                    </dd>
-                  </div>
-                </dl>
-              </button>
+                <button
+                  type="button"
+                  className="pd-clients__card-main pd-clients__card-main--meta"
+                  onClick={() => navigate(`/clients/${client.id}`)}
+                >
+                  <dl className="pd-clients__card-meta">
+                    <div className="pd-clients__card-row">
+                      <dt>Sub Agent</dt>
+                      <dd>{partnerName || '—'}</dd>
+                    </div>
+                    <div className="pd-clients__card-row">
+                      <dt>Mobile</dt>
+                      <dd>{formatMobile(client.phone)}</dd>
+                    </div>
+                    <div className="pd-clients__card-row">
+                      <dt>Passport</dt>
+                      <dd>{client.passport || '—'}</dd>
+                    </div>
+                    <div className="pd-clients__card-row">
+                      <dt>Open services</dt>
+                      <dd>{client.activeCases}</dd>
+                    </div>
+                    <div className="pd-clients__card-row">
+                      <dt>Balance due</dt>
+                      <dd className="pd-clients__balance">
+                        {formatBalance(client.balance)}
+                      </dd>
+                    </div>
+                  </dl>
+                </button>
+              </div>
             )
           })}
         </div>
@@ -449,6 +514,7 @@ export default function ClientsPage() {
               <TableHead>Open services</TableHead>
               <TableHead>Balance due</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="pd-clients__actions-head">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -478,13 +544,26 @@ export default function ClientsPage() {
                     {formatBalance(client.balance)}
                   </TableCell>
                   <TableCell>
-                    {serviceStatus ? (
+                    {client.archivedAt ? (
+                      <Badge variant="neutral">Archived</Badge>
+                    ) : serviceStatus ? (
                       <Badge variant={caseStatusBadgeVariant(serviceStatus)}>
                         {serviceStatus}
                       </Badge>
                     ) : (
                       '—'
                     )}
+                  </TableCell>
+                  <TableCell
+                    className="pd-clients__actions-cell"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <ClientRowActions
+                      client={client}
+                      onArchive={handleArchive}
+                      onUnarchive={handleUnarchive}
+                      onDelete={setDeleteTarget}
+                    />
                   </TableCell>
                 </TableRow>
               )
@@ -505,6 +584,21 @@ export default function ClientsPage() {
           onCancel={closeNewClientModal}
         />
       </SideDrawer>
+
+      <TypeConfirmDialog
+        open={deleteTarget != null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete client?"
+        description={
+          deleteTarget
+            ? `${deleteTarget.name} will move to Trash for 30 days. Type the client name to confirm.`
+            : undefined
+        }
+        confirmPhrase={deleteTarget?.name ?? ''}
+        phraseLabel="Client name"
+        confirmLabel="Delete client"
+      />
     </div>
   )
 }

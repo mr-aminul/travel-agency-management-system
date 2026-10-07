@@ -1,5 +1,4 @@
-import type { ServiceType } from '@/types/case'
-import { serviceToSlug } from '@/types/case'
+import { serviceToSlug, type ServiceType } from '@/types/case'
 
 type ServiceRecordRef = {
   id: string

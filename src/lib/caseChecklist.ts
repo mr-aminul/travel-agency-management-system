@@ -277,6 +277,18 @@ export function buildInitialSteps(
   return { currentStepId, steps }
 }
 
+function completedStampFrom(createdAt: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(createdAt.trim())
+  if (!match) return createdAt
+  return new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+    10,
+    0,
+  ).toISOString()
+}
+
 /** Seed helper: mark all steps before `currentStepId` as done. */
 export function buildProgressAtStep(
   service: ServiceType,
@@ -292,7 +304,7 @@ export function buildProgressAtStep(
   defs.forEach((def, index) => {
     if (index < currentIndex) {
       steps[def.id] = {
-        completedAt: createdAt,
+        completedAt: completedStampFrom(createdAt),
         detail: details[def.id],
       }
     } else if (index === currentIndex) {

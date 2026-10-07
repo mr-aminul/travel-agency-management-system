@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import { Sparkline } from '@/components/dashboard/Sparkline'
+import { cx } from '@/lib/cx'
 import '@/styles/layout-ops.css'
 
 export type StatCardTone = 'brand' | 'info' | 'success' | 'warning' | 'muted'
@@ -21,6 +22,7 @@ type StatCardsProps = {
   cards: StatCardItem[]
   selectedId?: string
   onSelect?: (id: string) => void
+  className?: string
 }
 
 export function StatCards({
@@ -28,9 +30,10 @@ export function StatCards({
   cards,
   selectedId,
   onSelect,
+  className,
 }: StatCardsProps) {
   return (
-    <div className="pd-ops__metrics" aria-label={label}>
+    <div className={cx('pd-ops__metrics', className)} aria-label={label}>
       {cards.map((card) => {
         const Icon = card.icon
         const isSelected = selectedId === card.id

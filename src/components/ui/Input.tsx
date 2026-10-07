@@ -1,4 +1,4 @@
-import { useId, type InputHTMLAttributes } from 'react'
+import { forwardRef, useId, type InputHTMLAttributes } from 'react'
 import { cx } from '@/lib/cx'
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
@@ -9,16 +9,19 @@ export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   error?: string
 }
 
-export function Input({
-  label,
-  labelVariant = 'outlined',
-  hint,
-  error,
-  id,
-  className,
-  disabled,
-  ...props
-}: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  {
+    label,
+    labelVariant = 'outlined',
+    hint,
+    error,
+    id,
+    className,
+    disabled,
+    ...props
+  },
+  ref,
+) {
   const autoId = useId()
   const inputId = id ?? autoId
   const hintId = hint ? `${inputId}-hint` : undefined
@@ -41,6 +44,7 @@ export function Input({
         </label>
       ) : null}
       <input
+        ref={ref}
         id={inputId}
         className="pd-field__control"
         disabled={disabled}
@@ -59,4 +63,4 @@ export function Input({
       ) : null}
     </div>
   )
-}
+})

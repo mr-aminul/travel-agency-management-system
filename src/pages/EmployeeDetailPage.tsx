@@ -167,12 +167,9 @@ export default function EmployeeDetailPage() {
           </div>
           <div className="pd-client-detail__meta-row">
             <span className="pd-client-detail__contact">
-              <a
-                href={`tel:${employee.phone}`}
-                className="pd-client-detail__contact-value"
-              >
+              <span className="pd-client-detail__contact-value">
                 {employee.phone}
-              </a>
+              </span>
             </span>
             <span className="pd-client-detail__contact">
               <span className="pd-client-detail__contact-value">

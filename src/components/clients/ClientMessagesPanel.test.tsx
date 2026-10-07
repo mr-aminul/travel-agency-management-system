@@ -13,7 +13,7 @@ afterEach(() => {
   resetClientMessages()
 })
 
-function renderMessages() {
+function renderMessages(channel: 'sms' | 'email' = 'sms') {
   writeSession({
     user: DEMO_USER,
     tenantId: TENANT_IDS.full,
@@ -23,14 +23,14 @@ function renderMessages() {
   if (!client) throw new Error('Expected seeded client')
   return render(
     <AuthProvider>
-      <ClientMessagesPanel client={client} />
+      <ClientMessagesPanel client={client} channel={channel} />
     </AuthProvider>,
   )
 }
 
 describe('client messages panel', () => {
   it('lets staff type an SMS and send it', () => {
-    renderMessages()
+    renderMessages('sms')
 
     const input = screen.getByRole('textbox', { name: 'Message' })
     const send = screen.getByRole('button', { name: 'Send' })
@@ -42,5 +42,25 @@ describe('client messages panel', () => {
 
     expect(screen.getByText('Please bring your passport.')).toBeInTheDocument()
     expect(input).toHaveValue('')
+  })
+
+  it('uses a multi-line editor for email, not the short SMS input', () => {
+    renderMessages('email')
+
+    expect(screen.getByText(/Email · rahim\.uddin@email\.com/i)).toBeInTheDocument()
+    const editor = screen.getByRole('textbox', { name: 'Email' })
+    expect(editor.tagName).toBe('TEXTAREA')
+    expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+
+    const send = screen.getByRole('button', { name: 'Send email' })
+    fireEvent.change(editor, {
+      target: { value: 'Your documents are ready for pickup.' },
+    })
+    fireEvent.click(send)
+
+    expect(
+      screen.getByText('Your documents are ready for pickup.'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Attach image' })).toBeInTheDocument()
   })
 })

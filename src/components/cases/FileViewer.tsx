@@ -13,6 +13,8 @@ import {
   FileWarning,
   Maximize2,
   RotateCcw,
+  Trash2,
+  Upload,
   X,
   ZoomIn,
   ZoomOut,
@@ -24,6 +26,8 @@ import {
   isPdfMime,
   isTextMime,
 } from '@/lib/fileStore'
+import { DOCUMENT_FILE_ACCEPT } from '@/components/ui/FileDropzone'
+import { cx } from '@/lib/cx'
 
 export type FileViewerProps = {
   fileId?: string | null
@@ -31,6 +35,12 @@ export type FileViewerProps = {
   mimeType?: string | null
   /** Compact preview inside drawers. */
   compact?: boolean
+  /** Hide filename / type / size above the preview. */
+  hideMeta?: boolean
+  /** When set, an Upload action opens the file picker. */
+  onUpload?: (file: File) => void
+  /** When set, Delete removes the current attachment. */
+  onDelete?: () => void
 }
 
 const MIN_ZOOM = 0.5
@@ -328,11 +338,76 @@ function FullscreenViewer({
   )
 }
 
+function UploadFileButton({
+  onUpload,
+}: {
+  onUpload: (file: File) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  return (
+    <>
+      <button
+        type="button"
+        className="pd-file-viewer__action"
+        aria-label="Upload"
+        title="Upload"
+        onClick={() => inputRef.current?.click()}
+      >
+        <Upload size={14} strokeWidth={2.25} aria-hidden />
+      </button>
+      <input
+        ref={inputRef}
+        className="pd-file-drop__input"
+        type="file"
+        accept={DOCUMENT_FILE_ACCEPT}
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (file) onUpload(file)
+          event.target.value = ''
+        }}
+      />
+    </>
+  )
+}
+
+function FileViewerActions({
+  onUpload,
+  onDelete,
+  extra,
+}: {
+  onUpload?: (file: File) => void
+  onDelete?: () => void
+  extra?: ReactNode
+}) {
+  if (!onUpload && !onDelete && !extra) return null
+  return (
+    <div className="pd-file-viewer__actions">
+      {onUpload ? <UploadFileButton onUpload={onUpload} /> : null}
+      {onDelete ? (
+        <button
+          type="button"
+          className="pd-file-viewer__action is-danger"
+          aria-label="Delete"
+          title="Delete"
+          onClick={onDelete}
+        >
+          <Trash2 size={14} strokeWidth={2.25} aria-hidden />
+        </button>
+      ) : null}
+      {extra}
+    </div>
+  )
+}
+
 export function FileViewer({
   fileId,
   fileName,
   mimeType,
   compact = false,
+  hideMeta = false,
+  onUpload,
+  onDelete,
 }: FileViewerProps) {
   const stored = getStoredFile(fileId)
   const name = stored?.fileName || fileName || 'Attachment'
@@ -368,43 +443,74 @@ export function FileViewer({
       <div className="pd-file-viewer is-empty">
         <FileWarning size={20} strokeWidth={2} aria-hidden />
         <div>
-          <p className="pd-file-viewer__name">{name}</p>
+          {hideMeta ? null : (
+            <p className="pd-file-viewer__name">{name}</p>
+          )}
           <p className="pd-file-viewer__hint">
             Preview unavailable. Re-upload the file to view it here.
           </p>
         </div>
+        {onUpload || onDelete ? (
+          <FileViewerActions onUpload={onUpload} onDelete={onDelete} />
+        ) : null}
       </div>
     )
   }
 
   const sizeLabel = stored ? formatFileSize(stored.size) : ''
+  const toolbar = (
+    <FileViewerActions
+      onUpload={onUpload}
+      onDelete={onDelete}
+      extra={
+        <>
+          <button
+            type="button"
+            className="pd-file-viewer__action"
+            aria-label="Full screen"
+            title="Full screen"
+            onClick={() => setFullscreen(true)}
+          >
+            <Maximize2 size={14} strokeWidth={2.25} aria-hidden />
+          </button>
+          <a
+            className="pd-file-viewer__action"
+            href={url}
+            download={name}
+            aria-label={`Download ${name}`}
+            title="Download"
+          >
+            <Download size={14} strokeWidth={2.25} aria-hidden />
+          </a>
+        </>
+      }
+    />
+  )
 
   return (
     <>
-      <div className={compact ? 'pd-file-viewer is-compact' : 'pd-file-viewer'}>
-        <header className="pd-file-viewer__header">
-          <div className="pd-file-viewer__meta">
-            <p className="pd-file-viewer__name">{name}</p>
-            <p className="pd-file-viewer__hint">
-              {type || 'Unknown type'}
-              {sizeLabel ? ` · ${sizeLabel}` : ''}
-            </p>
-          </div>
-          <div className="pd-file-viewer__actions">
-            <button
-              type="button"
-              className="pd-file-viewer__action"
-              onClick={() => setFullscreen(true)}
-            >
-              <Maximize2 size={14} strokeWidth={2.25} aria-hidden />
-              Full screen
-            </button>
-            <a className="pd-file-viewer__action" href={url} download={name}>
-              <Download size={14} strokeWidth={2.25} aria-hidden />
-              Download
-            </a>
-          </div>
-        </header>
+      <div
+        className={cx(
+          compact ? 'pd-file-viewer is-compact' : 'pd-file-viewer',
+          hideMeta && 'is-meta-hidden',
+        )}
+      >
+        {hideMeta ? (
+          toolbar ? (
+            <div className="pd-file-viewer__toolbar">{toolbar}</div>
+          ) : null
+        ) : (
+          <header className="pd-file-viewer__header">
+            <div className="pd-file-viewer__meta">
+              <p className="pd-file-viewer__name">{name}</p>
+              <p className="pd-file-viewer__hint">
+                {type || 'Unknown type'}
+                {sizeLabel ? ` · ${sizeLabel}` : ''}
+              </p>
+            </div>
+            {toolbar}
+          </header>
+        )}
 
         <div className="pd-file-viewer__stage">
           <FilePreview

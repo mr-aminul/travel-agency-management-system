@@ -36,3 +36,14 @@ export function agencyClientFormPath(tenantIdOrSlug: string): string {
 export function agencyClientFormUrl(tenantIdOrSlug: string): string {
   return absolutePublicUrl(agencyClientFormPath(tenantIdOrSlug))
 }
+
+/** Public tracking page. Passport prefills the lookup used on `/track`. */
+export function clientTrackingPath(passport?: string): string {
+  const trimmed = passport?.trim() ?? ''
+  if (!trimmed) return 'track'
+  return `track?passport=${encodeURIComponent(trimmed)}`
+}
+
+export function clientTrackingUrl(passport?: string): string {
+  return absolutePublicUrl(clientTrackingPath(passport))
+}

@@ -20,7 +20,6 @@ import {
   Mail,
   MapPin,
   MessageSquare,
-  Pencil,
   Phone,
   UserRound,
   Wallet,
@@ -39,7 +38,6 @@ import {
   Avatar,
   Badge,
   Button,
-  CopyableText,
   Input,
   Select,
   SideDrawer,
@@ -80,6 +78,7 @@ const CLIENT_TABS = [
   'documents',
   'payments',
   'messages',
+  'email',
 ] as const
 
 function tabFromSearch(searchParams: URLSearchParams): string {
@@ -589,17 +588,17 @@ export default function ClientDetailPage() {
                 aria-label="Open messages"
                 title="Messages"
               >
-                <Mail size={14} strokeWidth={2.25} aria-hidden />
+                <MessageSquare size={14} strokeWidth={2.25} aria-hidden />
               </Button>
               <Button
                 size="sm"
                 variant="secondary"
                 className="pd-btn--icon"
-                onClick={() => selectTab('profile')}
-                aria-label="Edit profile"
-                title="Edit profile"
+                onClick={() => selectTab('email')}
+                aria-label="Open email"
+                title="Email"
               >
-                <Pencil size={14} strokeWidth={2.25} aria-hidden />
+                <Mail size={14} strokeWidth={2.25} aria-hidden />
               </Button>
             </div>
           </div>
@@ -621,7 +620,6 @@ export default function ClientDetailPage() {
               <dt>Phone</dt>
               <dd>
                 <ContactChip
-                  href={`tel:${displayPhone}`}
                   value={displayPhone}
                   label="phone number"
                 />
@@ -632,7 +630,6 @@ export default function ClientDetailPage() {
               <dd>
                 {displayEmail ? (
                   <ContactChip
-                    href={`mailto:${displayEmail}`}
                     value={displayEmail}
                     label="email address"
                   />
@@ -754,19 +751,14 @@ export default function ClientDetailPage() {
                     <div className="pd-client-detail__field">
                       <FieldLabel icon={Phone}>Phone</FieldLabel>
                       <dd>
-                        <a
-                          href={`tel:${displayPhone}`}
-                          className="pd-client-detail__link"
-                        >
-                          {displayPhone}
-                        </a>
+                        {displayPhone}
                       </dd>
                     </div>
                     <div className="pd-client-detail__field">
                       <FieldLabel icon={Mail}>Email</FieldLabel>
                       <dd>
                         {displayEmail ? (
-                          <CopyableText value={displayEmail} />
+                          displayEmail
                         ) : (
                           <span className="pd-client-detail__empty">—</span>
                         )}
@@ -1000,7 +992,12 @@ export default function ClientDetailPage() {
           {
             id: 'messages',
             label: <TabLabel icon={MessageSquare}>Messages</TabLabel>,
-            content: <ClientMessagesPanel client={client} />,
+            content: <ClientMessagesPanel client={client} channel="sms" />,
+          },
+          {
+            id: 'email',
+            label: <TabLabel icon={Mail}>Email</TabLabel>,
+            content: <ClientMessagesPanel client={client} channel="email" />,
           },
         ]}
       />

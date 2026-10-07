@@ -1,16 +1,39 @@
-export type ClientSmsDirection = 'outbound'
+export type ClientMessageChannel = 'sms' | 'email'
 
-export type ClientSmsMessage = {
+export type ClientMessageDirection = 'outbound'
+
+export type ClientMessageAttachment = {
+  name: string
+  dataUrl: string
+  mimeType: string
+}
+
+export type ClientThreadMessage = {
   id: string
   tenantId: string
   clientId: string
-  toPhone: string
+  channel: ClientMessageChannel
+  to: string
   body: string
-  direction: ClientSmsDirection
+  attachment?: ClientMessageAttachment
+  direction: ClientMessageDirection
   createdAt: string
+}
+
+/** @deprecated Prefer ClientThreadMessage — kept for older SMS call sites. */
+export type ClientSmsMessage = ClientThreadMessage & {
+  toPhone: string
+}
+
+export type SendClientMessageInput = {
+  clientId: string
+  channel: ClientMessageChannel
+  body: string
+  attachment?: ClientMessageAttachment
 }
 
 export type SendClientSmsInput = {
   clientId: string
   body: string
+  attachment?: ClientMessageAttachment
 }

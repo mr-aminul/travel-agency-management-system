@@ -759,7 +759,7 @@ export function completeCurrentStep(
     return validation
   }
 
-  const completedAt = today()
+  const completedAt = new Date().toISOString()
   const currentId = item.currentStepId
   const summary = summarizeStepCompletion(requirement, hydrated)
 
@@ -868,6 +868,7 @@ function applyRecordedDocument(
     input.fields.number?.trim() ||
     input.fields.reference?.trim() ||
     input.detail
+  const hasScan = Boolean(input.fileId || input.fileName?.trim())
 
   const documents = item.documents.map((doc) =>
     doc.id === documentId
@@ -877,9 +878,9 @@ function applyRecordedDocument(
           detail: input.detail,
           expiry: input.expiry,
           fields: { ...input.fields },
-          fileName: input.fileName?.trim() || undefined,
-          fileId: input.fileId ?? doc.fileId,
-          mimeType: input.mimeType ?? doc.mimeType,
+          fileName: hasScan ? input.fileName?.trim() : undefined,
+          fileId: hasScan ? input.fileId : undefined,
+          mimeType: hasScan ? input.mimeType : undefined,
         }
       : doc,
   )
@@ -987,12 +988,12 @@ export function recordIdentityDocument(
     updateClient(clientId, {
       ...(number ? { passport: number } : {}),
       ...(expiry ? { passportExpiry: expiry } : {}),
-      ...(scan ? { passportFile: scan } : {}),
+      passportFile: scan,
     })
   } else {
     updateClient(clientId, {
       ...(number ? { nid: number } : {}),
-      ...(scan ? { nidFile: scan } : {}),
+      nidFile: scan,
     })
   }
 

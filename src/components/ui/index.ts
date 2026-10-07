@@ -47,6 +47,8 @@ export type { SideDrawerProps } from './SideDrawer'
 
 export { ConfirmDialog } from './ConfirmDialog'
 export type { ConfirmDialogProps } from './ConfirmDialog'
+export { TypeConfirmDialog } from './TypeConfirmDialog'
+export type { TypeConfirmDialogProps } from './TypeConfirmDialog'
 
 export { Alert } from './Alert'
 export type { AlertProps, AlertVariant } from './Alert'
@@ -84,7 +86,11 @@ export { SearchField } from './SearchField'
 export type { SearchFieldProps } from './SearchField'
 
 export { DropdownMenu } from './DropdownMenu'
-export type { DropdownMenuProps, DropdownMenuItem } from './DropdownMenu'
+export type {
+  DropdownMenuProps,
+  DropdownMenuItem,
+  DropdownMenuVariant,
+} from './DropdownMenu'
 
 export { Pagination } from './Pagination'
 export type { PaginationProps } from './Pagination'
@@ -106,3 +112,8 @@ export type { BreadcrumbsProps, BreadcrumbItem } from './Breadcrumbs'
 
 export { Accordion } from './Accordion'
 export type { AccordionProps, AccordionItem } from './Accordion'
+
+export { FileDropzone, DOCUMENT_FILE_ACCEPT } from './FileDropzone'
+
+export { FilterChips, FilterChip } from './FilterChips'
+export type { FilterChipsProps, FilterChipProps } from './FilterChips'

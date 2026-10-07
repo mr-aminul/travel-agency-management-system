@@ -48,21 +48,23 @@ export function CopyableText({
   }
 
   return (
-    <button
-      type="button"
-      className={cx('pd-copyable', className)}
-      onClick={() => {
-        void handleCopy()
-      }}
-      aria-label={copied ? `${label} copied` : `Copy ${label}`}
-      title={copied ? 'Copied' : `Copy ${label}`}
-    >
+    <span className={cx('pd-copyable', className)}>
       {value}
-      {copied ? (
-        <Check size={13} strokeWidth={2.25} aria-hidden />
-      ) : (
-        <Copy size={13} strokeWidth={2.25} aria-hidden />
-      )}
-    </button>
+      <button
+        type="button"
+        className="pd-copyable__copy"
+        onClick={() => {
+          void handleCopy()
+        }}
+        aria-label={copied ? `${label} copied` : `Copy ${label}`}
+        title={copied ? 'Copied' : `Copy ${label}`}
+      >
+        {copied ? (
+          <Check size={13} strokeWidth={2.25} aria-hidden />
+        ) : (
+          <Copy size={13} strokeWidth={2.25} aria-hidden />
+        )}
+      </button>
+    </span>
   )
 }
