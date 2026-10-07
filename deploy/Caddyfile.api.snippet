@@ -1,0 +1,9 @@
+# OneTrack platform API only — frontend stays on Vercel (onetrack.inventivelab.bd).
+# Install as /etc/caddy/conf.d/onetrack-platform-api.caddy
+api.onetrack.inventivelab.bd {
+	encode gzip
+	reverse_proxy 127.0.0.1:4010
+	header {
+		X-App onetrack-platform-api
+	}
+}

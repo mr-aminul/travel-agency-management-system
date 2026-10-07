@@ -41,7 +41,7 @@ services:
       PGDATABASE: onetrack_platform
       PGUSER: platform
       PGPASSWORD: ${PLATFORM_DB_PASSWORD:?set PLATFORM_DB_PASSWORD}
-      CORS_ORIGIN: ${PLATFORM_CORS_ORIGIN:-https://tams.inventivelab.bd}
+      CORS_ORIGIN: ${PLATFORM_CORS_ORIGIN:-https://onetrack.inventivelab.bd,https://onetrack-iota.vercel.app}
     ports:
       - "127.0.0.1:4010:4010"
     networks:

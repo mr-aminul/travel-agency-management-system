@@ -15,22 +15,26 @@ Open http://localhost:8003.
 cp .env.example .env   # optional; VITE_API_BASE_URL empty = same-origin /api
 ```
 
-## Production (inventivelab VPS)
+## Production
 
-Isolated paths (does not share networks/volumes with n8n, MinIO, or Cloudreve):
+| Piece | Where |
+|-------|--------|
+| App UI | **Vercel** project `onetrack` → https://onetrack.inventivelab.bd |
+| API + Postgres | **VPS** (isolated Docker) → https://api.onetrack.inventivelab.bd |
 
-| Piece | Location |
-|-------|----------|
-| SPA | `/var/www/onetrack-platform` |
-| API + compose | `/opt/onetrack-platform` |
-| Postgres | Docker `onetrack-platform-db` on `127.0.0.1:5433` only |
-| Public site | `https://tams.inventivelab.bd` |
+Vercel env (already set on the project):
 
-Requires `VPS_HOST`, `VPS_USER`, `VPS_PASSWORD` in local `.env` (gitignored).
+- `VITE_USE_PLATFORM_API=1`
+- `VITE_API_BASE_URL=https://api.onetrack.inventivelab.bd`
+
+Pushing to `main` deploys the UI on Vercel. To refresh the API/DB stack on the VPS:
 
 ```bash
+# needs VPS_HOST / VPS_USER / VPS_PASSWORD in local .env
 npm run deploy:vps
 ```
+
+VPS paths (do not share networks/volumes with n8n or MinIO): `/opt/onetrack-platform`, Postgres on `127.0.0.1:5433`, API on `127.0.0.1:4010`.
 
 ## Scripts
 
