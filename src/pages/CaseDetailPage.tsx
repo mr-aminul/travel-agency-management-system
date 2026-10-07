@@ -203,20 +203,20 @@ export default function CaseDetailPage() {
               aria-label={
                 trackingCopied
                   ? 'Tracking link copied'
-                  : client?.passport.trim()
+                  : client?.passport?.trim()
                     ? 'Copy tracking link'
                     : 'Add a passport number to share tracking'
               }
               title={
                 trackingCopied
                   ? 'Copied'
-                  : client?.passport.trim()
+                  : client?.passport?.trim()
                     ? 'Copy tracking link'
                     : 'Add a passport number to share tracking'
               }
-              disabled={!client?.passport.trim()}
+              disabled={!client?.passport?.trim()}
               onClick={() => {
-                const passport = client?.passport.trim()
+                const passport = client?.passport?.trim()
                 if (!passport) return
                 void copyText(clientTrackingUrl(passport)).then(() => {
                   setTrackingCopied(true)

@@ -59,7 +59,7 @@ export default function TrackClientPage() {
   )
   const currentLabel =
     journey?.steps.find((step) => step.state === 'current')?.label ??
-    journey?.steps.at(-1)?.label ??
+    journey?.steps[journey.steps.length - 1]?.label ??
     selectedCase?.status
   const hasMultipleServices = cases.length > 1
 
