@@ -19,22 +19,24 @@ cp .env.example .env   # optional; VITE_API_BASE_URL empty = same-origin /api
 
 | Piece | Where |
 |-------|--------|
-| App UI | **Vercel** project `onetrack` → https://onetrack.inventivelab.bd |
+| App UI | **VPS** (Caddy static) → https://onetrack.inventivelab.bd |
 | API + Postgres | **VPS** (isolated Docker) → https://api.onetrack.inventivelab.bd |
 
-Vercel env (already set on the project):
+DNS for both hostnames must point at the inventivelab VPS (same host as `api.onetrack`).
+
+Build-time env (set by `npm run deploy:vps`):
 
 - `VITE_USE_PLATFORM_API=1`
 - `VITE_API_BASE_URL=https://api.onetrack.inventivelab.bd`
 
-Pushing to `main` deploys the UI on Vercel. To refresh the API/DB stack on the VPS:
+Deploy UI + API/DB:
 
 ```bash
 # needs VPS_HOST / VPS_USER / VPS_PASSWORD in local .env
 npm run deploy:vps
 ```
 
-VPS paths (do not share networks/volumes with n8n or MinIO): `/opt/onetrack-platform`, Postgres on `127.0.0.1:5433`, API on `127.0.0.1:4010`.
+VPS paths (do not share networks/volumes with n8n or MinIO): `/opt/onetrack-platform` (UI in `web/`), Postgres on `127.0.0.1:5433`, API on `127.0.0.1:4010`.
 
 ## Scripts
 
@@ -42,7 +44,7 @@ VPS paths (do not share networks/volumes with n8n or MinIO): `/opt/onetrack-plat
 |---------|-------------|
 | `npm run dev` | Local Vite (:8003) |
 | `npm run build` | Production build |
-| `npm run deploy:vps` | Build + ship isolated stack to VPS |
+| `npm run deploy:vps` | Build UI + ship isolated stack to VPS |
 | `npm run deploy:ec2` | Legacy shared-EC2 `/platform` deploy |
 | `npm test` | Vitest |
 | `npm run lint` | ESLint |

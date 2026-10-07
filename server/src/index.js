@@ -2,9 +2,11 @@ import cors from 'cors'
 import express from 'express'
 import { pool, query } from './db.js'
 import {
+  createAgencyUser,
   loginWithPassword,
   readBearerToken,
   requireAuth,
+  requirePlatformAdmin,
   resolveSession,
   revokeSession,
   seedAuthUsers,
@@ -81,6 +83,28 @@ app.post('/api/platform/auth/logout', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'logout failed',
+    })
+  }
+})
+
+/** Platform admin: create an agency login with an initial password. */
+app.post('/api/platform/auth/users', requirePlatformAdmin, async (req, res) => {
+  try {
+    const result = await createAgencyUser({
+      email: req.body?.email,
+      name: req.body?.name,
+      password: req.body?.password,
+      tenantId: req.body?.tenantId,
+      id: req.body?.id,
+    })
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    res.status(201).json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'create user failed',
     })
   }
 })

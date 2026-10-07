@@ -5,6 +5,7 @@ import {
   STAFF_MEMBER_ROLES,
   staffMemberCreateErrors,
 } from '@/lib/agencyUserRules'
+import { provisionAgencyUser } from '@/lib/authApi'
 import {
   createTenantMember,
   useTenantMembersByTenantId,
@@ -45,7 +46,13 @@ function roleLabel(role: TenantMemberRole): string {
   return 'Staff'
 }
 
-type CreateField = 'name' | 'email' | 'role'
+type CreateField = 'name' | 'email' | 'role' | 'password'
+
+type CreatedCredentials = {
+  name: string
+  email: string
+  password: string
+}
 
 export default function TenantUsersPage() {
   const { tenantId = '' } = useParams()
@@ -55,7 +62,11 @@ export default function TenantUsersPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<TenantMemberRole>('staff')
+  const [password, setPassword] = useState('')
   const [formError, setFormError] = useState<string | undefined>()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [createdCredentials, setCreatedCredentials] =
+    useState<CreatedCredentials | null>(null)
   const { markAllTouched, showError, blur, resetTouched } =
     useTouchedFields<CreateField>()
 
@@ -63,7 +74,7 @@ export default function TenantUsersPage() {
     return <Navigate to="/admin/tenants" replace />
   }
 
-  const values = { tenantId: tenant.id, name, email, role }
+  const values = { tenantId: tenant.id, name, email, role, password }
   const errors = staffMemberCreateErrors(values)
 
   const closeCreate = () => {
@@ -71,22 +82,46 @@ export default function TenantUsersPage() {
     setName('')
     setEmail('')
     setRole('staff')
+    setPassword('')
     setFormError(undefined)
+    setIsSubmitting(false)
     resetTouched()
   }
 
-  const handleCreate = (event: FormEvent) => {
+  const handleCreate = async (event: FormEvent) => {
     event.preventDefault()
-    markAllTouched(['name', 'email', 'role'])
+    markAllTouched(['name', 'email', 'role', 'password'])
     setFormError(undefined)
-    if (errors.name || errors.email || errors.role) return
+    if (errors.name || errors.email || errors.role || errors.password) return
+
+    setIsSubmitting(true)
     try {
-      createTenantMember(values)
+      await provisionAgencyUser({
+        tenantId: tenant.id,
+        name,
+        email,
+        password,
+      })
+      createTenantMember({
+        tenantId: tenant.id,
+        name,
+        email,
+        role,
+        password,
+        status: 'active',
+      })
+      const shown: CreatedCredentials = {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      }
       closeCreate()
+      setCreatedCredentials(shown)
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : 'Could not add this user.',
       )
+      setIsSubmitting(false)
     }
   }
 
@@ -102,14 +137,18 @@ export default function TenantUsersPage() {
       open={createOpen}
       onClose={closeCreate}
       title="Add user"
-      description={`Invite staff to ${tenant.name}. Name and email are required.`}
+      description={`Create a login for ${tenant.name}. Set an initial password and share it with them.`}
       actions={
         <>
-          <Button variant="secondary" onClick={closeCreate}>
+          <Button variant="secondary" onClick={closeCreate} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" form="pd-admin-create-user">
-            Add user
+          <Button
+            type="submit"
+            form="pd-admin-create-user"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Creating…' : 'Add user'}
           </Button>
         </>
       }
@@ -127,6 +166,7 @@ export default function TenantUsersPage() {
           label="Email"
           required
           type="email"
+          autoComplete="off"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           onBlur={blur('email')}
@@ -141,6 +181,17 @@ export default function TenantUsersPage() {
           options={STAFF_MEMBER_ROLES}
           error={showError('role') ? errors.role : undefined}
         />
+        <Input
+          label="Initial password"
+          required
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          onBlur={blur('password')}
+          error={showError('password') ? errors.password : undefined}
+          hint="They sign in with this password. Share it securely — it is only shown once."
+        />
         {formError ? (
           <p className="pd-field__error" role="alert">
             {formError}
@@ -150,16 +201,46 @@ export default function TenantUsersPage() {
     </Modal>
   )
 
+  const credentialsModal = (
+    <Modal
+      open={createdCredentials != null}
+      onClose={() => setCreatedCredentials(null)}
+      title="Login created"
+      description="Share these credentials now. The password will not be shown again."
+      actions={
+        <Button onClick={() => setCreatedCredentials(null)}>Done</Button>
+      }
+    >
+      {createdCredentials ? (
+        <>
+          <p className="pd-admin__credential-name">{createdCredentials.name}</p>
+          <p className="pd-admin__credential-row">
+            Email:{' '}
+            <CopyableText value={createdCredentials.email} label="email" />
+          </p>
+          <p className="pd-admin__credential-row">
+            Password:{' '}
+            <CopyableText
+              value={createdCredentials.password}
+              label="password"
+            />
+          </p>
+        </>
+      ) : null}
+    </Modal>
+  )
+
   if (members.length === 0) {
     return (
       <>
         <EmptyState
           icon={Users}
           title="No users yet"
-          description={`Nobody has been invited to ${tenant.name}.`}
+          description={`Add the first login for ${tenant.name}.`}
           action={addButton}
         />
         {createModal}
+        {credentialsModal}
       </>
     )
   }
@@ -199,6 +280,7 @@ export default function TenantUsersPage() {
         </TableBody>
       </Table>
       {createModal}
+      {credentialsModal}
     </>
   )
 }

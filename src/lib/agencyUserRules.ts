@@ -1,6 +1,7 @@
 import {
   validateRequiredEmail,
   validateRequiredName,
+  validateRequiredPassword,
   trimmed,
 } from '@/lib/fieldValidation'
 import type {
@@ -10,21 +11,34 @@ import type {
 } from '@/types/tenant'
 
 /**
- * Agency (tenant) field rules (locked):
- * - Required at create: name
+ * Agency (tenant) field rules:
+ * - Required at create: name, plus first owner (name, email, initial password)
  * - Optional at create: enabled modules (tuned in settings later), status
  * - Slug is derived from name — not a separate required field for staff
  *
- * Staff user (tenant member) field rules (locked):
- * - Required at create: name, email, which agency (tenantId)
+ * Staff user (tenant member) field rules:
+ * - Required at create: name, email, which agency (tenantId), initial password
  * - Role: owner | manager | staff (defaults to staff)
- * - Status defaults to invited
- * - Real passwords / IdP are not part of this freeze — demo login stays for now
+ * - Status defaults to active once a password is set (user can sign in)
+ * - Admin sets the initial password; share it out-of-band (no invite email yet)
  */
 
 export type AgencyField = 'name'
 
-export type StaffMemberField = 'name' | 'email' | 'tenantId' | 'role'
+export type AgencyOwnerField = 'ownerName' | 'ownerEmail' | 'ownerPassword'
+
+export type StaffMemberField =
+  | 'name'
+  | 'email'
+  | 'tenantId'
+  | 'role'
+  | 'password'
+
+export type CreateAgencyWithOwnerInput = Pick<CreateTenantInput, 'name'> & {
+  ownerName: string
+  ownerEmail: string
+  ownerPassword: string
+}
 
 export const STAFF_MEMBER_ROLES: {
   value: TenantMemberRole
@@ -62,6 +76,21 @@ export function agencyCreateErrors(
   return name ? { name } : {}
 }
 
+export function agencyWithOwnerCreateErrors(
+  values: CreateAgencyWithOwnerInput,
+): Partial<Record<AgencyField | AgencyOwnerField, string>> {
+  const errors: Partial<Record<AgencyField | AgencyOwnerField, string>> = {
+    ...agencyCreateErrors(values),
+  }
+  const ownerName = validateRequiredName(values.ownerName, 'Owner name')
+  if (ownerName) errors.ownerName = ownerName
+  const ownerEmail = validateRequiredEmail(values.ownerEmail)
+  if (ownerEmail) errors.ownerEmail = ownerEmail
+  const ownerPassword = validateRequiredPassword(values.ownerPassword)
+  if (ownerPassword) errors.ownerPassword = ownerPassword
+  return errors
+}
+
 export function validateStaffMemberField(
   field: StaffMemberField,
   values: CreateTenantMemberInput,
@@ -80,6 +109,8 @@ export function validateStaffMemberField(
       }
       return 'Select a role.'
     }
+    case 'password':
+      return validateRequiredPassword(values.password ?? '')
     default:
       return undefined
   }
@@ -88,7 +119,13 @@ export function validateStaffMemberField(
 export function staffMemberCreateErrors(
   values: CreateTenantMemberInput,
 ): Partial<Record<StaffMemberField, string>> {
-  const fields: StaffMemberField[] = ['name', 'email', 'tenantId', 'role']
+  const fields: StaffMemberField[] = [
+    'name',
+    'email',
+    'tenantId',
+    'role',
+    'password',
+  ]
   const errors: Partial<Record<StaffMemberField, string>> = {}
   for (const field of fields) {
     const error = validateStaffMemberField(field, values)

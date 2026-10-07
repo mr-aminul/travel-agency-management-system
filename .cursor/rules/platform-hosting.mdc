@@ -1,45 +1,40 @@
 ---
-description: Shared EC2/RDS hosting; /platform deploy and DB rules
+description: VPS hosting for OneTrack UI + API; legacy EC2 /platform notes
 alwaysApply: true
 ---
 
-# Platform hosting (shared infra)
+# Platform hosting
 
-This app is **not** a separate cloud project. It coexists with the main dashboard.
+Production lives on the inventivelab **VPS** (Caddy + Docker). No Vercel.
 
 | Piece | Value |
 |-------|--------|
-| This UI | Served at `/platform/` on the shared host |
-| Dashboard | Served at `/` (separate repo) |
-| Host | Same EC2; nginx routes `/platform` → `/var/www/platform`, `/` + `/api` → dashboard Express |
-| Database | Shared RDS. No new DB/EC2/domain unless explicitly requested |
+| App UI | https://onetrack.inventivelab.bd → Caddy static from `/opt/onetrack-platform/web` |
+| API | https://api.onetrack.inventivelab.bd → Docker API on `127.0.0.1:4010` |
+| Database | Isolated Postgres in Docker on `127.0.0.1:5433` (not shared RDS) |
 
-## Deploy (this repo only)
+## Deploy (this repo)
 
 ```bash
-cp .env.deploy.example .env.deploy   # once
-npm run deploy:ec2                   # build + rsync to /var/www/platform
+# needs VPS_HOST / VPS_USER / VPS_PASSWORD in local .env
+npm run deploy:vps   # build SPA + rsync UI/API + docker compose + Caddy
 ```
 
-- Needs `PERF_EC2_HOST` + `PERF_EC2_PEM` in `.env.deploy` (gitignored).
-- Optional: `PERF_PLATFORM_PUBLIC_URL` for post-deploy HTTP check.
-- Does **not** redeploy the dashboard or require `DB_*` for the SPA.
-- Vite production `base` is `/platform/`; React Router uses `import.meta.env.BASE_URL`.
+- DNS for `onetrack` and `api.onetrack` must point at the VPS.
+- Does **not** touch n8n / MinIO / Cloudreve.
+- Build sets `VITE_USE_PLATFORM_API=1` and `VITE_API_BASE_URL=https://api.onetrack.inventivelab.bd`.
 
 ## Frontend env
 
-- `VITE_API_BASE_URL` empty = same-origin `/api` (correct for production).
 - Never put `DB_*`, RDS passwords, PEM contents, or encryption keys in `VITE_*` or committed files.
+- Server `.env` on the VPS holds `PLATFORM_DB_PASSWORD` and auth seeds — not the Vite app.
 
-## Database (when adding tables)
+## Legacy EC2 `/platform`
 
-1. Use Postgres schema **`platform`** — do not collide with dashboard tables.
-2. Additive migrations only under `db/migrations/`; never drop/alter dashboard tables.
-3. Run migrations from EC2 (RDS is VPC-private), same pattern as the dashboard.
-4. Prefer API routes on the existing Express (`/api/platform/...`) until this repo grows its own server; server `.env` holds `DB_*`, not the Vite app.
+`npm run deploy:ec2` still ships a `/platform/` build to the shared dashboard host. Prefer `deploy:vps` for inventivelab.bd.
 
 ## Do not
 
-- Ask tech for a new domain/EC2/RDS for this work
-- Submodule or merge the dashboard repo by default
-- Tunnel or depend on a separate cloud deploy for production `/platform`
+- Reintroduce Vercel (or another separate SPA host) without an explicit request
+- Share Docker networks/volumes with n8n / MinIO / Cloudreve
+- Put secrets in `VITE_*` or committed files

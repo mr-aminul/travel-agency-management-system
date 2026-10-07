@@ -17,8 +17,9 @@ export type ModuleId =
   | 'services.tourPackage'
 
 /**
- * Agency rules (locked) — see `agencyUserRules.ts`:
- * required at create: name; modules/status optional.
+ * Agency rules — see `agencyUserRules.ts`:
+ * required at create: name (+ first owner credentials in the admin UI);
+ * modules/status optional.
  */
 export type Tenant = {
   id: string
@@ -43,8 +44,9 @@ export type TenantMemberRole = 'owner' | 'manager' | 'staff'
 export type TenantMemberStatus = 'active' | 'invited' | 'disabled'
 
 /**
- * Staff user rules (locked) — see `agencyUserRules.ts`:
- * required at create: name, email, tenantId; role defaults to staff.
+ * Staff user rules — see `agencyUserRules.ts`:
+ * required at create: name, email, tenantId, password;
+ * role defaults to staff; status defaults to active once provisioned.
  */
 export type TenantMember = {
   id: string
@@ -59,9 +61,11 @@ export type CreateTenantMemberInput = {
   tenantId: string
   name: string
   email: string
+  /** Initial sign-in password (admin-set). Not persisted on the member row. */
+  password: string
   /** Defaults to staff. */
   role?: TenantMemberRole
-  /** Defaults to invited. */
+  /** Defaults to active when a password is provisioned. */
   status?: TenantMemberStatus
 }
 

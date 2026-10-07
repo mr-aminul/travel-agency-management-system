@@ -68,6 +68,16 @@ const PANEL_GAP_PX = 4
 const PANEL_MIN_WIDTH_PX = 12 * 16
 const VIEWPORT_PAD_PX = 8
 
+/**
+ * Native `<dialog showModal()>` uses the top layer. A panel portaled to
+ * `document.body` paints underneath it — portal into the open dialog instead.
+ */
+function portalRootFor(anchor: HTMLElement | null): HTMLElement {
+  const dialog = anchor?.closest('dialog')
+  if (dialog instanceof HTMLDialogElement && dialog.open) return dialog
+  return document.body
+}
+
 function normalizeMulti(value: string[] | undefined): string[] {
   return value ?? []
 }
@@ -592,7 +602,7 @@ export function Select(props: SelectProps) {
         </button>
 
         {panel && typeof document !== 'undefined'
-          ? createPortal(panel, document.body)
+          ? createPortal(panel, portalRootFor(triggerRef.current))
           : null}
       </div>
 

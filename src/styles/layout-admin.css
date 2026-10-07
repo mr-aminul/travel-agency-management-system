@@ -78,6 +78,17 @@
   border-bottom-color: var(--color-theme-ink);
 }
 
+.pd-admin__credential-name {
+  margin: 0 0 var(--spacing-3);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pd-admin__credential-row {
+  margin: 0 0 var(--spacing-2);
+  color: var(--color-text-secondary);
+}
+
 .pd-admin__section-actions {
   display: flex;
   justify-content: flex-end;

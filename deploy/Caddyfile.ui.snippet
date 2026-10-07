@@ -1,0 +1,11 @@
+# OneTrack platform UI — static SPA at onetrack.inventivelab.bd
+# Install as /etc/caddy/conf.d/onetrack-platform-ui.caddy
+onetrack.inventivelab.bd {
+	root * /opt/onetrack-platform/web
+	encode gzip
+	try_files {path} /index.html
+	file_server
+	header {
+		X-App onetrack-platform-ui
+	}
+}

@@ -1,6 +1,11 @@
 import { ApiError, apiFetch } from '@/lib/apiClient'
 import { verifyPasswordHash } from '@/lib/passwordHash'
 import {
+  findProvisionedAccountByEmail,
+  saveProvisionedLogin,
+  verifyProvisionedLogin,
+} from '@/lib/provisionedUsers'
+import {
   ONETRACK_OWNER_USER,
   asUserRole,
   findSeededAccountByEmail,
@@ -219,21 +224,128 @@ async function loginLocally(
   email: string,
   password: string,
 ): Promise<AuthSession> {
-  const account = findSeededAccountByEmail(email)
-  if (!account) {
+  const seeded = findSeededAccountByEmail(email)
+  if (seeded) {
+    const valid = await verifyPasswordHash(password, seeded.passwordHash)
+    if (!valid) {
+      throw new Error('Email or password is incorrect.')
+    }
+    const session: AuthSession = {
+      user: seeded.user,
+      tenantId: seeded.tenantId,
+      signedInAt: new Date().toISOString(),
+    }
+    writeSession(session)
+    return session
+  }
+
+  const provisioned = await verifyProvisionedLogin(email, password)
+  if (!provisioned) {
+    if (findProvisionedAccountByEmail(email)) {
+      throw new Error('Email or password is incorrect.')
+    }
     throw new Error('This account is not authorized.')
   }
-  const valid = await verifyPasswordHash(password, account.passwordHash)
-  if (!valid) {
-    throw new Error('Email or password is incorrect.')
-  }
+
   const session: AuthSession = {
-    user: account.user,
-    tenantId: account.tenantId,
+    user: provisioned.user,
+    tenantId: provisioned.tenantId,
     signedInAt: new Date().toISOString(),
   }
   writeSession(session)
   return session
+}
+
+function apiErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof ApiError)) {
+    return error instanceof Error ? error.message : fallback
+  }
+  if (
+    error.body &&
+    typeof error.body === 'object' &&
+    'error' in error.body &&
+    typeof (error.body as { error: unknown }).error === 'string'
+  ) {
+    return (error.body as { error: string }).error
+  }
+  return fallback
+}
+
+export type ProvisionAgencyUserInput = {
+  email: string
+  name: string
+  password: string
+  tenantId: string
+}
+
+export type ProvisionedAgencyUser = {
+  id: string
+  email: string
+  name: string
+  role: AuthUser['role']
+  tenantId: string
+}
+
+/**
+ * Create a real login for an agency user (admin-set initial password).
+ * Uses the platform API when enabled; otherwise stores a local hashed login.
+ */
+export async function provisionAgencyUser(
+  input: ProvisionAgencyUserInput,
+): Promise<ProvisionedAgencyUser> {
+  const email = normalizeLoginEmail(input.email)
+  const name = input.name.trim()
+  const password = input.password
+  const tenantId = input.tenantId.trim()
+  const id = `user-${crypto.randomUUID()}`
+
+  if (!email) throw new Error('Email is required.')
+  if (!name) throw new Error('Name is required.')
+  if (!password || password.length < 4) {
+    throw new Error('Password must be at least 4 characters.')
+  }
+  if (!tenantId) throw new Error('Agency is required.')
+
+  if (authApiConfigured()) {
+    try {
+      const body = await apiFetch<{
+        user: AuthUser
+        tenantId: string
+      }>('/api/platform/auth/users', {
+        method: 'POST',
+        body: { email, name, password, tenantId, id },
+      })
+      const user = coerceUser(body.user)
+      if (!user) throw new Error('Create-user response was incomplete.')
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        tenantId: body.tenantId || tenantId,
+      }
+    } catch (error) {
+      if (!isNetworkFailure(error)) {
+        throw new Error(apiErrorMessage(error, 'Could not create login.'))
+      }
+      /* fall through to local provision when API is unreachable */
+    }
+  }
+
+  const local = await saveProvisionedLogin({
+    id,
+    email,
+    name,
+    tenantId,
+    password,
+  })
+  return {
+    id: local.user.id,
+    email: local.user.email,
+    name: local.user.name,
+    role: local.user.role,
+    tenantId: local.tenantId,
+  }
 }
 
 /**

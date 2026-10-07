@@ -899,6 +899,14 @@ a.pd-btn {
   margin-top: 1rem;
 }
 
+/* Outlined fields notch their labels onto the top border — stack needs room
+   so controls / errors don't collide with the next field's label. */
+.pd-modal__body > form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .pd-modal__actions {
   display: flex;
   justify-content: flex-end;

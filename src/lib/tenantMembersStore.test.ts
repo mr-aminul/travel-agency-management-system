@@ -7,11 +7,13 @@ import {
   resetTenantMembers,
 } from '@/lib/tenantMembersStore'
 import { createTenant, resetTenantEntitlements } from '@/lib/tenantsStore'
+import { resetProvisionedLogins } from '@/lib/provisionedUsers'
 import { TENANT_IDS } from '@/types/tenant'
 
 afterEach(() => {
   resetTenantMembers()
   resetTenantEntitlements()
+  resetProvisionedLogins()
 })
 
 describe('tenant members', () => {
@@ -31,19 +33,20 @@ describe('tenant members', () => {
     ).toBe(false)
   })
 
-  it('creates a staff user with name, email, and agency', () => {
+  it('creates a staff user with name, email, password, and agency', () => {
     const agency = createTenant({ name: 'River Tours' })
     const member = createTenantMember({
       tenantId: agency.id,
       name: 'Karim Uddin',
       email: 'karim@river-tours.example',
+      password: 'secret1',
     })
     expect(member).toMatchObject({
       tenantId: agency.id,
       name: 'Karim Uddin',
       email: 'karim@river-tours.example',
       role: 'staff',
-      status: 'invited',
+      status: 'active',
     })
   })
 
@@ -53,8 +56,20 @@ describe('tenant members', () => {
         tenantId: TENANT_IDS.leisure,
         name: 'Copy',
         email: LEISURE_USER.email,
+        password: 'secret1',
       }),
     ).toThrow(/already exists/i)
   })
-})
 
+  it('rejects create without a password', () => {
+    const agency = createTenant({ name: 'Delta Travel' })
+    expect(() =>
+      createTenantMember({
+        tenantId: agency.id,
+        name: 'No Pass',
+        email: 'nopass@delta.example',
+        password: '',
+      }),
+    ).toThrow(/password/i)
+  })
+})

@@ -211,3 +211,83 @@ export async function requireAuth(req, res, next) {
     })
   }
 }
+
+export async function requirePlatformAdmin(req, res, next) {
+  await requireAuth(req, res, () => {
+    if (req.auth?.user?.role !== 'platform_admin') {
+      res.status(403).json({ error: 'Platform admin access required.' })
+      return
+    }
+    next()
+  })
+}
+
+/**
+ * Provision an agency login user (admin-set initial password).
+ * Email must be unique across platform.users.
+ */
+export async function createAgencyUser({
+  email,
+  name,
+  password,
+  tenantId,
+  id,
+}) {
+  const normalizedEmail = normalizeEmail(email)
+  const trimmedName = String(name ?? '').trim()
+  const rawPassword = String(password ?? '')
+  const resolvedTenantId = String(tenantId ?? '').trim()
+  const userId =
+    String(id ?? '').trim() || `user-${crypto.randomBytes(8).toString('hex')}`
+
+  if (!normalizedEmail) {
+    return { ok: false, status: 400, error: 'Email is required.' }
+  }
+  if (!trimmedName) {
+    return { ok: false, status: 400, error: 'Name is required.' }
+  }
+  if (!rawPassword || rawPassword.length < 4) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Password must be at least 4 characters.',
+    }
+  }
+  if (!resolvedTenantId) {
+    return { ok: false, status: 400, error: 'Agency is required.' }
+  }
+
+  const existing = await query(
+    `select id from platform.users where lower(email) = $1 limit 1`,
+    [normalizedEmail],
+  )
+  if (existing.rows[0]) {
+    return {
+      ok: false,
+      status: 409,
+      error: 'An account with this email already exists.',
+    }
+  }
+
+  const passwordHash = hashPassword(rawPassword)
+  await query(
+    `insert into platform.users
+       (id, email, name, role, tenant_id, password_hash, status, updated_at)
+     values ($1, $2, $3, 'agency_user', $4, $5, 'active', now())`,
+    [userId, normalizedEmail, trimmedName, resolvedTenantId, passwordHash],
+  )
+
+  return {
+    ok: true,
+    status: 201,
+    body: {
+      user: {
+        id: userId,
+        email: normalizedEmail,
+        name: trimmedName,
+        role: 'agency_user',
+      },
+      tenantId: resolvedTenantId,
+    },
+  }
+}

@@ -201,7 +201,11 @@ export function createTenantMember(
 ): TenantMember {
   const errors = staffMemberCreateErrors(input)
   const firstError =
-    errors.tenantId ?? errors.name ?? errors.email ?? errors.role
+    errors.tenantId ??
+    errors.name ??
+    errors.email ??
+    errors.role ??
+    errors.password
   if (firstError) throw new Error(firstError)
 
   if (!getTenantById(input.tenantId)) {
@@ -224,7 +228,8 @@ export function createTenantMember(
     name: input.name.trim(),
     email,
     role: input.role ?? 'staff',
-    status: input.status ?? 'invited',
+    // Password was set by admin — member can sign in immediately.
+    status: input.status ?? 'active',
   }
   members = [created, ...members]
   emit()

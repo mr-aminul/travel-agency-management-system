@@ -5,9 +5,6 @@ node_modules
 dist
 *.local
 
-# Vercel
-.vercel
-
 # Env (keep examples tracked)
 .env
 .env.local

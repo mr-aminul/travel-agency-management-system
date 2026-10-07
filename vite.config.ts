@@ -10,8 +10,8 @@ const require = createRequire(import.meta.url)
 const pkg = require('./package.json') as { version: string }
 
 export default defineConfig(() => ({
-  // Default `/` for Vercel and local builds.
-  // EC2 deploy sets VITE_BASE_PATH=/platform/ (see scripts/deploy-to-ec2.sh).
+  // Default `/` for VPS and local builds.
+  // Legacy EC2 deploy sets VITE_BASE_PATH=/platform/ (see scripts/deploy-to-ec2.sh).
   base: process.env.VITE_BASE_PATH ?? '/',
   plugins: [
     react(),
