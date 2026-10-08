@@ -33,9 +33,15 @@ export function resolveUserPageAccess(input: {
   pathname: string
 }): PageAccessLevel {
   if (input.role === 'platform_admin') return 'edit'
+  const normalizedPath =
+    input.pathname.endsWith('/') && input.pathname.length > 1
+      ? input.pathname.slice(0, -1)
+      : input.pathname
+  // Home is in nav for chrome, but is not a gated matrix page.
+  if (normalizedPath === '/') return 'edit'
   const pagePath = longestMatchingPath(input.pathname)
   if (!pagePath) {
-    // Core pages not in the matrix (home, readiness, settings, profile, trash)
+    // Core pages not in the matrix (readiness, settings, profile, trash, …)
     return 'edit'
   }
   const member = findTenantMemberForUser(

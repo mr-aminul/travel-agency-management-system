@@ -26,7 +26,6 @@ import {
   revokeInvoiceShare,
 } from './invoices.js'
 import {
-  PLATFORM_ADMIN_KV_KEYS,
   canWriteKvKey,
   filterEntriesForAuth,
   filterValueForTenant,
@@ -59,6 +58,7 @@ import {
 } from './passwordReset.js'
 
 const app = express()
+app.set('trust proxy', 1)
 const port = Number(process.env.PORT || 4010)
 const bindHost = process.env.BIND_HOST || '127.0.0.1'
 
@@ -288,13 +288,6 @@ app.get('/api/platform/kv', requireAuth, async (req, res) => {
 app.get('/api/platform/kv/:key', requireAuth, async (req, res) => {
   try {
     const key = req.params.key
-    if (
-      PLATFORM_ADMIN_KV_KEYS.has(key) &&
-      !isPlatformAdmin(req.auth)
-    ) {
-      res.status(403).json({ error: 'Not allowed to read this key.' })
-      return
-    }
     if (DOMAIN_KV_KEYS.has(key)) {
       const domain = await domainEntriesForAuth(req.auth)
       if (!(key in domain)) {
@@ -661,7 +654,13 @@ app.post('/api/platform/public/invites/:token/accept', async (req, res) => {
 /** —— Password reset —— */
 app.post('/api/platform/auth/password-reset/request', async (req, res) => {
   try {
-    const result = await requestPasswordReset(req.body?.email)
+    const result = await requestPasswordReset(req.body?.email, {
+      ip: req.ip,
+    })
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
     res.status(result.status).json(result.body)
   } catch (error) {
     res.status(500).json({
@@ -692,6 +691,7 @@ app.post(
       const result = await confirmPasswordReset({
         token: req.params.token,
         password: req.body?.password,
+        otp: req.body?.otp,
       })
       if (!result.ok) {
         res.status(result.status).json({ error: result.error })

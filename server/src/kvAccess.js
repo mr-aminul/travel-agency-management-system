@@ -61,6 +61,30 @@ function itemTenantId(item) {
   return typeof id === 'string' && id.trim() ? id.trim() : null
 }
 
+function filterTenantMap(value, tenantId) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  if (Object.prototype.hasOwnProperty.call(value, tenantId)) {
+    return { [tenantId]: value[tenantId] }
+  }
+  return {}
+}
+
+/**
+ * Tenant catalog rows use `id` (not `tenantId`). Agency hydrate must include
+ * the signed-in agency or useActiveTenant falls back to a seed tenant and the
+ * SPA access check infinite-redirects to a blank home.
+ */
+function filterTenantsCreated(value, tenantId) {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (item) =>
+      item &&
+      typeof item === 'object' &&
+      typeof item.id === 'string' &&
+      item.id === tenantId,
+  )
+}
+
 export function filterValueForTenant(key, value, tenantId) {
   if (TENANT_ARRAY_KEYS.has(key)) {
     if (!Array.isArray(value)) return []
@@ -71,14 +95,21 @@ export function filterValueForTenant(key, value, tenantId) {
     return value.filter((item) => itemTenantId(item) === tenantId)
   }
   if (TENANT_MAP_KEYS.has(key)) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
-    if (Object.prototype.hasOwnProperty.call(value, tenantId)) {
-      return { [tenantId]: value[tenantId] }
-    }
-    return {}
+    return filterTenantMap(value, tenantId)
+  }
+  // Readable slices for the active agency; writes stay admin-only via canWriteKvKey.
+  if (key === 'pd-tenants-created') {
+    return filterTenantsCreated(value, tenantId)
+  }
+  if (
+    key === 'pd-tenant-entitlements' ||
+    key === 'pd-tenant-names' ||
+    key === 'pd-tenant-statuses'
+  ) {
+    return filterTenantMap(value, tenantId)
   }
   if (PLATFORM_ADMIN_KV_KEYS.has(key)) {
-    return undefined // omit from agency hydrate
+    return undefined // omit secrets / cross-tenant IAM from agency hydrate
   }
   return value
 }

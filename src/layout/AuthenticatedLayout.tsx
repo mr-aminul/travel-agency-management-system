@@ -134,11 +134,9 @@ export default function AuthenticatedLayout() {
     )
   }
 
-  if (!isPathAllowed(pathname, tenant.enabledModules, user.role)) {
-    return <Navigate to={signedInHomePath(user.role)} replace />
-  }
-
-  if (
+  const homePath = signedInHomePath(user.role)
+  const pathBlocked =
+    !isPathAllowed(pathname, tenant.enabledModules, user.role) ||
     !canAccessPath({
       role: user.role,
       userId: user.id,
@@ -146,8 +144,23 @@ export default function AuthenticatedLayout() {
       tenantId: tenant.id,
       pathname,
     })
-  ) {
-    return <Navigate to={signedInHomePath(user.role)} replace />
+
+  if (pathBlocked) {
+    // Redirecting home→home loops forever and paints a blank shell.
+    if (pathname === homePath) {
+      return (
+        <div className="pd-page" aria-label="No access">
+          <p role="alert">
+            You do not have access to this workspace. Contact your agency
+            owner, then sign in again.
+          </p>
+          <button type="button" onClick={() => void handleSignOut()}>
+            Sign out
+          </button>
+        </div>
+      )
+    }
+    return <Navigate to={homePath} replace />
   }
 
   return (

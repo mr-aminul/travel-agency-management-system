@@ -568,7 +568,7 @@ export async function acceptUserInvite(token: string, password: string) {
 }
 
 export async function requestPasswordReset(email: string) {
-  return apiFetch<{ sent: boolean; token?: string; expiresAt?: string }>(
+  return apiFetch<{ sent: boolean }>(
     '/api/platform/auth/password-reset/request',
     {
       method: 'POST',
@@ -579,19 +579,26 @@ export async function requestPasswordReset(email: string) {
 }
 
 export async function fetchPasswordReset(token: string) {
-  return apiFetch<{ email: string; expiresAt: string }>(
-    `/api/platform/public/password-reset/${encodeURIComponent(token)}`,
-    { skipAuth: true },
-  )
+  return apiFetch<{
+    emailMasked: string
+    expiresAt: string
+    requiresOtp: boolean
+  }>(`/api/platform/public/password-reset/${encodeURIComponent(token)}`, {
+    skipAuth: true,
+  })
 }
 
-export async function confirmPasswordReset(token: string, password: string) {
-  return apiFetch<{ reset: boolean; email: string }>(
+export async function confirmPasswordReset(
+  token: string,
+  password: string,
+  otp: string,
+) {
+  return apiFetch<{ reset: boolean; emailMasked: string }>(
     `/api/platform/public/password-reset/${encodeURIComponent(token)}/confirm`,
     {
       method: 'POST',
       skipAuth: true,
-      body: { password },
+      body: { password, otp },
     },
   )
 }

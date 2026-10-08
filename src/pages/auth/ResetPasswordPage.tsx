@@ -14,15 +14,20 @@ import '@/styles/layout-login.css'
 export default function ResetPasswordPage() {
   const { token = '' } = useParams()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [emailMasked, setEmailMasked] = useState('')
+  const [otp, setOtp] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loadError, setLoadError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { markAllTouched, showError, blur } = useTouchedFields<
-    'password' | 'confirm'
+    'otp' | 'password' | 'confirm'
   >()
+  const otpError =
+    !/^\d{6}$/.test(otp.replace(/\s+/g, ''))
+      ? 'Enter the 6-digit code from your email.'
+      : undefined
   const passwordError = validateRequiredPassword(password)
   const confirmError =
     confirm !== password ? 'Passwords do not match.' : undefined
@@ -32,7 +37,7 @@ export default function ResetPasswordPage() {
     void fetchPasswordReset(token)
       .then((body) => {
         if (cancelled) return
-        setEmail(body.email)
+        setEmailMasked(body.emailMasked)
       })
       .catch((caught) => {
         if (cancelled) return
@@ -48,11 +53,11 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError(null)
-    markAllTouched(['password', 'confirm'])
-    if (passwordError || confirmError) return
+    markAllTouched(['otp', 'password', 'confirm'])
+    if (otpError || passwordError || confirmError) return
     setIsSubmitting(true)
     try {
-      await confirmPasswordReset(token, password)
+      await confirmPasswordReset(token, password, otp.replace(/\s+/g, ''))
       navigate('/login', { replace: true })
     } catch (caught) {
       setError(
@@ -77,7 +82,9 @@ export default function ResetPasswordPage() {
         <div className="pd-login__brand">
           <h1 className="pd-login__title">Choose a new password</h1>
           <p className="pd-login__subtitle">
-            {email ? `For ${email}` : 'Loading…'}
+            {emailMasked
+              ? `For ${emailMasked}. Enter the one-time code from your email.`
+              : 'Loading…'}
           </p>
         </div>
         {loadError ? (
@@ -89,6 +96,17 @@ export default function ResetPasswordPage() {
           </div>
         ) : (
           <form className="pd-login__form" onSubmit={handleSubmit} noValidate>
+            <Input
+              label="One-time code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={otp}
+              onChange={(event) => setOtp(event.target.value)}
+              onBlur={blur('otp')}
+              required
+              error={showError('otp') ? otpError : undefined}
+            />
             <Input
               label="New password"
               type="password"

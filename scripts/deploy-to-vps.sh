@@ -16,7 +16,8 @@ ENV_FILE="$ROOT/.env"
 HOST="$(read_env VPS_HOST "$ENV_FILE")"
 USER_NAME="$(read_env VPS_USER "$ENV_FILE")"
 PASS="$(read_env VPS_PASSWORD "$ENV_FILE")"
-PUBLIC_UI_URL="${PLATFORM_PUBLIC_UI_URL:-https://onetrack.inventivelab.bd}"
+PUBLIC_UI_URL="$(read_env PLATFORM_PUBLIC_UI_URL "$ENV_FILE")"
+PUBLIC_UI_URL="${PUBLIC_UI_URL:-https://onetrack.inventivelab.bd}"
 PUBLIC_API_URL="${PLATFORM_PUBLIC_API_URL:-https://api.onetrack.inventivelab.bd}"
 # Include local Vite origins so localhost can call the live API directly if needed.
 CORS_ORIGIN="${PLATFORM_CORS_ORIGIN:-https://onetrack.inventivelab.bd,http://localhost:8003,http://127.0.0.1:8003}"
@@ -27,13 +28,28 @@ ADMIN_EMAIL="$(read_env PLATFORM_ADMIN_EMAIL "$ENV_FILE")"
 ADMIN_PASSWORD="$(read_env PLATFORM_ADMIN_PASSWORD "$ENV_FILE")"
 AGENCY_PASSWORD="$(read_env SEED_AGENCY_PASSWORD "$ENV_FILE")"
 SEED_FORCE="$(read_env SEED_FORCE_PASSWORDS "$ENV_FILE")"
+SMTP_HOST="$(read_env SMTP_HOST "$ENV_FILE")"
+SMTP_PORT="$(read_env SMTP_PORT "$ENV_FILE")"
+SMTP_SECURE="$(read_env SMTP_SECURE "$ENV_FILE")"
+SMTP_USER="$(read_env SMTP_USER "$ENV_FILE")"
+SMTP_PASSWORD="$(read_env SMTP_PASSWORD "$ENV_FILE")"
+SMTP_FROM="$(read_env SMTP_FROM "$ENV_FILE")"
 ADMIN_EMAIL="${ADMIN_EMAIL:-aminulislamborhan@gmail.com}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-12345}"
 AGENCY_PASSWORD="${AGENCY_PASSWORD:-12345}"
 SEED_FORCE="${SEED_FORCE:-0}"
+SMTP_HOST="${SMTP_HOST:-mail.inventivelab.bd}"
+SMTP_PORT="${SMTP_PORT:-465}"
+SMTP_SECURE="${SMTP_SECURE:-1}"
+SMTP_FROM="${SMTP_FROM:-OneTrack <noreply@inventivelab.bd>}"
 
 if [[ -z "$HOST" || -z "$USER_NAME" || -z "$PASS" ]]; then
   echo "VPS_HOST / VPS_USER / VPS_PASSWORD missing in .env" >&2
+  exit 1
+fi
+
+if [[ -z "$SMTP_USER" || -z "$SMTP_PASSWORD" ]]; then
+  echo "SMTP_USER / SMTP_PASSWORD missing in .env (required for password-reset email)" >&2
   exit 1
 fi
 
@@ -80,6 +96,22 @@ ADMIN_EMAIL='$ADMIN_EMAIL'
 ADMIN_PASSWORD='$ADMIN_PASSWORD'
 AGENCY_PASSWORD='$AGENCY_PASSWORD'
 SEED_FORCE='$SEED_FORCE'
+PUBLIC_UI_URL='$PUBLIC_UI_URL'
+SMTP_HOST='$SMTP_HOST'
+SMTP_PORT='$SMTP_PORT'
+SMTP_SECURE='$SMTP_SECURE'
+SMTP_USER='$SMTP_USER'
+SMTP_PASSWORD='$SMTP_PASSWORD'
+SMTP_FROM='$SMTP_FROM'
+
+set_kv() {
+  local k="\$1" v="\$2"
+  if grep -q "^\$k=" "\$DB_PASSWORD_FILE"; then
+    sed -i "s|^\$k=.*|\$k=\$v|" "\$DB_PASSWORD_FILE"
+  else
+    echo "\$k=\$v" >> "\$DB_PASSWORD_FILE"
+  fi
+}
 
 if [[ ! -f "\$DB_PASSWORD_FILE" ]]; then
   PW=\$(openssl rand -base64 24 | tr -d '=+/' | cut -c1-28)
@@ -90,24 +122,30 @@ PLATFORM_ADMIN_EMAIL=\$ADMIN_EMAIL
 PLATFORM_ADMIN_PASSWORD=\$ADMIN_PASSWORD
 SEED_AGENCY_PASSWORD=\$AGENCY_PASSWORD
 SEED_FORCE_PASSWORDS=\$SEED_FORCE
+PLATFORM_PUBLIC_UI_URL=\$PUBLIC_UI_URL
+SMTP_HOST=\$SMTP_HOST
+SMTP_PORT=\$SMTP_PORT
+SMTP_SECURE=\$SMTP_SECURE
+SMTP_USER=\$SMTP_USER
+SMTP_PASSWORD=\$SMTP_PASSWORD
+SMTP_FROM=\$SMTP_FROM
 EOF
   chmod 600 "\$DB_PASSWORD_FILE"
   echo "[platform-api] wrote new \$DB_PASSWORD_FILE"
 else
-  set_kv() {
-    local k="\$1" v="\$2"
-    if grep -q "^\$k=" "\$DB_PASSWORD_FILE"; then
-      sed -i "s|^\$k=.*|\$k=\$v|" "\$DB_PASSWORD_FILE"
-    else
-      echo "\$k=\$v" >> "\$DB_PASSWORD_FILE"
-    fi
-  }
   set_kv PLATFORM_CORS_ORIGIN "\$CORS_ORIGIN"
   set_kv PLATFORM_ADMIN_EMAIL "\$ADMIN_EMAIL"
   set_kv PLATFORM_ADMIN_PASSWORD "\$ADMIN_PASSWORD"
   set_kv SEED_AGENCY_PASSWORD "\$AGENCY_PASSWORD"
   set_kv SEED_FORCE_PASSWORDS "\$SEED_FORCE"
-  echo "[platform-api] updated auth + CORS on \$DB_PASSWORD_FILE"
+  set_kv PLATFORM_PUBLIC_UI_URL "\$PUBLIC_UI_URL"
+  set_kv SMTP_HOST "\$SMTP_HOST"
+  set_kv SMTP_PORT "\$SMTP_PORT"
+  set_kv SMTP_SECURE "\$SMTP_SECURE"
+  set_kv SMTP_USER "\$SMTP_USER"
+  set_kv SMTP_PASSWORD "\$SMTP_PASSWORD"
+  set_kv SMTP_FROM "\$SMTP_FROM"
+  echo "[platform-api] updated auth + SMTP + CORS on \$DB_PASSWORD_FILE"
 fi
 
 cp "\$REMOTE_ROOT/deploy/Caddyfile.api.snippet" /etc/caddy/conf.d/onetrack-platform-api.caddy
