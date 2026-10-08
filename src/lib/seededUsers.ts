@@ -48,17 +48,17 @@ export const ONETRACK_OWNER_USER: SeededAuthUser = {
  * Default seed passwords (local + server bootstrap).
  * Production should override via PLATFORM_ADMIN_PASSWORD / SEED_AGENCY_PASSWORD.
  */
-export const SEED_PLATFORM_ADMIN_PASSWORD = '12345'
-export const SEED_AGENCY_PASSWORD = '12345'
+export const SEED_PLATFORM_ADMIN_PASSWORD = '12345678'
+export const SEED_AGENCY_PASSWORD = '12345678'
 
 /**
  * Hashes for the default seed passwords above (pbkdf2$120000$…).
  * Must stay in sync with server seed defaults in server/src/auth.js.
  */
 const PLATFORM_ADMIN_PASSWORD_HASH =
-  'pbkdf2$120000$f14724a26c376c6c6f8cfceeb16817f7$184182a94da299befa6b0a47f40fcc4485702b175d9c223431c4ae0d06026f33'
+  'pbkdf2$120000$9267bb7eb285516ca2b64d561666d1c0$3b17627896f5d55c1ff5a9d11d88703ac179d680d2066767418d2619d4786ae0'
 const AGENCY_PASSWORD_HASH =
-  'pbkdf2$120000$711fb23016c555a5e0889c9a1b365a14$c3762d0206013e7401ef04c5aafba7dfec4cdef0985ea2dab399bee3ba5e2bec'
+  'pbkdf2$120000$a38a2b9cb713911327e4500eeac79bc5$f5c91ed8bc09898dc0c4df8c0cc02dbb60b6f0c1c135d5828be7e67f0301cf4c'
 
 export const SEEDED_LOGIN_ACCOUNTS: SeededLoginAccount[] = [
   {

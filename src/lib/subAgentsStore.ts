@@ -4,6 +4,7 @@ import { getActiveTenantId } from '@/lib/authApi'
 import {
   DATA_KEYS,
   hasJson,
+  injectClientSideSeeds,
   loadJsonParsed,
   removeJson,
   saveJson,
@@ -109,6 +110,7 @@ function seedSubAgents(): SubAgent[] {
 }
 
 function mergeWithSeeds(created: SubAgent[]): SubAgent[] {
+  if (!injectClientSideSeeds()) return created
   const createdIds = new Set(created.map((subAgent) => subAgent.id))
   return [
     ...created,
@@ -117,7 +119,9 @@ function mergeWithSeeds(created: SubAgent[]): SubAgent[] {
 }
 
 function persistCreatedSubAgents() {
-  const created = subAgents.filter((subAgent) => !SEED_IDS.has(subAgent.id))
+  const created = injectClientSideSeeds()
+    ? subAgents.filter((subAgent) => !SEED_IDS.has(subAgent.id))
+    : subAgents
   saveJson(STORAGE_KEY, created)
   removeJson(LEGACY_STORAGE_KEY)
 }
@@ -141,6 +145,7 @@ if (typeof window !== 'undefined') {
     hydrateSubAgentsFromStorage()
   })
   window.addEventListener('focus', hydrateSubAgentsFromStorage)
+  window.addEventListener('pd-data-rehydrated', hydrateSubAgentsFromStorage)
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') hydrateSubAgentsFromStorage()
   })

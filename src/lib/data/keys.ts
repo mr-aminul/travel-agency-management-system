@@ -1,6 +1,7 @@
 /**
  * Storage keys for core records.
- * Keep stable — renaming breaks existing browser data.
+ * Keep stable — renaming breaks existing browser/API data.
+ * Every key listed here is synced to the platform API when enabled.
  */
 export const DATA_KEYS = {
   clientsCreated: 'pd-clients-created',
@@ -10,6 +11,21 @@ export const DATA_KEYS = {
   /** Pre–Sub Agent rename. */
   subAgentsCreatedLegacy: 'pd-partners-created',
   casesCreated: 'pd-cases-created',
+  paymentsCreated: 'pd-payments-created',
+  employeesCreated: 'pd-employees-created',
+  attendanceCreated: 'pd-attendance-created',
+  requestsCreated: 'pd-requests-created',
+  clientMessages: 'pd-client-messages',
+  serviceTemplates: 'pd-service-templates',
+  documentTemplates: 'pd-document-print-templates',
+  clientProfileFields: 'pd-client-profile-fields',
+  customServices: 'pd-custom-services',
+  hiddenServices: 'pd-hidden-services',
+  serviceIconOverrides: 'pd-service-icon-overrides',
+  commissionsCreated: 'pd-commissions-created',
+  commissionSettlements: 'pd-commission-settlements',
+  auditLog: 'pd-audit-log',
+  onboardingState: 'pd-onboarding-state',
   tenantEntitlements: 'pd-tenant-entitlements',
   /** Display-name overrides for seeded tenants (created tenants store name inline). */
   tenantNames: 'pd-tenant-names',

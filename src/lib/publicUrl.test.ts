@@ -32,14 +32,14 @@ describe('subAgent client form URL', () => {
 describe('agency client form URL', () => {
   it('builds a public client-registration path from the tenant slug, not the internal id', () => {
     expect(agencyClientFormPath(TENANT_IDS.full)).toBe(
-      'client-registration/onetrack-demo',
+      'client-registration/onetrack',
     )
-    expect(agencyClientFormPath('onetrack-demo')).toBe(
-      'client-registration/onetrack-demo',
+    expect(agencyClientFormPath('onetrack')).toBe(
+      'client-registration/onetrack',
     )
     expect(agencyClientFormUrl(TENANT_IDS.full)).toBe(
       `${window.location.origin}${import.meta.env.BASE_URL || '/'}` +
-        'client-registration/onetrack-demo',
+        'client-registration/onetrack',
     )
   })
 })

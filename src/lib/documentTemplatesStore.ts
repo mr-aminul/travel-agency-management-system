@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
+import { DATA_KEYS, loadJsonParsed, removeJson, saveJson } from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
 import type {
@@ -27,7 +28,7 @@ import {
 
 type Listener = () => void
 
-const STORAGE_KEY = 'pd-document-print-templates'
+const STORAGE_KEY = DATA_KEYS.documentTemplates
 const FIXED_CREATED_AT = '2026-01-01T00:00:00.000Z'
 
 const listeners = new Set<Listener>()
@@ -344,36 +345,40 @@ function buildSeeds(): DocumentTemplate[] {
 
 const SEED_TEMPLATES = buildSeeds()
 
+function mergeWithSeeds(loaded: DocumentTemplate[]): DocumentTemplate[] {
+  if (loaded.length === 0) return SEED_TEMPLATES.map((item) => ({ ...item }))
+  const keys = new Set(
+    loaded.map((item) => `${item.tenantId}|${item.name.toLowerCase()}`),
+  )
+  const missing = SEED_TEMPLATES.filter(
+    (item) => !keys.has(`${item.tenantId}|${item.name.toLowerCase()}`),
+  )
+  return [...loaded, ...missing]
+}
+
 function loadAll(): DocumentTemplate[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return SEED_TEMPLATES.map((item) => ({ ...item }))
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return SEED_TEMPLATES.map((item) => ({ ...item }))
-    const loaded = parsed
+  const loaded = loadJsonParsed(STORAGE_KEY, [] as DocumentTemplate[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
       .map(normalizeTemplate)
       .filter((item): item is DocumentTemplate => item != null)
-    if (loaded.length === 0) return SEED_TEMPLATES.map((item) => ({ ...item }))
-    const keys = new Set(
-      loaded.map((item) => `${item.tenantId}|${item.name.toLowerCase()}`),
-    )
-    const missing = SEED_TEMPLATES.filter(
-      (item) => !keys.has(`${item.tenantId}|${item.name.toLowerCase()}`),
-    )
-    return [...loaded, ...missing]
-  } catch {
-    return SEED_TEMPLATES.map((item) => ({ ...item }))
-  }
+  })
+  return mergeWithSeeds(loaded)
 }
 
 templates = loadAll()
 
 function persist(next: DocumentTemplate[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-  } catch {
-    /* ignore quota / private mode */
-  }
+  saveJson(STORAGE_KEY, next)
+}
+
+function reloadFromStorage() {
+  templates = loadAll()
+  emit()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pd-data-rehydrated', reloadFromStorage)
 }
 
 function replaceAll(next: DocumentTemplate[]) {
@@ -508,11 +513,7 @@ export function deleteDocumentTemplate(id: string): boolean {
 }
 
 export function resetDocumentTemplates() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    /* ignore */
-  }
+  removeJson(STORAGE_KEY)
   templates = SEED_TEMPLATES.map((item) => ({ ...item }))
   emit()
 }

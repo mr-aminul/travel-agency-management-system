@@ -39,6 +39,7 @@ import {
 import { getActiveTenantId } from '@/lib/authApi'
 import {
   DATA_KEYS,
+  injectClientSideSeeds,
   loadJsonParsed,
   removeJson,
   saveJson,
@@ -469,18 +470,38 @@ function readStoredCases(): Case[] {
   })
 }
 
+function repairCaseShape(item: Case): Case {
+  const stepsEmpty =
+    !item.steps || Object.keys(item.steps).length === 0
+  const docsEmpty = !item.documents || item.documents.length === 0
+  if (!stepsEmpty && !docsEmpty) return cloneCase(item)
+  const stepDetails =
+    isRecord((item as { stepDetails?: unknown }).stepDetails)
+      ? ((item as { stepDetails?: Record<string, string> }).stepDetails ?? {})
+      : {}
+  return seedCase({
+    ...item,
+    currentStepId: item.currentStepId || 'registered',
+    serviceFee: item.serviceFee,
+    stepDetails,
+  })
+}
+
 function mergeWithSeeds(stored: Case[]): Case[] {
-  const byId = new Map(stored.map((item) => [item.id, item]))
+  const repaired = stored.map(repairCaseShape)
+  if (!injectClientSideSeeds()) return repaired
+  const byId = new Map(repaired.map((item) => [item.id, item]))
   for (const id of byId.keys()) {
     if (SEED_IDS.has(id)) dirtySeedIds.add(id)
   }
   return [
-    ...stored,
+    ...repaired,
     ...seedCases().filter((item) => !byId.has(item.id)),
   ]
 }
 
 function shouldPersistCase(item: Case): boolean {
+  if (!injectClientSideSeeds()) return true
   return !SEED_IDS.has(item.id) || dirtySeedIds.has(item.id)
 }
 
@@ -511,6 +532,10 @@ export function reloadCasesFromStorage() {
   dirtySeedIds.clear()
   cases = mergeWithSeeds(readStoredCases())
   emit(false)
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pd-data-rehydrated', reloadCasesFromStorage)
 }
 
 function subscribe(listener: Listener) {
@@ -592,6 +617,22 @@ export function useCasesByClientId(clientId: string): Case[] {
 
 export function getCaseById(id: string): Case | undefined {
   return cases.find((item) => item.id === id && inActiveTenant(item))
+}
+
+/** Cross-tenant count for admin overview. */
+export function countCasesForTenant(forTenantId: string): number {
+  return cases.filter((item) => item.tenantId === forTenantId).length
+}
+
+export function latestCaseActivityForTenant(forTenantId: string): string | undefined {
+  let latest: string | undefined
+  for (const item of cases) {
+    if (item.tenantId !== forTenantId) continue
+    const stamp = item.updatedAt || item.createdAt
+    if (!stamp) continue
+    if (!latest || stamp > latest) latest = stamp
+  }
+  return latest
 }
 
 export function getCasesByClientId(clientId: string): Case[] {

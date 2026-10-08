@@ -29,11 +29,11 @@ function renderMessages(channel: 'sms' | 'email' = 'sms') {
 }
 
 describe('client messages panel', () => {
-  it('lets staff type an SMS and send it', () => {
+  it('lets staff type an SMS note and save it', () => {
     renderMessages('sms')
 
     const input = screen.getByRole('textbox', { name: 'Message' })
-    const send = screen.getByRole('button', { name: 'Send' })
+    const send = screen.getByRole('button', { name: 'Save note' })
     expect(send).toBeDisabled()
 
     fireEvent.change(input, { target: { value: 'Please bring your passport.' } })
@@ -44,15 +44,17 @@ describe('client messages panel', () => {
     expect(input).toHaveValue('')
   })
 
-  it('uses a multi-line editor for email, not the short SMS input', () => {
+  it('uses a multi-line editor for email notes, not the short SMS input', () => {
     renderMessages('email')
 
-    expect(screen.getByText(/Email · rahim\.uddin@email\.com/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Logged email note · rahim\.uddin@email\.com/i),
+    ).toBeInTheDocument()
     const editor = screen.getByRole('textbox', { name: 'Email' })
     expect(editor.tagName).toBe('TEXTAREA')
     expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
 
-    const send = screen.getByRole('button', { name: 'Send email' })
+    const send = screen.getByRole('button', { name: 'Save note' })
     fireEvent.change(editor, {
       target: { value: 'Your documents are ready for pickup.' },
     })

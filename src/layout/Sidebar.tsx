@@ -327,7 +327,7 @@ export function Sidebar({
 
       <div className="pd-sidebar-body">
         <div className="pd-sidebar-divider" />
-        <nav className="pd-sidebar-nav">
+        <nav className="pd-sidebar-nav" data-tour="sidebar-nav">
           {navItems.map((item) =>
             item.children?.length ? (
               <NavItemGroup

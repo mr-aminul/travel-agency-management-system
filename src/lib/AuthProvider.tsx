@@ -11,6 +11,7 @@ import {
   signOut as apiSignOut,
 } from '@/lib/authApi'
 import { AuthContext, type AuthContextValue } from '@/lib/authContext'
+import { rehydratePlatformData } from '@/lib/data/rehydrate'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() => readSession())
@@ -19,6 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string) => {
       const next = await apiSignInWithPassword(email, password)
       setSession(next)
+      await rehydratePlatformData()
       return next
     },
     [],

@@ -6,10 +6,12 @@ import {
   staffMemberCreateErrors,
 } from '@/lib/agencyUserRules'
 import {
+  createUserInvite,
   provisionAgencyUser,
   setAgencyUserPassword,
   setAgencyUserStatus,
 } from '@/lib/authApi'
+import { absolutePublicUrl } from '@/lib/publicUrl'
 import {
   createTenantMember,
   updateTenantMember,
@@ -57,7 +59,8 @@ type CreateField = 'name' | 'email' | 'role' | 'password'
 type CreatedCredentials = {
   name: string
   email: string
-  password: string
+  password?: string
+  inviteLink?: string
 }
 
 export default function TenantUsersPage() {
@@ -69,6 +72,7 @@ export default function TenantUsersPage() {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<TenantMemberRole>('staff')
   const [password, setPassword] = useState('')
+  const [inviteOnly, setInviteOnly] = useState(true)
   const [formError, setFormError] = useState<string | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [createdCredentials, setCreatedCredentials] =
@@ -83,8 +87,17 @@ export default function TenantUsersPage() {
     return <Navigate to="/admin/tenants" replace />
   }
 
-  const values = { tenantId: tenant.id, name, email, role, password }
+  const values = {
+    tenantId: tenant.id,
+    name,
+    email,
+    role,
+    password: inviteOnly ? 'invite-placeholder-8' : password,
+  }
   const errors = staffMemberCreateErrors(values)
+  if (inviteOnly) {
+    delete errors.password
+  }
 
   const closeCreate = () => {
     setCreateOpen(false)
@@ -92,6 +105,7 @@ export default function TenantUsersPage() {
     setEmail('')
     setRole('staff')
     setPassword('')
+    setInviteOnly(true)
     setFormError(undefined)
     setIsSubmitting(false)
     resetTouched()
@@ -99,17 +113,44 @@ export default function TenantUsersPage() {
 
   const handleCreate = async (event: FormEvent) => {
     event.preventDefault()
-    markAllTouched(['name', 'email', 'role', 'password'])
+    markAllTouched(
+      inviteOnly ? ['name', 'email', 'role'] : ['name', 'email', 'role', 'password'],
+    )
     setFormError(undefined)
     if (errors.name || errors.email || errors.role || errors.password) return
 
     setIsSubmitting(true)
     try {
+      if (inviteOnly) {
+        const invite = await createUserInvite({
+          tenantId: tenant.id,
+          name,
+          email,
+          memberRole: role,
+        })
+        createTenantMember({
+          tenantId: tenant.id,
+          name,
+          email,
+          role,
+          password: crypto.randomUUID().slice(0, 12),
+          status: 'invited',
+        })
+        closeCreate()
+        setCreatedCredentials({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          inviteLink: absolutePublicUrl(`invite/${invite.token}`),
+        })
+        return
+      }
+
       const login = await provisionAgencyUser({
         tenantId: tenant.id,
         name,
         email,
         password,
+        memberRole: role,
       })
       createTenantMember({
         id: login.id,
@@ -120,13 +161,12 @@ export default function TenantUsersPage() {
         password,
         status: 'active',
       })
-      const shown: CreatedCredentials = {
+      closeCreate()
+      setCreatedCredentials({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,
-      }
-      closeCreate()
-      setCreatedCredentials(shown)
+      })
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : 'Could not add this user.',
@@ -157,7 +197,7 @@ export default function TenantUsersPage() {
     event.preventDefault()
     if (!resetMember) return
     if (!resetPassword || resetPassword.length < 4) {
-      setActionError('Password must be at least 4 characters.')
+      setActionError('Password must be at least 8 characters.')
       return
     }
     setActionError(undefined)
@@ -195,7 +235,11 @@ export default function TenantUsersPage() {
       open={createOpen}
       onClose={closeCreate}
       title="Add user"
-      description={`Create a login for ${tenant.name}. Set an initial password and share it with them.`}
+      description={
+        inviteOnly
+          ? `Invite someone to ${tenant.name}. They set their own password via the link.`
+          : `Create a login for ${tenant.name}. Set an initial password and share it with them.`
+      }
       actions={
         <>
           <Button variant="secondary" onClick={closeCreate} disabled={isSubmitting}>
@@ -206,12 +250,27 @@ export default function TenantUsersPage() {
             form="pd-admin-create-user"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Creating…' : 'Add user'}
+            {isSubmitting
+              ? inviteOnly
+                ? 'Sending…'
+                : 'Creating…'
+              : inviteOnly
+                ? 'Create invite'
+                : 'Add user'}
           </Button>
         </>
       }
     >
       <form id="pd-admin-create-user" onSubmit={handleCreate} noValidate>
+        <Select
+          label="How to add"
+          value={inviteOnly ? 'invite' : 'password'}
+          onChange={(event) => setInviteOnly(event.target.value === 'invite')}
+          options={[
+            { value: 'invite', label: 'Invite link (recommended)' },
+            { value: 'password', label: 'Set password now' },
+          ]}
+        />
         <Input
           label="Full name"
           required
@@ -239,17 +298,19 @@ export default function TenantUsersPage() {
           options={STAFF_MEMBER_ROLES}
           error={showError('role') ? errors.role : undefined}
         />
-        <Input
-          label="Initial password"
-          required
-          type="password"
-          autoComplete="new-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          onBlur={blur('password')}
-          error={showError('password') ? errors.password : undefined}
-          hint="They sign in with this password. Share it securely — it is only shown once."
-        />
+        {inviteOnly ? null : (
+          <Input
+            label="Initial password"
+            required
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            onBlur={blur('password')}
+            error={showError('password') ? errors.password : undefined}
+            hint="They sign in with this password. Share it securely — it is only shown once."
+          />
+        )}
         {formError ? (
           <p className="pd-field__error" role="alert">
             {formError}
@@ -263,8 +324,12 @@ export default function TenantUsersPage() {
     <Modal
       open={createdCredentials != null}
       onClose={() => setCreatedCredentials(null)}
-      title="Login ready"
-      description="Share these credentials now. The password will not be shown again."
+      title={createdCredentials?.inviteLink ? 'Invite ready' : 'Login ready'}
+      description={
+        createdCredentials?.inviteLink
+          ? 'Copy the invite link and send it to them. It expires in 7 days.'
+          : 'Share these credentials now. The password will not be shown again.'
+      }
       actions={
         <Button onClick={() => setCreatedCredentials(null)}>Done</Button>
       }
@@ -276,13 +341,23 @@ export default function TenantUsersPage() {
             Email:{' '}
             <CopyableText value={createdCredentials.email} label="email" />
           </p>
-          <p className="pd-admin__credential-row">
-            Password:{' '}
-            <CopyableText
-              value={createdCredentials.password}
-              label="password"
-            />
-          </p>
+          {createdCredentials.inviteLink ? (
+            <p className="pd-admin__credential-row">
+              Invite link:{' '}
+              <CopyableText
+                value={createdCredentials.inviteLink}
+                label="invite link"
+              />
+            </p>
+          ) : createdCredentials.password ? (
+            <p className="pd-admin__credential-row">
+              Password:{' '}
+              <CopyableText
+                value={createdCredentials.password}
+                label="password"
+              />
+            </p>
+          ) : null}
         </>
       ) : null}
     </Modal>

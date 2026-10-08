@@ -38,6 +38,7 @@ export function ProfileDropdown({
     <div
       ref={containerRef}
       className="pd-topbar__profile"
+      data-tour="topbar-profile"
       {...hoverHandlers}
     >
       <button

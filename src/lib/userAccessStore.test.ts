@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import { TENANT_IDS } from '@/types/tenant'
 import {
+  getDefaultPageAccessLevel,
   getPageAccessLevel,
   resetUserPageAccess,
   setPageAccessLevel,
@@ -21,9 +22,20 @@ function signInFullTenant() {
 }
 
 describe('userAccessStore', () => {
-  it('defaults missing overrides to edit', () => {
+  it('defaults missing overrides to edit for owners', () => {
     signInFullTenant()
     expect(getPageAccessLevel('member-full-owner', '/clients')).toBe('edit')
+  })
+
+  it('gives staff view on settings and edit on clients', () => {
+    expect(getDefaultPageAccessLevel('staff', '/settings')).toBe('view')
+    expect(getDefaultPageAccessLevel('staff', '/clients')).toBe('edit')
+    expect(getDefaultPageAccessLevel('staff', '/hr/payroll')).toBe('view')
+  })
+
+  it('gives manager view on settings and edit elsewhere', () => {
+    expect(getDefaultPageAccessLevel('manager', '/settings')).toBe('view')
+    expect(getDefaultPageAccessLevel('manager', '/payments')).toBe('edit')
   })
 
   it('persists a page access override for the active tenant', () => {

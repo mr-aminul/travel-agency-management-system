@@ -1,4 +1,6 @@
+import { apiFetch } from '@/lib/apiClient'
 import type { CaseInvoice } from '@/lib/caseInvoice'
+import { shouldUseApiDataBackend } from '@/lib/data'
 import { absolutePublicUrl } from '@/lib/publicUrl'
 
 const SHARE_VERSION = 1
@@ -129,12 +131,67 @@ export function decodeInvoiceShare(token: string | undefined): CaseInvoice | nul
   }
 }
 
-export function publicInvoicePath(invoice: CaseInvoice): string {
-  return `i/${encodeInvoiceShare(invoice)}`
+export function publicInvoicePath(tokenOrInvoice: string | CaseInvoice): string {
+  const token =
+    typeof tokenOrInvoice === 'string'
+      ? tokenOrInvoice
+      : encodeInvoiceShare(tokenOrInvoice)
+  return `i/${token}`
 }
 
-export function publicInvoiceUrl(invoice: CaseInvoice): string {
-  return absolutePublicUrl(publicInvoicePath(invoice))
+export function publicInvoiceUrl(tokenOrInvoice: string | CaseInvoice): string {
+  return absolutePublicUrl(publicInvoicePath(tokenOrInvoice))
+}
+
+/**
+ * Prefer server-issued share tokens when the platform API is on;
+ * fall back to the legacy base64 snapshot for offline / older links.
+ */
+export async function createPublicInvoiceShare(input: {
+  invoice: CaseInvoice
+  caseId?: string
+}): Promise<string> {
+  if (shouldUseApiDataBackend()) {
+    try {
+      const created = await apiFetch<{ token: string }>(
+        '/api/platform/invoices/share',
+        {
+          method: 'POST',
+          body: {
+            invoice: input.invoice,
+            caseId: input.caseId,
+          },
+        },
+      )
+      if (created?.token) return publicInvoiceUrl(created.token)
+    } catch {
+      // Fall through to legacy encoding.
+    }
+  }
+  return publicInvoiceUrl(input.invoice)
+}
+
+/** Resolve a public share token — server lookup first, then legacy decode. */
+export async function resolvePublicInvoice(
+  token: string | undefined,
+): Promise<CaseInvoice | null> {
+  if (!token?.trim()) return null
+  const trimmed = token.trim()
+
+  if (shouldUseApiDataBackend()) {
+    try {
+      const body = await apiFetch<{ invoice: unknown }>(
+        `/api/platform/public/invoices/${encodeURIComponent(trimmed)}`,
+        { skipAuth: true },
+      )
+      const parsed = parseInvoice(body.invoice)
+      if (parsed) return parsed
+    } catch {
+      // Not a server token — try legacy base64 below.
+    }
+  }
+
+  return decodeInvoiceShare(trimmed)
 }
 
 /** Normalize display fields so in-app and shared views render the same document. */

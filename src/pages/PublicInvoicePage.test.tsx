@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import PublicInvoicePage from '@/pages/PublicInvoicePage'
 import type { CaseInvoice } from '@/lib/caseInvoice'
 import { encodeInvoiceShare } from '@/lib/invoiceShare'
@@ -44,7 +44,7 @@ const invoice: CaseInvoice = {
 }
 
 describe('public invoice page', () => {
-  it('renders a shared invoice without signing in', () => {
+  it('renders a shared invoice without signing in', async () => {
     const token = encodeInvoiceShare(invoice)
     render(
       <MemoryRouter initialEntries={[`/i/${token}`]}>
@@ -55,7 +55,9 @@ describe('public invoice page', () => {
     )
 
     expect(screen.queryByText('Back to service')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Invoice' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Invoice' }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Print invoice' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Download PDF' })).toBeInTheDocument()
     expect(screen.getByText('INV-SR-00101')).toBeInTheDocument()
@@ -65,7 +67,7 @@ describe('public invoice page', () => {
     expect(screen.getByText('Partial package deposit')).toBeInTheDocument()
   })
 
-  it('explains when the share link is invalid', () => {
+  it('explains when the share link is invalid', async () => {
     render(
       <MemoryRouter initialEntries={['/i/not-valid']}>
         <Routes>
@@ -74,6 +76,8 @@ describe('public invoice page', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByText('Invoice not found')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Invoice not found')).toBeInTheDocument()
+    })
   })
 })

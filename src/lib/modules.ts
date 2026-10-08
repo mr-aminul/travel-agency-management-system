@@ -199,6 +199,8 @@ export function pathAccess(pathname: string): PathAccess {
   if (
     path === '/payments' ||
     path.startsWith('/payments/') ||
+    path === '/reports' ||
+    path.startsWith('/reports/') ||
     path === '/finance' ||
     path.startsWith('/finance/')
   ) {

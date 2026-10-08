@@ -63,6 +63,6 @@ describe('case invoice page', () => {
 
     const logo = document.querySelector('.pd-invoice__logo')
     expect(logo).toHaveAttribute('src', expect.stringContaining('images/logo.svg'))
-    expect(screen.getByText('OneTrack Demo')).toBeInTheDocument()
+    expect(screen.getByText('OneTrack')).toBeInTheDocument()
   })
 })

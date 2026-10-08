@@ -46,9 +46,13 @@ function readImageAsDataUrl(file: File): Promise<string> {
 
 function channelCopy(channel: ClientMessageChannel, address: string) {
   if (channel === 'email') {
-    return address ? `Email · ${address}` : 'Email · no address on this profile'
+    return address
+      ? `Logged email note · ${address}`
+      : 'Email note · no address on this profile'
   }
-  return address ? `SMS · ${address}` : 'SMS · no phone on this profile'
+  return address
+    ? `Logged SMS note · ${address}`
+    : 'SMS note · no phone on this profile'
 }
 
 export function ClientMessagesPanel({
@@ -76,8 +80,10 @@ export function ClientMessagesPanel({
     (isEmail
       ? Boolean(body.trim()) || Boolean(attachment)
       : Boolean(body.trim()))
-  const historyLabel = isEmail ? 'Email history' : 'SMS history'
-  const emptyLabel = isEmail ? 'No emails yet' : 'No messages yet'
+  const historyLabel = isEmail ? 'Email note history' : 'SMS note history'
+  const emptyLabel = isEmail
+    ? 'No email notes yet — drafts are logged here, not delivered'
+    : 'No SMS notes yet — drafts are logged here, not delivered'
 
   useEffect(() => {
     const el = threadRef.current
@@ -141,9 +147,7 @@ export function ClientMessagesPanel({
       setError(
         caught instanceof Error
           ? caught.message
-          : isEmail
-            ? 'Could not send email.'
-            : 'Could not send SMS.',
+          : 'Could not save this note.',
       )
     }
   }
@@ -267,7 +271,7 @@ export function ClientMessagesPanel({
                 Attach image
               </Button>
               <Button type="submit" disabled={!canSend}>
-                Send email
+                Save note
               </Button>
             </div>
           </form>
@@ -300,7 +304,7 @@ export function ClientMessagesPanel({
               error={error}
             />
             <Button type="submit" disabled={!canSend}>
-              Send
+              Save note
             </Button>
           </form>
         )}

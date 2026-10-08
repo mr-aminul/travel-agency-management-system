@@ -42,7 +42,7 @@ export const TENANT_DEFAULT_PROFILES: Record<string, AgencyProfile> = {
     profilePicture: null,
   },
   [TENANT_IDS.full]: {
-    businessName: 'OneTrack Demo',
+    businessName: 'OneTrack',
     address: 'Level 4, Plot 11, Road 17, Gulshan 1, Dhaka 1212',
     mobile: '01670 221 884',
     website: 'https://www.onetrack.app',

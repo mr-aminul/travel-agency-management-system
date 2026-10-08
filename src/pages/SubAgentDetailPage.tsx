@@ -53,7 +53,12 @@ import {
   normalizePhone,
   useClients,
 } from '@/lib/clientsStore'
-import { usePayments } from '@/lib/paymentsStore'
+import {
+  settleEntries,
+  useCommissionSettlements,
+  usePendingCommissions,
+} from '@/lib/commissionsStore'
+import { formatPaymentAmount, usePayments } from '@/lib/paymentsStore'
 import type { Case } from '@/types/case'
 import type { SubAgent, SubAgentStatus } from '@/types/subAgent'
 import type {
@@ -318,6 +323,8 @@ export default function SubAgentDetailPage() {
   }, [allCases, clients])
   const activityStatus = deriveSubAgentActivityStatus(subAgentCases)
   const payments = usePayments()
+  const pendingCommissions = usePendingCommissions(id)
+  const commissionSettlements = useCommissionSettlements(id)
   const activeTab = tabFromSearch(searchParams)
   const [customerOpen, setCustomerOpen] = useState(false)
   const [clientSearch, setClientSearch] = useState('')
@@ -676,8 +683,121 @@ export default function SubAgentDetailPage() {
 
                     <Accordion
                       className="pd-accordion--cards pd-client-detail__services-accordion"
-                      defaultOpenIds={['clients']}
+                      defaultOpenIds={['clients', 'settlements']}
                       items={[
+                        {
+                          id: 'settlements',
+                          title: (
+                            <span className="pd-client-detail__services-accordion-title">
+                              <span
+                                className="pd-client-detail__section-icon"
+                                aria-hidden
+                              >
+                                <Wallet size={15} strokeWidth={2.25} />
+                              </span>
+                              Settlements
+                            </span>
+                          ),
+                          meta:
+                            pendingCommissions.length > 0
+                              ? String(pendingCommissions.length)
+                              : undefined,
+                          content:
+                            pendingCommissions.length === 0 &&
+                            commissionSettlements.length === 0 ? (
+                              <EmptyState
+                                icon={Wallet}
+                                title="No commissions yet"
+                                description="Commissions appear when you collect payment on clients referred by this sub agent."
+                              />
+                            ) : (
+                              <div className="pd-client-detail__overview">
+                                {pendingCommissions.length > 0 ? (
+                                  <>
+                                    <div className="pd-ops__toolbar">
+                                      <p className="pd-ops__meta">
+                                        Pending ·{' '}
+                                        {formatPaymentAmount(
+                                          pendingCommissions.reduce(
+                                            (sum, item) => sum + item.amount,
+                                            0,
+                                          ),
+                                        )}
+                                      </p>
+                                      <Button
+                                        size="sm"
+                                        onClick={() =>
+                                          settleEntries(
+                                            subAgent.id,
+                                            pendingCommissions.map(
+                                              (item) => item.id,
+                                            ),
+                                          )
+                                        }
+                                      >
+                                        Settle all
+                                      </Button>
+                                    </div>
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Date</TableHead>
+                                          <TableHead>Amount</TableHead>
+                                          <TableHead>Status</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {pendingCommissions.map((entry) => (
+                                          <TableRow key={entry.id}>
+                                            <TableCell>
+                                              {formatDisplayDate(
+                                                entry.createdAt,
+                                              )}
+                                            </TableCell>
+                                            <TableCell>
+                                              {formatPaymentAmount(entry.amount)}
+                                            </TableCell>
+                                            <TableCell>Pending</TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </>
+                                ) : null}
+                                {commissionSettlements.length > 0 ? (
+                                  <>
+                                    <h3 className="pd-ops__section-title">
+                                      Past settlements
+                                    </h3>
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Date</TableHead>
+                                          <TableHead>Entries</TableHead>
+                                          <TableHead>Total</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {commissionSettlements.map((item) => (
+                                          <TableRow key={item.id}>
+                                            <TableCell>
+                                              {formatDisplayDate(item.settledAt)}
+                                            </TableCell>
+                                            <TableCell>
+                                              {item.entryIds.length}
+                                            </TableCell>
+                                            <TableCell>
+                                              {formatPaymentAmount(item.total)}
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </>
+                                ) : null}
+                              </div>
+                            ),
+                        },
                         {
                           id: 'clients',
                           title: (

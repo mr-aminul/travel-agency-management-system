@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
+import { DATA_KEYS, loadJsonParsed, removeJson, saveJson } from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
 import {
   isBuiltinService,
@@ -26,7 +27,7 @@ import {
 
 type Listener = () => void
 
-const STORAGE_KEY = 'pd-custom-services'
+const STORAGE_KEY = DATA_KEYS.customServices
 
 const listeners = new Set<Listener>()
 let services: CustomService[] = loadAll()
@@ -71,25 +72,16 @@ function normalizeService(value: unknown): CustomService | undefined {
 }
 
 function loadAll(): CustomService[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed
+  return loadJsonParsed(STORAGE_KEY, [] as CustomService[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
       .map(normalizeService)
       .filter((item): item is CustomService => item != null)
-  } catch {
-    return []
-  }
+  })
 }
 
 function persist(next: CustomService[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-  } catch {
-    /* ignore quota / private mode */
-  }
+  saveJson(STORAGE_KEY, next)
 }
 
 function replaceAll(next: CustomService[]) {
@@ -100,6 +92,15 @@ function replaceAll(next: CustomService[]) {
 
 function tenantId() {
   return getActiveTenantId() || DEFAULT_TENANT_ID
+}
+
+function reloadFromStorage() {
+  services = loadAll()
+  emit()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pd-data-rehydrated', reloadFromStorage)
 }
 
 function nextId(existing: string[]) {
@@ -242,11 +243,7 @@ export function deleteCustomService(id: string): boolean {
 }
 
 export function resetCustomServices() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    /* ignore */
-  }
+  removeJson(STORAGE_KEY)
   services = []
   emit()
 }

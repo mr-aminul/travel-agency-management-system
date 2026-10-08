@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
 import { getClientById } from '@/lib/clientsStore'
+import { DATA_KEYS, loadJsonParsed, removeJson, saveJson } from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID } from '@/types/tenant'
 import type {
@@ -15,7 +16,8 @@ import type {
 
 type Listener = () => void
 
-const STORAGE_KEY = 'pd-client-sms'
+const STORAGE_KEY = DATA_KEYS.clientMessages
+const LEGACY_STORAGE_KEY = 'pd-client-sms'
 const MAX_BODY_LENGTH = 1000
 
 const listeners = new Set<Listener>()
@@ -88,26 +90,36 @@ function normalizeMessage(value: unknown): ClientThreadMessage | undefined {
   }
 }
 
+function parseMessageList(value: unknown): ClientThreadMessage[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map(normalizeMessage)
+    .filter((item): item is ClientThreadMessage => item != null)
+}
+
 function loadAll(): ClientThreadMessage[] {
+  const fromData = loadJsonParsed(
+    STORAGE_KEY,
+    [] as ClientThreadMessage[],
+    parseMessageList,
+  )
+  if (fromData.length > 0) return fromData
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY)
     if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed
-      .map(normalizeMessage)
-      .filter((item): item is ClientThreadMessage => item != null)
+    const migrated = parseMessageList(JSON.parse(raw) as unknown)
+    if (migrated.length > 0) {
+      saveJson(STORAGE_KEY, migrated)
+      localStorage.removeItem(LEGACY_STORAGE_KEY)
+    }
+    return migrated
   } catch {
     return []
   }
 }
 
 function persist(next: ClientThreadMessage[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-  } catch {
-    /* ignore quota / private mode */
-  }
+  saveJson(STORAGE_KEY, next)
 }
 
 function replaceAll(next: ClientThreadMessage[]) {
@@ -118,6 +130,15 @@ function replaceAll(next: ClientThreadMessage[]) {
 
 function tenantId() {
   return getActiveTenantId() || DEFAULT_TENANT_ID
+}
+
+function reloadFromStorage() {
+  messages = loadAll()
+  emit()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pd-data-rehydrated', reloadFromStorage)
 }
 
 function asSmsMessage(item: ClientThreadMessage): ClientSmsMessage {
@@ -132,17 +153,17 @@ export function validateClientMessage(
 ): string | undefined {
   if (!toAddress?.trim()) {
     return channel === 'email'
-      ? 'Add an email address on this profile to send mail.'
-      : 'Add a phone number on this profile to send SMS.'
+      ? 'Add an email address on this profile to log a note.'
+      : 'Add a phone number on this profile to log a note.'
   }
   const trimmed = body.trim()
   if (!trimmed && !attachment) {
     return channel === 'email'
-      ? 'Write an email or attach an image to send.'
-      : 'Write a message or attach an image to send.'
+      ? 'Write a note or attach an image to save this draft.'
+      : 'Write a note or attach an image to save this draft.'
   }
   if (trimmed.length > MAX_BODY_LENGTH) {
-    return `Keep the message under ${MAX_BODY_LENGTH} characters.`
+    return `Keep the note under ${MAX_BODY_LENGTH} characters.`
   }
   return undefined
 }
@@ -220,8 +241,9 @@ export function sendClientSms(input: SendClientSmsInput): ClientSmsMessage {
 }
 
 export function resetClientMessages() {
+  removeJson(STORAGE_KEY)
   try {
-    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(LEGACY_STORAGE_KEY)
   } catch {
     /* ignore */
   }

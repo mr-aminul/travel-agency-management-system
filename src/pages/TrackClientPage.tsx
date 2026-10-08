@@ -1,11 +1,13 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { ServiceJourney } from '@/components/cases/ServiceJourney'
 import { layoutConfig } from '@/config/layout'
+import { apiFetch } from '@/lib/apiClient'
 import { findCasesByClientIdAnyTenant } from '@/lib/casesStore'
 import { findClientByPassport } from '@/lib/clientsStore'
 import { cx } from '@/lib/cx'
+import { shouldUseApiDataBackend } from '@/lib/data'
 import { validateRequiredPassport } from '@/lib/fieldValidation'
 import { publicUrl } from '@/lib/publicUrl'
 import { iconForService } from '@/lib/serviceIcons'
@@ -15,20 +17,48 @@ import type { Case } from '@/types/case'
 import '@/styles/layout-track.css'
 import { Badge, Button, Input } from '@/components/ui'
 
-function pickDefaultCase(cases: Case[], preferredId?: string | null): Case | undefined {
+type PublicTrackService = {
+  id: string
+  type?: string
+  status?: string
+  currentStep?: string
+  balance?: number
+}
+
+type PublicTrackResult = {
+  client: { name: string; passport?: string; services?: string[] }
+  services: PublicTrackService[]
+}
+
+type TrackServiceChip = {
+  id: string
+  service: string
+  destination?: string
+  caseId: string
+  statusLabel: string
+  caseItem?: Case
+}
+
+function pickDefault(
+  items: TrackServiceChip[],
+  preferredId?: string | null,
+): TrackServiceChip | undefined {
   if (preferredId) {
-    const match = cases.find((item) => item.id === preferredId)
+    const match = items.find((item) => item.id === preferredId)
     if (match) return match
   }
   return (
-    cases.find(
-      (item) => item.status !== 'Completed' && item.status !== 'Cancelled',
-    ) ?? cases[0]
+    items.find(
+      (item) =>
+        item.caseItem &&
+        item.caseItem.status !== 'Completed' &&
+        item.caseItem.status !== 'Cancelled',
+    ) ?? items[0]
   )
 }
 
-function serviceChipLabel(item: Case, cases: Case[]): string {
-  const sameServiceCount = cases.filter(
+function serviceChipLabel(item: TrackServiceChip, items: TrackServiceChip[]): string {
+  const sameServiceCount = items.filter(
     (entry) => entry.service === item.service,
   ).length
   if (sameServiceCount <= 1) return item.service
@@ -41,30 +71,93 @@ export default function TrackClientPage() {
   const initialPassport = (params.get('passport') ?? '').trim()
   const [passport, setPassport] = useState(initialPassport)
   const [submitted, setSubmitted] = useState(initialPassport)
+  const [remote, setRemote] = useState<PublicTrackResult | null>(null)
+  const [remoteStatus, setRemoteStatus] = useState<
+    'idle' | 'loading' | 'miss' | 'error'
+  >('idle')
   const { markAllTouched, showError, blur } = useTouchedFields<'passport'>()
   const passportError = validateRequiredPassport(passport)
 
-  const client = useMemo(
-    () => (submitted ? findClientByPassport(submitted) : undefined),
+  useEffect(() => {
+    if (!submitted || !shouldUseApiDataBackend()) {
+      setRemote(null)
+      setRemoteStatus('idle')
+      return
+    }
+    let cancelled = false
+    setRemoteStatus('loading')
+    const tenant = (params.get('tenant') ?? '').trim()
+    const query = new URLSearchParams({ passport: submitted })
+    if (tenant) query.set('tenant', tenant)
+    void apiFetch<PublicTrackResult>(
+      `/api/platform/public/track?${query.toString()}`,
+      { skipAuth: true },
+    )
+      .then((body) => {
+        if (cancelled) return
+        setRemote(body)
+        setRemoteStatus('idle')
+      })
+      .catch((error) => {
+        if (cancelled) return
+        setRemote(null)
+        const status =
+          error && typeof error === 'object' && 'status' in error
+            ? Number((error as { status: number }).status)
+            : 0
+        setRemoteStatus(status === 404 ? 'miss' : 'error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [submitted, params])
+
+  const localClient = useMemo(
+    () =>
+      submitted && !shouldUseApiDataBackend()
+        ? findClientByPassport(submitted)
+        : undefined,
     [submitted],
   )
-  const cases = useMemo(
-    () => (client ? findCasesByClientIdAnyTenant(client.id) : []),
-    [client],
+  const localCases = useMemo(
+    () => (localClient ? findCasesByClientIdAnyTenant(localClient.id) : []),
+    [localClient],
   )
-  const selectedCase = useMemo(
-    () => pickDefaultCase(cases, params.get('case')),
-    [cases, params],
+
+  const clientName = localClient?.name ?? remote?.client.name
+  const clientPassport =
+    localClient?.passport ?? remote?.client.passport ?? submitted
+
+  const chips: TrackServiceChip[] = localCases.length
+    ? localCases.map((item) => ({
+        id: item.id,
+        service: item.service,
+        destination: item.destination,
+        caseId: item.caseId,
+        statusLabel: item.status,
+        caseItem: item,
+      }))
+    : (remote?.services ?? []).map((item) => ({
+        id: item.id,
+        service: String(item.type ?? 'Service'),
+        caseId: item.id,
+        statusLabel: item.currentStep || item.status || 'In progress',
+      }))
+
+  const selected = useMemo(
+    () => pickDefault(chips, params.get('case')),
+    [chips, params],
   )
   const journey = useMemo(
-    () => (selectedCase ? buildServiceJourney(selectedCase) : null),
-    [selectedCase],
+    () =>
+      selected?.caseItem ? buildServiceJourney(selected.caseItem) : null,
+    [selected],
   )
   const currentLabel =
     journey?.steps.find((step) => step.state === 'current')?.label ??
     journey?.steps[journey.steps.length - 1]?.label ??
-    selectedCase?.status
-  const hasMultipleServices = cases.length > 1
+    selected?.statusLabel
+  const hasMultipleServices = chips.length > 1
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -84,7 +177,11 @@ export default function TrackClientPage() {
     setSearchParams({ passport: submitted, case: caseId })
   }
 
-  const searchedAndMissing = Boolean(submitted) && !client
+  const searchedAndMissing =
+    Boolean(submitted) &&
+    !clientName &&
+    remoteStatus !== 'loading' &&
+    (remoteStatus === 'miss' || !shouldUseApiDataBackend())
 
   return (
     <div className="pd-track">
@@ -99,14 +196,14 @@ export default function TrackClientPage() {
 
       <main
         className={
-          client ? 'pd-track__sheet pd-track__sheet--wide' : 'pd-track__sheet'
+          clientName ? 'pd-track__sheet pd-track__sheet--wide' : 'pd-track__sheet'
         }
       >
         <header className="pd-track__intro">
           <h1 className="pd-track__title">
-            {client ? 'Application status' : 'Track an application'}
+            {clientName ? 'Application status' : 'Track an application'}
           </h1>
-          {client ? null : (
+          {clientName ? null : (
             <p className="pd-track__lede">
               Enter the client passport number to see where their service is in the
               journey.
@@ -134,6 +231,12 @@ export default function TrackClientPage() {
           </Button>
         </form>
 
+        {remoteStatus === 'loading' ? (
+          <p className="pd-track__lede" role="status">
+            Looking up passport…
+          </p>
+        ) : null}
+
         {searchedAndMissing ? (
           <p className="pd-field__error" role="status">
             No match found for passport {submitted}. Check the number and try
@@ -141,17 +244,15 @@ export default function TrackClientPage() {
           </p>
         ) : null}
 
-        {client && selectedCase && journey ? (
+        {clientName && selected ? (
           <section className="pd-track__result" aria-live="polite">
             <div className="pd-track__identity">
               <div className="pd-track__identity-copy">
-                <h2 className="pd-track__name">{client.name}</h2>
+                <h2 className="pd-track__name">{clientName}</h2>
                 <p className="pd-track__meta">
-                  Passport {client.passport}
-                  {selectedCase.destination
-                    ? ` · ${selectedCase.destination}`
-                    : ''}
-                  {hasMultipleServices ? '' : ` · ${selectedCase.service}`}
+                  Passport {clientPassport}
+                  {selected.destination ? ` · ${selected.destination}` : ''}
+                  {hasMultipleServices ? '' : ` · ${selected.service}`}
                 </p>
               </div>
               <p className="pd-track__current">
@@ -165,8 +266,8 @@ export default function TrackClientPage() {
                 className="pd-track__services"
                 aria-label="Services for this passport"
               >
-                {cases.map((item) => {
-                  const selected = item.id === selectedCase.id
+                {chips.map((item) => {
+                  const isSelected = item.id === selected.id
                   const ServiceIcon = iconForService(item.service)
                   return (
                     <button
@@ -174,20 +275,22 @@ export default function TrackClientPage() {
                       type="button"
                       className={cx(
                         'pd-track__service-chip',
-                        selected && 'is-active',
+                        isSelected && 'is-active',
                       )}
-                      aria-pressed={selected}
+                      aria-pressed={isSelected}
                       onClick={() => selectService(item.id)}
                     >
                       <ServiceIcon size={15} strokeWidth={2} aria-hidden />
-                      {serviceChipLabel(item, cases)}
+                      {serviceChipLabel(item, chips)}
                     </button>
                   )
                 })}
               </nav>
             ) : null}
 
-            <ServiceJourney item={selectedCase} />
+            {selected.caseItem && journey ? (
+              <ServiceJourney item={selected.caseItem} />
+            ) : null}
           </section>
         ) : null}
 

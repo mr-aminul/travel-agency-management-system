@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { HomeGlobalSearch } from '@/components/home/HomeGlobalSearch'
+import { PlatformTour } from '@/components/onboarding/PlatformTour'
 import { isPathAllowed } from '@/lib/modules'
 import { useActiveTenant } from '@/lib/useActiveTenant'
 import { useAuth } from '@/lib/useAuth'
@@ -109,7 +110,13 @@ export default function HomePage() {
 
       <HomeGlobalSearch />
 
-      <nav className="pd-home-quick" aria-label="Quick links">
+      <PlatformTour />
+
+      <nav
+        className="pd-home-quick"
+        aria-label="Quick links"
+        data-tour="home-quick-links"
+      >
         {links.map((item) => {
           const Icon = item.icon
           return (

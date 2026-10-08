@@ -13,29 +13,57 @@ import {
   setAgencyUserPassword,
   setAgencyUserStatus,
 } from './auth.js'
-
-/** Keys only platform admins may write (global tenancy / IAM). */
-const PLATFORM_ADMIN_KV_KEYS = new Set([
-  'pd-tenants-created',
-  'pd-tenant-entitlements',
-  'pd-tenant-names',
-  'pd-tenant-statuses',
-  'pd-tenant-members-created',
-  'pd-provisioned-logins',
-])
-
-function canWriteKvKey(auth, key) {
-  if (auth?.user?.role === 'platform_admin') return true
-  if (PLATFORM_ADMIN_KV_KEYS.has(key)) return false
-  return true
-}
+import { appendAudit, listAudit } from './audit.js'
+import {
+  ensureUploadRoot,
+  getFileRecord,
+  readFileBuffer,
+  saveUploadedFile,
+} from './files.js'
+import {
+  createInvoiceShare,
+  getInvoiceByToken,
+  revokeInvoiceShare,
+} from './invoices.js'
+import {
+  PLATFORM_ADMIN_KV_KEYS,
+  canWriteKvKey,
+  filterEntriesForAuth,
+  filterValueForTenant,
+  isPlatformAdmin,
+  mergeForWrite,
+} from './kvAccess.js'
+import {
+  DOMAIN_KV_KEYS,
+  domainEntriesForAuth,
+  migrateDomainFromKv,
+  trackByPassport,
+  writeDomainKey,
+} from './domain.js'
+import { ensureLaunchAgencies } from './launchAgencies.js'
+import {
+  assertCanManageUsers,
+  assertCanWriteKvKey,
+  setUserMemberRole,
+} from './rbac.js'
+import {
+  acceptInvite,
+  createInvite,
+  listInvitesForTenant,
+  publicInviteView,
+} from './invites.js'
+import {
+  confirmPasswordReset,
+  publicResetView,
+  requestPasswordReset,
+} from './passwordReset.js'
 
 const app = express()
 const port = Number(process.env.PORT || 4010)
 const bindHost = process.env.BIND_HOST || '127.0.0.1'
 
 app.disable('x-powered-by')
-app.use(express.json({ limit: '2mb' }))
+app.use(express.json({ limit: '16mb' }))
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN
@@ -105,10 +133,6 @@ app.post('/api/platform/auth/logout', async (req, res) => {
   }
 })
 
-/**
- * Create an agency login with an initial password.
- * Platform admin: any tenant. Agency user: own tenant only.
- */
 app.post('/api/platform/auth/users', requireAuth, async (req, res) => {
   try {
     const tenantId = String(req.body?.tenantId ?? '').trim()
@@ -117,17 +141,32 @@ app.post('/api/platform/auth/users', requireAuth, async (req, res) => {
       res.status(403).json({ error: 'You can only create users for your agency.' })
       return
     }
+    const gate = await assertCanManageUsers(req.auth, tenantId)
+    if (!gate.ok) {
+      res.status(gate.status).json({ error: gate.error })
+      return
+    }
     const result = await createAgencyUser({
       email: req.body?.email,
       name: req.body?.name,
       password: req.body?.password,
       tenantId,
       id: req.body?.id,
+      memberRole: req.body?.memberRole || req.body?.role,
     })
     if (!result.ok) {
       res.status(result.status).json({ error: result.error })
       return
     }
+    await appendAudit({
+      tenantId,
+      actorUserId: req.auth.user.id,
+      actorEmail: req.auth.user.email,
+      action: 'user.create',
+      entityType: 'user',
+      entityId: result.body.user.id,
+      summary: `Created user ${result.body.user.email}`,
+    })
     res.status(201).json(result.body)
   } catch (error) {
     res.status(500).json({
@@ -150,7 +189,6 @@ async function assertCanManageAgencyUser(req, res) {
     [userId, email],
   )
   if (!existing.rows[0] || existing.rows[0].tenant_id !== req.auth.tenantId) {
-    // Allow repair path: no login row yet, but same-tenant create is permitted.
     if (!existing.rows[0] && email) return true
     res.status(403).json({ error: 'You can only manage users in your agency.' })
     return false
@@ -173,6 +211,15 @@ app.patch(
         res.status(result.status).json({ error: result.error })
         return
       }
+      await appendAudit({
+        tenantId: result.body.tenantId || req.auth.tenantId,
+        actorUserId: req.auth.user.id,
+        actorEmail: req.auth.user.email,
+        action: 'user.status',
+        entityType: 'user',
+        entityId: result.body.user.id,
+        summary: `Set status to ${result.body.status}`,
+      })
       res.status(200).json(result.body)
     } catch (error) {
       res.status(500).json({
@@ -199,6 +246,15 @@ app.patch(
         res.status(result.status).json({ error: result.error })
         return
       }
+      await appendAudit({
+        tenantId: result.body.tenantId || req.auth.tenantId,
+        actorUserId: req.auth.user.id,
+        actorEmail: req.auth.user.email,
+        action: 'user.password',
+        entityType: 'user',
+        entityId: result.body.user.id,
+        summary: 'Password updated',
+      })
       res.status(200).json(result.body)
     } catch (error) {
       res.status(500).json({
@@ -208,20 +264,20 @@ app.patch(
   },
 )
 
-/**
- * List persisted KV keys (SPA hydrate).
- * Reads stay open so the app can bootstrap before login; writes require auth.
- */
-app.get('/api/platform/kv', async (_req, res) => {
+/** Authenticated KV list — tenant-filtered; domain keys served from tables. */
+app.get('/api/platform/kv', requireAuth, async (req, res) => {
   try {
     const result = await query(
       'select key, value from platform.kv_store order by key asc',
     )
     const entries = {}
     for (const row of result.rows) {
+      if (DOMAIN_KV_KEYS.has(row.key)) continue
       entries[row.key] = row.value
     }
-    res.json({ entries })
+    const filtered = filterEntriesForAuth(entries, req.auth)
+    const domain = await domainEntriesForAuth(req.auth)
+    res.json({ entries: { ...filtered, ...domain } })
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'read failed',
@@ -229,17 +285,41 @@ app.get('/api/platform/kv', async (_req, res) => {
   }
 })
 
-app.get('/api/platform/kv/:key', async (req, res) => {
+app.get('/api/platform/kv/:key', requireAuth, async (req, res) => {
   try {
+    const key = req.params.key
+    if (
+      PLATFORM_ADMIN_KV_KEYS.has(key) &&
+      !isPlatformAdmin(req.auth)
+    ) {
+      res.status(403).json({ error: 'Not allowed to read this key.' })
+      return
+    }
+    if (DOMAIN_KV_KEYS.has(key)) {
+      const domain = await domainEntriesForAuth(req.auth)
+      if (!(key in domain)) {
+        res.status(404).json({ error: 'not found' })
+        return
+      }
+      res.json({ key, value: domain[key] })
+      return
+    }
     const result = await query(
       'select value from platform.kv_store where key = $1',
-      [req.params.key],
+      [key],
     )
     if (!result.rowCount) {
       res.status(404).json({ error: 'not found' })
       return
     }
-    res.json({ key: req.params.key, value: result.rows[0].value })
+    const value = isPlatformAdmin(req.auth)
+      ? result.rows[0].value
+      : filterValueForTenant(key, result.rows[0].value, req.auth.tenantId)
+    if (value === undefined) {
+      res.status(403).json({ error: 'Not allowed to read this key.' })
+      return
+    }
+    res.json({ key, value })
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'read failed',
@@ -249,8 +329,14 @@ app.get('/api/platform/kv/:key', async (req, res) => {
 
 app.put('/api/platform/kv/:key', requireAuth, async (req, res) => {
   try {
-    if (!canWriteKvKey(req.auth, req.params.key)) {
+    const key = req.params.key
+    if (!canWriteKvKey(req.auth, key)) {
       res.status(403).json({ error: 'Not allowed to write this key.' })
+      return
+    }
+    const rbac = await assertCanWriteKvKey(req.auth, key)
+    if (!rbac.ok) {
+      res.status(rbac.status).json({ error: rbac.error })
       return
     }
     const value = req.body?.value
@@ -258,15 +344,41 @@ app.put('/api/platform/kv/:key', requireAuth, async (req, res) => {
       res.status(400).json({ error: 'body.value is required' })
       return
     }
+    if (DOMAIN_KV_KEYS.has(key)) {
+      await writeDomainKey(key, value, req.auth)
+      res.json({ ok: true, key, domain: true })
+      return
+    }
+    const existing = await query(
+      'select value from platform.kv_store where key = $1',
+      [key],
+    )
+    const prior = existing.rows[0]?.value
+    const merged = mergeForWrite(key, prior, value, req.auth)
     await query(
       `insert into platform.kv_store (key, value, updated_at)
        values ($1, $2::jsonb, now())
        on conflict (key) do update
          set value = excluded.value,
              updated_at = now()`,
-      [req.params.key, JSON.stringify(value)],
+      [key, JSON.stringify(merged)],
     )
-    res.json({ ok: true, key: req.params.key })
+    // Keep users.member_role in sync when the members roster is saved.
+    if (key === 'pd-tenant-members-created' && Array.isArray(merged)) {
+      for (const member of merged) {
+        if (!member || typeof member !== 'object') continue
+        const id = typeof member.id === 'string' ? member.id.trim() : ''
+        const role = member.role
+        if (
+          !id ||
+          (role !== 'owner' && role !== 'manager' && role !== 'staff')
+        ) {
+          continue
+        }
+        await setUserMemberRole(id, role).catch(() => {})
+      }
+    }
+    res.json({ ok: true, key })
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'write failed',
@@ -276,12 +388,39 @@ app.put('/api/platform/kv/:key', requireAuth, async (req, res) => {
 
 app.delete('/api/platform/kv/:key', requireAuth, async (req, res) => {
   try {
-    if (!canWriteKvKey(req.auth, req.params.key)) {
+    const key = req.params.key
+    if (!canWriteKvKey(req.auth, key)) {
       res.status(403).json({ error: 'Not allowed to delete this key.' })
       return
     }
-    await query('delete from platform.kv_store where key = $1', [req.params.key])
-    res.json({ ok: true, key: req.params.key })
+    if (DOMAIN_KV_KEYS.has(key)) {
+      await writeDomainKey(key, [], req.auth)
+      res.json({ ok: true, key, domain: true, cleared: true })
+      return
+    }
+    // Agency users clear only their slice for array/map keys
+    if (!isPlatformAdmin(req.auth)) {
+      const existing = await query(
+        'select value from platform.kv_store where key = $1',
+        [key],
+      )
+      if (existing.rowCount) {
+        const cleared = mergeForWrite(key, existing.rows[0].value, [], req.auth)
+        const asMapClear = mergeForWrite(key, existing.rows[0].value, {}, req.auth)
+        const next =
+          Array.isArray(existing.rows[0].value) || Array.isArray(cleared)
+            ? cleared
+            : asMapClear
+        await query(
+          `update platform.kv_store set value = $2::jsonb, updated_at = now() where key = $1`,
+          [key, JSON.stringify(next)],
+        )
+        res.json({ ok: true, key, cleared: true })
+        return
+      }
+    }
+    await query('delete from platform.kv_store where key = $1', [key])
+    res.json({ ok: true, key })
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'write failed',
@@ -289,17 +428,434 @@ app.delete('/api/platform/kv/:key', requireAuth, async (req, res) => {
   }
 })
 
+/** Durable file upload (base64 JSON — no shared MinIO). */
+app.post('/api/platform/files', requireAuth, async (req, res) => {
+  try {
+    const tenantId =
+      req.auth.user.role === 'platform_admin' && req.body?.tenantId
+        ? String(req.body.tenantId).trim()
+        : req.auth.tenantId
+    const result = await saveUploadedFile({
+      tenantId,
+      userId: req.auth.user.id,
+      fileName: req.body?.fileName,
+      mimeType: req.body?.mimeType,
+      base64Data: req.body?.data,
+    })
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    await appendAudit({
+      tenantId,
+      actorUserId: req.auth.user.id,
+      actorEmail: req.auth.user.email,
+      action: 'file.upload',
+      entityType: 'file',
+      entityId: result.body.id,
+      summary: `Uploaded ${result.body.fileName}`,
+    })
+    res.status(201).json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'upload failed',
+    })
+  }
+})
+
+app.get('/api/platform/files/:fileId', requireAuth, async (req, res) => {
+  try {
+    const row = await getFileRecord(req.params.fileId, req.auth)
+    if (!row) {
+      res.status(404).json({ error: 'File not found.' })
+      return
+    }
+    const buffer = await readFileBuffer(row)
+    res.setHeader('Content-Type', row.mime_type)
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${encodeURIComponent(row.file_name)}"`,
+    )
+    res.setHeader('Content-Length', String(row.size_bytes))
+    res.send(buffer)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'read failed',
+    })
+  }
+})
+
+app.get('/api/platform/files/:fileId/meta', requireAuth, async (req, res) => {
+  try {
+    const row = await getFileRecord(req.params.fileId, req.auth)
+    if (!row) {
+      res.status(404).json({ error: 'File not found.' })
+      return
+    }
+    res.json({
+      id: row.id,
+      fileName: row.file_name,
+      mimeType: row.mime_type,
+      size: row.size_bytes,
+      url: `/api/platform/files/${row.id}`,
+    })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'read failed',
+    })
+  }
+})
+
+app.post('/api/platform/invoices/share', requireAuth, async (req, res) => {
+  try {
+    const invoice = req.body?.invoice
+    if (!invoice || typeof invoice !== 'object') {
+      res.status(400).json({ error: 'invoice is required' })
+      return
+    }
+    const tenantId = req.auth.tenantId
+    const created = await createInvoiceShare({
+      tenantId,
+      caseId: req.body?.caseId,
+      invoice,
+      createdBy: req.auth.user.id,
+    })
+    await appendAudit({
+      tenantId,
+      actorUserId: req.auth.user.id,
+      actorEmail: req.auth.user.email,
+      action: 'invoice.share',
+      entityType: 'invoice',
+      entityId: created.id,
+      summary: 'Created public invoice share',
+      meta: { caseId: req.body?.caseId },
+    })
+    res.status(201).json(created)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'share failed',
+    })
+  }
+})
+
+app.post(
+  '/api/platform/invoices/share/:token/revoke',
+  requireAuth,
+  async (req, res) => {
+    try {
+      const result = await revokeInvoiceShare({
+        token: req.params.token,
+        tenantId: req.auth.tenantId,
+        isAdmin: isPlatformAdmin(req.auth),
+      })
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      res.json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'revoke failed',
+      })
+    }
+  },
+)
+
+/** —— Invites —— */
+app.post('/api/platform/invites', requireAuth, async (req, res) => {
+  try {
+    const tenantId =
+      req.auth.user.role === 'platform_admin' && req.body?.tenantId
+        ? String(req.body.tenantId).trim()
+        : req.auth.tenantId
+    const gate = await assertCanManageUsers(req.auth, tenantId)
+    if (!gate.ok) {
+      res.status(gate.status).json({ error: gate.error })
+      return
+    }
+    const result = await createInvite({
+      tenantId,
+      email: req.body?.email,
+      name: req.body?.name,
+      memberRole: req.body?.memberRole || req.body?.role,
+      invitedBy: req.auth.user.id,
+    })
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    await appendAudit({
+      tenantId,
+      actorUserId: req.auth.user.id,
+      actorEmail: req.auth.user.email,
+      action: 'invite.create',
+      entityType: 'invite',
+      entityId: result.body.id,
+      summary: `Invited ${result.body.email}`,
+    })
+    res.status(201).json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'invite failed',
+    })
+  }
+})
+
+app.get('/api/platform/invites', requireAuth, async (req, res) => {
+  try {
+    const tenantId =
+      req.auth.user.role === 'platform_admin' && req.query.tenantId
+        ? String(req.query.tenantId).trim()
+        : req.auth.tenantId
+    const gate = await assertCanManageUsers(req.auth, tenantId)
+    if (!gate.ok) {
+      res.status(gate.status).json({ error: gate.error })
+      return
+    }
+    const invites = await listInvitesForTenant(tenantId)
+    res.json({ invites })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'list invites failed',
+    })
+  }
+})
+
+app.get('/api/platform/public/invites/:token', async (req, res) => {
+  try {
+    const result = await publicInviteView(req.params.token)
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    res.json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'invite failed',
+    })
+  }
+})
+
+app.post('/api/platform/public/invites/:token/accept', async (req, res) => {
+  try {
+    const result = await acceptInvite({
+      token: req.params.token,
+      password: req.body?.password,
+    })
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    // Ensure member role column is set (acceptInvite already writes it)
+    if (result.body.userId && result.body.memberRole) {
+      await setUserMemberRole(result.body.userId, result.body.memberRole)
+    }
+    res.json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'accept failed',
+    })
+  }
+})
+
+/** —— Password reset —— */
+app.post('/api/platform/auth/password-reset/request', async (req, res) => {
+  try {
+    const result = await requestPasswordReset(req.body?.email)
+    res.status(result.status).json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'reset failed',
+    })
+  }
+})
+
+app.get('/api/platform/public/password-reset/:token', async (req, res) => {
+  try {
+    const result = await publicResetView(req.params.token)
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    res.json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'reset failed',
+    })
+  }
+})
+
+app.post(
+  '/api/platform/public/password-reset/:token/confirm',
+  async (req, res) => {
+    try {
+      const result = await confirmPasswordReset({
+        token: req.params.token,
+        password: req.body?.password,
+      })
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      res.json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'reset failed',
+      })
+    }
+  },
+)
+
+/** Public invoice — token lookup only, no auth. */
+app.get('/api/platform/public/invoices/:token', async (req, res) => {
+  try {
+    const row = await getInvoiceByToken(req.params.token)
+    if (!row) {
+      res.status(404).json({ error: 'Invoice not found or revoked.' })
+      return
+    }
+    res.json({ invoice: row.invoice, caseId: row.case_id })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'read failed',
+    })
+  }
+})
+
+/** Public passport track — domain tables first, KV fallback. */
+app.get('/api/platform/public/track', async (req, res) => {
+  try {
+    const result = await trackByPassport(
+      req.query.passport,
+      req.query.tenant,
+    )
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    res.json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'track failed',
+    })
+  }
+})
+
+app.get('/api/platform/audit', requireAuth, async (req, res) => {
+  try {
+    const tenantId = isPlatformAdmin(req.auth)
+      ? String(req.query.tenantId ?? '').trim() || null
+      : req.auth.tenantId
+    const rows = await listAudit({
+      tenantId,
+      isAdmin: isPlatformAdmin(req.auth),
+      limit: req.query.limit,
+    })
+    res.json({
+      entries: rows.map((row) => ({
+        id: row.id,
+        tenantId: row.tenant_id,
+        actorUserId: row.actor_user_id,
+        actorEmail: row.actor_email,
+        action: row.action,
+        entityType: row.entity_type,
+        entityId: row.entity_id,
+        summary: row.summary,
+        meta: row.meta,
+        createdAt: row.created_at,
+      })),
+    })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'audit failed',
+    })
+  }
+})
+
+app.post('/api/platform/audit', requireAuth, async (req, res) => {
+  try {
+    const id = await appendAudit({
+      tenantId: req.auth.tenantId,
+      actorUserId: req.auth.user.id,
+      actorEmail: req.auth.user.email,
+      action: req.body?.action,
+      entityType: req.body?.entityType,
+      entityId: req.body?.entityId,
+      summary: req.body?.summary,
+      meta: req.body?.meta,
+    })
+    res.status(201).json({ id })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'audit failed',
+    })
+  }
+})
+
+/** Admin-only full dump (ops / support). */
+app.get(
+  '/api/platform/admin/kv-dump',
+  requirePlatformAdmin,
+  async (_req, res) => {
+    try {
+      const result = await query(
+        'select key, value from platform.kv_store order by key asc',
+      )
+      const entries = {}
+      for (const row of result.rows) {
+        entries[row.key] = row.value
+      }
+      res.json({ entries })
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'read failed',
+      })
+    }
+  },
+)
+
 app.use((req, res) => {
   res.status(404).json({ error: 'not found', path: req.path })
 })
 
 async function start() {
   try {
+    await ensureUploadRoot()
+  } catch (error) {
+    console.error(
+      '[platform-api] upload dir failed:',
+      error instanceof Error ? error.message : error,
+    )
+  }
+
+  try {
     await seedAuthUsers()
-    console.log('[platform-api] seeded auth users')
+    console.log('[platform-api] seeded auth users (insert-if-missing)')
   } catch (error) {
     console.error(
       '[platform-api] auth seed failed — run migrations first:',
+      error instanceof Error ? error.message : error,
+    )
+  }
+
+  try {
+    await migrateDomainFromKv()
+    console.log('[platform-api] domain tables synced from KV (idempotent)')
+  } catch (error) {
+    console.error(
+      '[platform-api] domain migrate skipped:',
+      error instanceof Error ? error.message : error,
+    )
+  }
+
+  try {
+    const summary = await ensureLaunchAgencies()
+    console.log(
+      `[platform-api] launch agencies ready: ${summary.tenants} tenants, ${summary.clients} clients, ${summary.cases} cases, ${summary.payments} payments`,
+    )
+  } catch (error) {
+    console.error(
+      '[platform-api] launch agencies bootstrap failed:',
       error instanceof Error ? error.message : error,
     )
   }

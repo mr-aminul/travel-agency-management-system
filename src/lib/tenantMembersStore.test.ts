@@ -39,7 +39,7 @@ describe('tenant members', () => {
       tenantId: agency.id,
       name: 'Karim Uddin',
       email: 'karim@river-tours.example',
-      password: 'secret1',
+      password: 'secret12',
     })
     expect(member).toMatchObject({
       tenantId: agency.id,
@@ -56,7 +56,7 @@ describe('tenant members', () => {
         tenantId: TENANT_IDS.leisure,
         name: 'Copy',
         email: LEISURE_USER.email,
-        password: 'secret1',
+        password: 'secret12',
       }),
     ).toThrow(/already exists/i)
   })

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { layoutConfig } from '@/config/layout'
 import { useAuth } from '@/lib/auth'
@@ -137,6 +137,9 @@ export default function LoginPage() {
             <Button type="submit" size="lg" loading={isSubmitting}>
               Log in
             </Button>
+            <p className="pd-login__subtitle">
+              <Link to="/forgot-password">Forgot password?</Link>
+            </p>
           </form>
         </div>
       </div>

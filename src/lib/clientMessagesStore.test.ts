@@ -44,7 +44,7 @@ describe('client SMS', () => {
   it('rejects an empty message', () => {
     asFull()
     expect(() => sendClientSms({ clientId: 'c-284', body: '   ' })).toThrow(
-      /Write a message/,
+      /Write a note/,
     )
   })
 

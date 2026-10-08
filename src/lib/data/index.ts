@@ -19,6 +19,7 @@ export {
   hydrateApiSeed,
   shouldUseApiDataBackend,
 } from '@/lib/data/apiSyncBackend'
+export { injectClientSideSeeds } from '@/lib/data/clientSideSeeds'
 export { DATA_KEYS, type DataKey } from '@/lib/data/keys'
 export {
   hasJson,
@@ -27,3 +28,4 @@ export {
   removeJson,
   saveJson,
 } from '@/lib/data/jsonStore'
+export { rehydratePlatformData } from '@/lib/data/rehydrate'

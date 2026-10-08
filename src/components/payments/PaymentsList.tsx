@@ -58,17 +58,24 @@ export function PaymentsList({
   const [recording, setRecording] = useState(startRecording)
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState('Cash')
+  const [txnId, setTxnId] = useState('')
   const [note, setNote] = useState('')
   const [selectedCaseId, setSelectedCaseId] = useState(caseId ?? '')
   const [error, setError] = useState<string | undefined>()
   const { markAllTouched, showError, blur, markTouched } = useTouchedFields<
-    'caseId' | 'amount' | 'note'
+    'caseId' | 'amount' | 'note' | 'txnId'
   >()
   const caseFieldError = caseId
     ? undefined
     : validateRequiredSelect(selectedCaseId, 'service')
   const amountError = validateRequiredMoney(amount)
   const noteError = validateOptionalText(note, 'Note', 200)
+  const needsTxnId =
+    method === 'bKash' || method === 'Nagad' || method === 'Bank transfer'
+  const txnError =
+    needsTxnId && !txnId.trim()
+      ? 'Add the transaction / reference ID.'
+      : validateOptionalText(txnId, 'Txn ID', 80)
 
   const openCases = cases.filter(
     (item) => item.status !== 'Completed' && item.status !== 'Cancelled',
@@ -120,8 +127,8 @@ export function PaymentsList({
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    markAllTouched(['caseId', 'amount', 'note'])
-    if (caseFieldError || amountError || noteError) return
+    markAllTouched(['caseId', 'amount', 'note', 'txnId'])
+    if (caseFieldError || amountError || noteError || txnError) return
     const targetCaseId = caseId || selectedCaseId
     const parsed = Number(amount.replace(/,/g, ''))
     try {
@@ -131,10 +138,12 @@ export function PaymentsList({
         amount: parsed,
         method,
         note,
+        txnId: txnId.trim() || undefined,
       })
       endRecording()
       setAmount('')
       setNote('')
+      setTxnId('')
       setError(undefined)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not record payment.')
@@ -289,10 +298,22 @@ export function PaymentsList({
             options={[
               { value: 'Cash', label: 'Cash' },
               { value: 'bKash', label: 'bKash' },
+              { value: 'Nagad', label: 'Nagad' },
               { value: 'Bank transfer', label: 'Bank transfer' },
               { value: 'Card', label: 'Card' },
             ]}
           />
+          {needsTxnId ? (
+            <Input
+              label="Txn / reference ID"
+              required
+              value={txnId}
+              onChange={(event) => setTxnId(event.target.value)}
+              onBlur={blur('txnId')}
+              placeholder="bKash / Nagad / bank ref"
+              error={showError('txnId') ? txnError : undefined}
+            />
+          ) : null}
           <Input
             label="Note"
             value={note}

@@ -1,11 +1,18 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
+import {
+  DATA_KEYS,
+  injectClientSideSeeds,
+  loadJsonParsed,
+  saveJson,
+} from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
 import type { Employee, EmployeeDraft } from '@/types/employee'
 
 type Listener = () => void
+const STORAGE_KEY = DATA_KEYS.employeesCreated
 
 const SEED_EMPLOYEES: Employee[] = [
   {
@@ -164,8 +171,67 @@ const SEED_EMPLOYEES: Employee[] = [
   },
 ]
 
-let employees: Employee[] = SEED_EMPLOYEES.map((item) => ({ ...item }))
+const SEED_IDS = new Set(SEED_EMPLOYEES.map((item) => item.id))
 const listeners = new Set<Listener>()
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeEmployee(value: unknown): Employee | undefined {
+  if (!isRecord(value)) return undefined
+  const id = typeof value.id === 'string' ? value.id.trim() : ''
+  const tenantId =
+    typeof value.tenantId === 'string' ? value.tenantId.trim() : ''
+  const name = typeof value.name === 'string' ? value.name.trim() : ''
+  if (!id || !tenantId || !name) return undefined
+  return {
+    id,
+    tenantId,
+    name,
+    phone: typeof value.phone === 'string' ? value.phone : '',
+    department: typeof value.department === 'string' ? value.department : '',
+    designation:
+      typeof value.designation === 'string' ? value.designation : '',
+    joined: typeof value.joined === 'string' ? value.joined : '',
+    salary:
+      typeof value.salary === 'number' && Number.isFinite(value.salary)
+        ? value.salary
+        : 0,
+    status: value.status === 'Inactive' ? 'Inactive' : 'Active',
+  }
+}
+
+function readCreated(): Employee[] {
+  return loadJsonParsed(STORAGE_KEY, [] as Employee[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
+      .map(normalizeEmployee)
+      .filter((item): item is Employee => item != null)
+  })
+}
+
+function persist() {
+  saveJson(
+    STORAGE_KEY,
+    injectClientSideSeeds()
+      ? employees.filter((item) => !SEED_IDS.has(item.id))
+      : employees,
+  )
+}
+
+function mergeWithSeeds(created: Employee[]): Employee[] {
+  if (!injectClientSideSeeds()) return created
+  const createdIds = new Set(created.map((item) => item.id))
+  return [
+    ...SEED_EMPLOYEES.filter((item) => !createdIds.has(item.id)).map((item) => ({
+      ...item,
+    })),
+    ...created,
+  ]
+}
+
+let employees: Employee[] = mergeWithSeeds(readCreated())
 
 function emit() {
   listeners.forEach((listener) => listener())
@@ -184,6 +250,15 @@ function getSnapshot() {
 
 function tenantId() {
   return getActiveTenantId() || DEFAULT_TENANT_ID
+}
+
+function reloadFromStorage() {
+  employees = mergeWithSeeds(readCreated())
+  emit()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pd-data-rehydrated', reloadFromStorage)
 }
 
 function nextId(existing: string[]) {
@@ -243,6 +318,7 @@ export function createEmployee(draft: EmployeeDraft): Employee {
     status: draft.status ?? 'Active',
   }
   employees = [created, ...employees]
+  persist()
   emit()
   return created
 }

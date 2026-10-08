@@ -1,20 +1,50 @@
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { InvoicePageView } from '@/components/invoices/InvoicePageView'
 import { InvoicePrintActions } from '@/components/invoices/InvoicePrintActions'
 import { layoutConfig } from '@/config/layout'
 import { EmptyState } from '@/components/ui'
+import type { CaseInvoice } from '@/lib/caseInvoice'
 import {
-  decodeInvoiceShare,
   invoiceForDocument,
+  resolvePublicInvoice,
 } from '@/lib/invoiceShare'
 import '@/styles/layout-invoice.css'
 
 export default function PublicInvoicePage() {
   const { token = '' } = useParams()
-  const decoded = decodeInvoiceShare(token)
-  const invoice = decoded
-    ? invoiceForDocument(decoded, layoutConfig.brand.logoUrl ?? '')
-    : null
+  const [invoice, setInvoice] = useState<CaseInvoice | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    void resolvePublicInvoice(token).then((resolved) => {
+      if (cancelled) return
+      setInvoice(
+        resolved
+          ? invoiceForDocument(resolved, layoutConfig.brand.logoUrl ?? '')
+          : null,
+      )
+      setLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+
+  if (loading) {
+    return (
+      <div className="pd-invoice-page-frame pd-invoice-page-frame--public">
+        <div className="pd-page pd-invoice-page" aria-busy="true">
+          <EmptyState
+            title="Loading invoice…"
+            description="Fetching the shared document."
+          />
+        </div>
+      </div>
+    )
+  }
 
   if (!invoice) {
     return (

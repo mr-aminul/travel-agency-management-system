@@ -15,6 +15,7 @@ const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const ReadinessPage = lazy(() => import('@/pages/ReadinessPage'))
 const DocumentsPage = lazy(() => import('@/pages/DocumentsPage'))
 const PaymentsPage = lazy(() => import('@/pages/PaymentsPage'))
+const ReportsPage = lazy(() => import('@/pages/ReportsPage'))
 const HelpPage = lazy(() => import('@/pages/HelpPage'))
 const HomePage = lazy(() => import('@/pages/HomePage'))
 const HrPage = lazy(() => import('@/pages/HrPage'))
@@ -34,6 +35,9 @@ const TenantOverviewPage = lazy(() => import('@/pages/admin/TenantOverviewPage')
 const TenantUsersPage = lazy(() => import('@/pages/admin/TenantUsersPage'))
 const TenantModulesPage = lazy(() => import('@/pages/admin/TenantModulesPage'))
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
+const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'))
+const AcceptInvitePage = lazy(() => import('@/pages/auth/AcceptInvitePage'))
 
 function RouteFallback() {
   return <div className="pd-route-fallback" aria-busy="true" aria-live="polite" />
@@ -61,6 +65,9 @@ function App() {
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset/:token" element={<ResetPasswordPage />} />
+          <Route path="/invite/:token" element={<AcceptInvitePage />} />
           <Route path="/track" element={<TrackClientPage />} />
           <Route
             path="/client-registration/:tenantSlug"
@@ -102,6 +109,7 @@ function App() {
             <Route path="cases/:id/invoice" element={<LegacyCasesRedirect />} />
             <Route path="cases/:id" element={<LegacyCasesRedirect />} />
             <Route path="payments" element={<PaymentsPage />} />
+            <Route path="reports" element={<ReportsPage />} />
             <Route path="finance" element={<Navigate to="/payments" replace />} />
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="hr" element={<Navigate to="/hr/employees" replace />} />

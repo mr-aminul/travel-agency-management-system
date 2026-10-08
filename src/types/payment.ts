@@ -7,6 +7,8 @@ export type Payment = {
   amount: number
   method: string
   note?: string
+  /** bKash/Nagad/bank reference for reconcile. */
+  txnId?: string
   createdAt: string
 }
 
@@ -16,4 +18,5 @@ export type CreatePaymentInput = {
   amount: number
   method?: string
   note?: string
+  txnId?: string
 }

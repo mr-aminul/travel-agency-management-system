@@ -31,15 +31,15 @@ function publicUser(row) {
   }
 }
 
-/** Seeded login profiles — passwords come from env (never committed). */
+/** Launch agency + platform admin logins — passwords come from env (never committed). */
 function seedDefinitions() {
   const adminEmail =
     process.env.PLATFORM_ADMIN_EMAIL?.trim().toLowerCase() ||
     'aminulislamborhan@gmail.com'
   const adminPassword =
-    process.env.PLATFORM_ADMIN_PASSWORD?.trim() || '12345'
+    process.env.PLATFORM_ADMIN_PASSWORD?.trim() || '12345678'
   const agencyPassword =
-    process.env.SEED_AGENCY_PASSWORD?.trim() || '12345'
+    process.env.SEED_AGENCY_PASSWORD?.trim() || '12345678'
 
   return [
     {
@@ -77,20 +77,53 @@ function seedDefinitions() {
   ]
 }
 
+/**
+ * Ensure launch agency + admin users exist (insert-if-missing).
+ * Never rewrite password_hash on existing rows (prevents prod password reset on restart).
+ * Set SEED_FORCE_PASSWORDS=1 to intentionally reset those account passwords.
+ */
 export async function seedAuthUsers() {
+  const forcePasswords = process.env.SEED_FORCE_PASSWORDS === '1'
   for (const account of seedDefinitions()) {
     const passwordHash = hashPassword(account.password)
+    const memberRole =
+      account.role === 'platform_admin' ? null : 'owner'
+    if (forcePasswords) {
+      await query(
+        `insert into platform.users
+           (id, email, name, role, tenant_id, password_hash, status, member_role, updated_at)
+         values ($1, $2, $3, $4, $5, $6, 'active', $7, now())
+         on conflict (id) do update set
+           email = excluded.email,
+           name = excluded.name,
+           role = excluded.role,
+           tenant_id = excluded.tenant_id,
+           password_hash = excluded.password_hash,
+           status = 'active',
+           member_role = coalesce(platform.users.member_role, excluded.member_role),
+           updated_at = now()`,
+        [
+          account.id,
+          account.email,
+          account.name,
+          account.role,
+          account.tenantId,
+          passwordHash,
+          memberRole,
+        ],
+      )
+      continue
+    }
     await query(
       `insert into platform.users
-         (id, email, name, role, tenant_id, password_hash, status, updated_at)
-       values ($1, $2, $3, $4, $5, $6, 'active', now())
+         (id, email, name, role, tenant_id, password_hash, status, member_role, updated_at)
+       values ($1, $2, $3, $4, $5, $6, 'active', $7, now())
        on conflict (id) do update set
          email = excluded.email,
          name = excluded.name,
          role = excluded.role,
          tenant_id = excluded.tenant_id,
-         password_hash = excluded.password_hash,
-         status = 'active',
+         member_role = coalesce(platform.users.member_role, excluded.member_role),
          updated_at = now()`,
       [
         account.id,
@@ -99,6 +132,7 @@ export async function seedAuthUsers() {
         account.role,
         account.tenantId,
         passwordHash,
+        memberRole,
       ],
     )
   }
@@ -232,6 +266,7 @@ export async function createAgencyUser({
   password,
   tenantId,
   id,
+  memberRole,
 }) {
   const normalizedEmail = normalizeEmail(email)
   const trimmedName = String(name ?? '').trim()
@@ -239,6 +274,10 @@ export async function createAgencyUser({
   const resolvedTenantId = String(tenantId ?? '').trim()
   const userId =
     String(id ?? '').trim() || `user-${crypto.randomBytes(8).toString('hex')}`
+  const resolvedMemberRole =
+    memberRole === 'owner' || memberRole === 'manager' || memberRole === 'staff'
+      ? memberRole
+      : 'staff'
 
   if (!normalizedEmail) {
     return { ok: false, status: 400, error: 'Email is required.' }
@@ -246,11 +285,11 @@ export async function createAgencyUser({
   if (!trimmedName) {
     return { ok: false, status: 400, error: 'Name is required.' }
   }
-  if (!rawPassword || rawPassword.length < 4) {
+  if (!rawPassword || rawPassword.length < 8) {
     return {
       ok: false,
       status: 400,
-      error: 'Password must be at least 4 characters.',
+      error: 'Password must be at least 8 characters.',
     }
   }
   if (!resolvedTenantId) {
@@ -272,9 +311,16 @@ export async function createAgencyUser({
   const passwordHash = hashPassword(rawPassword)
   await query(
     `insert into platform.users
-       (id, email, name, role, tenant_id, password_hash, status, updated_at)
-     values ($1, $2, $3, 'agency_user', $4, $5, 'active', now())`,
-    [userId, normalizedEmail, trimmedName, resolvedTenantId, passwordHash],
+       (id, email, name, role, tenant_id, password_hash, status, member_role, updated_at)
+     values ($1, $2, $3, 'agency_user', $4, $5, 'active', $6, now())`,
+    [
+      userId,
+      normalizedEmail,
+      trimmedName,
+      resolvedTenantId,
+      passwordHash,
+      resolvedMemberRole,
+    ],
   )
 
   return {
@@ -288,6 +334,7 @@ export async function createAgencyUser({
         role: 'agency_user',
       },
       tenantId: resolvedTenantId,
+      memberRole: resolvedMemberRole,
     },
   }
 }
@@ -354,11 +401,11 @@ export async function setAgencyUserPassword({
   tenantId,
 }) {
   const rawPassword = String(password ?? '')
-  if (!rawPassword || rawPassword.length < 4) {
+  if (!rawPassword || rawPassword.length < 8) {
     return {
       ok: false,
       status: 400,
-      error: 'Password must be at least 4 characters.',
+      error: 'Password must be at least 8 characters.',
     }
   }
 

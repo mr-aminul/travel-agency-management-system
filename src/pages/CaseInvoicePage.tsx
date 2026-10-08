@@ -9,8 +9,8 @@ import { getClientById } from '@/lib/clientsStore'
 import { BackButton, Button } from '@/components/ui'
 import {
   copyText,
+  createPublicInvoiceShare,
   invoiceForDocument,
-  publicInvoiceUrl,
 } from '@/lib/invoiceShare'
 import { workDetailPath } from '@/lib/workPaths'
 import { usePaymentsByCaseId } from '@/lib/paymentsStore'
@@ -50,7 +50,11 @@ export default function CaseInvoicePage() {
   )
 
   const handleShare = async () => {
-    await copyText(publicInvoiceUrl(invoice))
+    const url = await createPublicInvoiceShare({
+      invoice,
+      caseId: caseItem.id,
+    })
+    await copyText(url)
     setCopied(true)
   }
 

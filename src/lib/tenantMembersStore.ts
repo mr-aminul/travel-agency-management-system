@@ -7,6 +7,7 @@ import {
 import { staffMemberCreateErrors } from '@/lib/agencyUserRules'
 import {
   DATA_KEYS,
+  injectClientSideSeeds,
   loadJsonParsed,
   removeJson,
   saveJson,
@@ -148,6 +149,7 @@ function seedMembers(): TenantMember[] {
 }
 
 function mergeWithSeeds(created: TenantMember[]): TenantMember[] {
+  if (!injectClientSideSeeds()) return created
   const createdIds = new Set(created.map((member) => member.id))
   return [
     ...created,
@@ -158,7 +160,9 @@ function mergeWithSeeds(created: TenantMember[]): TenantMember[] {
 function persistCreatedMembers() {
   saveJson(
     STORAGE_KEY,
-    members.filter((member) => !SEED_IDS.has(member.id)),
+    injectClientSideSeeds()
+      ? members.filter((member) => !SEED_IDS.has(member.id))
+      : members,
   )
 }
 
@@ -168,6 +172,15 @@ let members: TenantMember[] = mergeWithSeeds(readCreatedMembers())
 function emit(persist = true) {
   if (persist) persistCreatedMembers()
   listeners.forEach((listener) => listener())
+}
+
+function reloadMembersFromStorage() {
+  members = mergeWithSeeds(readCreatedMembers())
+  emit(false)
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pd-data-rehydrated', reloadMembersFromStorage)
 }
 
 function subscribe(listener: Listener) {

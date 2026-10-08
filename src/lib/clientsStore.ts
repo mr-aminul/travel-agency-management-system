@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
 import {
   DATA_KEYS,
+  injectClientSideSeeds,
   loadJsonParsed,
   removeJson,
   saveJson,
@@ -432,6 +433,7 @@ function seedClients(): Client[] {
 }
 
 function mergeWithSeeds(created: Client[], removedIds: Set<string>): Client[] {
+  if (!injectClientSideSeeds()) return created
   const createdIds = new Set(created.map((client) => client.id))
   return [
     ...created,
@@ -442,6 +444,8 @@ function mergeWithSeeds(created: Client[], removedIds: Set<string>): Client[] {
 }
 
 function shouldPersistClient(client: Client): boolean {
+  // Live API: persist everything (launch agencies are real DB rows).
+  if (!injectClientSideSeeds()) return true
   if (!SEED_IDS.has(client.id)) return true
   return Boolean(client.archivedAt)
 }
@@ -496,6 +500,7 @@ if (typeof window !== 'undefined') {
     hydrateClientsFromStorage()
   })
   window.addEventListener('focus', hydrateClientsFromStorage)
+  window.addEventListener('pd-data-rehydrated', hydrateClientsFromStorage)
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') hydrateClientsFromStorage()
   })
@@ -536,6 +541,13 @@ function inActiveTenant(client: Client) {
 
 export function findClientRecord(id: string): Client | undefined {
   return clients.find((client) => client.id === id)
+}
+
+/** Cross-tenant count for admin overview (excludes archived). */
+export function countClientsForTenant(forTenantId: string): number {
+  return clients.filter(
+    (client) => client.tenantId === forTenantId && !client.archivedAt,
+  ).length
 }
 
 export function normalizePhone(phone: string): string {

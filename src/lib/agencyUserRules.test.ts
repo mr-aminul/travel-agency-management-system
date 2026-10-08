@@ -32,7 +32,7 @@ describe('agencyUserRules', () => {
         name: 'Coastal Leisure',
         ownerName: 'Coastal Owner',
         ownerEmail: 'ops@coastal.example',
-        ownerPassword: 'secret1',
+        ownerPassword: 'secret12',
       }),
     ).toEqual({})
   })
@@ -61,7 +61,7 @@ describe('agencyUserRules', () => {
         name: 'Shila Akter',
         email: 'shila@example.com',
         role: 'manager',
-        password: 'secret1',
+        password: 'secret12',
       }),
     ).toEqual({})
   })
@@ -72,7 +72,7 @@ describe('agencyUserRules', () => {
         tenantId: 'tenant-full',
         name: 'Shila Akter',
         email: 'not-an-email',
-        password: 'secret1',
+        password: 'secret12',
       }).email,
     ).toMatch(/valid email/i)
   })

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
+import { DATA_KEYS, loadJsonParsed, removeJson, saveJson } from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID } from '@/types/tenant'
 
@@ -12,7 +13,7 @@ type ServiceIconOverride = {
 
 type Listener = () => void
 
-const STORAGE_KEY = 'pd-service-icon-overrides'
+const STORAGE_KEY = DATA_KEYS.serviceIconOverrides
 
 const listeners = new Set<Listener>()
 let overrides: ServiceIconOverride[] = loadAll()
@@ -48,25 +49,16 @@ function normalizeOverride(value: unknown): ServiceIconOverride | undefined {
 }
 
 function loadAll(): ServiceIconOverride[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed
+  return loadJsonParsed(STORAGE_KEY, [] as ServiceIconOverride[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
       .map(normalizeOverride)
       .filter((item): item is ServiceIconOverride => item != null)
-  } catch {
-    return []
-  }
+  })
 }
 
 function persist(next: ServiceIconOverride[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-  } catch {
-    /* ignore quota / private mode */
-  }
+  saveJson(STORAGE_KEY, next)
 }
 
 function replaceAll(next: ServiceIconOverride[]) {
@@ -77,6 +69,15 @@ function replaceAll(next: ServiceIconOverride[]) {
 
 function tenantId() {
   return getActiveTenantId() || DEFAULT_TENANT_ID
+}
+
+function reloadFromStorage() {
+  overrides = loadAll()
+  emit()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pd-data-rehydrated', reloadFromStorage)
 }
 
 function matchesService(
@@ -154,11 +155,7 @@ export function clearServiceIconOverride(
 }
 
 export function resetServiceIconOverrides() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    /* ignore */
-  }
+  removeJson(STORAGE_KEY)
   overrides = []
   emit()
 }

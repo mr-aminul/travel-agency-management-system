@@ -1,6 +1,8 @@
 import {
   Banknote,
+  BarChart3,
   CalendarClock,
+  CircleHelp,
   Component,
   FileText,
   Handshake,
@@ -54,6 +56,12 @@ export const layoutConfig: AppLayoutConfig = {
     { path: '/services', label: 'Services', icon: ListChecks },
     { path: '/payments', label: 'Payments', icon: Wallet, moduleId: 'finance' },
     {
+      path: '/reports',
+      label: 'Reports',
+      icon: BarChart3,
+      moduleId: 'finance',
+    },
+    {
       path: '/documents',
       label: 'Documents',
       icon: FileText,
@@ -92,6 +100,7 @@ export const layoutConfig: AppLayoutConfig = {
       adminOnly: true,
     },
     { path: '/trash', label: 'Trash', icon: Trash2 },
+    { path: '/help', label: 'Help', icon: CircleHelp },
     settingsNavItem,
   ],
 }

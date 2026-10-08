@@ -37,7 +37,7 @@ Object.defineProperty(globalThis, 'window', {
 })
 
 describe('agencyProfile', () => {
-  it('seeds demo workspaces with invoice contact details', () => {
+  it('seeds launch workspaces with invoice contact details', () => {
     store.clear()
     expect(readAgencyProfile(TENANT_IDS.leisure)).toEqual({
       businessName: 'Coastal Leisure',
@@ -54,7 +54,7 @@ describe('agencyProfile', () => {
       profilePicture: null,
     })
     expect(readAgencyProfile()).toEqual({
-      businessName: 'OneTrack Demo',
+      businessName: 'OneTrack',
       address: 'Level 4, Plot 11, Road 17, Gulshan 1, Dhaka 1212',
       mobile: '01670 221 884',
       website: 'https://www.onetrack.app',

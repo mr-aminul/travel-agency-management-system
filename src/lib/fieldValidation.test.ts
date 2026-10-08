@@ -22,8 +22,8 @@ describe('fieldValidation', () => {
     expect(validateRequiredEmail('bad')).toMatch(/valid email/i)
     expect(validateRequiredEmail('a@b.com')).toBeUndefined()
     expect(validateRequiredPassword('')).toMatch(/required/i)
-    expect(validateRequiredPassword('ab')).toMatch(/4 characters/i)
-    expect(validateRequiredPassword('demo')).toBeUndefined()
+    expect(validateRequiredPassword('ab')).toMatch(/8 characters/i)
+    expect(validateRequiredPassword('demo1234')).toBeUndefined()
   })
 
   it('validates required selects and phones', () => {

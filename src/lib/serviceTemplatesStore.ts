@@ -5,6 +5,7 @@ import {
   matchCountryFromDestination,
   normalizeCountryName,
 } from '@/lib/destinationCountries'
+import { DATA_KEYS, loadJsonParsed, removeJson, saveJson } from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
 import { slugifyServiceName } from '@/types/case'
 import { DEFAULT_TENANT_ID } from '@/types/tenant'
@@ -17,7 +18,7 @@ import type {
 
 type Listener = () => void
 
-const STORAGE_KEY = 'pd-service-templates'
+const STORAGE_KEY = DATA_KEYS.serviceTemplates
 
 const listeners = new Set<Listener>()
 let templates: ServiceTemplateOverride[] = loadAll()
@@ -117,25 +118,16 @@ function normalizeTemplate(value: unknown): ServiceTemplateOverride | undefined 
 }
 
 function loadAll(): ServiceTemplateOverride[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed
+  return loadJsonParsed(STORAGE_KEY, [] as ServiceTemplateOverride[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
       .map(normalizeTemplate)
       .filter((item): item is ServiceTemplateOverride => item != null)
-  } catch {
-    return []
-  }
+  })
 }
 
 function persist(next: ServiceTemplateOverride[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-  } catch {
-    /* ignore quota / private mode */
-  }
+  saveJson(STORAGE_KEY, next)
 }
 
 function replaceAll(next: ServiceTemplateOverride[]) {
@@ -146,6 +138,15 @@ function replaceAll(next: ServiceTemplateOverride[]) {
 
 function tenantId() {
   return getActiveTenantId() || DEFAULT_TENANT_ID
+}
+
+function reloadFromStorage() {
+  templates = loadAll()
+  emit()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pd-data-rehydrated', reloadFromStorage)
 }
 
 export function nextTemplateItemId(label: string, existing: string[]): string {
@@ -344,11 +345,7 @@ export function deleteAllServiceTemplates(serviceName: string): boolean {
 }
 
 export function resetServiceTemplates() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    /* ignore */
-  }
+  removeJson(STORAGE_KEY)
   templates = []
   emit()
 }

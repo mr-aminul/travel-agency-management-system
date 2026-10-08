@@ -282,6 +282,7 @@ export type ProvisionAgencyUserInput = {
   name: string
   password: string
   tenantId: string
+  memberRole?: 'owner' | 'manager' | 'staff'
 }
 
 export type ProvisionedAgencyUser = {
@@ -307,8 +308,8 @@ export async function provisionAgencyUser(
 
   if (!email) throw new Error('Email is required.')
   if (!name) throw new Error('Name is required.')
-  if (!password || password.length < 4) {
-    throw new Error('Password must be at least 4 characters.')
+  if (!password || password.length < 8) {
+    throw new Error('Password must be at least 8 characters.')
   }
   if (!tenantId) throw new Error('Agency is required.')
 
@@ -319,7 +320,14 @@ export async function provisionAgencyUser(
         tenantId: string
       }>('/api/platform/auth/users', {
         method: 'POST',
-        body: { email, name, password, tenantId, id },
+        body: {
+          email,
+          name,
+          password,
+          tenantId,
+          id,
+          memberRole: input.memberRole,
+        },
       })
       const user = coerceUser(body.user)
       if (!user) throw new Error('Create-user response was incomplete.')
@@ -453,7 +461,7 @@ export async function setAgencyUserPassword(input: {
   tenantId?: string
 }): Promise<void> {
   if (!input.password || input.password.length < 4) {
-    throw new Error('Password must be at least 4 characters.')
+    throw new Error('Password must be at least 8 characters.')
   }
   if (authApiConfigured()) {
     try {
@@ -503,4 +511,87 @@ export async function signOut(): Promise<void> {
     }
   }
   clearSession()
+}
+
+export type InviteCreateResult = {
+  id: string
+  token: string
+  email: string
+  name: string
+  memberRole: string
+  tenantId: string
+  expiresAt: string
+}
+
+export async function createUserInvite(input: {
+  email: string
+  name: string
+  memberRole?: 'owner' | 'manager' | 'staff'
+  tenantId?: string
+}): Promise<InviteCreateResult> {
+  return apiFetch<InviteCreateResult>('/api/platform/invites', {
+    method: 'POST',
+    body: {
+      email: input.email,
+      name: input.name,
+      memberRole: input.memberRole ?? 'staff',
+      tenantId: input.tenantId,
+    },
+  })
+}
+
+export async function fetchInvite(token: string) {
+  return apiFetch<{
+    email: string
+    name: string
+    memberRole: string
+    tenantId: string
+    agencyName: string
+    expiresAt: string
+  }>(`/api/platform/public/invites/${encodeURIComponent(token)}`, {
+    skipAuth: true,
+  })
+}
+
+export async function acceptUserInvite(token: string, password: string) {
+  return apiFetch<{
+    userId: string
+    email: string
+    name: string
+    tenantId: string
+    memberRole: string
+  }>(`/api/platform/public/invites/${encodeURIComponent(token)}/accept`, {
+    method: 'POST',
+    skipAuth: true,
+    body: { password },
+  })
+}
+
+export async function requestPasswordReset(email: string) {
+  return apiFetch<{ sent: boolean; token?: string; expiresAt?: string }>(
+    '/api/platform/auth/password-reset/request',
+    {
+      method: 'POST',
+      skipAuth: true,
+      body: { email },
+    },
+  )
+}
+
+export async function fetchPasswordReset(token: string) {
+  return apiFetch<{ email: string; expiresAt: string }>(
+    `/api/platform/public/password-reset/${encodeURIComponent(token)}`,
+    { skipAuth: true },
+  )
+}
+
+export async function confirmPasswordReset(token: string, password: string) {
+  return apiFetch<{ reset: boolean; email: string }>(
+    `/api/platform/public/password-reset/${encodeURIComponent(token)}/confirm`,
+    {
+      method: 'POST',
+      skipAuth: true,
+      body: { password },
+    },
+  )
 }

@@ -75,8 +75,8 @@ const SEED_TENANTS: Tenant[] = [
   },
   {
     id: TENANT_IDS.full,
-    slug: 'onetrack-demo',
-    name: 'OneTrack Demo',
+    slug: 'onetrack',
+    name: 'OneTrack',
     status: 'active',
     enabledModules: [...ALL_MODULE_IDS],
   },
@@ -224,12 +224,32 @@ function withOverrides(base: Tenant[]): Tenant[] {
 }
 
 let tenants: Tenant[] = withOverrides(SEED_TENANTS)
-/** Agencies created via admin (persisted through the data layer). */
+/** Agencies created via admin / launch bootstrap (persisted through the data layer). */
 let createdTenants: Tenant[] = readCreatedTenants()
-let snapshot: Tenant[] = [...tenants, ...createdTenants]
+let snapshot: Tenant[] = []
 
 function rebuildSnapshot() {
-  snapshot = [...tenants, ...createdTenants]
+  // Launch agencies also live in pd-tenants-created (like Ismail) — dedupe by id.
+  const byId = new Map<string, Tenant>()
+  for (const tenant of tenants) byId.set(tenant.id, tenant)
+  for (const tenant of createdTenants) {
+    const prior = byId.get(tenant.id)
+    byId.set(tenant.id, prior ? { ...prior, ...tenant } : tenant)
+  }
+  snapshot = [...byId.values()]
+}
+
+rebuildSnapshot()
+
+function reloadTenantsFromStorage() {
+  tenants = withOverrides(SEED_TENANTS)
+  createdTenants = readCreatedTenants()
+  rebuildSnapshot()
+  listeners.forEach((listener) => listener())
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pd-data-rehydrated', reloadTenantsFromStorage)
 }
 
 function getSnapshot() {

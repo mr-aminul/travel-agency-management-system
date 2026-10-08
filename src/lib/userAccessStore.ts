@@ -7,8 +7,9 @@ import {
   removeJson,
   saveJson,
 } from '@/lib/data'
+import { getTenantMemberById } from '@/lib/tenantMembersStore'
 import { useAuth } from '@/lib/useAuth'
-import { DEFAULT_TENANT_ID } from '@/types/tenant'
+import { DEFAULT_TENANT_ID, type TenantMemberRole } from '@/types/tenant'
 import {
   PAGE_ACCESS_LEVELS,
   type PageAccessLevel,
@@ -18,7 +19,19 @@ import {
 type Listener = () => void
 
 const STORAGE_KEY = DATA_KEYS.userPageAccess
-const DEFAULT_LEVEL: PageAccessLevel = 'edit'
+
+/** Admin-ish pages — staff get view by default. */
+const STAFF_VIEW_PATHS = new Set([
+  '/settings',
+  '/hr/payroll',
+  '/trash',
+  '/hr',
+  '/hr/employees',
+  '/hr/attendance',
+])
+
+/** Manager gets view (not edit) on these. */
+const MANAGER_VIEW_PATHS = new Set(['/settings', '/trash'])
 
 const listeners = new Set<Listener>()
 let entries: UserPageAccess[] = loadAll()
@@ -101,6 +114,53 @@ function tenantId() {
   return getActiveTenantId() || DEFAULT_TENANT_ID
 }
 
+function reloadFromStorage() {
+  entries = loadAll()
+  emit()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pd-data-rehydrated', reloadFromStorage)
+}
+
+/**
+ * Safer defaults by role when no explicit matrix override exists.
+ * - owner → edit everywhere
+ * - manager → edit on most pages; view on settings / trash
+ * - staff → edit on operational pages; view on admin-ish pages
+ */
+export function getDefaultPageAccessLevel(
+  memberRole: TenantMemberRole | undefined,
+  pagePath: string,
+): PageAccessLevel {
+  const path = pagePath.trim()
+  if (!memberRole || memberRole === 'owner') return 'edit'
+  if (memberRole === 'manager') {
+    if (MANAGER_VIEW_PATHS.has(path) || path.startsWith('/settings')) {
+      return 'view'
+    }
+    return 'edit'
+  }
+  // staff
+  if (
+    STAFF_VIEW_PATHS.has(path) ||
+    path.startsWith('/settings') ||
+    path.startsWith('/hr/payroll')
+  ) {
+    return 'view'
+  }
+  return 'edit'
+}
+
+function memberRoleFor(
+  memberId: string,
+  activeTenantId: string,
+): TenantMemberRole | undefined {
+  const member = getTenantMemberById(memberId)
+  if (!member || member.tenantId !== activeTenantId) return undefined
+  return member.role
+}
+
 export function getPageAccessLevel(
   memberId: string,
   pagePath: string,
@@ -113,7 +173,11 @@ export function getPageAccessLevel(
       entry.memberId === memberId &&
       entry.pagePath === pagePath,
   )
-  return match?.level ?? DEFAULT_LEVEL
+  if (match) return match.level
+  return getDefaultPageAccessLevel(
+    memberRoleFor(memberId, activeTenantId),
+    pagePath,
+  )
 }
 
 export function setPageAccessLevel(
@@ -131,7 +195,11 @@ export function setPageAccessLevel(
       ),
   )
 
-  if (level === DEFAULT_LEVEL) {
+  const defaultLevel = getDefaultPageAccessLevel(
+    memberRoleFor(memberId, activeTenantId),
+    pagePath,
+  )
+  if (level === defaultLevel) {
     replaceAll(without)
     return
   }

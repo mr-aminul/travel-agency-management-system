@@ -74,7 +74,7 @@ describe('public client intake', () => {
   })
 
   it('lets anyone submit a profile that lands as an agency client', () => {
-    renderAgencyIntake('onetrack-demo')
+    renderAgencyIntake('onetrack')
 
     expect(
       screen.getByRole('heading', { name: 'Create your profile' }),

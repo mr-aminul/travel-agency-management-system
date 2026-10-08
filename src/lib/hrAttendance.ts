@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getActiveTenantId } from '@/lib/authApi'
+import { DATA_KEYS, loadJsonParsed, saveJson } from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
 import type {
@@ -11,6 +12,7 @@ import type {
 } from '@/types/hr'
 
 type Listener = () => void
+const STORAGE_KEY = DATA_KEYS.attendanceCreated
 
 const SEED_ATTENDANCE: AttendanceRecord[] = [
   {
@@ -65,8 +67,80 @@ const SEED_ATTENDANCE: AttendanceRecord[] = [
   },
 ]
 
-let records: AttendanceRecord[] = SEED_ATTENDANCE.map((item) => ({ ...item }))
+const SEED_IDS = new Set(SEED_ATTENDANCE.map((item) => item.id))
 const listeners = new Set<Listener>()
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeAttendance(value: unknown): AttendanceRecord | undefined {
+  if (!isRecord(value)) return undefined
+  const id = typeof value.id === 'string' ? value.id.trim() : ''
+  const tenantId =
+    typeof value.tenantId === 'string' ? value.tenantId.trim() : ''
+  const employeeId =
+    typeof value.employeeId === 'string' ? value.employeeId.trim() : ''
+  const startDate =
+    typeof value.startDate === 'string' ? value.startDate.trim() : ''
+  const endDate = typeof value.endDate === 'string' ? value.endDate.trim() : ''
+  const kind = value.kind
+  if (!id || !tenantId || !employeeId || !startDate || !endDate) return undefined
+  if (
+    kind !== 'Present' &&
+    kind !== 'Late' &&
+    kind !== 'Absent' &&
+    kind !== 'Leave'
+  ) {
+    return undefined
+  }
+  return {
+    id,
+    tenantId,
+    employeeId,
+    kind,
+    startDate,
+    endDate,
+    leaveType:
+      value.leaveType === 'Sick' ||
+      value.leaveType === 'Casual' ||
+      value.leaveType === 'Unpaid'
+        ? value.leaveType
+        : undefined,
+    note:
+      typeof value.note === 'string' && value.note.trim()
+        ? value.note.trim()
+        : undefined,
+  }
+}
+
+function readCreated(): AttendanceRecord[] {
+  return loadJsonParsed(STORAGE_KEY, [] as AttendanceRecord[], (value) => {
+    if (!Array.isArray(value)) return []
+    return value
+      .map(normalizeAttendance)
+      .filter((item): item is AttendanceRecord => item != null)
+  })
+}
+
+function persist() {
+  saveJson(
+    STORAGE_KEY,
+    records.filter((item) => !SEED_IDS.has(item.id)),
+  )
+}
+
+function mergeWithSeeds(created: AttendanceRecord[]): AttendanceRecord[] {
+  const createdIds = new Set(created.map((item) => item.id))
+  return [
+    ...SEED_ATTENDANCE.filter((item) => !createdIds.has(item.id)).map(
+      (item) => ({ ...item }),
+    ),
+    ...created,
+  ]
+}
+
+let records: AttendanceRecord[] = mergeWithSeeds(readCreated())
 
 function emit() {
   listeners.forEach((listener) => listener())
@@ -85,6 +159,15 @@ function getSnapshot() {
 
 function tenantId() {
   return getActiveTenantId() || DEFAULT_TENANT_ID
+}
+
+function reloadFromStorage() {
+  records = mergeWithSeeds(readCreated())
+  emit()
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pd-data-rehydrated', reloadFromStorage)
 }
 
 function nextId(existing: string[], prefix: string) {
@@ -201,6 +284,7 @@ export function setDayAttendance(draft: DayAttendanceDraft): AttendanceRecord {
         ? { ...item, kind: draft.kind, note: draft.note?.trim() || undefined }
         : item,
     )
+    persist()
     emit()
     return records.find((item) => item.id === existing.id)!
   }
@@ -214,6 +298,7 @@ export function setDayAttendance(draft: DayAttendanceDraft): AttendanceRecord {
     note: draft.note?.trim() || undefined,
   }
   records = [created, ...records]
+  persist()
   emit()
   return created
 }
@@ -234,12 +319,14 @@ export function createLeave(draft: LeaveDraft): AttendanceRecord {
     note: draft.note?.trim() || undefined,
   }
   records = [created, ...records]
+  persist()
   emit()
   return created
 }
 
 export function deleteAttendance(id: string) {
   records = records.filter((item) => item.id !== id)
+  persist()
   emit()
 }
 

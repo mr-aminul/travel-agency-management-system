@@ -81,6 +81,8 @@ describe('case progress spine', () => {
       primaryService: 'Air Ticket',
       idChecked: true,
       passport: 'AP9876543',
+      passportIssuedOn: '2020-01-15',
+      passportExpiry: '2030-01-15',
     })
     const created = createCase({
       clientId: client.id,
