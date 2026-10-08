@@ -10,14 +10,14 @@ type DepartureTimelineProps = {
   futureDays: number
 }
 
-function readinessOf(check: DepartureCheck): number {
+function docsReadyRatio(check: DepartureCheck): number {
   if (check.documentsRequired === 0) return 1
   return check.documentsReady / check.documentsRequired
 }
 
-function readinessTone(readiness: number): 'ready' | 'partial' | 'blocked' {
-  if (readiness >= 1) return 'ready'
-  return readiness >= 0.5 ? 'partial' : 'blocked'
+function docsReadyTone(docsReady: number): 'ready' | 'partial' | 'blocked' {
+  if (docsReady >= 1) return 'ready'
+  return docsReady >= 0.5 ? 'partial' : 'blocked'
 }
 
 function whenLabel(daysUntil: number): string {
@@ -62,9 +62,9 @@ export function DepartureTimeline({
           <Link
             key={check.id}
             to={check.href}
-            className={`pd-departures__marker pd-departures__marker--${readinessTone(readinessOf(check))}`}
+            className={`pd-departures__marker pd-departures__marker--${docsReadyTone(docsReadyRatio(check))}`}
             style={{ left: `${positionOf(check.daysUntil)}%` }}
-            title={`${check.name} · ${formatDisplayDate(check.departureDate)} · ${Math.round(readinessOf(check) * 100)}% docs ready`}
+            title={`${check.name} · ${formatDisplayDate(check.departureDate)} · ${Math.round(docsReadyRatio(check) * 100)}% docs ready`}
             aria-label={`${check.name}, departs ${formatDisplayDate(check.departureDate)}`}
           />
         ))}
@@ -72,7 +72,7 @@ export function DepartureTimeline({
 
       <ul className="pd-departures__list">
         {checks.slice(0, 4).map((check) => {
-          const readiness = readinessOf(check)
+          const docsReady = docsReadyRatio(check)
           return (
             <li key={check.id}>
               <Link to={check.href} className="pd-departures__row">
@@ -88,12 +88,12 @@ export function DepartureTimeline({
                 <span className="pd-departures__ready">
                   <span className="pd-departures__meter" aria-hidden>
                     <span
-                      className={`pd-departures__meter-fill pd-departures__meter-fill--${readinessTone(readiness)}`}
-                      style={{ width: `${Math.round(readiness * 100)}%` }}
+                      className={`pd-departures__meter-fill pd-departures__meter-fill--${docsReadyTone(docsReady)}`}
+                      style={{ width: `${Math.round(docsReady * 100)}%` }}
                     />
                   </span>
                   <span className="pd-departures__ready-value">
-                    {Math.round(readiness * 100)}% docs
+                    {Math.round(docsReady * 100)}% docs
                   </span>
                 </span>
               </Link>

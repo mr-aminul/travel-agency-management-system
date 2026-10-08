@@ -8,6 +8,7 @@ import {
   Handshake,
   Home,
   IdCard,
+  Kanban,
   LayoutDashboard,
   ListChecks,
   Settings,
@@ -17,7 +18,6 @@ import {
   Users,
   UsersRound,
   Wallet,
-  Workflow,
 } from 'lucide-react'
 import type { AppLayoutConfig, NavItem } from '@/layout/types'
 import { flattenNavItems } from '@/lib/modules'
@@ -45,7 +45,7 @@ export const layoutConfig: AppLayoutConfig = {
   navItems: [
     { path: '/', label: 'Home', icon: Home, end: true },
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/readiness', label: 'Readiness', icon: Workflow },
+    { path: '/service-board', label: 'Service Board', icon: Kanban },
     { path: '/clients', label: 'Clients', icon: Users },
     {
       path: '/sub-agents',

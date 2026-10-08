@@ -19,17 +19,17 @@ import {
 } from '@/components/ui'
 import { getNextStepDef, getStepDefs } from '@/lib/caseChecklist'
 import {
-  buildReadinessBoard,
-  type ReadinessBoard,
-  type ReadinessItem,
-  type ReadinessState,
-} from '@/lib/clientReadiness'
+  buildServiceBoard,
+  type ServiceBoard,
+  type ServiceBoardItem,
+  type ServiceBoardState,
+} from '@/lib/clientServiceBoard'
 import { getCaseById, useCases } from '@/lib/casesStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 import type { ServiceType } from '@/types/case'
-import '@/styles/layout-readiness.css'
+import '@/styles/layout-service-board.css'
 
-const BOARD_DRAG_MIME = 'application/x-onetrack-readiness-case'
+const BOARD_DRAG_MIME = 'application/x-onetrack-service-board-case'
 
 type BoardDragPayload = {
   caseId: string
@@ -38,7 +38,7 @@ type BoardDragPayload = {
 }
 
 const STATE_BADGE: Record<
-  Exclude<ReadinessState, 'actionable'>,
+  Exclude<ServiceBoardState, 'actionable'>,
   { label: string; variant: BadgeVariant }
 > = {
   blocked: { label: 'Blocked', variant: 'danger' },
@@ -49,7 +49,7 @@ type BoardColumn = {
   id: string
   label: string
   number: number
-  items: ReadinessItem[]
+  items: ServiceBoardItem[]
 }
 
 function waitLabel(days: number): string {
@@ -60,7 +60,7 @@ function waitLabel(days: number): string {
 
 function buildBoardColumns(
   service: ServiceType,
-  board: ReadinessBoard,
+  board: ServiceBoard,
 ): BoardColumn[] {
   const defs = getStepDefs(service)
   const byStep = new Map(
@@ -113,7 +113,7 @@ function BoardCard({
   onDragStart,
   onDragEnd,
 }: {
-  item: ReadinessItem
+  item: ServiceBoardItem
   canDrag: boolean
   isDragging: boolean
   onOpen: () => void
@@ -194,7 +194,7 @@ function BoardCard({
   )
 }
 
-export default function ReadinessPage() {
+export default function ServiceBoardPage() {
   const navigate = useNavigate()
   const cases = useCases()
   const enabledServices = useEnabledServiceOptions()
@@ -205,7 +205,7 @@ export default function ReadinessPage() {
 
   const [serviceFilters, setServiceFilters] = useState<string[]>([])
   /** Compare deep-blue placement: lanes vs desk. */
-  const [inkPlace, setInkPlace] = useState<'lanes' | 'desk'>('desk')
+  const [inkPlace, setInkPlace] = useState<'lanes' | 'desk'>('lanes')
   /** `all` shows every board; otherwise focus one service. */
   const [focusService, setFocusService] = useState<string>('all')
   /** Case opened via board drag — complete current step to advance. */
@@ -239,7 +239,7 @@ export default function ReadinessPage() {
     () =>
       visibleServices
         .map((service) => {
-          const board = buildReadinessBoard(scopedCases, {
+          const board = buildServiceBoard(scopedCases, {
             services: [service.value],
           })
           return {
@@ -321,7 +321,7 @@ export default function ReadinessPage() {
 
   const beginCardDrag = (
     event: DragEvent<HTMLButtonElement>,
-    item: ReadinessItem,
+    item: ServiceBoardItem,
   ) => {
     const caseItem = getCaseById(item.id)
     const next = caseItem ? getNextStepDef(caseItem) : null
@@ -385,21 +385,21 @@ export default function ReadinessPage() {
 
   return (
     <div
-      className={`pd-page pd-readiness pd-readiness--ink-${inkPlace}`}
-      aria-label="Stage readiness"
+      className={`pd-page pd-service-board pd-service-board--ink-${inkPlace}`}
+      aria-label="Service Board"
     >
       <PageHeader
-        title="Stage readiness"
+        title="Service Board"
         actions={
           <>
             <div
-              className="pd-readiness__ink-toggle"
+              className="pd-service-board__ink-toggle"
               role="group"
               aria-label="Color placement"
             >
               <button
                 type="button"
-                className={`pd-readiness__ink-option${inkPlace === 'lanes' ? ' is-selected' : ''}`}
+                className={`pd-service-board__ink-option${inkPlace === 'lanes' ? ' is-selected' : ''}`}
                 aria-pressed={inkPlace === 'lanes'}
                 onClick={() => setInkPlace('lanes')}
               >
@@ -407,7 +407,7 @@ export default function ReadinessPage() {
               </button>
               <button
                 type="button"
-                className={`pd-readiness__ink-option${inkPlace === 'desk' ? ' is-selected' : ''}`}
+                className={`pd-service-board__ink-option${inkPlace === 'desk' ? ' is-selected' : ''}`}
                 aria-pressed={inkPlace === 'desk'}
                 onClick={() => setInkPlace('desk')}
               >
@@ -502,7 +502,7 @@ export default function ReadinessPage() {
             })}
           </nav>
 
-          <div className="pd-readiness__boards">
+          <div className="pd-service-board__boards">
           {shownBoards.map((board) => {
             const Icon = board.icon
             return (

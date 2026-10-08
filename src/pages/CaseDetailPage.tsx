@@ -18,10 +18,10 @@ import { usePaymentsByCaseId } from '@/lib/paymentsStore'
 import { formatBalance, getClientById } from '@/lib/clientsStore'
 import { caseServiceFee, parseMoneyInput } from '@/lib/caseMoney'
 import {
-  toReadinessItem,
-  type ReadinessFocus,
-  type ReadinessState,
-} from '@/lib/clientReadiness'
+  toServiceBoardItem,
+  type ServiceBoardFocus,
+  type ServiceBoardState,
+} from '@/lib/clientServiceBoard'
 import {
   employeeAssignmentOptions,
   getEmployeeDisplayName,
@@ -44,8 +44,8 @@ function statusBadgeVariant(status: CaseStatus): BadgeVariant {
   return 'danger'
 }
 
-const READINESS_RIBBON: Record<
-  ReadinessState,
+const SERVICE_BOARD_RIBBON: Record<
+  ServiceBoardState,
   { label: string; tone: 'ready' | 'blocked' | 'hold' }
 > = {
   actionable: { label: 'Ready', tone: 'ready' },
@@ -57,7 +57,7 @@ const FOCUS_FLASH_MS = 2800
 
 function clientFocusPath(
   clientId: string,
-  focus: Extract<ReadinessFocus, 'profile' | 'documents'>,
+  focus: Extract<ServiceBoardFocus, 'profile' | 'documents'>,
   caseId: string,
 ): string {
   const params = new URLSearchParams({
@@ -187,8 +187,8 @@ export default function CaseDetailPage() {
   const currentLabel = getCurrentStepLabel(item)
   const displayStatus = editing ? draft.status : item.status
   const ServiceIcon = iconForService(item.service)
-  const readiness = toReadinessItem(item)
-  const ribbon = readiness ? READINESS_RIBBON[readiness.state] : null
+  const boardItem = toServiceBoardItem(item)
+  const ribbon = boardItem ? SERVICE_BOARD_RIBBON[boardItem.state] : null
 
   const startEditing = () => {
     setDraft({
@@ -216,13 +216,13 @@ export default function CaseDetailPage() {
     setEditing(false)
   }
 
-  const openReadinessTarget = () => {
-    if (!readiness) return
-    if (readiness.focus === 'profile' || readiness.focus === 'documents') {
-      navigate(clientFocusPath(item.clientId, readiness.focus, item.id))
+  const openServiceBoardTarget = () => {
+    if (!boardItem) return
+    if (boardItem.focus === 'profile' || boardItem.focus === 'documents') {
+      navigate(clientFocusPath(item.clientId, boardItem.focus, item.id))
       return
     }
-    if (readiness.focus === 'status') {
+    if (boardItem.focus === 'status') {
       if (!editing) startEditing()
       setFlashTarget('status')
       return
@@ -342,15 +342,15 @@ export default function CaseDetailPage() {
       className="pd-case-detail pd-case-detail--workspace"
       aria-label={serviceDetailAriaLabel(item)}
     >
-      {ribbon && readiness ? (
+      {ribbon && boardItem ? (
         <button
           type="button"
           className={`pd-case-detail__ribbon pd-case-detail__ribbon--${ribbon.tone}`}
-          onClick={openReadinessTarget}
+          onClick={openServiceBoardTarget}
         >
           <span className="pd-case-detail__ribbon-copy">
             <strong>{ribbon.label}</strong>
-            <span>{readiness.action}</span>
+            <span>{boardItem.action}</span>
           </span>
           <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
         </button>

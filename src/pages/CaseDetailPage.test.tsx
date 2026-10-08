@@ -199,7 +199,7 @@ describe('service detail', () => {
     expect(writeText).toHaveBeenCalledWith(clientTrackingUrl('A12345678'))
   })
 
-  it('opens documents from the blocked readiness ribbon', () => {
+  it('opens documents from the blocked service board ribbon', () => {
     renderClient('/clients/c-284/services/case-101')
 
     const service = screen.getByLabelText('Work Permit Visa (SR-00101)')

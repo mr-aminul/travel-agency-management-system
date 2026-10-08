@@ -524,19 +524,13 @@
 /* Detail */
 
 .pd-client-detail {
-  --pd-sticky-topbar: 3.5rem;
-  --pd-sticky-gutter: 1.5rem;
-  --pd-client-sticky-top: calc(var(--pd-sticky-topbar) + var(--pd-sticky-gutter));
+  /* Top bar lives outside `.pd-app-scroll`, so sticky chrome pins to the
+     scrollport top — not the old in-scroll 3.5rem topbar offset. */
+  --pd-sticky-topbar: 0;
+  --pd-client-sticky-top: 0;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-}
-
-@media (max-width: 767px) {
-  .pd-client-detail {
-    --pd-sticky-topbar: 3.5rem;
-    --pd-sticky-gutter: 1rem;
-  }
 }
 
 .pd-client-detail__layout {
@@ -916,8 +910,6 @@
   position: sticky;
   top: var(--pd-sticky-topbar);
   z-index: 2;
-  margin-top: calc(-1 * var(--pd-sticky-gutter));
-  padding-top: var(--pd-sticky-gutter);
   background: var(--color-cream);
 }
 
@@ -1681,6 +1673,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.9rem 0.875rem;
   margin: 0;
+  padding-top: 0.4rem;
 }
 
 .pd-client-profile__field {

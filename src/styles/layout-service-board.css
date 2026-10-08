@@ -1,11 +1,11 @@
-.pd-readiness {
+.pd-service-board {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   min-height: 0;
 }
 
-.pd-readiness__boards {
+.pd-service-board__boards {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -13,7 +13,7 @@
 
 /* ── Ink placement compare toggle ──────────────────────────── */
 
-.pd-readiness__ink-toggle {
+.pd-service-board__ink-toggle {
   display: inline-flex;
   padding: 0.15rem;
   border: 1px solid var(--color-border);
@@ -21,7 +21,7 @@
   background: var(--color-surface);
 }
 
-.pd-readiness__ink-option {
+.pd-service-board__ink-option {
   padding: 0.35rem 0.65rem;
   border: 0;
   border-radius: 0.55rem;
@@ -35,11 +35,11 @@
   white-space: nowrap;
 }
 
-.pd-readiness__ink-option:hover:not(.is-selected) {
+.pd-service-board__ink-option:hover:not(.is-selected) {
   color: var(--color-text);
 }
 
-.pd-readiness__ink-option.is-selected {
+.pd-service-board__ink-option.is-selected {
   background: var(--color-theme);
   color: var(--color-on-theme, #fff);
 }
@@ -573,139 +573,139 @@
   Columns become pale trays so white/state cards are the focus.
 */
 
-.pd-readiness--ink-desk .pd-board {
+.pd-service-board--ink-desk .pd-board {
   border-color: var(--color-border);
   box-shadow: var(--shadow-low);
 }
 
-.pd-readiness--ink-desk .pd-board__head {
+.pd-service-board--ink-desk .pd-board__head {
   background: var(--color-surface);
   color: var(--color-text);
   border-bottom: 1px solid var(--color-border);
 }
 
-.pd-readiness--ink-desk .pd-board__icon {
+.pd-service-board--ink-desk .pd-board__icon {
   background: var(--color-theme);
   color: var(--color-on-theme, #fff);
 }
 
-.pd-readiness--ink-desk .pd-board__title {
+.pd-service-board--ink-desk .pd-board__title {
   color: var(--color-text);
 }
 
-.pd-readiness--ink-desk .pd-board__summary {
+.pd-service-board--ink-desk .pd-board__summary {
   color: var(--color-text-secondary);
 }
 
-.pd-readiness--ink-desk .pd-board__summary > span {
+.pd-service-board--ink-desk .pd-board__summary > span {
   background: color-mix(in srgb, var(--color-theme) 12%, var(--color-bg-muted));
   color: var(--color-theme);
 }
 
-.pd-readiness--ink-desk .pd-board__summary-blocked {
+.pd-service-board--ink-desk .pd-board__summary-blocked {
   background: color-mix(in srgb, var(--color-danger) 16%, var(--color-surface)) !important;
   color: var(--color-danger) !important;
 }
 
-.pd-readiness--ink-desk .pd-board__scroller {
+.pd-service-board--ink-desk .pd-board__scroller {
   background: var(--color-theme);
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-active {
+.pd-service-board--ink-desk .pd-board__column.is-active {
   border-color: color-mix(in srgb, var(--color-on-theme, #fff) 28%, transparent);
   background: var(--color-surface);
   box-shadow: 0 4px 16px color-mix(in srgb, black 18%, transparent);
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-empty {
+.pd-service-board--ink-desk .pd-board__column.is-empty {
   border-color: color-mix(in srgb, var(--color-on-theme, #fff) 14%, transparent);
   background: color-mix(in srgb, var(--color-on-theme, #fff) 8%, transparent);
   opacity: 0.85;
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-drop-candidate {
+.pd-service-board--ink-desk .pd-board__column.is-drop-candidate {
   background: color-mix(in srgb, var(--color-on-theme, #fff) 14%, var(--color-surface));
   border-color: color-mix(in srgb, var(--color-on-theme, #fff) 45%, transparent);
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-drop-target {
+.pd-service-board--ink-desk .pd-board__column.is-drop-target {
   background: var(--color-surface);
   border-color: color-mix(in srgb, var(--color-on-theme, #fff) 70%, transparent);
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-active .pd-board__column-head {
+.pd-service-board--ink-desk .pd-board__column.is-active .pd-board__column-head {
   background: var(--color-surface);
   border-bottom-color: var(--color-border);
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-empty .pd-board__column-head {
+.pd-service-board--ink-desk .pd-board__column.is-empty .pd-board__column-head {
   background: transparent;
   border-bottom-color: color-mix(in srgb, var(--color-on-theme, #fff) 12%, transparent);
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-active .pd-board__column-index {
+.pd-service-board--ink-desk .pd-board__column.is-active .pd-board__column-index {
   border-color: transparent;
   background: var(--color-theme);
   color: var(--color-on-theme, #fff);
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-empty .pd-board__column-index {
+.pd-service-board--ink-desk .pd-board__column.is-empty .pd-board__column-index {
   border-color: color-mix(in srgb, var(--color-on-theme, #fff) 28%, transparent);
   background: color-mix(in srgb, var(--color-on-theme, #fff) 10%, transparent);
   color: color-mix(in srgb, var(--color-on-theme, #fff) 78%, transparent);
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-active .pd-board__column-title {
+.pd-service-board--ink-desk .pd-board__column.is-active .pd-board__column-title {
   color: var(--color-text);
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-empty .pd-board__column-title {
+.pd-service-board--ink-desk .pd-board__column.is-empty .pd-board__column-title {
   color: color-mix(in srgb, var(--color-on-theme, #fff) 72%, transparent);
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-active .pd-board__column-count {
+.pd-service-board--ink-desk .pd-board__column.is-active .pd-board__column-count {
   background: color-mix(in srgb, var(--color-theme) 14%, var(--color-surface));
   color: var(--color-theme);
 }
 
-.pd-readiness--ink-desk .pd-board__column.is-empty .pd-board__column-count {
+.pd-service-board--ink-desk .pd-board__column.is-empty .pd-board__column-count {
   background: color-mix(in srgb, var(--color-on-theme, #fff) 12%, transparent);
   color: color-mix(in srgb, var(--color-on-theme, #fff) 72%, transparent);
 }
 
-.pd-readiness--ink-desk .pd-board__column-empty {
+.pd-service-board--ink-desk .pd-board__column-empty {
   border-color: color-mix(in srgb, var(--color-on-theme, #fff) 22%, transparent);
   background: color-mix(in srgb, var(--color-on-theme, #fff) 6%, transparent);
 }
 
-.pd-readiness--ink-desk .pd-board__column-empty-icon,
-.pd-readiness--ink-desk .pd-board__column-empty-copy {
+.pd-service-board--ink-desk .pd-board__column-empty-icon,
+.pd-service-board--ink-desk .pd-board__column-empty-copy {
   color: color-mix(in srgb, var(--color-on-theme, #fff) 78%, transparent);
   opacity: 1;
 }
 
-.pd-readiness--ink-desk .pd-board__cards {
+.pd-service-board--ink-desk .pd-board__cards {
   background: var(--color-surface);
 }
 
-.pd-readiness--ink-desk .pd-board__card,
-.pd-readiness--ink-desk .pd-board__card--actionable,
-.pd-readiness--ink-desk .pd-board__card--blocked,
-.pd-readiness--ink-desk .pd-board__card--on-hold {
+.pd-service-board--ink-desk .pd-board__card,
+.pd-service-board--ink-desk .pd-board__card--actionable,
+.pd-service-board--ink-desk .pd-board__card--blocked,
+.pd-service-board--ink-desk .pd-board__card--on-hold {
   background: var(--color-surface);
   box-shadow:
     0 1px 2px color-mix(in srgb, black 10%, transparent),
     0 6px 16px color-mix(in srgb, black 14%, transparent);
 }
 
-.pd-readiness--ink-desk .pd-board__card--actionable {
+.pd-service-board--ink-desk .pd-board__card--actionable {
   border-color: color-mix(in srgb, var(--color-status-completed) 45%, var(--color-border));
 }
 
-.pd-readiness--ink-desk .pd-board__card--blocked {
+.pd-service-board--ink-desk .pd-board__card--blocked {
   border-color: color-mix(in srgb, var(--color-danger) 50%, var(--color-border));
 }
 
-.pd-readiness--ink-desk .pd-board__card--on-hold {
+.pd-service-board--ink-desk .pd-board__card--on-hold {
   border-color: color-mix(in srgb, var(--color-status-on-hold) 45%, var(--color-border));
 }

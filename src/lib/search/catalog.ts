@@ -3,13 +3,13 @@ import {
   Briefcase,
   FileText,
   Handshake,
+  Kanban,
   LayoutDashboard,
   ListChecks,
   Settings,
   UserPlus,
   UserRound,
   Users,
-  Workflow,
 } from 'lucide-react'
 import { searchablePages } from '@/config/layout'
 import { filterNavItems, flattenNavItems, isPathAllowed } from '@/lib/modules'
@@ -113,10 +113,10 @@ function actionItems(user: SearchCatalogUser | null): SearchItem[] {
       icon: LayoutDashboard,
     },
     {
-      id: 'action:readiness',
+      id: 'action:service-board',
       kind: 'action',
       scope: 'actions',
-      label: 'Open Stage Readiness',
+      label: 'Open Service Board',
       keywords: uniqueKeywords([
         'medical',
         'visa',
@@ -124,9 +124,11 @@ function actionItems(user: SearchCatalogUser | null): SearchItem[] {
         'pipeline',
         'steps',
         'ready',
+        'board',
+        'service board',
       ]),
-      path: '/readiness',
-      icon: Workflow,
+      path: '/service-board',
+      icon: Kanban,
     },
     {
       id: 'action:my-profile',

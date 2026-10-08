@@ -4,11 +4,11 @@ import {
   FileText,
   Handshake,
   HelpCircle,
+  Kanban,
   UserRoundSearch,
   Users,
   UsersRound,
   Wallet,
-  Workflow,
   type LucideIcon,
 } from 'lucide-react'
 import { HomeGlobalSearch } from '@/components/home/HomeGlobalSearch'
@@ -39,10 +39,10 @@ const QUICK_LINKS: QuickLink[] = [
     icon: ClipboardList,
   },
   {
-    path: '/readiness',
-    label: 'Readiness',
+    path: '/service-board',
+    label: 'Service Board',
     description: 'Who is ready for which step',
-    icon: Workflow,
+    icon: Kanban,
   },
   {
     path: '/payments',

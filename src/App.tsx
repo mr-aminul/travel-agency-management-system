@@ -12,7 +12,7 @@ const LegacyCasesRedirect = lazy(() => import('@/pages/LegacyCasesRedirect'))
 const ClientDetailPage = lazy(() => import('@/pages/ClientDetailPage'))
 const ClientsPage = lazy(() => import('@/pages/ClientsPage'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
-const ReadinessPage = lazy(() => import('@/pages/ReadinessPage'))
+const ServiceBoardPage = lazy(() => import('@/pages/ServiceBoardPage'))
 const DocumentsPage = lazy(() => import('@/pages/DocumentsPage'))
 const PaymentsPage = lazy(() => import('@/pages/PaymentsPage'))
 const ReportsPage = lazy(() => import('@/pages/ReportsPage'))
@@ -81,7 +81,11 @@ function App() {
           <Route path="/" element={<AuthenticatedLayout />}>
             <Route index element={<HomePage />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="readiness" element={<ReadinessPage />} />
+            <Route path="service-board" element={<ServiceBoardPage />} />
+            <Route
+              path="readiness"
+              element={<Navigate to="/service-board" replace />}
+            />
             <Route path="clients" element={<ClientsPage />} />
             <Route path="clients/:id" element={<ClientDetailPage />}>
               <Route path="services/:caseId" element={<CaseDetailPage />} />

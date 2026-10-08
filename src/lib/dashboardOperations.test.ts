@@ -103,7 +103,7 @@ describe('paperworkSummary', () => {
     })
   })
 
-  it('reports full readiness when nothing is due', () => {
+  it('reports full in-hand rate when nothing is due', () => {
     expect(paperworkSummary([]).inHandRate).toBe(1)
   })
 })

@@ -42,7 +42,7 @@ import {
   type ClientInfoGap,
   type ClientInfoGapId,
 } from '@/lib/clientMissingInfo'
-import { toReadinessItem } from '@/lib/clientReadiness'
+import { toServiceBoardItem } from '@/lib/clientServiceBoard'
 import { deriveClientServiceStatus } from '@/lib/clientServiceStatus'
 import { useRequests } from '@/lib/requestsStore'
 import { clientPath, workDetailPath } from '@/lib/workPaths'
@@ -768,10 +768,10 @@ export default function ClientDetailPage() {
   const paymentsAlertCount = openCases.filter((item) => item.balance > 0).length
 
   const servicesAttentionCases = openCases.filter((item) => {
-    const readiness = toReadinessItem(item)
+    const boardItem = toServiceBoardItem(item)
     return (
-      readiness != null &&
-      (readiness.state === 'blocked' || readiness.state === 'on-hold')
+      boardItem != null &&
+      (boardItem.state === 'blocked' || boardItem.state === 'on-hold')
     )
   }).length
   const pendingStatusRequests = requests.filter(

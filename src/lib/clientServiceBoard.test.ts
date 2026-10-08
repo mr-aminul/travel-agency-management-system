@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildReadinessBoard,
-  buildReadinessQueue,
+  buildServiceBoard,
+  buildServiceBoardQueue,
   currentStepStartedAt,
-  toReadinessItem,
-} from '@/lib/clientReadiness'
+  toServiceBoardItem,
+} from '@/lib/clientServiceBoard'
 import type { Case, CaseDocument } from '@/types/case'
 import { TENANT_IDS } from '@/types/tenant'
 
@@ -39,9 +39,9 @@ function buildCase(overrides: Partial<Case> & Pick<Case, 'id'>): Case {
   }
 }
 
-describe('toReadinessItem', () => {
+describe('toServiceBoardItem', () => {
   it('marks open medical files as actionable with next step and progress', () => {
-    const item = toReadinessItem(
+    const item = toServiceBoardItem(
       buildCase({
         id: 'case-101',
         caseId: 'SR-00101',
@@ -67,7 +67,7 @@ describe('toReadinessItem', () => {
   })
 
   it('flags missing required docs as blocked', () => {
-    const item = toReadinessItem(
+    const item = toServiceBoardItem(
       buildCase({
         id: 'a',
         documents: [buildDocument('demand', 'missing')],
@@ -80,8 +80,8 @@ describe('toReadinessItem', () => {
   })
 
   it('ignores completed and cancelled files', () => {
-    expect(toReadinessItem(buildCase({ id: 'a', status: 'Completed' }))).toBeNull()
-    expect(toReadinessItem(buildCase({ id: 'b', status: 'Cancelled' }))).toBeNull()
+    expect(toServiceBoardItem(buildCase({ id: 'a', status: 'Completed' }))).toBeNull()
+    expect(toServiceBoardItem(buildCase({ id: 'b', status: 'Cancelled' }))).toBeNull()
   })
 })
 
@@ -100,9 +100,9 @@ describe('currentStepStartedAt', () => {
   })
 })
 
-describe('buildReadinessQueue', () => {
+describe('buildServiceBoardQueue', () => {
   it('lists next actions sorted by blocked, departure, then wait time', () => {
-    const queue = buildReadinessQueue(
+    const queue = buildServiceBoardQueue(
       [
         buildCase({
           id: 'ready',
@@ -146,9 +146,9 @@ describe('buildReadinessQueue', () => {
   })
 })
 
-describe('buildReadinessBoard', () => {
+describe('buildServiceBoard', () => {
   it('groups clients by current step so ops can scan medical vs visa', () => {
-    const board = buildReadinessBoard(
+    const board = buildServiceBoard(
       [
         buildCase({
           id: 'a',
@@ -184,7 +184,7 @@ describe('buildReadinessBoard', () => {
     ])
   })
 
-  it('filters by service and readiness state', () => {
+  it('filters by service and service board state', () => {
     const cases = [
       buildCase({
         id: 'a',
@@ -204,7 +204,7 @@ describe('buildReadinessBoard', () => {
       }),
     ]
 
-    const medicalOnly = buildReadinessBoard(
+    const medicalOnly = buildServiceBoard(
       cases,
       {
         services: ['Work Permit Visa'],
@@ -215,7 +215,7 @@ describe('buildReadinessBoard', () => {
     expect(medicalOnly.openCount).toBe(1)
     expect(medicalOnly.columns[0]?.items[0].state).toBe('blocked')
 
-    const actionable = buildReadinessBoard(cases, { states: ['actionable'] }, asOf)
+    const actionable = buildServiceBoard(cases, { states: ['actionable'] }, asOf)
     expect(actionable.openCount).toBe(1)
     expect(actionable.columns[0]?.stepId).toBe('medical')
     expect(actionable.columns[0]?.items[0].service).toBe('Hajj/Umrah Visa')
