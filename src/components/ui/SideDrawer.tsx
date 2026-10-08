@@ -10,6 +10,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cx } from '@/lib/cx'
 
@@ -68,6 +69,8 @@ function clampDrawerWidth(width: number) {
  * Right-side panel for focused work without burying the page under a form.
  * Esc / backdrop click closes. Focus moves into the panel when opened.
  * Left-edge grip resizes width; the choice is remembered across panels.
+ * Portaled to document.body so it stacks above the app shell top bar
+ * (page content lives in an isolated scroll stacking context).
  */
 export function SideDrawer({
   open,
@@ -255,11 +258,11 @@ export function SideDrawer({
     }
   }
 
-  if (!open) return null
+  if (!open || typeof document === 'undefined') return null
 
   const resolvedWidth = widthPx == null ? null : clampDrawerWidth(widthPx)
 
-  return (
+  return createPortal(
     <div className="pd-drawer" role="presentation">
       <button
         type="button"
@@ -326,6 +329,7 @@ export function SideDrawer({
         <div className="pd-drawer__body">{children}</div>
         {footer ? <footer className="pd-drawer__footer">{footer}</footer> : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

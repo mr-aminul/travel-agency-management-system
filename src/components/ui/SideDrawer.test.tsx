@@ -8,6 +8,17 @@ afterEach(() => {
 })
 
 describe('SideDrawer', () => {
+  it('mounts on document.body so it can cover shell chrome', () => {
+    render(
+      <SideDrawer open onClose={() => undefined} title="Add service">
+        Form
+      </SideDrawer>,
+    )
+
+    const dialog = screen.getByRole('dialog', { name: 'Add service' })
+    expect(dialog.closest('.pd-drawer')?.parentElement).toBe(document.body)
+  })
+
   it('exposes a resize grip on the right panel', () => {
     render(
       <SideDrawer open onClose={() => undefined} title="Add service">
