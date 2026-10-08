@@ -73,6 +73,7 @@ import {
   validateRequiredPhone,
 } from '@/lib/fieldValidation'
 import { formatDisplayDate } from '@/lib/formatDate'
+import { flashAndReveal } from '@/lib/scrollWithin'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import type { ServiceType, CreateCaseInput } from '@/types/case'
 import type {
@@ -546,6 +547,8 @@ export default function ClientDetailPage() {
   const activeTab = serviceOutlet ? 'services' : tabFromSearch(searchParams)
   const [newCaseOpen, setNewCaseOpen] = useState(false)
   const [draft, setDraft] = useState<ProfileDraft | null>(null)
+  const [profileFlash, setProfileFlash] = useState(false)
+  const [docsFlash, setDocsFlash] = useState(false)
   const { markAllTouched, showError, blur } = useTouchedFields<string>()
   const subAgentOptions = useMemo(
     () => [
@@ -563,6 +566,34 @@ export default function ClientDetailPage() {
       setNewCaseOpen(true)
     }
   }, [searchParams])
+
+  useEffect(() => {
+    const focus = searchParams.get('focus')
+    if (focus !== 'passport' && focus !== 'docs') return
+
+    if (focus === 'passport') setProfileFlash(true)
+    if (focus === 'docs') setDocsFlash(true)
+
+    const frame = window.requestAnimationFrame(() => {
+      flashAndReveal(
+        focus === 'passport' ? 'client-profile-identity' : 'client-documents',
+      )
+    })
+
+    const timer = window.setTimeout(() => {
+      setProfileFlash(false)
+      setDocsFlash(false)
+      const next = new URLSearchParams(searchParams)
+      next.delete('focus')
+      next.delete('case')
+      setSearchParams(next, { replace: true })
+    }, 2800)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.clearTimeout(timer)
+    }
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     if (!client) return
@@ -1081,7 +1112,22 @@ export default function ClientDetailPage() {
                   <div className="pd-client-detail__profile">
                     <div className="pd-client-profile">
                       {PROFILE_GROUPS.map((group) => (
-                        <div key={group.title} className="pd-client-profile__group">
+                        <div
+                          key={group.title}
+                          id={
+                            group.title === 'Identity'
+                              ? 'client-profile-identity'
+                              : undefined
+                          }
+                          className={[
+                            'pd-client-profile__group',
+                            group.title === 'Identity' && profileFlash
+                              ? 'pd-focus-flash'
+                              : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                        >
                           <h3 className="pd-client-profile__group-title">
                             {group.title}
                           </h3>
@@ -1242,6 +1288,12 @@ export default function ClientDetailPage() {
                     client={client}
                     cases={clientCases}
                     onAddService={openNewCase}
+                    focusCaseId={
+                      searchParams.get('focus') === 'docs'
+                        ? searchParams.get('case')
+                        : null
+                    }
+                    highlight={docsFlash}
                   />
                 ),
               },

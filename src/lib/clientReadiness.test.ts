@@ -58,6 +58,7 @@ describe('toReadinessItem', () => {
       stepLabel: 'Medical',
       destination: 'Riyadh, Saudi Arabia',
       state: 'actionable',
+      focus: 'pipeline',
       nextStepLabel: 'Visa',
       stepNumber: 5,
       stepCount: 9,
@@ -74,6 +75,7 @@ describe('toReadinessItem', () => {
       asOf,
     )
     expect(item?.state).toBe('blocked')
+    expect(item?.focus).toBe('documents')
     expect(item?.missingDocs).toBe(1)
   })
 

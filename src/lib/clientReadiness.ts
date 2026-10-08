@@ -52,6 +52,9 @@ const STATE_RANK: Record<ReadinessState, number> = {
 
 export type ReadinessState = 'actionable' | 'blocked' | 'on-hold'
 
+/** Where to send staff when they act on a readiness signal. */
+export type ReadinessFocus = 'profile' | 'documents' | 'status' | 'pipeline'
+
 export type ReadinessItem = {
   id: string
   caseId: string
@@ -64,6 +67,7 @@ export type ReadinessItem = {
   stage: CaseStage
   status: Case['status']
   state: ReadinessState
+  focus: ReadinessFocus
   /** What staff should do on this file right now. */
   action: string
   /** Label of the step that follows once the current one is done. */
@@ -179,6 +183,17 @@ function readinessState(
   return 'actionable'
 }
 
+function readinessFocus(
+  state: ReadinessState,
+  missingDocs: number,
+  profileBlocked: boolean,
+): ReadinessFocus {
+  if (state === 'on-hold') return 'status'
+  if (state === 'blocked' && profileBlocked) return 'profile'
+  if (state === 'blocked' && missingDocs > 0) return 'documents'
+  return 'pipeline'
+}
+
 function actionHint(
   item: Case,
   stepLabel: string,
@@ -226,6 +241,7 @@ export function toReadinessItem(
     ? clientProgressBlockers(client).length > 0
     : false
   const state = readinessState(item, missingDocs, profileBlocked)
+  const focus = readinessFocus(state, missingDocs, profileBlocked)
   const next = getNextStepDef(item)
   const departureDays = item.departureDate
     ? daysUntil(item.departureDate, asOf)
@@ -243,6 +259,7 @@ export function toReadinessItem(
     stage: step.stage,
     status: item.status,
     state,
+    focus,
     action: actionHint(item, step.label, missingDocs, profileBlocked),
     nextStepLabel: next?.label ?? null,
     stepNumber: index + 1,

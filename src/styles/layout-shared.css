@@ -25,3 +25,24 @@
   width: 2.125rem;
   height: 2.125rem;
 }
+
+/* Highlight a target without shifting layout (no padding/margin/transform). */
+.pd-focus-flash {
+  border-radius: 0.75rem;
+  animation: pd-focus-flash 2.8s ease forwards;
+}
+
+@keyframes pd-focus-flash {
+  0%,
+  72% {
+    outline: 2px solid color-mix(in srgb, var(--color-theme) 55%, transparent);
+    outline-offset: 3px;
+    background-color: color-mix(in srgb, var(--color-theme) 10%, transparent);
+  }
+
+  100% {
+    outline-color: transparent;
+    outline-offset: 3px;
+    background-color: transparent;
+  }
+}

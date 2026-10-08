@@ -27,18 +27,18 @@
   font-size: 0.6875rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  background: var(--color-bg-muted);
-  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--metric-ink, var(--color-on-theme)) 18%, transparent);
+  color: var(--metric-ink, var(--color-on-theme));
 }
 
 .pd-ops-metric-link__delta--up {
-  background: color-mix(in srgb, var(--color-status-completed) 16%, var(--color-surface));
-  color: var(--color-status-completed);
+  background: color-mix(in srgb, var(--metric-ink, var(--color-on-theme)) 22%, transparent);
+  color: var(--metric-ink, var(--color-on-theme));
 }
 
 .pd-ops-metric-link__delta--down {
-  background: color-mix(in srgb, var(--color-danger) 14%, var(--color-surface));
-  color: var(--color-danger);
+  background: color-mix(in srgb, var(--metric-ink, var(--color-on-theme)) 22%, transparent);
+  color: var(--metric-ink, var(--color-on-theme));
 }
 
 .pd-ops-metric-link__value-row {
@@ -50,11 +50,11 @@
 }
 
 .pd-dash-spark__area {
-  fill: color-mix(in srgb, var(--metric-fill, var(--color-theme)) 18%, transparent);
+  fill: color-mix(in srgb, var(--metric-ink, var(--color-on-theme)) 18%, transparent);
 }
 
 .pd-dash-spark__line {
-  stroke: var(--metric-fill, var(--color-theme));
+  stroke: var(--metric-ink, var(--color-on-theme));
   stroke-width: 1.75;
   stroke-linecap: round;
   stroke-linejoin: round;

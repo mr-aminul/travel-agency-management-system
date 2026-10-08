@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, ChevronDown, Circle, IdCard, Plus } from 'lucide-react'
 import { DocumentWorkspace } from '@/components/cases/DocumentWorkspace'
 import { cx } from '@/lib/cx'
@@ -33,10 +33,14 @@ export function ClientDocumentsPanel({
   client,
   cases,
   onAddService,
+  focusCaseId = null,
+  highlight = false,
 }: {
   client: Client
   cases: Case[]
   onAddService: () => void
+  focusCaseId?: string | null
+  highlight?: boolean
 }) {
   useServiceIconOverrides()
 
@@ -78,6 +82,24 @@ export function ClientDocumentsPanel({
     expandGroup(caseId)
   }
 
+  useEffect(() => {
+    if (!focusCaseId) return
+    const group = getClientServiceDocumentGroups(cases).find(
+      (item) => item.caseId === focusCaseId && item.papers.length > 0,
+    )
+    if (!group) return
+    const missing = group.papers.find(
+      (doc) => doc.required && doc.status === 'missing',
+    )
+    setSelected({
+      groupId: focusCaseId,
+      docId: missing?.id ?? group.papers[0].id,
+    })
+    setCollapsedGroupIds((current) =>
+      current.filter((id) => id !== focusCaseId),
+    )
+  }, [focusCaseId, cases])
+
   const identityOpen = isGroupOpen(IDENTITY_GROUP_ID)
   const selectedIdentity =
     selected.groupId === IDENTITY_GROUP_ID
@@ -95,7 +117,11 @@ export function ClientDocumentsPanel({
 
   return (
     <section
-      className="pd-service-workspace pd-service-workspace--docs pd-client-docs"
+      id="client-documents"
+      className={cx(
+        'pd-service-workspace pd-service-workspace--docs pd-client-docs',
+        highlight && 'pd-focus-flash',
+      )}
       aria-label={`${client.name} documents`}
     >
       <aside className="pd-service-rail">
@@ -193,7 +219,12 @@ export function ClientDocumentsPanel({
             const Icon = iconForService(group.service)
             return (
               <div key={group.caseId} className="pd-doc-tree__group">
-                <div className="pd-service-rail__item pd-doc-tree__parent">
+                <div
+                  className={cx(
+                    'pd-service-rail__item pd-doc-tree__parent',
+                    highlight && group.caseId === focusCaseId && 'pd-focus-flash',
+                  )}
+                >
                   <button
                     type="button"
                     className="pd-doc-tree__parent-hit"

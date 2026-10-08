@@ -77,7 +77,7 @@
   --color-neutral-hover: #f3f4f6;
 
   /* Surfaces — flipped in .dark; brand seed stays the same */
-  --color-cream: #f7f8f8;
+  --color-cream: #e4e7e9;
   --color-surface: #ffffff;
   --color-surface-raised: #ffffff;
   --color-cream-card: var(--color-theme-subtle);

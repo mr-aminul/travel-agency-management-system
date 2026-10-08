@@ -155,14 +155,13 @@ describe('service detail', () => {
     expect(screen.queryByRole('heading', { name: 'Travel' })).not.toBeInTheDocument()
 
     const facts = screen.getByLabelText('Service details')
-    expect(within(facts).getByText('Destination')).toBeInTheDocument()
-    expect(within(facts).getByText('Riyadh, Saudi Arabia')).toBeInTheDocument()
-    expect(within(facts).getByText('Departure')).toBeInTheDocument()
-    expect(within(facts).getByText('15-Sep-2026')).toBeInTheDocument()
-    expect(within(facts).getByText('Current step')).toBeInTheDocument()
-    expect(within(facts).getByText('Medical')).toBeInTheDocument()
-    expect(within(facts).getByText('Service fee')).toBeInTheDocument()
-    expect(within(facts).getByText('Balance due')).toBeInTheDocument()
+    expect(within(facts).getByLabelText('Destination')).toHaveValue(
+      'Riyadh, Saudi Arabia',
+    )
+    expect(within(facts).getByLabelText('Departure')).toHaveValue('15-Sep-2026')
+    expect(within(facts).getByLabelText('Current step')).toHaveValue('Medical')
+    expect(within(facts).getByLabelText('Service fee')).toBeInTheDocument()
+    expect(within(facts).getByLabelText('Balance due')).toBeInTheDocument()
     expect(within(service).getByLabelText('Pipeline')).toBeInTheDocument()
     expect(within(service).getByRole('heading', { name: 'Pipeline' })).toBeInTheDocument()
     expect(within(service).getByText('Stage 5 of 9')).toBeInTheDocument()
@@ -172,13 +171,18 @@ describe('service detail', () => {
     expect(
       within(service).getByRole('button', { name: 'Copy tracking link' }),
     ).toBeInTheDocument()
-    expect(within(facts).getByText('Md. Karim Ahmed')).toBeInTheDocument()
-    expect(within(facts).getByText('1 needed')).toBeInTheDocument()
+    expect(within(facts).getByLabelText('Assigned to')).toHaveValue(
+      'Md. Karim Ahmed',
+    )
+    expect(within(facts).getByLabelText('Documents')).toHaveValue('1 needed')
     expect(
-      within(facts).getByText(
-        'Nurse recruitment for Al Rajhi Hospital. Medical + police clearance in progress.',
-      ),
+      within(service).getByRole('button', {
+        name: /Blocked/i,
+      }),
     ).toBeInTheDocument()
+    expect(within(facts).getByLabelText('Notes')).toHaveValue(
+      'Nurse recruitment for Al Rajhi Hospital. Medical + police clearance in progress.',
+    )
   })
 
   it('copies the public tracking URL from the service header', async () => {
@@ -193,6 +197,19 @@ describe('service detail', () => {
     )
 
     expect(writeText).toHaveBeenCalledWith(clientTrackingUrl('A12345678'))
+  })
+
+  it('opens documents from the blocked readiness ribbon', () => {
+    renderClient('/clients/c-284/services/case-101')
+
+    const service = screen.getByLabelText('Work Permit Visa (SR-00101)')
+    fireEvent.click(within(service).getByRole('button', { name: /Blocked/i }))
+
+    expect(screen.getByRole('tab', { name: 'Documents' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByLabelText('Md. Rahim Uddin documents')).toBeInTheDocument()
   })
 
   it('opens the first file when landing on Services, then switches files from the list', () => {

@@ -58,6 +58,7 @@
 
 .pd-ops-metric-link {
   --metric-fill: var(--color-theme);
+  --metric-ink: oklch(from var(--metric-fill) round(1.21 - l) 0 0);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -67,45 +68,47 @@
   min-width: 0;
   width: 100%;
   padding: 0.85rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--metric-fill) 28%, var(--color-border));
+  border: 1px solid color-mix(in srgb, var(--metric-fill) 82%, black);
   border-radius: var(--radius-card, 1rem);
-  background: color-mix(in srgb, var(--metric-fill) 14%, var(--color-surface));
+  background: var(--metric-fill);
   appearance: none;
   font: inherit;
   text-align: left;
   text-decoration: none;
-  color: inherit;
+  color: var(--metric-ink);
   cursor: pointer;
 }
 
+/* Solid KPI fills — categorical SaaS set (indigo / blue / green / orange).
+   Deep enough for white ink (WCAG), hues kept distinct for colorblind safety. */
 .pd-ops-metric-link--brand {
-  --metric-fill: var(--color-theme);
+  --metric-fill: #3730a3; /* indigo-800 — primary / total */
 }
 
 .pd-ops-metric-link--info {
-  --metric-fill: var(--color-blue);
+  --metric-fill: #1d4ed8; /* blue-700 — open / in-progress */
 }
 
 .pd-ops-metric-link--success {
-  --metric-fill: var(--color-status-completed);
+  --metric-fill: #15803d; /* green-700 — completed */
 }
 
 .pd-ops-metric-link--warning {
-  --metric-fill: var(--color-amber);
+  --metric-fill: #c2410c; /* orange-700 — outstanding / attention */
 }
 
 .pd-ops-metric-link--muted {
-  --metric-fill: var(--color-status-on-hold);
+  --metric-fill: #334155; /* slate-700 */
 }
 
 .pd-ops-metric-link:hover,
 .pd-ops-metric-link.is-selected {
-  background: color-mix(in srgb, var(--metric-fill) 22%, var(--color-surface));
-  border-color: var(--metric-fill);
+  background: color-mix(in srgb, var(--metric-fill) 88%, black);
+  border-color: color-mix(in srgb, var(--metric-fill) 72%, black);
 }
 
 .pd-ops-metric-link.is-selected {
-  box-shadow: 0 0 0 1px var(--metric-fill);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--metric-ink) 55%, transparent);
 }
 
 .pd-ops-metric-link__watermark {
@@ -114,8 +117,8 @@
   bottom: -1.35rem;
   z-index: 0;
   display: flex;
-  color: var(--metric-fill);
-  opacity: 0.18;
+  color: var(--metric-ink);
+  opacity: 0.14;
   pointer-events: none;
   transform: rotate(-8deg);
 }
@@ -135,14 +138,14 @@
 .pd-ops-metric-link__icon {
   display: inline-flex;
   flex-shrink: 0;
-  color: var(--metric-fill);
+  color: var(--metric-ink);
 }
 
 .pd-ops-metric-link__label {
   min-width: 0;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: color-mix(in srgb, var(--metric-ink) 78%, transparent);
 }
 
 .pd-ops-metric-link__value {
@@ -150,14 +153,14 @@
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--color-text);
+  color: var(--metric-ink);
   line-height: 1.1;
 }
 
 .pd-ops-metric-link__hint {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: color-mix(in srgb, var(--metric-ink) 78%, transparent);
 }
 
 .pd-ops__section {

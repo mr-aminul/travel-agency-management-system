@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
-import { Check, ClipboardList, FileText, Link2, SquarePen } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { ArrowRight, Check, ClipboardList, FileText, Link2, SquarePen } from 'lucide-react'
 import { CasePipeline } from '@/components/cases/CasePipeline'
 import { getCurrentStepLabel } from '@/lib/caseChecklist'
 import { formatDisplayDate } from '@/lib/formatDate'
@@ -18,6 +18,11 @@ import { usePaymentsByCaseId } from '@/lib/paymentsStore'
 import { formatBalance, getClientById } from '@/lib/clientsStore'
 import { caseServiceFee, parseMoneyInput } from '@/lib/caseMoney'
 import {
+  toReadinessItem,
+  type ReadinessFocus,
+  type ReadinessState,
+} from '@/lib/clientReadiness'
+import {
   employeeAssignmentOptions,
   getEmployeeDisplayName,
   useEmployees,
@@ -25,6 +30,7 @@ import {
 import { submitStatusRequest } from '@/lib/requestsStore'
 import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { iconForService } from '@/lib/serviceIcons'
+import { flashAndReveal } from '@/lib/scrollWithin'
 import { clientPath, workDetailPath, workInvoicePath } from '@/lib/workPaths'
 import { clientTrackingUrl } from '@/lib/publicUrl'
 import type { CaseStatus } from '@/types/case'
@@ -36,6 +42,30 @@ function statusBadgeVariant(status: CaseStatus): BadgeVariant {
   if (status === 'In-Progress') return 'in-progress'
   if (status === 'On-Hold') return 'on-hold'
   return 'danger'
+}
+
+const READINESS_RIBBON: Record<
+  ReadinessState,
+  { label: string; tone: 'ready' | 'blocked' | 'hold' }
+> = {
+  actionable: { label: 'Ready', tone: 'ready' },
+  blocked: { label: 'Blocked', tone: 'blocked' },
+  'on-hold': { label: 'On hold', tone: 'hold' },
+}
+
+const FOCUS_FLASH_MS = 2800
+
+function clientFocusPath(
+  clientId: string,
+  focus: Extract<ReadinessFocus, 'profile' | 'documents'>,
+  caseId: string,
+): string {
+  const params = new URLSearchParams({
+    tab: focus === 'profile' ? 'profile' : 'documents',
+    focus: focus === 'profile' ? 'passport' : 'docs',
+  })
+  if (focus === 'documents') params.set('case', caseId)
+  return `/clients/${clientId}?${params.toString()}`
 }
 
 function formatDate(value?: string): string {
@@ -62,26 +92,32 @@ function Fact({
   label,
   value,
   attention = false,
+  className,
 }: {
   label: string
-  value: ReactNode
+  value: string
   /** Recommended gap — highlight only, never blocks progress. */
   attention?: boolean
+  className?: string
 }) {
   return (
     <div
-      className={['pd-case-detail__fact', attention ? 'is-attention' : '']
+      className={[
+        'pd-case-detail__fact',
+        attention ? 'is-attention' : '',
+        className,
+      ]
         .filter(Boolean)
         .join(' ')}
     >
-      <span className="pd-case-detail__fact-label">{label}</span>
-      <span className="pd-case-detail__fact-value">{value}</span>
+      <Input label={label} value={value} readOnly tabIndex={-1} />
     </div>
   )
 }
 
 export default function CaseDetailPage() {
   const { id: clientId = '', caseId = '' } = useParams()
+  const navigate = useNavigate()
   useCases()
   useServiceIconOverrides()
   const item = getCaseById(caseId)
@@ -101,12 +137,31 @@ export default function CaseDetailPage() {
   const [requestTo, setRequestTo] = useState<CaseStatus>('In-Progress')
   const [requestRemarks, setRequestRemarks] = useState('')
   const [trackingCopied, setTrackingCopied] = useState(false)
+  const [flashTarget, setFlashTarget] = useState<'status' | 'pipeline' | null>(
+    null,
+  )
 
   useEffect(() => {
     setEditing(false)
     setRequestOpen(false)
     setTrackingCopied(false)
+    setFlashTarget(null)
   }, [caseId])
+
+  useEffect(() => {
+    if (!flashTarget) return
+    const id =
+      flashTarget === 'status' ? 'case-status-field' : 'case-pipeline'
+    // Wait a frame so edit-mode DOM is mounted before measuring.
+    const frame = window.requestAnimationFrame(() => {
+      flashAndReveal(id)
+    })
+    const timer = window.setTimeout(() => setFlashTarget(null), FOCUS_FLASH_MS)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.clearTimeout(timer)
+    }
+  }, [flashTarget, editing])
 
   useEffect(() => {
     if (!trackingCopied) return
@@ -132,6 +187,8 @@ export default function CaseDetailPage() {
   const currentLabel = getCurrentStepLabel(item)
   const displayStatus = editing ? draft.status : item.status
   const ServiceIcon = iconForService(item.service)
+  const readiness = toReadinessItem(item)
+  const ribbon = readiness ? READINESS_RIBBON[readiness.state] : null
 
   const startEditing = () => {
     setDraft({
@@ -157,6 +214,20 @@ export default function CaseDetailPage() {
       description: draft.description,
     })
     setEditing(false)
+  }
+
+  const openReadinessTarget = () => {
+    if (!readiness) return
+    if (readiness.focus === 'profile' || readiness.focus === 'documents') {
+      navigate(clientFocusPath(item.clientId, readiness.focus, item.id))
+      return
+    }
+    if (readiness.focus === 'status') {
+      if (!editing) startEditing()
+      setFlashTarget('status')
+      return
+    }
+    setFlashTarget('pipeline')
   }
 
   const serviceHeader = (
@@ -271,6 +342,19 @@ export default function CaseDetailPage() {
       className="pd-case-detail pd-case-detail--workspace"
       aria-label={serviceDetailAriaLabel(item)}
     >
+      {ribbon && readiness ? (
+        <button
+          type="button"
+          className={`pd-case-detail__ribbon pd-case-detail__ribbon--${ribbon.tone}`}
+          onClick={openReadinessTarget}
+        >
+          <span className="pd-case-detail__ribbon-copy">
+            <strong>{ribbon.label}</strong>
+            <span>{readiness.action}</span>
+          </span>
+          <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
+        </button>
+      ) : null}
       {serviceHeader}
       <div className="pd-case-detail__overview">
         <section
@@ -279,17 +363,24 @@ export default function CaseDetailPage() {
         >
           {editing ? (
             <div className="pd-cases-form__grid">
-              <Select
-                label="Status"
-                value={draft.status}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    status: event.target.value as CaseStatus,
-                  }))
+              <div
+                id="case-status-field"
+                className={
+                  flashTarget === 'status' ? 'pd-focus-flash' : undefined
                 }
-                options={CASE_STATUS_OPTIONS}
-              />
+              >
+                <Select
+                  label="Status"
+                  value={draft.status}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      status: event.target.value as CaseStatus,
+                    }))
+                  }
+                  options={CASE_STATUS_OPTIONS}
+                />
+              </div>
               <Select
                 label="Assigned to"
                 searchable
@@ -339,10 +430,9 @@ export default function CaseDetailPage() {
                   }))
                 }
               />
-              <Textarea
+              <Input
                 className="pd-cases-form__full"
                 label="Notes"
-                rows={3}
                 value={draft.description}
                 onChange={(event) =>
                   setDraft((current) => ({
@@ -353,50 +443,55 @@ export default function CaseDetailPage() {
               />
             </div>
           ) : (
-            <>
-              <div className="pd-case-detail__facts">
-                <Fact
-                  label="Destination"
-                  value={item.destination || '—'}
-                  attention={missingCountry}
-                />
-                <Fact
-                  label="Departure"
-                  value={formatDate(item.departureDate)}
-                />
-                <Fact label="Current step" value={currentLabel} />
-                <Fact
-                  label="Assigned to"
-                  value={assignedName || '—'}
-                  attention={missingAssignee}
-                />
-                <Fact
-                  label="Service fee"
-                  value={formatBalance(serviceFee)}
-                />
-                <Fact
-                  label="Balance due"
-                  value={formatBalance(item.balance)}
-                />
-                <Fact label="Opened" value={formatDate(item.createdAt)} />
-                <Fact label="Updated" value={formatDate(item.updatedAt)} />
-                <Fact
-                  label="Documents"
-                  value={
-                    missingDocs > 0
-                      ? `${missingDocs} needed`
-                      : 'Complete'
-                  }
-                  attention={missingDocs > 0}
-                />
-              </div>
-              {item.description ? (
-                <p className="pd-case-detail__notes">{item.description}</p>
-              ) : null}
-            </>
+            <div className="pd-case-detail__facts">
+              <Fact
+                label="Destination"
+                value={item.destination || '—'}
+                attention={missingCountry}
+              />
+              <Fact
+                label="Departure"
+                value={formatDate(item.departureDate)}
+              />
+              <Fact label="Current step" value={currentLabel} />
+              <Fact
+                label="Assigned to"
+                value={assignedName || '—'}
+                attention={missingAssignee}
+              />
+              <Fact
+                label="Service fee"
+                value={formatBalance(serviceFee)}
+              />
+              <Fact
+                label="Balance due"
+                value={formatBalance(item.balance)}
+              />
+              <Fact label="Opened" value={formatDate(item.createdAt)} />
+              <Fact label="Updated" value={formatDate(item.updatedAt)} />
+              <Fact
+                label="Documents"
+                value={
+                  missingDocs > 0
+                    ? `${missingDocs} needed`
+                    : 'Complete'
+                }
+                attention={missingDocs > 0}
+              />
+              <Fact
+                className="pd-case-detail__fact--full"
+                label="Notes"
+                value={item.description?.trim() || '—'}
+              />
+            </div>
           )}
         </section>
-        <CasePipeline item={item} />
+        <div
+          id="case-pipeline"
+          className={flashTarget === 'pipeline' ? 'pd-focus-flash' : undefined}
+        >
+          <CasePipeline item={item} />
+        </div>
       </div>
       <Modal
         open={requestOpen}

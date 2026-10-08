@@ -95,14 +95,7 @@ export function AppLayout({
             onMobileClose={() => setIsMobileOpen(false)}
           />
           <div className="pd-app-content">
-            <div
-              className={[
-                'pd-app-content-card',
-                isFillPage ? 'pd-app-content-card--fill' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
+            <div className="pd-app-content-card">
               <TopBar
                 title={currentNavItem?.label ?? 'App'}
                 titleIcon={currentNavItem?.icon}
@@ -112,18 +105,32 @@ export function AppLayout({
                 onMobileMenuOpen={() => setIsMobileOpen(true)}
                 isMobile={isMobile}
               />
-              <main
+              {/*
+               * The only scroll container for page content. It sits below the
+               * transparent top bar so page sticky chrome cannot paint over it.
+               */}
+              <div
                 className={[
-                  'pd-app-main',
-                  isFillPage ? 'pd-app-main--fill' : '',
+                  'pd-app-scroll',
+                  isFillPage ? 'pd-app-scroll--fill' : '',
                 ]
                   .filter(Boolean)
                   .join(' ')}
               >
-                <Fragment key={pageIdentity(pathname)}>
-                  <Outlet />
-                </Fragment>
-              </main>
+                <main
+                  className={[
+                    'pd-app-main',
+                    isFillPage ? 'pd-app-main--fill' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  <Fragment key={pageIdentity(pathname)}>
+                    <Outlet />
+                  </Fragment>
+                </main>
+              </div>
+              {/* Outside the scroller: the version label floats so it costs no page height. */}
               <footer
                 className="pd-app-footer"
                 title={`App version ${APP_VERSION_LABEL}`}
