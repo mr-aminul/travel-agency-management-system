@@ -111,17 +111,21 @@ export default function AcceptInvitePage() {
             <p className="pd-field__error" role="alert">
               {loadError}
             </p>
-            <Link to="/login">Go to login</Link>
+            <Link to="/login" className="pd-login__text-link">
+              Go to login
+            </Link>
           </div>
         ) : (
           <form className="pd-login__form" onSubmit={handleSubmit} noValidate>
             <Input
               label="Your name"
+              labelVariant="default"
               value={invite?.name ?? ''}
               readOnly
             />
             <Input
               label="Password"
+              labelVariant="default"
               type="password"
               autoComplete="new-password"
               value={password}
@@ -132,6 +136,7 @@ export default function AcceptInvitePage() {
             />
             <Input
               label="Confirm password"
+              labelVariant="default"
               type="password"
               autoComplete="new-password"
               value={confirm}

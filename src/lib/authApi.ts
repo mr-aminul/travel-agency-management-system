@@ -582,23 +582,18 @@ export async function fetchPasswordReset(token: string) {
   return apiFetch<{
     emailMasked: string
     expiresAt: string
-    requiresOtp: boolean
   }>(`/api/platform/public/password-reset/${encodeURIComponent(token)}`, {
     skipAuth: true,
   })
 }
 
-export async function confirmPasswordReset(
-  token: string,
-  password: string,
-  otp: string,
-) {
+export async function confirmPasswordReset(token: string, password: string) {
   return apiFetch<{ reset: boolean; emailMasked: string }>(
     `/api/platform/public/password-reset/${encodeURIComponent(token)}/confirm`,
     {
       method: 'POST',
       skipAuth: true,
-      body: { password, otp },
+      body: { password },
     },
   )
 }

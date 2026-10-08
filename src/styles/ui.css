@@ -218,6 +218,8 @@ a.pd-btn {
   flex-direction: column;
   gap: 0.375rem;
   min-width: 0;
+  /* Notch + control fill — override on light/dark surfaces so labels never clash */
+  --pd-field-fill: var(--color-bg);
 }
 
 .pd-field__label {
@@ -246,7 +248,7 @@ a.pd-btn {
   transform: translateY(-50%);
   padding: 0 0.2rem;
   margin: 0;
-  background: var(--color-bg);
+  background: var(--pd-field-fill);
   font-size: 0.6875rem;
   font-weight: 500;
   line-height: 1;
@@ -256,9 +258,10 @@ a.pd-btn {
   transition: color 0.15s ease;
 }
 
-.pd-modal .pd-field--outlined .pd-field__label,
-.pd-drawer .pd-field--outlined .pd-field__label {
-  background: var(--color-surface-raised, var(--color-bg));
+.pd-modal .pd-field,
+.pd-drawer .pd-field,
+.pd-card .pd-field {
+  --pd-field-fill: var(--color-surface-raised, var(--color-bg));
 }
 
 .pd-field--outlined:hover:not(.pd-field--error) .pd-field__label {
@@ -285,7 +288,7 @@ a.pd-btn {
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   border: 0.0625rem solid var(--color-border);
-  background: var(--color-bg);
+  background: var(--pd-field-fill);
   color: var(--color-text);
   font-family: inherit;
   font-size: 0.875rem;

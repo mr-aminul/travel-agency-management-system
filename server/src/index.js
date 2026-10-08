@@ -691,7 +691,6 @@ app.post(
       const result = await confirmPasswordReset({
         token: req.params.token,
         password: req.body?.password,
-        otp: req.body?.otp,
       })
       if (!result.ok) {
         res.status(result.status).json({ error: result.error })

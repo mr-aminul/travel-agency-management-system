@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { Check } from 'lucide-react'
 import { layoutConfig } from '@/config/layout'
 import { requestPasswordReset } from '@/lib/authApi'
 import { publicUrl } from '@/lib/publicUrl'
@@ -45,48 +46,53 @@ export default function ForgotPasswordPage() {
         decoding="async"
       />
       <div className="pd-login__card">
-        <div className="pd-login__brand">
-          <h1 className="pd-login__title">Reset password</h1>
-          <p className="pd-login__subtitle">
-            Enter your email. If an account exists, we’ll send a reset link and
-            a one-time code.
-          </p>
-        </div>
         {done ? (
-          <div className="pd-login__actions">
-            <p className="pd-login__subtitle" role="status">
-              If an account exists for that email, check your inbox for a reset
-              link and a 6-digit code. The link expires in 15 minutes.
+          <div className="pd-login__success" role="status">
+            <div className="pd-login__success-icon" aria-hidden>
+              <Check size={36} strokeWidth={2.75} />
+            </div>
+            <h1 className="pd-login__title">Check your email</h1>
+            <p className="pd-login__subtitle">
+              We sent a reset link if that account exists.
             </p>
-            <Link to="/login" className="pd-btn pd-btn--secondary">
+            <Link to="/login" className="pd-login__text-link">
               Back to login
             </Link>
           </div>
         ) : (
-          <form className="pd-login__form" onSubmit={handleSubmit} noValidate>
-            <Input
-              id="forgot-email"
-              label="Email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              onBlur={blur('email')}
-              required
-              error={showError('email') ? emailError : undefined}
-            />
-            {error ? (
-              <p className="pd-field__error" role="alert">
-                {error}
+          <>
+            <div className="pd-login__brand">
+              <h1 className="pd-login__title">Reset password</h1>
+              <p className="pd-login__subtitle">
+                Enter your email and we’ll send a reset link.
               </p>
-            ) : null}
-            <Button type="submit" size="lg" loading={isSubmitting}>
-              Email reset link
-            </Button>
-            <Link to="/login" className="pd-login__subtitle">
-              Back to login
-            </Link>
-          </form>
+            </div>
+            <form className="pd-login__form" onSubmit={handleSubmit} noValidate>
+              <Input
+                id="forgot-email"
+                label="Email"
+                labelVariant="default"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                onBlur={blur('email')}
+                required
+                error={showError('email') ? emailError : undefined}
+              />
+              {error ? (
+                <p className="pd-field__error" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              <Button type="submit" size="lg" loading={isSubmitting}>
+                Email reset link
+              </Button>
+              <Link to="/login" className="pd-login__text-link">
+                Back to login
+              </Link>
+            </form>
+          </>
         )}
       </div>
     </div>

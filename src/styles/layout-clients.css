@@ -1714,8 +1714,8 @@
   border-color: var(--color-danger);
 }
 
-.pd-client-detail__section .pd-field--outlined .pd-field__label {
-  background: var(--color-surface-raised, var(--color-bg));
+.pd-client-detail__section .pd-field {
+  --pd-field-fill: var(--color-surface-raised, var(--color-bg));
 }
 
 .pd-client-profile .pd-field__control:read-only,

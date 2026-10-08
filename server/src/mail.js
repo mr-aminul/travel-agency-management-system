@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { renderPasswordResetEmailHtml } from './emailTemplates.js'
 
 function envFlag(name, fallback = false) {
   const raw = process.env[name]
@@ -64,7 +65,7 @@ export async function sendMail(message) {
 }
 
 /**
- * @param {{ to: string, resetUrl: string, otp: string, expiresMinutes: number }} input
+ * @param {{ to: string, resetUrl: string, expiresMinutes: number }} input
  */
 export async function sendPasswordResetEmail(input) {
   const subject = 'Reset your OneTrack password'
@@ -72,19 +73,16 @@ export async function sendPasswordResetEmail(input) {
     'You requested a password reset for your OneTrack account.',
     '',
     `Reset link: ${input.resetUrl}`,
-    `One-time code: ${input.otp}`,
     '',
-    `This link and code expire in ${input.expiresMinutes} minutes.`,
+    `This link expires in ${input.expiresMinutes} minutes.`,
     'If you did not request this, ignore this email — your password stays the same.',
   ].join('\n')
 
-  const html = `
-    <p>You requested a password reset for your OneTrack account.</p>
-    <p><a href="${input.resetUrl}">Choose a new password</a></p>
-    <p>Your one-time code: <strong style="font-size:1.25rem;letter-spacing:0.12em">${input.otp}</strong></p>
-    <p>This link and code expire in ${input.expiresMinutes} minutes.</p>
-    <p>If you did not request this, ignore this email — your password stays the same.</p>
-  `
+  const html = renderPasswordResetEmailHtml({
+    baseUrl: publicUiBaseUrl(),
+    resetUrl: input.resetUrl,
+    expiresMinutes: input.expiresMinutes,
+  })
 
   await sendMail({ to: input.to, subject, text, html })
 }

@@ -137,9 +137,9 @@ export default function LoginPage() {
             <Button type="submit" size="lg" loading={isSubmitting}>
               Log in
             </Button>
-            <p className="pd-login__subtitle">
-              <Link to="/forgot-password">Forgot password?</Link>
-            </p>
+            <Link to="/forgot-password" className="pd-login__text-link">
+              Forgot password?
+            </Link>
           </form>
         </div>
       </div>

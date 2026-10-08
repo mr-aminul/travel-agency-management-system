@@ -8,7 +8,6 @@ import {
 } from './mail.js'
 
 const RESET_TTL_MS = 1000 * 60 * 15 // 15 minutes
-const MAX_CONFIRM_ATTEMPTS = 5
 const RATE_WINDOW_MS = 1000 * 60 * 15
 const MAX_REQUESTS_PER_EMAIL = 3
 const MAX_REQUESTS_PER_IP = 10
@@ -26,19 +25,8 @@ function newToken() {
   return crypto.randomBytes(32).toString('base64url')
 }
 
-function newOtp() {
-  return String(crypto.randomInt(0, 1_000_000)).padStart(6, '0')
-}
-
 function sha256Hex(value) {
   return crypto.createHash('sha256').update(String(value), 'utf8').digest('hex')
-}
-
-function hashesEqual(left, right) {
-  const a = Buffer.from(String(left || ''), 'utf8')
-  const b = Buffer.from(String(right || ''), 'utf8')
-  if (a.length !== b.length || a.length === 0) return false
-  return crypto.timingSafeEqual(a, b)
 }
 
 function maskEmail(email) {
@@ -96,7 +84,6 @@ export async function requestPasswordReset(email, { ip } = {}) {
   }
 
   if (!allowResetRequest({ email: normalizedEmail, ip })) {
-    // Same response shape — do not reveal throttling detail to attackers.
     return { ok: true, status: 200, body: { sent: true } }
   }
 
@@ -120,7 +107,6 @@ export async function requestPasswordReset(email, { ip } = {}) {
     }
   }
 
-  // Invalidate prior unused tokens
   await query(
     `update platform.password_resets
      set used_at = now()
@@ -130,20 +116,12 @@ export async function requestPasswordReset(email, { ip } = {}) {
 
   const id = `rst-${crypto.randomBytes(8).toString('hex')}`
   const token = newToken()
-  const otp = newOtp()
   const expiresAt = new Date(Date.now() + RESET_TTL_MS)
   await query(
     `insert into platform.password_resets
        (id, token, user_id, email, expires_at, created_at, otp_hash, attempts)
-     values ($1, $2, $3, $4, $5, now(), $6, 0)`,
-    [
-      id,
-      sha256Hex(token),
-      user.id,
-      user.email,
-      expiresAt.toISOString(),
-      sha256Hex(otp),
-    ],
+     values ($1, $2, $3, $4, $5, now(), null, 0)`,
+    [id, sha256Hex(token), user.id, user.email, expiresAt.toISOString()],
   )
 
   const resetUrl = `${publicUiBaseUrl()}/reset/${token}`
@@ -151,7 +129,6 @@ export async function requestPasswordReset(email, { ip } = {}) {
     await sendPasswordResetEmail({
       to: user.email,
       resetUrl,
-      otp,
       expiresMinutes: Math.round(RESET_TTL_MS / 60000),
     })
   } catch (error) {
@@ -181,7 +158,7 @@ export async function getResetByToken(token) {
   const raw = String(token || '').trim()
   if (!raw) return null
   const result = await query(
-    `select id, token, user_id, email, expires_at, used_at, otp_hash, attempts
+    `select id, token, user_id, email, expires_at, used_at
      from platform.password_resets where token = $1 limit 1`,
     [sha256Hex(raw)],
   )
@@ -203,12 +180,11 @@ export async function publicResetView(token) {
     body: {
       emailMasked: maskEmail(row.email),
       expiresAt: row.expires_at,
-      requiresOtp: true,
     },
   }
 }
 
-export async function confirmPasswordReset({ token, password, otp }) {
+export async function confirmPasswordReset({ token, password }) {
   const row = await getResetByToken(token)
   if (!row) return { ok: false, status: 404, error: 'Reset link not found.' }
   if (row.used_at) {
@@ -216,57 +192,6 @@ export async function confirmPasswordReset({ token, password, otp }) {
   }
   if (new Date(row.expires_at).getTime() <= Date.now()) {
     return { ok: false, status: 410, error: 'This reset link has expired.' }
-  }
-  if ((row.attempts ?? 0) >= MAX_CONFIRM_ATTEMPTS) {
-    await query(
-      `update platform.password_resets set used_at = now() where id = $1`,
-      [row.id],
-    )
-    return {
-      ok: false,
-      status: 410,
-      error: 'Too many attempts. Request a new reset link.',
-    }
-  }
-
-  const otpNorm = String(otp ?? '').replace(/\s+/g, '')
-  if (!/^\d{6}$/.test(otpNorm) || !row.otp_hash) {
-    await query(
-      `update platform.password_resets set attempts = attempts + 1 where id = $1`,
-      [row.id],
-    )
-    return {
-      ok: false,
-      status: 400,
-      error: 'Enter the 6-digit code from your email.',
-    }
-  }
-
-  if (!hashesEqual(sha256Hex(otpNorm), row.otp_hash)) {
-    const updated = await query(
-      `update platform.password_resets
-       set attempts = attempts + 1
-       where id = $1
-       returning attempts`,
-      [row.id],
-    )
-    const attempts = updated.rows[0]?.attempts ?? row.attempts + 1
-    if (attempts >= MAX_CONFIRM_ATTEMPTS) {
-      await query(
-        `update platform.password_resets set used_at = now() where id = $1`,
-        [row.id],
-      )
-      return {
-        ok: false,
-        status: 410,
-        error: 'Too many attempts. Request a new reset link.',
-      }
-    }
-    return {
-      ok: false,
-      status: 400,
-      error: 'Invalid one-time code.',
-    }
   }
 
   const rawPassword = String(password ?? '')

@@ -117,6 +117,61 @@
   animation: pd-login-fade-up 0.45s ease 0.12s both;
 }
 
+.pd-login__success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.35rem 0 0.15rem;
+  animation: pd-login-fade-up 0.45s ease both;
+}
+
+.pd-login__success-icon {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--color-status-completed, #2f7a5d);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-status-completed, #2f7a5d) 35%, transparent);
+}
+
+.pd-login__success .pd-login__subtitle {
+  max-width: 16.5rem;
+}
+
+.pd-login__success .pd-login__text-link {
+  margin-top: 0.35rem;
+}
+
+.pd-login__text-link {
+  display: inline-block;
+  margin: 0.15rem auto 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--login-ink-muted);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.pd-login__text-link:hover {
+  color: color-mix(in srgb, var(--login-ink-muted) 72%, var(--login-ink));
+  text-decoration: none;
+}
+
+.pd-login__text-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-theme) 55%, transparent);
+  outline-offset: 3px;
+  border-radius: 0.25rem;
+}
+
 .pd-login__actions {
   display: flex;
   flex-direction: column;
@@ -202,19 +257,21 @@
 
 .pd-login__form .pd-field {
   gap: 0.375rem;
+  --pd-field-fill: var(--login-control-bg);
 }
 
 .pd-login__form .pd-field__label {
   color: var(--login-ink-muted);
   font-size: 0.8125rem;
   font-weight: 600;
+  background: var(--pd-field-fill);
 }
 
 .pd-login__form .pd-field__control {
   min-height: 2.875rem;
   border-radius: var(--login-control-radius);
   border-color: var(--login-control-border);
-  background: var(--login-control-bg);
+  background: var(--pd-field-fill);
   color: var(--login-ink);
 }
 

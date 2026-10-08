@@ -15,19 +15,14 @@ export default function ResetPasswordPage() {
   const { token = '' } = useParams()
   const navigate = useNavigate()
   const [emailMasked, setEmailMasked] = useState('')
-  const [otp, setOtp] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loadError, setLoadError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { markAllTouched, showError, blur } = useTouchedFields<
-    'otp' | 'password' | 'confirm'
+    'password' | 'confirm'
   >()
-  const otpError =
-    !/^\d{6}$/.test(otp.replace(/\s+/g, ''))
-      ? 'Enter the 6-digit code from your email.'
-      : undefined
   const passwordError = validateRequiredPassword(password)
   const confirmError =
     confirm !== password ? 'Passwords do not match.' : undefined
@@ -53,11 +48,11 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError(null)
-    markAllTouched(['otp', 'password', 'confirm'])
-    if (otpError || passwordError || confirmError) return
+    markAllTouched(['password', 'confirm'])
+    if (passwordError || confirmError) return
     setIsSubmitting(true)
     try {
-      await confirmPasswordReset(token, password, otp.replace(/\s+/g, ''))
+      await confirmPasswordReset(token, password)
       navigate('/login', { replace: true })
     } catch (caught) {
       setError(
@@ -82,9 +77,7 @@ export default function ResetPasswordPage() {
         <div className="pd-login__brand">
           <h1 className="pd-login__title">Choose a new password</h1>
           <p className="pd-login__subtitle">
-            {emailMasked
-              ? `For ${emailMasked}. Enter the one-time code from your email.`
-              : 'Loading…'}
+            {emailMasked ? `For ${emailMasked}` : 'Loading…'}
           </p>
         </div>
         {loadError ? (
@@ -92,23 +85,15 @@ export default function ResetPasswordPage() {
             <p className="pd-field__error" role="alert">
               {loadError}
             </p>
-            <Link to="/forgot-password">Request a new link</Link>
+            <Link to="/forgot-password" className="pd-login__text-link">
+              Request a new link
+            </Link>
           </div>
         ) : (
           <form className="pd-login__form" onSubmit={handleSubmit} noValidate>
             <Input
-              label="One-time code"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              value={otp}
-              onChange={(event) => setOtp(event.target.value)}
-              onBlur={blur('otp')}
-              required
-              error={showError('otp') ? otpError : undefined}
-            />
-            <Input
               label="New password"
+              labelVariant="default"
               type="password"
               autoComplete="new-password"
               value={password}
@@ -119,6 +104,7 @@ export default function ResetPasswordPage() {
             />
             <Input
               label="Confirm password"
+              labelVariant="default"
               type="password"
               autoComplete="new-password"
               value={confirm}
