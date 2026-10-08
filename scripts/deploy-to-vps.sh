@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Deploy OneTrack UI + API + Postgres to the inventivelab VPS.
 # Does not touch n8n / MinIO / Cloudreve.
+#
+# Credentials: env vars win over .env (so GitHub Actions can inject secrets).
+# UI releases: uploaded to web-releases/<sha>, then symlink web/ flipped after health checks.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -12,28 +15,43 @@ read_env() {
   grep -E "^${key}=" "$file" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'"
 }
 
+# Prefer process env (CI); fall back to local .env.
+env_or_file() {
+  local key="$1"
+  local from_env="${!key-}"
+  if [[ -n "$from_env" ]]; then
+    printf '%s' "$from_env"
+    return
+  fi
+  if [[ -f "$ENV_FILE" ]]; then
+    read_env "$key" "$ENV_FILE"
+  fi
+}
+
 ENV_FILE="$ROOT/.env"
-HOST="$(read_env VPS_HOST "$ENV_FILE")"
-USER_NAME="$(read_env VPS_USER "$ENV_FILE")"
-PASS="$(read_env VPS_PASSWORD "$ENV_FILE")"
-PUBLIC_UI_URL="$(read_env PLATFORM_PUBLIC_UI_URL "$ENV_FILE")"
+HOST="$(env_or_file VPS_HOST)"
+USER_NAME="$(env_or_file VPS_USER)"
+PASS="$(env_or_file VPS_PASSWORD)"
+PUBLIC_UI_URL="$(env_or_file PLATFORM_PUBLIC_UI_URL)"
 PUBLIC_UI_URL="${PUBLIC_UI_URL:-https://onetrack.inventivelab.bd}"
 PUBLIC_API_URL="${PLATFORM_PUBLIC_API_URL:-https://api.onetrack.inventivelab.bd}"
 # Include local Vite origins so localhost can call the live API directly if needed.
 CORS_ORIGIN="${PLATFORM_CORS_ORIGIN:-https://onetrack.inventivelab.bd,http://localhost:8003,http://127.0.0.1:8003}"
 REMOTE_ROOT="${PLATFORM_REMOTE_ROOT:-/opt/onetrack-platform}"
 REMOTE_WEB_DIR="$REMOTE_ROOT/web"
+REMOTE_RELEASES_DIR="$REMOTE_ROOT/web-releases"
+KEEP_RELEASES="${PLATFORM_KEEP_RELEASES:-5}"
 DB_PASSWORD_FILE="$REMOTE_ROOT/.env"
-ADMIN_EMAIL="$(read_env PLATFORM_ADMIN_EMAIL "$ENV_FILE")"
-ADMIN_PASSWORD="$(read_env PLATFORM_ADMIN_PASSWORD "$ENV_FILE")"
-AGENCY_PASSWORD="$(read_env SEED_AGENCY_PASSWORD "$ENV_FILE")"
-SEED_FORCE="$(read_env SEED_FORCE_PASSWORDS "$ENV_FILE")"
-SMTP_HOST="$(read_env SMTP_HOST "$ENV_FILE")"
-SMTP_PORT="$(read_env SMTP_PORT "$ENV_FILE")"
-SMTP_SECURE="$(read_env SMTP_SECURE "$ENV_FILE")"
-SMTP_USER="$(read_env SMTP_USER "$ENV_FILE")"
-SMTP_PASSWORD="$(read_env SMTP_PASSWORD "$ENV_FILE")"
-SMTP_FROM="$(read_env SMTP_FROM "$ENV_FILE")"
+ADMIN_EMAIL="$(env_or_file PLATFORM_ADMIN_EMAIL)"
+ADMIN_PASSWORD="$(env_or_file PLATFORM_ADMIN_PASSWORD)"
+AGENCY_PASSWORD="$(env_or_file SEED_AGENCY_PASSWORD)"
+SEED_FORCE="$(env_or_file SEED_FORCE_PASSWORDS)"
+SMTP_HOST="$(env_or_file SMTP_HOST)"
+SMTP_PORT="$(env_or_file SMTP_PORT)"
+SMTP_SECURE="$(env_or_file SMTP_SECURE)"
+SMTP_USER="$(env_or_file SMTP_USER)"
+SMTP_PASSWORD="$(env_or_file SMTP_PASSWORD)"
+SMTP_FROM="$(env_or_file SMTP_FROM)"
 ADMIN_EMAIL="${ADMIN_EMAIL:-aminulislamborhan@gmail.com}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-12345}"
 AGENCY_PASSWORD="${AGENCY_PASSWORD:-12345}"
@@ -43,13 +61,17 @@ SMTP_PORT="${SMTP_PORT:-465}"
 SMTP_SECURE="${SMTP_SECURE:-1}"
 SMTP_FROM="${SMTP_FROM:-OneTrack <noreply@inventivelab.bd>}"
 
+RELEASE_SHA="${GITHUB_SHA:-$(git rev-parse --short HEAD 2>/dev/null || echo manual)}"
+RELEASE_SHA="${RELEASE_SHA:0:12}"
+REMOTE_RELEASE_DIR="$REMOTE_RELEASES_DIR/$RELEASE_SHA"
+
 if [[ -z "$HOST" || -z "$USER_NAME" || -z "$PASS" ]]; then
-  echo "VPS_HOST / VPS_USER / VPS_PASSWORD missing in .env" >&2
+  echo "VPS_HOST / VPS_USER / VPS_PASSWORD missing (env or .env)" >&2
   exit 1
 fi
 
 if [[ -z "$SMTP_USER" || -z "$SMTP_PASSWORD" ]]; then
-  echo "SMTP_USER / SMTP_PASSWORD missing in .env (required for password-reset email)" >&2
+  echo "SMTP_USER / SMTP_PASSWORD missing (env or .env; required for password-reset email)" >&2
   exit 1
 fi
 
@@ -76,10 +98,25 @@ if [[ ! -f dist/index.html ]]; then
 fi
 
 echo "[platform] Ensuring remote dirs …"
-"${SSH[@]}" "mkdir -p '$REMOTE_ROOT/server' '$REMOTE_ROOT/db' '$REMOTE_ROOT/deploy' '$REMOTE_WEB_DIR' /etc/caddy/conf.d"
+"${SSH[@]}" "mkdir -p '$REMOTE_ROOT/server' '$REMOTE_ROOT/db' '$REMOTE_ROOT/deploy' '$REMOTE_RELEASES_DIR' /etc/caddy/conf.d"
 
-echo "[platform-ui] Uploading static files → $REMOTE_WEB_DIR/"
-"${RSYNC[@]}" --delete "$ROOT/dist/" "$TARGET:$REMOTE_WEB_DIR/"
+# If web/ is a real directory from older deploys, move it to a release once.
+"${SSH[@]}" bash -s <<MIGRATE
+set -euo pipefail
+REMOTE_ROOT='$REMOTE_ROOT'
+REMOTE_WEB_DIR='$REMOTE_WEB_DIR'
+REMOTE_RELEASES_DIR='$REMOTE_RELEASES_DIR'
+if [[ -d "\$REMOTE_WEB_DIR" && ! -L "\$REMOTE_WEB_DIR" ]]; then
+  LEGACY="\$REMOTE_RELEASES_DIR/legacy-\$(date +%Y%m%d%H%M%S)"
+  mv "\$REMOTE_WEB_DIR" "\$LEGACY"
+  ln -sfn "\$LEGACY" "\$REMOTE_WEB_DIR"
+  echo "[platform-ui] migrated existing web/ → \$LEGACY"
+fi
+MIGRATE
+
+echo "[platform-ui] Staging release $RELEASE_SHA → $REMOTE_RELEASE_DIR/"
+"${SSH[@]}" "mkdir -p '$REMOTE_RELEASE_DIR'"
+"${RSYNC[@]}" --delete "$ROOT/dist/" "$TARGET:$REMOTE_RELEASE_DIR/"
 
 echo "[platform-api] Uploading API sources …"
 "${RSYNC[@]}" --exclude node_modules "$ROOT/server/" "$TARGET:$REMOTE_ROOT/server/"
@@ -103,6 +140,10 @@ SMTP_SECURE='$SMTP_SECURE'
 SMTP_USER='$SMTP_USER'
 SMTP_PASSWORD='$SMTP_PASSWORD'
 SMTP_FROM='$SMTP_FROM'
+REMOTE_WEB_DIR='$REMOTE_WEB_DIR'
+REMOTE_RELEASE_DIR='$REMOTE_RELEASE_DIR'
+REMOTE_RELEASES_DIR='$REMOTE_RELEASES_DIR'
+KEEP_RELEASES='$KEEP_RELEASES'
 
 set_kv() {
   local k="\$1" v="\$2"
@@ -159,6 +200,17 @@ docker compose --env-file "\$DB_PASSWORD_FILE" -f docker-compose.yml up -d --bui
 sleep 3
 curl -fsS "http://127.0.0.1:4010/api/platform/health"
 echo
+
+# API healthy → flip UI symlink (broken builds never become live)
+ln -sfn "\$REMOTE_RELEASE_DIR" "\$REMOTE_WEB_DIR"
+echo "[platform-ui] live → \$REMOTE_RELEASE_DIR"
+
+# Prune old releases (keep newest KEEP_RELEASES)
+cd "\$REMOTE_RELEASES_DIR"
+ls -1dt */ 2>/dev/null | tail -n +"\$((KEEP_RELEASES + 1))" | while read -r old; do
+  rm -rf "\$old"
+  echo "[platform-ui] pruned \$old"
+done
 REMOTE
 
 echo "[platform] Public checks …"
@@ -183,5 +235,5 @@ echo "$UI_HEADERS" | tr -d '\r' | grep -qi '^x-app: onetrack-platform-ui' || {
   exit 1
 }
 echo "  UI  200 (Caddy)"
-echo "[platform-ui] Live → $PUBLIC_UI_URL"
+echo "[platform-ui] Live → $PUBLIC_UI_URL (release $RELEASE_SHA)"
 echo "[platform-api] Live → $PUBLIC_API_URL"

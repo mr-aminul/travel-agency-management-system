@@ -1,0 +1,69 @@
+name: Deploy VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      rollback_sha:
+        description: "Optional UI rollback — 12-char release SHA under web-releases/"
+        required: false
+        type: string
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to inventivelab VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.rollback_sha == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Install dependencies
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.rollback_sha == '' }}
+        run: npm ci
+
+      - name: Deploy UI + API
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.rollback_sha == '' }}
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+          PLATFORM_PUBLIC_UI_URL: ${{ secrets.PLATFORM_PUBLIC_UI_URL }}
+          PLATFORM_PUBLIC_API_URL: ${{ secrets.PLATFORM_PUBLIC_API_URL }}
+          PLATFORM_ADMIN_EMAIL: ${{ secrets.PLATFORM_ADMIN_EMAIL }}
+          PLATFORM_ADMIN_PASSWORD: ${{ secrets.PLATFORM_ADMIN_PASSWORD }}
+          SEED_AGENCY_PASSWORD: ${{ secrets.SEED_AGENCY_PASSWORD }}
+          SEED_FORCE_PASSWORDS: ${{ secrets.SEED_FORCE_PASSWORDS }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: bash scripts/deploy-to-vps.sh
+
+      - name: Rollback UI only
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_sha != '' }}
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+          PLATFORM_PUBLIC_UI_URL: ${{ secrets.PLATFORM_PUBLIC_UI_URL }}
+          RELEASE_SHA: ${{ inputs.rollback_sha }}
+        run: bash scripts/rollback-vps-ui.sh

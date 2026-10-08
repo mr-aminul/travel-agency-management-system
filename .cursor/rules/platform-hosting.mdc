@@ -15,14 +15,17 @@ Production lives on the inventivelab **VPS** (Caddy + Docker). No Vercel.
 
 ## Deploy (this repo)
 
+**Preferred:** push to `main` → GitHub Actions workflow `.github/workflows/deploy-vps.yml` (secrets in repo Settings). Manual rollback: Actions → Deploy VPS → Run workflow → set `rollback_sha`.
+
 ```bash
-# needs VPS_HOST / VPS_USER / VPS_PASSWORD in local .env
+# local fallback — needs VPS_HOST / VPS_USER / VPS_PASSWORD in .env
 npm run deploy:vps   # build SPA + rsync UI/API + docker compose + Caddy
 ```
 
 - DNS for `onetrack` and `api.onetrack` must point at the VPS.
 - Does **not** touch n8n / MinIO / Cloudreve.
 - Build sets `VITE_USE_PLATFORM_API=1` and `VITE_API_BASE_URL=https://api.onetrack.inventivelab.bd`.
+- UI is atomic: staged under `web-releases/<sha>`, symlink `web/` flipped only after API health check.
 
 ## Frontend env
 

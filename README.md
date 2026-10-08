@@ -28,14 +28,20 @@ Build-time env (set by `npm run deploy:vps`):
 - `VITE_USE_PLATFORM_API=1`
 - `VITE_API_BASE_URL=https://api.onetrack.inventivelab.bd`
 
-Deploy UI + API/DB:
+### Deploy (GitHub Actions — preferred)
+
+Push to `main` → **Deploy VPS** workflow builds the SPA, ships UI + API to the inventivelab VPS, health-checks, then flips the live UI symlink. Failures show in the Actions tab. Manual **Run workflow** supports optional UI rollback via a previous `web-releases/<sha>`.
+
+Secrets live in the repo Settings → Secrets (not in git). Local `.env` is only for manual deploys.
+
+### Deploy (manual)
 
 ```bash
-# needs VPS_HOST / VPS_USER / VPS_PASSWORD in local .env
+# needs VPS_HOST / VPS_USER / VPS_PASSWORD (+ SMTP) in local .env
 npm run deploy:vps
 ```
 
-VPS paths (do not share networks/volumes with n8n or MinIO): `/opt/onetrack-platform` (UI in `web/`), Postgres on `127.0.0.1:5433`, API on `127.0.0.1:4010`.
+VPS paths (do not share networks/volumes with n8n or MinIO): `/opt/onetrack-platform` (UI symlink `web/` → `web-releases/<sha>`), Postgres on `127.0.0.1:5433`, API on `127.0.0.1:4010`.
 
 ## Scripts
 
