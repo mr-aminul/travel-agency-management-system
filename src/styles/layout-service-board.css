@@ -148,8 +148,8 @@
 
 /* ── Service board ─────────────────────────────────────────── */
 /*
-  Default = Deep lanes (--ink-lanes): solid theme column bodies; light chrome.
-  Flip    = Deep desk  (--ink-desk):  very light theme well; pale lanes.
+  Default = Deep desk  (--ink-desk):  very light theme well; pale lanes.
+  Flip    = Deep lanes (--ink-lanes): solid theme column bodies; light chrome.
 */
 
 .pd-board {
@@ -617,9 +617,9 @@
   border-color: color-mix(in srgb, var(--color-theme) 18%, var(--color-border));
   background: var(--color-surface);
   box-shadow:
-    0 2px 4px color-mix(in srgb, black 10%, transparent),
-    0 10px 24px color-mix(in srgb, black 16%, transparent),
-    0 20px 40px color-mix(in srgb, var(--color-theme) 14%, transparent);
+    0 1px 2px color-mix(in srgb, black 8%, transparent),
+    0 6px 16px color-mix(in srgb, black 12%, transparent),
+    0 14px 28px color-mix(in srgb, var(--color-theme) 10%, transparent);
 }
 
 .pd-service-board--ink-desk .pd-board__column.is-empty {
@@ -627,16 +627,16 @@
   background: color-mix(in srgb, var(--color-theme) 4%, var(--color-surface));
   opacity: 0.85;
   box-shadow:
-    0 1px 3px color-mix(in srgb, black 8%, transparent),
-    0 8px 20px color-mix(in srgb, black 12%, transparent);
+    0 1px 2px color-mix(in srgb, black 5%, transparent),
+    0 4px 12px color-mix(in srgb, black 8%, transparent);
 }
 
 .pd-service-board--ink-desk .pd-board__column.is-drop-candidate {
   background: color-mix(in srgb, var(--color-theme) 8%, var(--color-surface));
   border-color: color-mix(in srgb, var(--color-theme) 35%, var(--color-border));
   box-shadow:
-    0 2px 6px color-mix(in srgb, black 10%, transparent),
-    0 12px 28px color-mix(in srgb, var(--color-theme) 18%, transparent);
+    0 2px 6px color-mix(in srgb, black 8%, transparent),
+    0 8px 20px color-mix(in srgb, var(--color-theme) 14%, transparent);
 }
 
 .pd-service-board--ink-desk .pd-board__column.is-drop-target {
@@ -644,7 +644,7 @@
   border-color: color-mix(in srgb, var(--color-theme) 55%, var(--color-border));
   box-shadow:
     0 0 0 3px color-mix(in srgb, var(--color-theme) 18%, transparent),
-    0 12px 28px color-mix(in srgb, var(--color-theme) 22%, transparent);
+    0 8px 22px color-mix(in srgb, var(--color-theme) 20%, transparent);
 }
 
 .pd-service-board--ink-desk .pd-board__column.is-active .pd-board__column-head {
@@ -707,13 +707,17 @@
 .pd-service-board--ink-desk .pd-board__card--blocked,
 .pd-service-board--ink-desk .pd-board__card--on-hold {
   background: var(--color-surface);
-  box-shadow: 0 1px 2px color-mix(in srgb, black 8%, transparent);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, black 10%, transparent),
+    0 4px 10px color-mix(in srgb, black 10%, transparent),
+    0 10px 22px color-mix(in srgb, black 12%, transparent);
 }
 
 .pd-service-board--ink-desk .pd-board__card:hover {
   box-shadow:
-    0 1px 3px color-mix(in srgb, black 8%, transparent),
-    0 4px 10px color-mix(in srgb, var(--color-theme) 10%, transparent);
+    0 2px 4px color-mix(in srgb, black 10%, transparent),
+    0 8px 16px color-mix(in srgb, black 12%, transparent),
+    0 14px 28px color-mix(in srgb, var(--color-theme) 14%, transparent);
 }
 
 .pd-service-board--ink-desk .pd-board__card--actionable {

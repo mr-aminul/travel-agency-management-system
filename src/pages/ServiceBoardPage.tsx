@@ -205,7 +205,7 @@ export default function ServiceBoardPage() {
 
   const [serviceFilters, setServiceFilters] = useState<string[]>([])
   /** Compare deep-blue placement: lanes vs desk. */
-  const [inkPlace, setInkPlace] = useState<'lanes' | 'desk'>('lanes')
+  const [inkPlace, setInkPlace] = useState<'lanes' | 'desk'>('desk')
   /** `all` shows every board; otherwise focus one service. */
   const [focusService, setFocusService] = useState<string>('all')
   /** Case opened via board drag — complete current step to advance. */
@@ -399,19 +399,19 @@ export default function ServiceBoardPage() {
             >
               <button
                 type="button"
-                className={`pd-service-board__ink-option${inkPlace === 'lanes' ? ' is-selected' : ''}`}
-                aria-pressed={inkPlace === 'lanes'}
-                onClick={() => setInkPlace('lanes')}
-              >
-                Deep lanes
-              </button>
-              <button
-                type="button"
                 className={`pd-service-board__ink-option${inkPlace === 'desk' ? ' is-selected' : ''}`}
                 aria-pressed={inkPlace === 'desk'}
                 onClick={() => setInkPlace('desk')}
               >
                 Deep desk
+              </button>
+              <button
+                type="button"
+                className={`pd-service-board__ink-option${inkPlace === 'lanes' ? ' is-selected' : ''}`}
+                aria-pressed={inkPlace === 'lanes'}
+                onClick={() => setInkPlace('lanes')}
+              >
+                Deep lanes
               </button>
             </div>
             <FilterPopover
