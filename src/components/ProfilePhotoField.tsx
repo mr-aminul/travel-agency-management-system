@@ -1,12 +1,13 @@
 import { useId, useRef, type ChangeEvent, type ReactNode } from 'react'
 import { Camera, X } from 'lucide-react'
-import { Avatar } from '@/components/ui'
+import { Avatar, type AvatarKind } from '@/components/ui'
 
 const MAX_BYTES = 2 * 1024 * 1024
 
 type ProfilePhotoFieldProps = {
   name?: string
   fallbackName?: string
+  kind?: AvatarKind
   value?: string
   onChange: (photoUrl: string | undefined) => void
   encodeFile?: (file: File) => Promise<string>
@@ -26,6 +27,7 @@ function readImageAsDataUrl(file: File): Promise<string> {
 export function ProfilePhotoField({
   name,
   fallbackName = 'Sub Agent',
+  kind = 'client',
   value,
   onChange,
   encodeFile,
@@ -58,7 +60,12 @@ export function ProfilePhotoField({
   return (
     <div className="pd-profile-photo">
       <div className="pd-profile-photo__control">
-        <Avatar name={name || fallbackName} src={value} size="xl" />
+        <Avatar
+          name={name || fallbackName}
+          src={value}
+          size="xl"
+          kind={kind}
+        />
         <input
           ref={inputRef}
           id={inputId}

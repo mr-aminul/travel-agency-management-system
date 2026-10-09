@@ -1066,12 +1066,18 @@ function syncIdentityFieldsToClient(
     passport?: string
     nid?: string
     passportExpiry?: string
+    passportIssuedOn?: string
+    passportPlaceOfIssue?: string
   } = {}
   if (form.syncToClient.passport) {
     const value = input.fields[form.syncToClient.passport]?.trim()
     if (value) clientPatch.passport = value
     const expiry = input.expiry?.trim() || input.fields.expiry?.trim()
     if (expiry) clientPatch.passportExpiry = expiry
+    const issuedOn = input.fields.issuedOn?.trim()
+    if (issuedOn) clientPatch.passportIssuedOn = issuedOn
+    const placeOfIssue = input.fields.placeOfIssue?.trim()
+    if (placeOfIssue) clientPatch.passportPlaceOfIssue = placeOfIssue
   }
   if (form.syncToClient.nid) {
     const value = input.fields[form.syncToClient.nid]?.trim()
@@ -1101,6 +1107,139 @@ export function recordCaseDocument(
   return updateCase(caseId, applied)
 }
 
+/** Push client passport/NID onto service files so they never drift. */
+export function projectClientIdentityOntoCases(clientId: string): void {
+  const client = getClientById(clientId)
+  if (!client) return
+
+  for (const item of getCasesByClientId(clientId)) {
+    if (item.status === 'Cancelled') continue
+    let changed = false
+    const documents = item.documents.map((doc) => {
+      const kind = identityKindForDocumentId(doc.id)
+      if (!kind) return doc
+      const number =
+        kind === 'passport' ? client.passport?.trim() : client.nid?.trim()
+      const scan =
+        kind === 'passport' ? client.passportFile : client.nidFile
+      const next = {
+        ...doc,
+        detail: number || doc.detail,
+        expiry:
+          kind === 'passport'
+            ? client.passportExpiry ?? doc.expiry
+            : doc.expiry,
+        fields: {
+          ...doc.fields,
+          ...(number ? { number } : {}),
+          ...(kind === 'passport' && client.passportExpiry
+            ? { expiry: client.passportExpiry }
+            : {}),
+          ...(kind === 'passport' && client.passportIssuedOn
+            ? { issuedOn: client.passportIssuedOn }
+            : {}),
+          ...(kind === 'passport' && client.passportPlaceOfIssue
+            ? { placeOfIssue: client.passportPlaceOfIssue }
+            : {}),
+        },
+        fileName: scan?.fileName ?? doc.fileName,
+        fileId: scan?.fileId ?? doc.fileId,
+        mimeType: scan?.mimeType ?? doc.mimeType,
+      }
+      if (JSON.stringify(next) !== JSON.stringify(doc)) changed = true
+      return next
+    })
+    if (changed) {
+      updateCase(item.id, { documents })
+    }
+  }
+}
+
+/**
+ * Heal drift: identity edited in Documents can live on service files without
+ * the client profile being updated. Pull non-empty case identity onto the
+ * client (filling gaps only), then project back so every surface matches.
+ */
+export function reconcileClientIdentityFromCases(clientId: string): void {
+  const client = getClientById(clientId)
+  if (!client) return
+
+  let passport: string | undefined
+  let passportExpiry: string | undefined
+  let passportIssuedOn: string | undefined
+  let passportPlaceOfIssue: string | undefined
+  let nid: string | undefined
+  let passportFile = client.passportFile
+  let nidFile = client.nidFile
+
+  for (const item of getCasesByClientId(clientId)) {
+    if (item.status === 'Cancelled') continue
+    for (const doc of item.documents) {
+      const kind = identityKindForDocumentId(doc.id)
+      if (!kind) continue
+      const number = doc.fields?.number?.trim()
+      const expiry = doc.fields?.expiry?.trim() || doc.expiry?.trim() || undefined
+      const issuedOn = doc.fields?.issuedOn?.trim() || undefined
+      const placeOfIssue = doc.fields?.placeOfIssue?.trim() || undefined
+      const scan =
+        doc.fileId || doc.fileName?.trim()
+          ? {
+              fileId: doc.fileId ?? `${kind}-${clientId}`,
+              fileName: doc.fileName?.trim() || 'Scan',
+              mimeType: doc.mimeType,
+            }
+          : undefined
+
+      if (kind === 'passport') {
+        if (!passport && number) passport = number
+        if (!passportExpiry && expiry && expiry !== 'Lifetime') {
+          passportExpiry = expiry
+        }
+        if (!passportIssuedOn && issuedOn) passportIssuedOn = issuedOn
+        if (!passportPlaceOfIssue && placeOfIssue) {
+          passportPlaceOfIssue = placeOfIssue
+        }
+        if (!passportFile && scan) passportFile = scan
+      } else {
+        if (!nid && number) nid = number
+        if (!nidFile && scan) nidFile = scan
+      }
+    }
+  }
+
+  const patch: {
+    passport?: string
+    passportExpiry?: string
+    passportIssuedOn?: string
+    passportPlaceOfIssue?: string
+    nid?: string
+    passportFile?: NonNullable<typeof passportFile>
+    nidFile?: NonNullable<typeof nidFile>
+  } = {}
+
+  if (!client.passport?.trim() && passport) patch.passport = passport
+  if (!client.passportExpiry?.trim() && passportExpiry) {
+    patch.passportExpiry = passportExpiry
+  }
+  if (!client.passportIssuedOn?.trim() && passportIssuedOn) {
+    patch.passportIssuedOn = passportIssuedOn
+  }
+  if (!client.passportPlaceOfIssue?.trim() && passportPlaceOfIssue) {
+    patch.passportPlaceOfIssue = passportPlaceOfIssue
+  }
+  if (!client.nid?.trim() && nid) patch.nid = nid
+  if (!client.passportFile && passportFile) patch.passportFile = passportFile
+  if (!client.nidFile && nidFile) patch.nidFile = nidFile
+
+  if (Object.keys(patch).length === 0) {
+    projectClientIdentityOntoCases(clientId)
+    return
+  }
+
+  updateClient(clientId, patch)
+  projectClientIdentityOntoCases(clientId)
+}
+
 /** Identity papers live on the client and copy onto every open service. */
 export function recordIdentityDocument(
   clientId: string,
@@ -1112,6 +1251,8 @@ export function recordIdentityDocument(
 
   const number = input.fields.number?.trim()
   const expiry = input.expiry?.trim() || input.fields.expiry?.trim()
+  const issuedOn = input.fields.issuedOn?.trim()
+  const placeOfIssue = input.fields.placeOfIssue?.trim()
   const scan =
     input.fileId || input.fileName?.trim()
       ? {
@@ -1125,12 +1266,14 @@ export function recordIdentityDocument(
     updateClient(clientId, {
       ...(number ? { passport: number } : {}),
       ...(expiry ? { passportExpiry: expiry } : {}),
-      passportFile: scan,
+      ...(issuedOn ? { passportIssuedOn: issuedOn } : {}),
+      ...(placeOfIssue ? { passportPlaceOfIssue: placeOfIssue } : {}),
+      ...(scan ? { passportFile: scan } : {}),
     })
   } else {
     updateClient(clientId, {
       ...(number ? { nid: number } : {}),
-      nidFile: scan,
+      ...(scan ? { nidFile: scan } : {}),
     })
   }
 
@@ -1152,6 +1295,7 @@ export function recordIdentityDocument(
       })
     }
   }
+  projectClientIdentityOntoCases(clientId)
 }
 
 /** @deprecated Use recordCaseDocument — kept for older call sites/tests. */

@@ -8,7 +8,7 @@ export const PRODUCT_GLOSSARY: GlossaryTerm[] = [
   {
     term: 'Client',
     meaning:
-      'The person. One profile, unique mobile number. Identity (NID, passport) lives here and is reused on every service.',
+      'The person. One profile, unique mobile number. Identity (NID, passport) is recorded in Documents, shown read-only on Profile, and reused on every service.',
   },
   {
     term: 'Service',
@@ -28,7 +28,7 @@ export const PRODUCT_GLOSSARY: GlossaryTerm[] = [
   {
     term: 'Documents',
     meaning:
-      'Identity papers sit on the client. Papers for a service (medical, visa, tickets) sit on that service and unlock as steps advance.',
+      'Edit identity papers (passport, NID) here — Profile only mirrors them. Papers for a service (medical, visa, tickets) sit on that service and unlock as steps advance.',
   },
   {
     term: 'Sub Agent',

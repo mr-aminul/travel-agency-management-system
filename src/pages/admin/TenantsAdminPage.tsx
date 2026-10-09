@@ -165,7 +165,7 @@ export default function TenantsAdminPage() {
               >
                 <TableCell>
                   <span className="pd-admin__user">
-                    <Avatar name={tenant.name} size="sm" />
+                    <Avatar name={tenant.name} size="sm" kind="business" />
                     <Link
                       className="pd-admin__business-name"
                       to={`/admin/tenants/${tenant.id}/users`}

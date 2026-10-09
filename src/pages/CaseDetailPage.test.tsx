@@ -183,6 +183,38 @@ describe('service detail', () => {
     expect(within(facts).getByLabelText('Notes')).toHaveValue(
       'Nurse recruitment for Al Rajhi Hospital. Medical + police clearance in progress.',
     )
+    expect(within(facts).getByLabelText('Status')).toHaveValue('In-Progress')
+    expect(within(facts).getByLabelText('Opened')).toBeInTheDocument()
+    expect(within(facts).getByLabelText('Updated')).toBeInTheDocument()
+  })
+
+  it('keeps the same detail fields when editing', () => {
+    renderClient('/clients/c-284/services/case-101')
+
+    const service = screen.getByLabelText('Work Permit Visa (SR-00101)')
+    fireEvent.click(within(service).getByRole('button', { name: 'Edit' }))
+
+    const facts = screen.getByLabelText('Service details')
+    const labels = [
+      'Destination',
+      'Departure',
+      'Current step',
+      'Assigned to',
+      'Service fee',
+      'Balance due',
+      'Opened',
+      'Updated',
+      'Documents',
+      'Status',
+      'Notes',
+    ]
+    for (const label of labels) {
+      expect(within(facts).getByLabelText(label)).toBeInTheDocument()
+    }
+    expect(within(service).getByRole('button', { name: 'Save' })).toBeInTheDocument()
+    expect(
+      within(service).getByRole('button', { name: 'Cancel' }),
+    ).toBeInTheDocument()
   })
 
   it('copies the public tracking URL from the service header', async () => {
@@ -256,7 +288,7 @@ describe('client documents tab', () => {
     const passport = screen.getByLabelText('Passport')
     expect(within(passport).getByRole('heading', { name: 'Passport' })).toBeInTheDocument()
     expect(within(passport).getByLabelText('Passport number')).toHaveValue('A12345678')
-    expect(within(passport).getByLabelText('Expiry date')).toHaveValue('2030-06-15')
+    expect(within(passport).getByLabelText('Date of expiry')).toHaveValue('2030-06-15')
     expect(screen.queryByRole('dialog', { name: 'Passport' })).not.toBeInTheDocument()
 
     const workPermit = within(files).getByRole('group', { name: 'Work Permit Visa' })
@@ -287,7 +319,7 @@ describe('client documents tab', () => {
     expect(within(passport).getByLabelText('Passport number')).toHaveValue(
       'A12345678',
     )
-    expect(within(passport).getByLabelText('Expiry date')).toHaveValue('2030-06-15')
+    expect(within(passport).getByLabelText('Date of expiry')).toHaveValue('2030-06-15')
     expect(within(passport).getByRole('button', { name: 'Browse File' })).toBeInTheDocument()
     expect(
       within(passport).getByText('Choose a file or drag & drop it here.'),

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ArrowRight, Check, ClipboardList, FileText, Link2, SquarePen } from 'lucide-react'
 import { CasePipeline } from '@/components/cases/CasePipeline'
@@ -7,6 +7,7 @@ import { formatDisplayDate } from '@/lib/formatDate'
 import { serviceDetailAriaLabel } from '@/lib/serviceDisplay'
 import { countMissingDocuments } from '@/lib/caseDocuments'
 import { listCaseInfoGaps } from '@/lib/caseServiceRules'
+import { cx } from '@/lib/cx'
 import { Badge, Button, Input, Modal, Select, Textarea, type BadgeVariant } from '@/components/ui'
 import {
   CASE_STATUS_OPTIONS,
@@ -60,8 +61,9 @@ function clientFocusPath(
   focus: Extract<ServiceBoardFocus, 'profile' | 'documents'>,
   caseId: string,
 ): string {
+  // Passport/NID are edited in Documents; Profile only mirrors them.
   const params = new URLSearchParams({
-    tab: focus === 'profile' ? 'profile' : 'documents',
+    tab: 'documents',
     focus: focus === 'profile' ? 'passport' : 'docs',
   })
   if (focus === 'documents') params.set('case', caseId)
@@ -93,24 +95,29 @@ function Fact({
   value,
   attention = false,
   className,
+  id,
+  children,
 }: {
-  label: string
-  value: string
+  label?: string
+  value?: string
   /** Recommended gap — highlight only, never blocks progress. */
   attention?: boolean
   className?: string
+  id?: string
+  children?: ReactNode
 }) {
   return (
     <div
-      className={[
+      id={id}
+      className={cx(
         'pd-case-detail__fact',
-        attention ? 'is-attention' : '',
+        attention && 'is-attention',
         className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      )}
     >
-      <Input label={label} value={value} readOnly tabIndex={-1} />
+      {children ?? (
+        <Input label={label} value={value} readOnly tabIndex={-1} />
+      )}
     </div>
   )
 }
@@ -179,13 +186,23 @@ export default function CaseDetailPage() {
 
   const missingDocs = countMissingDocuments(item)
   const setupGaps = listCaseInfoGaps(item)
-  const missingCountry = setupGaps.some((gap) => gap.id === 'country')
-  const missingAssignee = setupGaps.some((gap) => gap.id === 'assignee')
   const paidTotal = casePayments.reduce((sum, payment) => sum + payment.amount, 0)
   const serviceFee = caseServiceFee(item, paidTotal)
   const assignedName = getEmployeeDisplayName(item.assignedTo)
   const currentLabel = getCurrentStepLabel(item)
   const displayStatus = editing ? draft.status : item.status
+  const displayDestination = editing ? draft.destination : (item.destination ?? '')
+  const displayAssignedTo = editing ? draft.assignedTo : (item.assignedTo ?? '')
+  const missingCountry = editing
+    ? !displayDestination.trim()
+    : setupGaps.some((gap) => gap.id === 'country')
+  const missingAssignee = editing
+    ? !displayAssignedTo
+    : setupGaps.some((gap) => gap.id === 'assignee')
+  const displayFee = editing ? parseMoneyInput(draft.serviceFee) : serviceFee
+  const displayBalance = editing
+    ? Math.max(0, displayFee - paidTotal)
+    : item.balance
   const ServiceIcon = iconForService(item.service)
   const boardItem = toServiceBoardItem(item)
   const ribbon = boardItem ? SERVICE_BOARD_RIBBON[boardItem.state] : null
@@ -361,14 +378,119 @@ export default function CaseDetailPage() {
           className="pd-case-detail__sheet"
           aria-label="Service details"
         >
-          {editing ? (
-            <div className="pd-cases-form__grid">
-              <div
-                id="case-status-field"
-                className={
-                  flashTarget === 'status' ? 'pd-focus-flash' : undefined
-                }
-              >
+          <div className="pd-case-detail__facts">
+            <Fact attention={missingCountry}>
+              {editing ? (
+                <Input
+                  label="Destination"
+                  value={draft.destination}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      destination: event.target.value,
+                    }))
+                  }
+                />
+              ) : (
+                <Input
+                  label="Destination"
+                  value={item.destination || '—'}
+                  readOnly
+                  tabIndex={-1}
+                />
+              )}
+            </Fact>
+            <Fact>
+              {editing ? (
+                <Input
+                  label="Departure"
+                  type="date"
+                  value={draft.departureDate}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      departureDate: event.target.value,
+                    }))
+                  }
+                />
+              ) : (
+                <Input
+                  label="Departure"
+                  value={formatDate(item.departureDate)}
+                  readOnly
+                  tabIndex={-1}
+                />
+              )}
+            </Fact>
+            <Fact label="Current step" value={currentLabel} />
+            <Fact attention={missingAssignee}>
+              {editing ? (
+                <Select
+                  label="Assigned to"
+                  searchable
+                  searchPlaceholder="Search employees…"
+                  placeholder="Select employee"
+                  value={draft.assignedTo}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      assignedTo: event.target.value,
+                    }))
+                  }
+                  options={employeeAssignmentOptions(
+                    employees,
+                    draft.assignedTo,
+                  )}
+                />
+              ) : (
+                <Input
+                  label="Assigned to"
+                  value={assignedName || '—'}
+                  readOnly
+                  tabIndex={-1}
+                />
+              )}
+            </Fact>
+            <Fact>
+              {editing ? (
+                <Input
+                  label="Service fee"
+                  inputMode="numeric"
+                  value={draft.serviceFee}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      serviceFee: event.target.value,
+                    }))
+                  }
+                />
+              ) : (
+                <Input
+                  label="Service fee"
+                  value={formatBalance(serviceFee)}
+                  readOnly
+                  tabIndex={-1}
+                />
+              )}
+            </Fact>
+            <Fact
+              label="Balance due"
+              value={formatBalance(displayBalance)}
+            />
+            <Fact label="Opened" value={formatDate(item.createdAt)} />
+            <Fact label="Updated" value={formatDate(item.updatedAt)} />
+            <Fact
+              label="Documents"
+              value={
+                missingDocs > 0 ? `${missingDocs} needed` : 'Complete'
+              }
+              attention={missingDocs > 0}
+            />
+            <Fact
+              id="case-status-field"
+              className={cx(flashTarget === 'status' && 'pd-focus-flash')}
+            >
+              {editing ? (
                 <Select
                   label="Status"
                   value={draft.status}
@@ -380,111 +502,37 @@ export default function CaseDetailPage() {
                   }
                   options={CASE_STATUS_OPTIONS}
                 />
-              </div>
-              <Select
-                label="Assigned to"
-                searchable
-                searchPlaceholder="Search employees…"
-                placeholder="Select employee"
-                value={draft.assignedTo}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    assignedTo: event.target.value,
-                  }))
-                }
-                options={employeeAssignmentOptions(
-                  employees,
-                  draft.assignedTo,
-                )}
-              />
-              <Input
-                label="Destination"
-                value={draft.destination}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    destination: event.target.value,
-                  }))
-                }
-              />
-              <Input
-                label="Departure"
-                type="date"
-                value={draft.departureDate}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    departureDate: event.target.value,
-                  }))
-                }
-              />
-              <Input
-                label="Service fee"
-                inputMode="numeric"
-                value={draft.serviceFee}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    serviceFee: event.target.value,
-                  }))
-                }
-              />
-              <Input
-                className="pd-cases-form__full"
-                label="Notes"
-                value={draft.description}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    description: event.target.value,
-                  }))
-                }
-              />
-            </div>
-          ) : (
-            <div className="pd-case-detail__facts">
-              <Fact
-                label="Destination"
-                value={item.destination || '—'}
-                attention={missingCountry}
-              />
-              <Fact
-                label="Departure"
-                value={formatDate(item.departureDate)}
-              />
-              <Fact label="Current step" value={currentLabel} />
-              <Fact
-                label="Assigned to"
-                value={assignedName || '—'}
-                attention={missingAssignee}
-              />
-              <Fact
-                label="Service fee"
-                value={formatBalance(serviceFee)}
-              />
-              <Fact
-                label="Balance due"
-                value={formatBalance(item.balance)}
-              />
-              <Fact label="Opened" value={formatDate(item.createdAt)} />
-              <Fact label="Updated" value={formatDate(item.updatedAt)} />
-              <Fact
-                label="Documents"
-                value={
-                  missingDocs > 0
-                    ? `${missingDocs} needed`
-                    : 'Complete'
-                }
-                attention={missingDocs > 0}
-              />
-              <Fact
-                className="pd-case-detail__fact--full"
-                label="Notes"
-                value={item.description?.trim() || '—'}
-              />
-            </div>
-          )}
+              ) : (
+                <Input
+                  label="Status"
+                  value={item.status}
+                  readOnly
+                  tabIndex={-1}
+                />
+              )}
+            </Fact>
+            <Fact className="pd-case-detail__fact--full">
+              {editing ? (
+                <Input
+                  label="Notes"
+                  value={draft.description}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
+                  }
+                />
+              ) : (
+                <Input
+                  label="Notes"
+                  value={item.description?.trim() || '—'}
+                  readOnly
+                  tabIndex={-1}
+                />
+              )}
+            </Fact>
+          </div>
         </section>
         <div
           id="case-pipeline"

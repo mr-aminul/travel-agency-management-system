@@ -138,7 +138,7 @@ export default function EmployeeDetailPage() {
       <BackButton to={hrEmployeesPath()} label="Employees" />
 
       <header className="pd-client-detail__header">
-        <Avatar name={employee.name} size="xl" />
+        <Avatar name={employee.name} size="xl" kind="staff" />
         <div className="pd-client-detail__header-text">
           <div className="pd-client-detail__title-row">
             <h1 className="pd-client-detail__name">{employee.name}</h1>

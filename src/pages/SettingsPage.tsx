@@ -4,6 +4,7 @@ import { Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
 import {
   Briefcase,
   Building2,
+  Check,
   Contact,
   Monitor,
   Moon,
@@ -321,6 +322,7 @@ export default function SettingsPage() {
                 <ProfilePhotoField
                   name={agencyDraft.businessName || DEFAULT_BRAND_NAME}
                   fallbackName={DEFAULT_BRAND_NAME}
+                  kind="business"
                   value={agencyDraft.profilePicture ?? undefined}
                   encodeFile={fileToProfilePictureDataUrl}
                   onChange={(photoUrl) =>
@@ -394,9 +396,9 @@ export default function SettingsPage() {
                   <Input
                     label="Website"
                     name="website"
-                    type="url"
+                    type="text"
                     autoComplete="url"
-                    placeholder="https://"
+                    placeholder="e.g. rhbd.com"
                     value={agencyDraft.website}
                     onChange={(e) =>
                       updateAgencyField('website', e.target.value)
@@ -417,7 +419,8 @@ export default function SettingsPage() {
                 >
                   {agencyError ?? agencyStatus ?? ''}
                 </p>
-                <Button type="submit" size="sm">
+                <Button type="submit" size="md">
+                  <Check size={16} strokeWidth={2.25} aria-hidden />
                   Save profile
                 </Button>
               </div>

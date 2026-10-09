@@ -14,6 +14,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { cx } from '@/lib/cx'
 import {
+  avatarKindForSearchKind,
   placeholderHintsFromGroups,
   presentSearchResults,
   readRecentSearchIds,
@@ -277,6 +278,7 @@ export const GlobalSearchPalette = forwardRef<
                   name={typewriter.hint.avatarName}
                   src={typewriter.hint.avatarUrl}
                   size="sm"
+                  kind={typewriter.hint.avatarKind}
                   className="pd-topbar__search-hint-avatar"
                 />
               ) : HintIcon ? (
@@ -380,6 +382,7 @@ export const GlobalSearchPalette = forwardRef<
                                 name={item.avatarName}
                                 src={item.avatarUrl}
                                 size="sm"
+                                kind={avatarKindForSearchKind(item.kind)}
                                 className="pd-global-search__avatar"
                               />
                             ) : (

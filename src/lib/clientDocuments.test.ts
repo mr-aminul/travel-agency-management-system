@@ -1,13 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import { DEMO_USER, writeSession } from '@/lib/authApi'
 import {
+  buildIdentityCaseDocument,
   countClientDocumentAlerts,
   getClientIdentityRows,
   getClientServiceDocumentGroups,
   isIdentityCaseDocument,
 } from '@/lib/clientDocuments'
-import { createCase, getCaseById, recordIdentityDocument } from '@/lib/casesStore'
-import { createClient, getClientById } from '@/lib/clientsStore'
+import { getCaseComplianceDocuments } from '@/lib/caseDocuments'
+import {
+  createCase,
+  getCaseById,
+  projectClientIdentityOntoCases,
+  reconcileClientIdentityFromCases,
+  recordIdentityDocument,
+  updateCase,
+} from '@/lib/casesStore'
+import { createClient, getClientById, updateClient } from '@/lib/clientsStore'
 import { TENANT_IDS } from '@/types/tenant'
 
 describe('client documents inventory', () => {
@@ -134,5 +143,97 @@ describe('client documents inventory', () => {
     expect(countClientDocumentAlerts(refreshed, [refreshedCase])).toBeGreaterThanOrEqual(
       1,
     )
+  })
+
+  it('pulls identity that only exists on a service file onto the client profile', () => {
+    writeSession({
+      user: DEMO_USER,
+      tenantId: TENANT_IDS.full,
+      signedInAt: '2026-01-01T00:00:00.000Z',
+    })
+    const client = createClient({
+      name: 'Drifted Identity Client',
+      phone: `015${Date.now().toString().slice(-8)}`,
+      primaryService: 'Work Permit Visa',
+      idChecked: true,
+    })
+    const permit = createCase({
+      clientId: client.id,
+      service: 'Work Permit Visa',
+    })
+    updateCase(permit.id, {
+      documents: getCaseById(permit.id)!.documents.map((doc) =>
+        doc.id === 'passport'
+          ? {
+              ...doc,
+              status: 'under_review' as const,
+              detail: 'BH1122334',
+              fields: {
+                number: 'BH1122334',
+                issuedOn: '2019-05-10',
+                expiry: '2029-05-09',
+              },
+              fileName: 'passport.pdf',
+              fileId: 'file-passport-1',
+            }
+          : doc,
+      ),
+    })
+
+    expect(getClientById(client.id)?.passport).toBeUndefined()
+
+    reconcileClientIdentityFromCases(client.id)
+
+    const healed = getClientById(client.id)!
+    expect(healed.passport).toBe('BH1122334')
+    expect(healed.passportIssuedOn).toBe('2019-05-10')
+    expect(healed.passportExpiry).toBe('2029-05-09')
+    expect(healed.passportFile?.fileName).toBe('passport.pdf')
+
+    const identity = buildIdentityCaseDocument(
+      healed,
+      [getCaseById(permit.id)!],
+      'passport',
+    )
+    expect(identity.fields?.number).toBe('BH1122334')
+  })
+
+  it('mirrors client identity onto service files so they cannot drift', () => {
+    writeSession({
+      user: DEMO_USER,
+      tenantId: TENANT_IDS.full,
+      signedInAt: '2026-01-01T00:00:00.000Z',
+    })
+    const client = createClient({
+      name: 'Source of Truth Client',
+      phone: `016${Date.now().toString().slice(-8)}`,
+      passport: 'PROFILE99',
+      nid: '1990999888777',
+      primaryService: 'Work Permit Visa',
+      idChecked: true,
+    })
+    const permit = createCase({
+      clientId: client.id,
+      service: 'Work Permit Visa',
+    })
+    const stale = getCaseById(permit.id)!
+    stale.documents = stale.documents.map((doc) =>
+      doc.id === 'passport'
+        ? { ...doc, detail: 'STALE11', fields: { number: 'STALE11' } }
+        : doc,
+    )
+
+    const overlay = getCaseComplianceDocuments(stale).find(
+      (doc) => doc.id === 'passport',
+    )
+    expect(overlay?.fields?.number).toBe('PROFILE99')
+    expect(overlay?.detail).toBe('PROFILE99')
+
+    updateClient(client.id, { passport: 'PROFILE00' })
+    projectClientIdentityOntoCases(client.id)
+    expect(
+      getCaseById(permit.id)?.documents.find((doc) => doc.id === 'passport')
+        ?.fields?.number,
+    ).toBe('PROFILE00')
   })
 })

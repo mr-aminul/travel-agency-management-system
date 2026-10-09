@@ -26,6 +26,7 @@ import { useAuth } from '@/lib/useAuth'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import {
   Avatar,
+  avatarKindForMemberRole,
   Badge,
   Button,
   EmptyState,
@@ -283,7 +284,11 @@ export function UserAccessSection({
                 <TableRow key={member.id}>
                   <TableCell>
                     <span className="pd-user-access__person">
-                      <Avatar name={member.name} size="sm" />
+                      <Avatar
+                        name={member.name}
+                        size="sm"
+                        kind={avatarKindForMemberRole(member.role)}
+                      />
                       <span className="pd-user-access__person-meta">
                         <span className="pd-user-access__name">
                           {member.name}

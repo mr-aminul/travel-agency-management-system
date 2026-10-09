@@ -448,6 +448,7 @@ export default function ClientsPage() {
                         name={client.name}
                         src={client.avatarUrl}
                         size="md"
+                        kind="client"
                       />
                       <p className="pd-clients__name">{client.name}</p>
                     </div>
@@ -531,6 +532,7 @@ export default function ClientsPage() {
                         name={client.name}
                         src={client.avatarUrl}
                         size="sm"
+                        kind="client"
                       />
                       <p className="pd-clients__name">{client.name}</p>
                     </div>

@@ -37,12 +37,10 @@
   72% {
     outline: 2px solid color-mix(in srgb, var(--color-theme) 55%, transparent);
     outline-offset: 3px;
-    background-color: color-mix(in srgb, var(--color-theme) 10%, transparent);
   }
 
   100% {
     outline-color: transparent;
     outline-offset: 3px;
-    background-color: transparent;
   }
 }

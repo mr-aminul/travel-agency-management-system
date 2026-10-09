@@ -33,8 +33,18 @@ const FORMS: Record<string, DocumentFormDef> = {
         placeholder: 'e.g. A12345678',
       },
       {
+        key: 'placeOfIssue',
+        label: 'Place of issue',
+        type: 'text',
+      },
+      {
+        key: 'issuedOn',
+        label: 'Date of issue',
+        type: 'date',
+      },
+      {
         key: 'expiry',
-        label: 'Expiry date',
+        label: 'Date of expiry',
         type: 'date',
         required: true,
       },

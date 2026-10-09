@@ -72,7 +72,13 @@ export function NewSubAgentForm({ onSubmit, onCancel }: NewSubAgentFormProps) {
     <form className="pd-clients-form" onSubmit={handleSubmit} noValidate>
       <div className="pd-clients-form__scroll">
         <div className="pd-clients-form__block">
-          <ProfilePhotoField name={name} value={photoUrl} onChange={setPhotoUrl}>
+          <ProfilePhotoField
+            name={name}
+            fallbackName="Sub Agent"
+            kind="subAgent"
+            value={photoUrl}
+            onChange={setPhotoUrl}
+          >
             <Input
               label="Sub Agent name"
               required

@@ -1,10 +1,17 @@
 import type { LucideIcon } from 'lucide-react'
-import type { SearchGroup } from './types'
+import type { AvatarKind } from '@/components/ui'
+import type { SearchGroup, SearchKind } from './types'
 
 /** Idle groups whose labels rotate in the empty search placeholder. */
 const PLACEHOLDER_GROUP_IDS = new Set(['recent', 'action'])
 
 export const SEARCH_PLACEHOLDER_FALLBACK = 'Search…'
+
+export function avatarKindForSearchKind(kind: SearchKind): AvatarKind {
+  if (kind === 'subAgent') return 'subAgent'
+  if (kind === 'employee') return 'staff'
+  return 'client'
+}
 
 export type SearchPlaceholderHint = {
   id: string
@@ -12,6 +19,7 @@ export type SearchPlaceholderHint = {
   icon?: LucideIcon
   avatarName?: string
   avatarUrl?: string
+  avatarKind?: AvatarKind
 }
 
 /**
@@ -36,6 +44,9 @@ export function placeholderHintsFromGroups(
         icon: item.icon,
         avatarName: item.avatarName,
         avatarUrl: item.avatarUrl,
+        avatarKind: item.avatarName
+          ? avatarKindForSearchKind(item.kind)
+          : undefined,
       })
     }
   }

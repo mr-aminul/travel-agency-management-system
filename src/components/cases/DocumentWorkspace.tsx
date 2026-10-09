@@ -3,11 +3,10 @@ import { Check } from 'lucide-react'
 import { DocumentRecordFields } from '@/components/cases/DocumentRecordFields'
 import { useDocumentRecordEditor } from '@/components/cases/documentRecordEditor'
 import { documentIcon } from '@/lib/caseDocuments'
-import type { IdentityKind } from '@/lib/clientDocuments'
+import { documentHasFile, type IdentityKind } from '@/lib/clientDocuments'
 import type { CaseDocument } from '@/types/case'
 import '@/styles/layout-cases.css'
 import { Badge, Button, type BadgeVariant } from '@/components/ui'
-import { documentHasFile } from '@/lib/clientDocuments'
 
 function statusCopy(
   document: CaseDocument,

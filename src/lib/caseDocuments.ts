@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { getStepDef, getStepIndex, templateCountry } from '@/lib/caseChecklist'
 import { findStepForDocument } from '@/lib/caseStepRequirements'
+import { getClientById } from '@/lib/clientsStore'
 import { resolveServiceTemplateOverride } from '@/lib/serviceTemplatesStore'
 import type { ServiceDocumentConfig } from '@/types/serviceTemplate'
 import type {
@@ -611,10 +612,57 @@ export function syncDocumentsWithProgress(item: Case): CaseDocument[] {
   })
 }
 
+function overlayIdentityFromClient(
+  doc: CaseDocument,
+  client?: Client,
+): CaseDocument {
+  if (!client) return doc
+  if (doc.id === 'passport') {
+    const number = client.passport?.trim()
+    return {
+      ...doc,
+      detail: number || doc.detail,
+      expiry: client.passportExpiry ?? doc.expiry,
+      fields: {
+        ...doc.fields,
+        ...(number ? { number } : {}),
+        ...(client.passportExpiry ? { expiry: client.passportExpiry } : {}),
+        ...(client.passportIssuedOn
+          ? { issuedOn: client.passportIssuedOn }
+          : {}),
+        ...(client.passportPlaceOfIssue
+          ? { placeOfIssue: client.passportPlaceOfIssue }
+          : {}),
+      },
+      fileName: client.passportFile?.fileName ?? doc.fileName,
+      fileId: client.passportFile?.fileId ?? doc.fileId,
+      mimeType: client.passportFile?.mimeType ?? doc.mimeType,
+    }
+  }
+  if (doc.id === 'nid' || doc.id === 'id') {
+    const number = client.nid?.trim()
+    return {
+      ...doc,
+      detail: number || doc.detail,
+      fields: {
+        ...doc.fields,
+        ...(number ? { number } : {}),
+      },
+      fileName: client.nidFile?.fileName ?? doc.fileName,
+      fileId: client.nidFile?.fileId ?? doc.fileId,
+      mimeType: client.nidFile?.mimeType ?? doc.mimeType,
+    }
+  }
+  return doc
+}
+
 export function getCaseComplianceDocuments(
   item: Case,
 ): ComplianceDocument[] {
-  const docs = syncDocumentsWithProgress(item)
+  const client = getClientById(item.clientId)
+  const docs = syncDocumentsWithProgress(item).map((doc) =>
+    overlayIdentityFromClient(doc, client),
+  )
   return docs.map((doc) => {
     const collector = findStepForDocument(item.service, doc.id)
     const sourceStepId = collector?.requirement.stepId ?? doc.unlockStepId
@@ -622,9 +670,12 @@ export function getCaseComplianceDocuments(
       ? getStepDef(item.service, sourceStepId, templateCountry(item))?.label
       : undefined
     const locked = !isStepUnlocked(item, sourceStepId)
+    const isIdentity = doc.id === 'passport' || doc.id === 'nid' || doc.id === 'id'
 
     let collectionHint = 'On file'
-    if (collector || doc.unlockStepId) {
+    if (isIdentity) {
+      collectionHint = 'Shared identity document'
+    } else if (collector || doc.unlockStepId) {
       if (doc.status === 'under_review' || doc.status === 'approved') {
         collectionHint = `Filed in ${sourceStepLabel ?? 'progress'} step`
       } else if (locked) {

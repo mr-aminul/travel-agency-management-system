@@ -190,6 +190,7 @@ export function NewClientForm({
           <ProfilePhotoField
             name={name}
             fallbackName="Client"
+            kind="client"
             value={avatarUrl}
             onChange={setAvatarUrl}
           >

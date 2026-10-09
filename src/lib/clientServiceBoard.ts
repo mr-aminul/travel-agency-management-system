@@ -202,7 +202,7 @@ function actionHint(
 ): string {
   if (item.status === 'On-Hold') return 'Resume hold and continue this step'
   if (profileBlocked) {
-    return 'Add passport number on the client profile'
+    return 'Add passport number in Documents'
   }
   if (missingDocs > 0) {
     return missingDocs === 1

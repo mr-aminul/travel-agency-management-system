@@ -34,12 +34,14 @@ export function ClientDocumentsPanel({
   cases,
   onAddService,
   focusCaseId = null,
+  focusIdentityKind = null,
   highlight = false,
 }: {
   client: Client
   cases: Case[]
   onAddService: () => void
   focusCaseId?: string | null
+  focusIdentityKind?: IdentityKind | null
   highlight?: boolean
 }) {
   useServiceIconOverrides()
@@ -83,6 +85,10 @@ export function ClientDocumentsPanel({
   }
 
   useEffect(() => {
+    if (focusIdentityKind) {
+      selectIdentityDoc(focusIdentityKind)
+      return
+    }
     if (!focusCaseId) return
     const group = getClientServiceDocumentGroups(cases).find(
       (item) => item.caseId === focusCaseId && item.papers.length > 0,
@@ -98,7 +104,7 @@ export function ClientDocumentsPanel({
     setCollapsedGroupIds((current) =>
       current.filter((id) => id !== focusCaseId),
     )
-  }, [focusCaseId, cases])
+  }, [focusCaseId, focusIdentityKind, cases])
 
   const identityOpen = isGroupOpen(IDENTITY_GROUP_ID)
   const selectedIdentity =
@@ -317,6 +323,7 @@ export function ClientDocumentsPanel({
             document={selectedIdentity}
             clientId={client.id}
             identityKind={selectedIdentityKind}
+            hint="Identity lives here and is reused on every service. Profile shows a read-only copy."
             canEdit
           />
         ) : selectedPaper && selectedGroup ? (

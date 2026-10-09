@@ -442,6 +442,7 @@ export default function SubAgentsPage() {
                       name={subAgent.name}
                       src={subAgent.photoUrl}
                       size="md"
+                      kind="subAgent"
                     />
                     <p className="pd-clients__name">{subAgent.name}</p>
                   </div>
@@ -504,6 +505,7 @@ export default function SubAgentsPage() {
                         name={subAgent.name}
                         src={subAgent.photoUrl}
                         size="sm"
+                        kind="subAgent"
                       />
                       <p className="pd-clients__name">{subAgent.name}</p>
                     </div>

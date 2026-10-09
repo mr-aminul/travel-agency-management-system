@@ -130,22 +130,51 @@ export function getClientIdentityRows(
   return [buildPassportRow(client, cases), buildNidRow(client, cases)]
 }
 
+function pickCaseIdentityDocument(
+  cases: Case[],
+  kind: IdentityKind,
+): CaseDocument | undefined {
+  // Prefer a service file that already has a number or scan (raw docs — not
+  // overlayed), so we never show case-only values that the profile cannot see.
+  const matches = cases.flatMap((item) =>
+    item.documents.filter((doc) => identityKindForDocumentId(doc.id) === kind),
+  )
+  return (
+    matches.find((doc) => doc.fields?.number?.trim()) ??
+    matches.find((doc) => doc.fileId || doc.fileName?.trim()) ??
+    matches[0]
+  )
+}
+
 export function buildIdentityCaseDocument(
   client: Client,
   cases: Case[],
   kind: IdentityKind,
 ): CaseDocument {
-  const fromCases = cases.flatMap((item) =>
-    getCaseComplianceDocuments(item).filter(
-      (entry) => identityKindForDocumentId(entry.id) === kind,
-    ),
-  )
-  const withFile = fromCases.find((doc) => doc.fileId || doc.fileName)
+  const fromCase = pickCaseIdentityDocument(cases, kind)
   const scan = kind === 'passport' ? client.passportFile : client.nidFile
+  // Client profile is the shared record Profile reads. Prefer it; fall back to
+  // the service file only for gaps (heal via reconcileClientIdentityFromCases).
   const number =
-    kind === 'passport' ? client.passport?.trim() : client.nid?.trim()
-  const expiry = kind === 'passport' ? client.passportExpiry : undefined
-  const hasRecord = Boolean(number || scan || withFile)
+    (kind === 'passport' ? client.passport?.trim() : client.nid?.trim()) ||
+    fromCase?.fields?.number?.trim() ||
+    undefined
+  const expiry =
+    (kind === 'passport' ? client.passportExpiry?.trim() : undefined) ||
+    fromCase?.fields?.expiry?.trim() ||
+    fromCase?.expiry?.trim() ||
+    undefined
+  const issuedOn =
+    (kind === 'passport' ? client.passportIssuedOn?.trim() : undefined) ||
+    fromCase?.fields?.issuedOn?.trim() ||
+    undefined
+  const placeOfIssue =
+    (kind === 'passport' ? client.passportPlaceOfIssue?.trim() : undefined) ||
+    fromCase?.fields?.placeOfIssue?.trim() ||
+    undefined
+  const hasRecord = Boolean(
+    number || scan || fromCase?.fileId || fromCase?.fileName,
+  )
 
   return {
     id: kind,
@@ -156,13 +185,14 @@ export function buildIdentityCaseDocument(
     required: true,
     icon: kind,
     fields: {
-      ...(withFile?.fields ?? {}),
       ...(number ? { number } : {}),
       ...(expiry ? { expiry } : {}),
+      ...(issuedOn ? { issuedOn } : {}),
+      ...(placeOfIssue ? { placeOfIssue } : {}),
     },
-    fileName: scan?.fileName ?? withFile?.fileName,
-    fileId: scan?.fileId ?? withFile?.fileId,
-    mimeType: scan?.mimeType ?? withFile?.mimeType,
+    fileName: scan?.fileName ?? fromCase?.fileName,
+    fileId: scan?.fileId ?? fromCase?.fileId,
+    mimeType: scan?.mimeType ?? fromCase?.mimeType,
   }
 }
 

@@ -458,6 +458,7 @@ export default function SubAgentDetailPage() {
               name={displayName}
               src={profileDraft.photoUrl ?? subAgent.photoUrl}
               size="xl"
+              kind="subAgent"
             />
             <div className="pd-client-detail__title-row">
               <h1 className="pd-client-detail__name">
@@ -858,6 +859,7 @@ export default function SubAgentDetailPage() {
                                               name={client.name}
                                               src={client.avatarUrl}
                                               size="sm"
+                                              kind="client"
                                             />
                                             <p className="pd-clients__name">
                                               {client.name}
@@ -902,10 +904,10 @@ export default function SubAgentDetailPage() {
                 content: (
                   <div className="pd-client-detail__profile">
                     <div className="pd-client-profile">
-                      <div className="pd-client-profile__group">
-                        <h3 className="pd-client-profile__group-title">
-                          Identity
-                        </h3>
+                      <div className="pd-client-detail__section pd-client-detail__section--compact pd-client-profile__group">
+                        <div className="pd-client-detail__section-head">
+                          <SectionTitle icon={IdCard}>Identity</SectionTitle>
+                        </div>
                         <div className="pd-client-profile__grid">
                           <div
                             className={[
@@ -920,6 +922,8 @@ export default function SubAgentDetailPage() {
                           >
                             <ProfilePhotoField
                               name={profileDraft.name}
+                              fallbackName="Sub Agent"
+                              kind="subAgent"
                               value={profileDraft.photoUrl}
                               onChange={(photoUrl) =>
                                 setDraft((current) => ({
@@ -1239,6 +1243,7 @@ export default function SubAgentDetailPage() {
                                     name={client.name}
                                     src={client.avatarUrl}
                                     size="md"
+                                    kind="client"
                                   />
                                   <p className="pd-clients__name">
                                     {client.name}
@@ -1307,6 +1312,7 @@ export default function SubAgentDetailPage() {
                                       name={client.name}
                                       src={client.avatarUrl}
                                       size="sm"
+                                      kind="client"
                                     />
                                     <p className="pd-clients__name">
                                       {client.name}

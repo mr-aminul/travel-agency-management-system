@@ -1,13 +1,15 @@
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { LogOut, Settings, UserRound } from 'lucide-react'
+import { Crown, IdCard, LogOut, Settings } from 'lucide-react'
 import { SignOutConfirmModal } from '@/components/ConfirmModal'
 import { settingsNavItem, profileNavItem } from '@/config/layout'
 import { settingsNavAlertCount } from '@/lib/agencyProfileGaps'
+import { getActiveTenantId } from '@/lib/authApi'
+import { findTenantMemberForUser } from '@/lib/tenantMembersStore'
 import { useAuth } from '@/lib/useAuth'
+import { avatarKindForMemberRole, CopyableText } from '@/components/ui'
 import { useAgencyProfile } from './useAgencyProfile'
 import { useHoverMenu } from './useHoverMenu'
-import { CopyableText } from '@/components/ui'
 
 export function ProfileDropdown({
   userName,
@@ -27,6 +29,12 @@ export function ProfileDropdown({
   const { user } = useAuth()
   const agencyProfile = useAgencyProfile()
   const isPlatformAdmin = user?.role === 'platform_admin'
+  const member =
+    user && !isPlatformAdmin
+      ? findTenantMemberForUser(getActiveTenantId(), user.id, user.email)
+      : undefined
+  const ProfileIcon =
+    avatarKindForMemberRole(member?.role) === 'owner' ? Crown : IdCard
   const settingsBadge =
     isPlatformAdmin ? 0 : settingsNavAlertCount(agencyProfile)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
@@ -53,7 +61,7 @@ export function ProfileDropdown({
         aria-label="Profile menu"
         aria-expanded={open}
       >
-        <UserRound size={16} strokeWidth={2} aria-hidden />
+        <ProfileIcon size={16} strokeWidth={2} aria-hidden />
       </button>
       {open && (
         <div
@@ -63,7 +71,7 @@ export function ProfileDropdown({
         >
           <div className="pd-topbar__dropdown-header">
             <span className="pd-topbar__profile-avatar pd-topbar__profile-avatar--menu">
-              <UserRound size={14} strokeWidth={2} aria-hidden />
+              <ProfileIcon size={14} strokeWidth={2} aria-hidden />
             </span>
             <div className="pd-topbar__dropdown-header-text">
               <div className="pd-topbar__dropdown-title">
@@ -84,7 +92,7 @@ export function ProfileDropdown({
             onClick={() => setOpen(false)}
             role="menuitem"
           >
-            <UserRound size={14} strokeWidth={2} />
+            <ProfileIcon size={14} strokeWidth={2} />
             {profileNavItem.label}
           </Link>
           <Link

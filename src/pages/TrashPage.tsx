@@ -130,6 +130,7 @@ export default function TrashPage() {
                         name={entry.client.name}
                         src={entry.client.avatarUrl}
                         size="sm"
+                        kind="client"
                       />
                       <p className="pd-clients__name">{entry.client.name}</p>
                     </div>

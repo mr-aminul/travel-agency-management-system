@@ -9,6 +9,7 @@ export {
   SEARCH_LIMIT_PER_GROUP,
 } from './rank'
 export {
+  avatarKindForSearchKind,
   placeholderHintsFromGroups,
   placeholderPhrasesFromGroups,
   SEARCH_PLACEHOLDER_FALLBACK,

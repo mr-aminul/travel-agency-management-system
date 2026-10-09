@@ -36,8 +36,8 @@ export type { FieldProps } from './Field'
 export { Badge } from './Badge'
 export type { BadgeProps, BadgeVariant } from './Badge'
 
-export { Avatar } from './Avatar'
-export type { AvatarProps, AvatarSize } from './Avatar'
+export { Avatar, avatarKindForMemberRole } from './Avatar'
+export type { AvatarKind, AvatarProps, AvatarSize } from './Avatar'
 
 export { Modal } from './Modal'
 export type { ModalProps } from './Modal'

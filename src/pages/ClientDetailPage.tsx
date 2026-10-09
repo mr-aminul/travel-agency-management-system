@@ -35,7 +35,12 @@ import { ClientDocumentsPanel } from '@/components/clients/ClientDocumentsPanel'
 import { ClientMessagesPanel } from '@/components/clients/ClientMessagesPanel'
 import { PaymentsList } from '@/components/payments/PaymentsList'
 import { caseStatusBadgeVariant } from '@/components/cases/CasesList'
-import { createCase, getEnabledServiceOptions, useCasesByClientId } from '@/lib/casesStore'
+import {
+  createCase,
+  getEnabledServiceOptions,
+  reconcileClientIdentityFromCases,
+  useCasesByClientId,
+} from '@/lib/casesStore'
 import { countClientDocumentAlerts } from '@/lib/clientDocuments'
 import {
   listClientInfoGaps,
@@ -178,7 +183,17 @@ type ProfileFieldDef = {
   key: keyof ProfileDraft
   label: string
   kind?: 'text' | 'date' | 'gender' | 'marital' | 'blood' | 'subAgent'
+  /** Share of a 6-column row. Defaults to 2 (one-third). */
+  span?: 1 | 2 | 3 | 6
   wide?: boolean
+}
+
+function profileFieldLayoutClass(field: Pick<ProfileFieldDef, 'span' | 'wide'>): string {
+  if (field.wide) return 'is-wide'
+  if (field.span === 1) return 'is-span-1'
+  if (field.span === 3) return 'is-span-3'
+  if (field.span === 6) return 'is-span-6'
+  return ''
 }
 
 /** Profile draft keys that map to missing-info gap ids. */
@@ -191,45 +206,47 @@ const PROFILE_GAP_FIELD: Record<ClientInfoGapId, keyof ProfileDraft> = {
   email: 'email',
 }
 
-const PROFILE_GROUPS: { title: string; fields: ProfileFieldDef[] }[] = [
+const PROFILE_GROUPS: {
+  title: string
+  icon: LucideIcon
+  fields: ProfileFieldDef[]
+}[] = [
   {
     title: 'Person',
+    icon: UserRound,
     fields: [
       { key: 'name', label: 'Full name' },
       { key: 'banglaName', label: 'Bangla name' },
-      { key: 'dateOfBirth', label: 'Date of birth', kind: 'date' },
+      { key: 'dateOfBirth', label: 'Date of birth', kind: 'date', span: 1 },
+      { key: 'gender', label: 'Gender', kind: 'gender', span: 1 },
       { key: 'placeOfBirth', label: 'Place of birth' },
-      { key: 'gender', label: 'Gender', kind: 'gender' },
-      { key: 'maritalStatus', label: 'Marital status', kind: 'marital' },
+      { key: 'maritalStatus', label: 'Marital status', kind: 'marital', span: 1 },
       { key: 'spouseName', label: 'Spouse name' },
+      { key: 'bloodGroup', label: 'Blood group', kind: 'blood', span: 1 },
       { key: 'fatherName', label: 'Father name' },
       { key: 'motherName', label: 'Mother name' },
       { key: 'nationality', label: 'Nationality' },
-      { key: 'bloodGroup', label: 'Blood group', kind: 'blood' },
     ],
   },
   {
     title: 'Contact',
+    icon: Phone,
     fields: [
       { key: 'phone', label: 'Mobile number' },
       { key: 'email', label: 'Email' },
-      { key: 'address', label: 'Address', wide: true },
+      { key: 'subAgentId', label: 'Sub Agent', kind: 'subAgent' },
+      { key: 'address', label: 'Address', span: 6 },
     ],
   },
   {
     title: 'Identity',
+    icon: IdCard,
     fields: [
       { key: 'passport', label: 'Passport number' },
-      { key: 'passportPlaceOfIssue', label: 'Place of issue' },
-      { key: 'passportIssuedOn', label: 'Date of issue', kind: 'date' },
-      { key: 'passportExpiry', label: 'Date of expiry', kind: 'date' },
-      { key: 'nid', label: 'NID number' },
-    ],
-  },
-  {
-    title: 'Referral',
-    fields: [
-      { key: 'subAgentId', label: 'Sub Agent', kind: 'subAgent' },
+      { key: 'nid', label: 'NID number', span: 1 },
+      { key: 'passportPlaceOfIssue', label: 'Place of issue', span: 1 },
+      { key: 'passportIssuedOn', label: 'Date of issue', kind: 'date', span: 1 },
+      { key: 'passportExpiry', label: 'Date of expiry', kind: 'date', span: 1 },
     ],
   },
 ]
@@ -270,6 +287,31 @@ function profileDraftsEqual(a: ProfileDraft, b: ProfileDraft): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
+const IDENTITY_PROFILE_KEYS = new Set<keyof ProfileDraft>([
+  'passport',
+  'passportPlaceOfIssue',
+  'passportIssuedOn',
+  'passportExpiry',
+  'nid',
+])
+
+function isIdentityProfileField(key: keyof ProfileDraft): boolean {
+  return IDENTITY_PROFILE_KEYS.has(key)
+}
+
+const IDENTITY_READOUT: {
+  key: keyof ProfileDraft
+  label: string
+  icon: LucideIcon
+  date?: boolean
+}[] = [
+  { key: 'passport', label: 'Passport', icon: BookUser },
+  { key: 'nid', label: 'NID', icon: IdCard },
+  { key: 'passportPlaceOfIssue', label: 'Place of issue', icon: MapPin },
+  { key: 'passportIssuedOn', label: 'Date of issue', icon: Calendar, date: true },
+  { key: 'passportExpiry', label: 'Date of expiry', icon: Calendar, date: true },
+]
+
 function ProfileFieldControl({
   field,
   value,
@@ -277,6 +319,7 @@ function ProfileFieldControl({
   onBlur,
   error,
   required,
+  readOnly,
   subAgentOptions,
 }: {
   field: ProfileFieldDef
@@ -285,6 +328,7 @@ function ProfileFieldControl({
   onBlur?: () => void
   error?: string
   required?: boolean
+  readOnly?: boolean
   subAgentOptions?: { value: string; label: string }[]
 }) {
   if (field.kind === 'gender') {
@@ -296,6 +340,7 @@ function ProfileFieldControl({
         onBlur={onBlur}
         options={GENDER_OPTIONS}
         error={error}
+        readOnly={readOnly}
       />
     )
   }
@@ -308,6 +353,7 @@ function ProfileFieldControl({
         onBlur={onBlur}
         options={MARITAL_OPTIONS}
         error={error}
+        readOnly={readOnly}
       />
     )
   }
@@ -320,6 +366,7 @@ function ProfileFieldControl({
         onBlur={onBlur}
         options={BLOOD_GROUP_OPTIONS}
         error={error}
+        readOnly={readOnly}
       />
     )
   }
@@ -332,6 +379,7 @@ function ProfileFieldControl({
         onBlur={onBlur}
         options={subAgentOptions ?? [{ value: '', label: 'None' }]}
         error={error}
+        readOnly={readOnly}
       />
     )
   }
@@ -352,6 +400,7 @@ function ProfileFieldControl({
       onChange={(event) => onChange(event.target.value)}
       onBlur={onBlur}
       error={error}
+      readOnly={readOnly}
     />
   )
 }
@@ -547,7 +596,6 @@ export default function ClientDetailPage() {
   const activeTab = serviceOutlet ? 'services' : tabFromSearch(searchParams)
   const [newCaseOpen, setNewCaseOpen] = useState(false)
   const [draft, setDraft] = useState<ProfileDraft | null>(null)
-  const [profileFlash, setProfileFlash] = useState(false)
   const [docsFlash, setDocsFlash] = useState(false)
   const { markAllTouched, showError, blur } = useTouchedFields<string>()
   const subAgentOptions = useMemo(
@@ -571,22 +619,25 @@ export default function ClientDetailPage() {
     const focus = searchParams.get('focus')
     if (focus !== 'passport' && focus !== 'docs') return
 
-    if (focus === 'passport') setProfileFlash(true)
-    if (focus === 'docs') setDocsFlash(true)
+    // Identity edits happen in Documents (passport/NID + scans).
+    setDocsFlash(true)
+    const next = new URLSearchParams(searchParams)
+    if (next.get('tab') !== 'documents') {
+      next.set('tab', 'documents')
+      setSearchParams(next, { replace: true })
+      return
+    }
 
     const frame = window.requestAnimationFrame(() => {
-      flashAndReveal(
-        focus === 'passport' ? 'client-profile-identity' : 'client-documents',
-      )
+      flashAndReveal('client-documents')
     })
 
     const timer = window.setTimeout(() => {
-      setProfileFlash(false)
       setDocsFlash(false)
-      const next = new URLSearchParams(searchParams)
-      next.delete('focus')
-      next.delete('case')
-      setSearchParams(next, { replace: true })
+      const cleaned = new URLSearchParams(searchParams)
+      cleaned.delete('focus')
+      cleaned.delete('case')
+      setSearchParams(cleaned, { replace: true })
     }, 2800)
 
     return () => {
@@ -597,8 +648,37 @@ export default function ClientDetailPage() {
 
   useEffect(() => {
     if (!client) return
+    // Pull identity that only exists on service files onto the client so
+    // Profile and Documents never disagree.
+    reconcileClientIdentityFromCases(client.id)
+  }, [client?.id])
+
+  useEffect(() => {
+    if (!client) return
     setDraft(toProfileDraft(client, customFieldDefs))
   }, [client?.id, customFieldDefs])
+
+  // Identity is owned by Documents — keep Profile fields mirrored from the client.
+  useEffect(() => {
+    if (!client) return
+    setDraft((current) => {
+      if (!current) return current
+      return {
+        ...current,
+        passport: client.passport ?? '',
+        passportExpiry: client.passportExpiry ?? '',
+        passportIssuedOn: client.passportIssuedOn ?? '',
+        passportPlaceOfIssue: client.passportPlaceOfIssue ?? '',
+        nid: client.nid ?? '',
+      }
+    })
+  }, [
+    client?.passport,
+    client?.passportExpiry,
+    client?.passportIssuedOn,
+    client?.passportPlaceOfIssue,
+    client?.nid,
+  ])
 
   const savedDraft = useMemo(
     () => (client ? toProfileDraft(client, customFieldDefs) : null),
@@ -685,7 +765,9 @@ export default function ClientDetailPage() {
   })()
 
   const profileFieldKeys = PROFILE_GROUPS.flatMap((group) =>
-    group.fields.map((field) => field.key),
+    group.fields
+      .map((field) => field.key)
+      .filter((key) => !isIdentityProfileField(key)),
   )
   const customFieldKeys = customFieldDefs.map((field) => `custom:${field.id}`)
 
@@ -703,14 +785,13 @@ export default function ClientDetailPage() {
     )
     if (hasProfileError || hasCustomError) return
     const phone = normalizePhone(profileDraft.phone)
+    // Identity (passport/NID) is owned by Documents — do not overwrite from Profile.
     const updated = updateClient(client.id, {
       name: profileDraft.name.trim(),
       banglaName: profileDraft.banglaName.trim() || undefined,
       phone,
       email: profileDraft.email.trim() || undefined,
       address: profileDraft.address.trim() || undefined,
-      nid: profileDraft.nid.trim() || undefined,
-      passport: profileDraft.passport.trim() || undefined,
       fatherName: profileDraft.fatherName.trim() || undefined,
       motherName: profileDraft.motherName.trim() || undefined,
       dateOfBirth: profileDraft.dateOfBirth.trim() || undefined,
@@ -720,9 +801,6 @@ export default function ClientDetailPage() {
       placeOfBirth: profileDraft.placeOfBirth.trim() || undefined,
       spouseName: profileDraft.spouseName.trim() || undefined,
       bloodGroup: profileDraft.bloodGroup.trim() || undefined,
-      passportExpiry: profileDraft.passportExpiry.trim() || undefined,
-      passportIssuedOn: profileDraft.passportIssuedOn.trim() || undefined,
-      passportPlaceOfIssue: profileDraft.passportPlaceOfIssue.trim() || undefined,
       subAgentId: profileDraft.subAgentId.trim() || undefined,
       customFields: compactCustomFieldValues({
         ...Object.fromEntries(
@@ -785,7 +863,12 @@ export default function ClientDetailPage() {
       <div className="pd-client-detail__layout">
         <aside className="pd-client-detail__card" aria-label="Client profile">
           <div className="pd-client-detail__card-identity">
-            <Avatar name={displayName} src={client.avatarUrl} size="xl" />
+            <Avatar
+              name={displayName}
+              src={client.avatarUrl}
+              size="xl"
+              kind="client"
+            />
             <div className="pd-client-detail__title-row">
               <h1 className="pd-client-detail__name">
                 <ContactChip value={displayName} label="client name" />
@@ -1120,82 +1203,138 @@ export default function ClientDetailPage() {
                               : undefined
                           }
                           className={[
+                            'pd-client-detail__section',
+                            'pd-client-detail__section--compact',
                             'pd-client-profile__group',
-                            group.title === 'Identity' && profileFlash
-                              ? 'pd-focus-flash'
-                              : '',
                           ]
                             .filter(Boolean)
                             .join(' ')}
                         >
-                          <h3 className="pd-client-profile__group-title">
-                            {group.title}
-                          </h3>
+                          <div className="pd-client-detail__section-head">
+                            <SectionTitle icon={group.icon}>
+                              {group.title}
+                            </SectionTitle>
+                            {group.title === 'Identity' ? (
+                              <Link
+                                to={`/clients/${client.id}?tab=documents&focus=passport`}
+                                className="pd-btn pd-btn--secondary pd-btn--sm"
+                              >
+                                <FileText size={14} strokeWidth={2.25} aria-hidden />
+                                Edit in Documents
+                              </Link>
+                            ) : null}
+                          </div>
+                          {group.title === 'Identity' ? (
+                            <dl className="pd-client-detail__fields">
+                              {IDENTITY_READOUT.map((row) => {
+                                const raw = String(
+                                  profileDraft[row.key] ?? '',
+                                ).trim()
+                                const gap = gapForProfileField(
+                                  profileGaps,
+                                  row.key,
+                                )
+                                const display = raw
+                                  ? row.date
+                                    ? formatDate(raw)
+                                    : raw
+                                  : null
+                                return (
+                                  <div
+                                    key={row.key}
+                                    className={[
+                                      'pd-client-detail__field',
+                                      gap ? 'is-attention' : '',
+                                      gap?.blocksProgress ? 'is-blocking' : '',
+                                    ]
+                                      .filter(Boolean)
+                                      .join(' ')}
+                                  >
+                                    <FieldLabel icon={row.icon}>
+                                      {row.label}
+                                    </FieldLabel>
+                                    <dd>
+                                      {display ? (
+                                        display
+                                      ) : (
+                                        <span className="pd-client-detail__empty">
+                                          —
+                                        </span>
+                                      )}
+                                    </dd>
+                                  </div>
+                                )
+                              })}
+                            </dl>
+                          ) : (
                           <div className="pd-client-profile__grid">
                             {group.fields.map((field) => {
-                              const gap = gapForProfileField(profileGaps, field.key)
+                              const gap = gapForProfileField(
+                                profileGaps,
+                                field.key,
+                              )
                               return (
-                              <div
-                                key={field.key}
-                                className={[
-                                  'pd-client-profile__field',
-                                  field.wide ? 'is-wide' : '',
-                                  String(profileDraft[field.key] ?? '') !==
-                                    String(savedDraft[field.key] ?? '')
-                                    ? 'is-dirty'
-                                    : '',
-                                  gap ? 'is-attention' : '',
-                                  gap?.blocksProgress ? 'is-blocking' : '',
-                                ]
-                                  .filter(Boolean)
-                                  .join(' ')}
-                              >
-                                <ProfileFieldControl
-                                  field={field}
-                                  value={String(profileDraft[field.key] ?? '')}
-                                  required={
-                                    field.key === 'name' ||
-                                    field.key === 'phone' ||
-                                    ((field.key === 'passportIssuedOn' ||
-                                      field.key === 'passportExpiry') &&
-                                      Boolean(profileDraft.passport.trim()))
-                                  }
-                                  subAgentOptions={
-                                    field.kind === 'subAgent'
-                                      ? subAgentOptions
-                                      : undefined
-                                  }
-                                  error={
-                                    showError(field.key)
-                                      ? profileFieldError(
+                                <div
+                                  key={field.key}
+                                  className={[
+                                    'pd-client-profile__field',
+                                    profileFieldLayoutClass(field),
+                                    String(profileDraft[field.key] ?? '') !==
+                                      String(savedDraft[field.key] ?? '')
+                                      ? 'is-dirty'
+                                      : '',
+                                    gap ? 'is-attention' : '',
+                                    gap?.blocksProgress ? 'is-blocking' : '',
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' ')}
+                                >
+                                  <ProfileFieldControl
+                                    field={field}
+                                    value={String(profileDraft[field.key] ?? '')}
+                                    required={
+                                      field.key === 'name' ||
+                                      field.key === 'phone'
+                                    }
+                                    subAgentOptions={
+                                      field.kind === 'subAgent'
+                                        ? subAgentOptions
+                                        : undefined
+                                    }
+                                    error={
+                                      showError(field.key)
+                                        ? profileFieldError(
                                           field.key,
                                           profileDraft,
                                           duplicatePhoneOwner,
                                         )
-                                      : undefined
-                                  }
-                                  onBlur={blur(field.key)}
-                                  onChange={(value) =>
-                                    setDraft((current) => ({
-                                      ...(current ?? savedDraft),
-                                      [field.key]:
-                                        field.kind === 'gender'
-                                          ? (value as ClientGender)
-                                          : value,
-                                    }))
-                                  }
-                                />
-                              </div>
+                                        : undefined
+                                    }
+                                    onBlur={blur(field.key)}
+                                    onChange={(value) => {
+                                      setDraft((current) => ({
+                                        ...(current ?? savedDraft),
+                                        [field.key]:
+                                          field.kind === 'gender'
+                                            ? (value as ClientGender)
+                                            : value,
+                                      }))
+                                    }}
+                                  />
+                                </div>
                               )
                             })}
                           </div>
+                          )}
                         </div>
                       ))}
                       {customFieldDefs.length ? (
-                        <div className="pd-client-profile__group">
-                          <h3 className="pd-client-profile__group-title">
-                            Additional information
-                          </h3>
+                        <div className="pd-client-detail__section pd-client-detail__section--compact pd-client-profile__group">
+                          <div className="pd-client-detail__section-head">
+                            <SectionTitle icon={FileText}>
+                              Additional information
+                            </SectionTitle>
+                          </div>
                           <div className="pd-client-profile__grid">
                             {customFieldDefs.map((field) => {
                               const key = `custom:${field.id}`
@@ -1291,6 +1430,11 @@ export default function ClientDetailPage() {
                     focusCaseId={
                       searchParams.get('focus') === 'docs'
                         ? searchParams.get('case')
+                        : null
+                    }
+                    focusIdentityKind={
+                      searchParams.get('focus') === 'passport'
+                        ? 'passport'
                         : null
                     }
                     highlight={docsFlash}

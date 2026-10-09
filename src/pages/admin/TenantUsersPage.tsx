@@ -26,6 +26,7 @@ import type {
 } from '@/types/tenant'
 import {
   Avatar,
+  avatarKindForMemberRole,
   Badge,
   Button,
   CopyableText,
@@ -451,7 +452,11 @@ export default function TenantUsersPage() {
             <TableRow key={member.id}>
               <TableCell>
                 <span className="pd-admin__user">
-                  <Avatar name={member.name} size="sm" />
+                  <Avatar
+                    name={member.name}
+                    size="sm"
+                    kind={avatarKindForMemberRole(member.role)}
+                  />
                   <span className="pd-admin__user-name">{member.name}</span>
                 </span>
               </TableCell>
