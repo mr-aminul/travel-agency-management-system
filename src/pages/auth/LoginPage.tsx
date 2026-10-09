@@ -3,9 +3,12 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { layoutConfig } from '@/config/layout'
 import { useAuth } from '@/lib/auth'
-import { postLoginPath } from '@/lib/authWorkspaces'
+import {
+  postLoginPath,
+  type LoginIntent,
+} from '@/lib/authWorkspaces'
 import { publicUrl } from '@/lib/publicUrl'
-import { Button, Input } from '@/components/ui'
+import { Button, Input, RadioGroup } from '@/components/ui'
 import {
   validateRequiredEmail,
   validateRequiredPassword,
@@ -16,6 +19,7 @@ import '@/styles/layout-login.css'
 export default function LoginPage() {
   const navigate = useNavigate()
   const { status, session, signInWithPassword } = useAuth()
+  const [loginAs, setLoginAs] = useState<LoginIntent>('agency')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
@@ -38,7 +42,9 @@ export default function LoginPage() {
     if (emailError || passwordError) return
     setIsSubmitting(true)
     try {
-      const next = await signInWithPassword(email, password)
+      const next = await signInWithPassword(email, password, {
+        intent: loginAs,
+      })
       navigate(postLoginPath(next), { replace: true })
     } catch (caught) {
       setError(
@@ -81,6 +87,17 @@ export default function LoginPage() {
 
         <div className="pd-login__actions">
           <form className="pd-login__form" onSubmit={handlePasswordSignIn}>
+            <RadioGroup
+              className="pd-login__intent"
+              legend="Sign in as"
+              name="login-as"
+              value={loginAs}
+              onChange={(value) => setLoginAs(value as LoginIntent)}
+              options={[
+                { value: 'agency', label: 'Agency login' },
+                { value: 'sub_agent', label: 'Sub agent login' },
+              ]}
+            />
             <Input
               id="login-email"
               label="Email"

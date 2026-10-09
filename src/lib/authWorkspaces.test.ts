@@ -57,6 +57,69 @@ describe('authWorkspaces', () => {
     expect((next.workspaces ?? []).length).toBeGreaterThan(1)
   })
 
+  it('enters agency workspace when login intent is agency', () => {
+    upsertSubAgentLogin({
+      subAgentId: 'AGT-T0001',
+      tenantId: 'tenant-full',
+      userId: 'user-linked',
+      email: 'both@example.com',
+      status: 'active',
+    })
+    const base: AuthSession = {
+      user: {
+        id: 'user-linked',
+        email: 'both@example.com',
+        name: 'Both',
+        role: 'agency_user',
+      },
+      tenantId: 'tenant-full',
+      signedInAt: new Date().toISOString(),
+    }
+    const next = withResolvedWorkspaces(base, 'agency')
+    expect(next.workspacePending).toBe(false)
+    expect(next.user.role).toBe('agency_user')
+  })
+
+  it('enters partner workspace when login intent is sub_agent', () => {
+    upsertSubAgentLogin({
+      subAgentId: 'AGT-T0001',
+      tenantId: 'tenant-full',
+      userId: 'user-linked',
+      email: 'both@example.com',
+      status: 'active',
+    })
+    const base: AuthSession = {
+      user: {
+        id: 'user-linked',
+        email: 'both@example.com',
+        name: 'Both',
+        role: 'agency_user',
+      },
+      tenantId: 'tenant-full',
+      signedInAt: new Date().toISOString(),
+    }
+    const next = withResolvedWorkspaces(base, 'sub_agent')
+    expect(next.user.role).toBe('sub_agent')
+    expect(next.user.subAgentId).toBe('AGT-T0001')
+  })
+
+  it('rejects agency intent when the account is partner-only', () => {
+    const base: AuthSession = {
+      user: {
+        id: 'user-sa',
+        email: 'partner-only@example.com',
+        name: 'Partner',
+        role: 'sub_agent',
+        subAgentId: 'AGT-T0001',
+      },
+      tenantId: 'tenant-full',
+      signedInAt: new Date().toISOString(),
+    }
+    expect(() => withResolvedWorkspaces(base, 'agency')).toThrow(
+      /no agency login/i,
+    )
+  })
+
   it('applies partner workspace onto the session', () => {
     const base: AuthSession = {
       user: {

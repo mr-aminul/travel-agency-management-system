@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Button, Input, Select } from '@/components/ui'
 import { absolutePublicUrl } from '@/lib/publicUrl'
 import {
@@ -7,10 +7,15 @@ import {
   provisionSubAgentUser,
 } from '@/lib/authApi'
 import {
+  findProvisionedAccountByEmail,
+} from '@/lib/provisionedUsers'
+import { findSeededAccountByEmail } from '@/lib/seededUsers'
+import {
   setSubAgentLoginStatus,
   upsertSubAgentLogin,
   useSubAgentLogin,
 } from '@/lib/subAgentLoginsStore'
+import { useTenantMembers } from '@/lib/tenantMembersStore'
 import { validateOptionalEmail, validateRequiredText } from '@/lib/fieldValidation'
 import type { SubAgent } from '@/types/subAgent'
 
@@ -23,13 +28,26 @@ type Props = {
 export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
   const tenantId = getActiveTenantId()
   const login = useSubAgentLogin(subAgent.id, tenantId)
-  const [mode, setMode] = useState<'invite' | 'password'>('invite')
+  const members = useTenantMembers()
+  const [mode, setMode] = useState<'invite' | 'password' | 'link'>('invite')
   const [email, setEmail] = useState(subAgent.email ?? '')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const existingLogin = useMemo(() => {
+    const normalized = email.trim().toLowerCase()
+    if (!normalized) return false
+    if (findSeededAccountByEmail(normalized)) return true
+    if (findProvisionedAccountByEmail(normalized)) return true
+    return members.some(
+      (member) =>
+        member.email.trim().toLowerCase() === normalized &&
+        member.status !== 'disabled',
+    )
+  }, [email, members])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -42,7 +60,11 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
       setError(emailError ?? 'Email is required for login.')
       return
     }
-    if (mode === 'password') {
+
+    const grantMode =
+      mode === 'password' && existingLogin ? 'link' : mode
+
+    if (grantMode === 'password') {
       const passwordError = validateRequiredText(password, 'Password', 8)
       if (passwordError) {
         setError(passwordError)
@@ -53,7 +75,7 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
     setBusy(true)
     try {
       onEmailSaved?.(email.trim().toLowerCase())
-      if (mode === 'invite') {
+      if (grantMode === 'invite') {
         const invite = await createUserInvite({
           email: email.trim(),
           name: subAgent.name,
@@ -71,12 +93,16 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
           status: 'invited',
           invitedAt: new Date().toISOString(),
         })
-        setStatus('Invite created. Copy the link and send it to the partner.')
+        setStatus(
+          existingLogin
+            ? 'Invite created. They already have an agency login — after accepting, they should choose Sub agent login on the sign-in page.'
+            : 'Invite created. Copy the link and send it to the partner.',
+        )
       } else {
         const created = await provisionSubAgentUser({
           email: email.trim(),
           name: subAgent.name,
-          password,
+          ...(grantMode === 'link' ? {} : { password }),
           tenantId,
           subAgentId: subAgent.id,
         })
@@ -89,7 +115,11 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
           activatedAt: new Date().toISOString(),
         })
         setPassword('')
-        setStatus('Login created. They can sign in with this email and password.')
+        setStatus(
+          created.linkedExisting || grantMode === 'link'
+            ? 'Partner access linked. They keep their existing password and sign in with Sub agent login.'
+            : 'Login created. They can sign in with Sub agent login using this email and password.',
+        )
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not set up login.')
@@ -104,18 +134,37 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
     setSubAgentLoginStatus(subAgent.id, next, tenantId)
     setStatus(
       next === 'disabled'
-        ? 'Login disabled. They can no longer sign in.'
+        ? 'Login disabled. They can no longer sign in as a sub agent.'
         : 'Login re-enabled.',
     )
   }
+
+  const grantOptions = existingLogin
+    ? [
+        {
+          value: 'link',
+          label: 'Link existing login (same password)',
+        },
+        {
+          value: 'invite',
+          label: 'Send invite link',
+        },
+      ]
+    : [
+        { value: 'invite', label: 'Send invite link (they set password)' },
+        { value: 'password', label: 'Set password now' },
+      ]
+
+  const effectiveMode = existingLogin && mode === 'password' ? 'link' : mode
 
   return (
     <section className="pd-settings-block" aria-labelledby="sub-agent-login-heading">
       <header className="pd-settings-block__header">
         <h2 id="sub-agent-login-heading">Partner login</h2>
         <p>
-          Give this sub-agent the same sign-in and password-reset experience as
-          agency staff. They only see their referred clients and submissions.
+          Partners sign in with <strong>Sub agent login</strong> on the sign-in
+          page. If this email already runs an agency, we link partner access —
+          we do not overwrite their agency password.
         </p>
       </header>
 
@@ -127,15 +176,21 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
         <p className="pd-settings-block__meta">No login yet.</p>
       )}
 
+      {existingLogin && !login ? (
+        <p className="pd-settings-block__meta" role="status">
+          This email already has an agency login. Prefer linking — they will use
+          the same password and choose Sub agent login when signing in.
+        </p>
+      ) : null}
+
       <form className="pd-form-stack" onSubmit={(event) => void handleSubmit(event)}>
         <Select
           label="How to grant access"
-          value={mode}
-          onChange={(event) => setMode(event.target.value as 'invite' | 'password')}
-          options={[
-            { value: 'invite', label: 'Send invite link (they set password)' },
-            { value: 'password', label: 'Set password now' },
-          ]}
+          value={effectiveMode}
+          onChange={(event) =>
+            setMode(event.target.value as 'invite' | 'password' | 'link')
+          }
+          options={grantOptions}
         />
         <Input
           label="Login email"
@@ -145,7 +200,7 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
           required
           autoComplete="off"
         />
-        {mode === 'password' ? (
+        {effectiveMode === 'password' ? (
           <Input
             label="Initial password"
             type="password"
@@ -156,7 +211,11 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
             autoComplete="new-password"
           />
         ) : null}
-        {error ? <p role="alert">{error}</p> : null}
+        {error ? (
+          <p className="pd-field__error" role="alert">
+            {error}
+          </p>
+        ) : null}
         {status ? <p role="status">{status}</p> : null}
         {inviteLink ? (
           <p>
@@ -170,13 +229,15 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
           <Button type="submit" disabled={busy}>
             {busy
               ? 'Working…'
-              : mode === 'invite'
+              : effectiveMode === 'invite'
                 ? login
                   ? 'Resend invite'
                   : 'Create invite'
-                : login
-                  ? 'Reset password'
-                  : 'Create login'}
+                : effectiveMode === 'link'
+                  ? 'Link partner access'
+                  : login
+                    ? 'Reset password'
+                    : 'Create login'}
           </Button>
           {login && login.status !== 'invited' ? (
             <Button type="button" variant="secondary" onClick={toggleDisabled}>

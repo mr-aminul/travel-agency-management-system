@@ -275,6 +275,7 @@ export async function createAgencyUser({
   memberRole,
   role,
   subAgentId,
+  linkOnly,
 }) {
   const normalizedEmail = normalizeEmail(email)
   const trimmedName = String(name ?? '').trim()
@@ -293,6 +294,7 @@ export async function createAgencyUser({
           memberRole === 'staff'
         ? memberRole
         : 'staff'
+  const isLinkOnly = linkOnly === true
 
   if (!normalizedEmail) {
     return { ok: false, status: 400, error: 'Email is required.' }
@@ -300,7 +302,7 @@ export async function createAgencyUser({
   if (!trimmedName) {
     return { ok: false, status: 400, error: 'Name is required.' }
   }
-  if (!rawPassword || rawPassword.length < 8) {
+  if (!isLinkOnly && (!rawPassword || rawPassword.length < 8)) {
     return {
       ok: false,
       status: 400,
@@ -321,8 +323,15 @@ export async function createAgencyUser({
   )
   if (existing.rows[0]) {
     const row = existing.rows[0]
-    // Same email: link agency ↔ partner instead of blocking.
+    // Same email: link agency ↔ partner instead of blocking / overwriting password.
     if (resolvedRole === 'agency_user' && row.role === 'sub_agent') {
+      if (!rawPassword || rawPassword.length < 8) {
+        return {
+          ok: false,
+          status: 400,
+          error: 'Password must be at least 8 characters.',
+        }
+      }
       await query(
         `update platform.users
          set name = $2,
@@ -358,7 +367,11 @@ export async function createAgencyUser({
         },
       }
     }
-    if (resolvedRole === 'sub_agent' && row.role === 'agency_user') {
+    if (
+      resolvedRole === 'sub_agent' &&
+      (row.role === 'agency_user' || row.role === 'sub_agent')
+    ) {
+      // Never rewrite password here — agency owners keep their existing login.
       await query(
         `update platform.users
          set sub_agent_id = $2,
@@ -375,7 +388,7 @@ export async function createAgencyUser({
             id: row.id,
             email: normalizedEmail,
             name: row.name || trimmedName,
-            role: 'agency_user',
+            role: row.role === 'agency_user' ? 'agency_user' : 'sub_agent',
             subAgentId: resolvedSubAgentId,
           },
           tenantId: row.tenant_id || resolvedTenantId,
@@ -388,6 +401,15 @@ export async function createAgencyUser({
       ok: false,
       status: 409,
       error: 'An account with this email already exists.',
+    }
+  }
+
+  if (isLinkOnly) {
+    return {
+      ok: false,
+      status: 404,
+      error:
+        'No existing login for this email. Set a password to create partner access, or use an email that already has an agency login.',
     }
   }
 

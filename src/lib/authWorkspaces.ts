@@ -187,12 +187,58 @@ export function applyWorkspaceToSession(
   }
 }
 
-/** After password login: auto-enter one workspace, or mark picker required. */
-export function withResolvedWorkspaces(session: AuthSession): AuthSession {
+/** Login page choice — filters which workspace to enter. */
+export type LoginIntent = 'agency' | 'sub_agent'
+
+export function matchesLoginIntent(
+  workspace: AuthWorkspace,
+  intent: LoginIntent,
+): boolean {
+  if (intent === 'agency') {
+    return workspace.kind === 'agency' || workspace.kind === 'platform_admin'
+  }
+  return workspace.kind === 'sub_agent'
+}
+
+/**
+ * After password login: enter the workspace matching login intent.
+ * Without intent, auto-enter one workspace or mark picker required.
+ */
+export function withResolvedWorkspaces(
+  session: AuthSession,
+  intent?: LoginIntent,
+): AuthSession {
   const workspaces = listWorkspacesForUser(session.user, session.tenantId)
   if (workspaces.length === 0) {
     return { ...session, workspaces, workspacePending: false }
   }
+
+  if (intent) {
+    const matched = workspaces.filter((row) =>
+      matchesLoginIntent(row, intent),
+    )
+    if (matched.length === 0) {
+      const message =
+        intent === 'agency'
+          ? 'This account has no agency login. Choose Sub agent login, or ask your agency for access.'
+          : 'This account has no sub-agent login. Choose Agency login, or ask the agency to enable partner access.'
+      throw new Error(message)
+    }
+    if (matched.length === 1) {
+      return applyWorkspaceToSession(
+        { ...session, workspaces },
+        matched[0]!,
+      )
+    }
+    // Multiple partner links (or agencies) under the same intent → picker.
+    return {
+      ...session,
+      workspaces: matched,
+      workspacePending: true,
+      activeWorkspaceId: undefined,
+    }
+  }
+
   if (workspaces.length === 1) {
     return applyWorkspaceToSession(
       { ...session, workspaces },

@@ -167,6 +167,7 @@ app.post('/api/platform/auth/users', requireAuth, async (req, res) => {
             (req.body?.role !== 'sub_agent' ? req.body?.role : undefined),
       role: requestedRole,
       subAgentId: req.body?.subAgentId,
+      linkOnly: req.body?.linkOnly === true,
     })
     if (!result.ok) {
       res.status(result.status).json({ error: result.error })
@@ -176,12 +177,14 @@ app.post('/api/platform/auth/users', requireAuth, async (req, res) => {
       tenantId,
       actorUserId: req.auth.user.id,
       actorEmail: req.auth.user.email,
-      action: 'user.create',
+      action: result.body.linked ? 'user.link' : 'user.create',
       entityType: 'user',
       entityId: result.body.user.id,
-      summary: `Created user ${result.body.user.email}`,
+      summary: result.body.linked
+        ? `Linked partner access for ${result.body.user.email}`
+        : `Created user ${result.body.user.email}`,
     })
-    res.status(201).json(result.body)
+    res.status(result.status === 200 ? 200 : 201).json(result.body)
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'create user failed',

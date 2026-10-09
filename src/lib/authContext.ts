@@ -10,6 +10,7 @@ export type AuthContextValue = {
   signInWithPassword: (
     email: string,
     password: string,
+    options?: import('@/lib/authApi').SignInOptions,
   ) => Promise<AuthSession>
   selectWorkspace: (workspaceId: string) => Promise<AuthSession>
   /** Re-open the workspace picker without signing out. */

@@ -19,8 +19,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() => readSession())
 
   const signInWithPassword = useCallback(
-    async (email: string, password: string) => {
-      const next = await apiSignInWithPassword(email, password)
+    async (
+      email: string,
+      password: string,
+      options?: Parameters<typeof apiSignInWithPassword>[2],
+    ) => {
+      const next = await apiSignInWithPassword(email, password, options)
       setSession(next)
       await rehydratePlatformData()
       return next

@@ -316,12 +316,15 @@ export type ProvisionedAgencyUser = {
   role: AuthUser['role']
   tenantId: string
   subAgentId?: string
+  /** True when an existing agency login was linked instead of creating a new password. */
+  linkedExisting?: boolean
 }
 
 export type ProvisionSubAgentUserInput = {
   email: string
   name: string
-  password: string
+  /** Required for a new login; ignored when linking an existing agency email. */
+  password?: string
   tenantId: string
   subAgentId: string
 }
@@ -411,23 +414,22 @@ export async function provisionSubAgentUser(
 
   if (!email) throw new Error('Email is required.')
   if (!name) throw new Error('Name is required.')
-  if (!password || password.length < 8) {
-    throw new Error('Password must be at least 8 characters.')
-  }
   if (!tenantId) throw new Error('Agency is required.')
   if (!subAgentId) throw new Error('Sub agent is required.')
 
   if (authApiConfigured()) {
     try {
+      const linkOnly = !password || password.length < 8
       const body = await apiFetch<{
         user: AuthUser
         tenantId: string
+        linked?: boolean
       }>('/api/platform/auth/users', {
         method: 'POST',
         body: {
           email,
           name,
-          password,
+          ...(linkOnly ? { linkOnly: true } : { password }),
           tenantId,
           id,
           role: 'sub_agent',
@@ -443,6 +445,7 @@ export async function provisionSubAgentUser(
         role: user.role,
         tenantId: body.tenantId || tenantId,
         subAgentId: user.subAgentId ?? subAgentId,
+        linkedExisting: body.linked === true,
       }
     } catch (error) {
       if (!isNetworkFailure(error)) {
@@ -455,6 +458,7 @@ export async function provisionSubAgentUser(
     findProvisionedAccountByEmail(email) ?? findSeededAccountByEmail(email)
   if (existing) {
     // Same email already has a login — attach partner access; keep their password.
+    // Do not overwrite the agency password from the partner form.
     return {
       id: existing.user.id,
       email: existing.user.email,
@@ -462,7 +466,12 @@ export async function provisionSubAgentUser(
       role: existing.user.role,
       tenantId: existing.tenantId,
       subAgentId,
+      linkedExisting: true,
     }
+  }
+
+  if (!password || password.length < 8) {
+    throw new Error('Password must be at least 8 characters.')
   }
 
   const local = await saveProvisionedLogin({
@@ -535,6 +544,11 @@ async function assertSessionAllowed(session: AuthSession): Promise<void> {
   }
 }
 
+export type SignInOptions = {
+  /** Agency vs sub-agent login — chosen on the login form. */
+  intent?: import('@/lib/authWorkspaces').LoginIntent
+}
+
 /**
  * Email/password sign-in against the platform API when enabled,
  * otherwise against seeded local accounts (dev / offline).
@@ -542,6 +556,7 @@ async function assertSessionAllowed(session: AuthSession): Promise<void> {
 export async function signInWithPassword(
   email: string,
   password: string,
+  options?: SignInOptions,
 ): Promise<AuthSession> {
   const normalizedEmail = normalizeLoginEmail(email)
   const rawPassword = password
@@ -574,7 +589,12 @@ export async function signInWithPassword(
 
   // Dynamic import avoids circular init with tenant/member stores.
   const { withResolvedWorkspaces } = await import('@/lib/authWorkspaces')
-  session = withResolvedWorkspaces(session)
+  try {
+    session = withResolvedWorkspaces(session, options?.intent)
+  } catch (error) {
+    clearSession()
+    throw error
+  }
   writeSession(session)
 
   if (!session.workspacePending) {
