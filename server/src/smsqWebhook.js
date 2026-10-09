@@ -27,6 +27,18 @@ export function normalizePhoneDigits(phone) {
   return asString(phone).replace(/\D/g, '')
 }
 
+/** SMSQ "Test" sends literal ##What## / ##Who## tokens instead of real values. */
+export function isSmsqTemplateToken(value) {
+  const text = asString(value)
+  return /^##[A-Za-z][A-Za-z0-9_]*##$/.test(text)
+}
+
+export function isSmsqConsoleTest(parsed) {
+  if (!parsed || typeof parsed !== 'object') return false
+  const fields = [parsed.what, parsed.who, parsed.sender, parsed.fromPhone]
+  return fields.some((value) => isSmsqTemplateToken(value))
+}
+
 /** BD-friendly variants so 017… matches 88017… and vice versa. */
 export function phoneMatchKeys(phone) {
   const digits = normalizePhoneDigits(phone)
@@ -188,7 +200,17 @@ export async function handleSmsqWebhook(req) {
   if (!auth.ok) return auth
 
   const parsed = parseSmsqPayload(req)
-  if (!parsed.fromPhone) {
+
+  // Console Test posts unsubstituted ##Who## tokens — acknowledge without storing.
+  if (isSmsqConsoleTest(parsed)) {
+    return {
+      ok: true,
+      status: 200,
+      body: { ok: true, test: true },
+    }
+  }
+
+  if (!parsed.fromPhone || !normalizePhoneDigits(parsed.fromPhone)) {
     return {
       ok: false,
       status: 400,
