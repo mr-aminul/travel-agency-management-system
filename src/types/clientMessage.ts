@@ -1,6 +1,6 @@
 export type ClientMessageChannel = 'sms' | 'email'
 
-export type ClientMessageDirection = 'outbound'
+export type ClientMessageDirection = 'outbound' | 'inbound'
 
 export type ClientMessageAttachment = {
   name: string

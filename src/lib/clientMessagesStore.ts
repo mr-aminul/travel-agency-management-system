@@ -77,6 +77,8 @@ function normalizeMessage(value: unknown): ClientThreadMessage | undefined {
     return undefined
   }
   if (!body && !attachment) return undefined
+  const direction: ClientThreadMessage['direction'] =
+    value.direction === 'inbound' ? 'inbound' : 'outbound'
   return {
     id,
     tenantId,
@@ -85,7 +87,7 @@ function normalizeMessage(value: unknown): ClientThreadMessage | undefined {
     to,
     body,
     attachment,
-    direction: 'outbound',
+    direction,
     createdAt,
   }
 }

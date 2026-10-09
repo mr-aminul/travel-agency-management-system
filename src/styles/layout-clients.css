@@ -1236,6 +1236,11 @@
   align-items: flex-end;
 }
 
+.pd-client-messages__item--in {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
 .pd-client-messages__bubble {
   display: flex;
   flex-direction: column;
@@ -1248,6 +1253,13 @@
   font-size: 0.875rem;
   line-height: 1.4;
   white-space: pre-wrap;
+}
+
+.pd-client-messages__bubble--in {
+  border-radius: 0.75rem 0.75rem 0.75rem 0.25rem;
+  background: var(--color-surface-2, #eef1f4);
+  color: var(--color-ink, inherit);
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
 }
 
 .pd-client-messages__bubble p {

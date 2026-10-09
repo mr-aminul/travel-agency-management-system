@@ -52,6 +52,8 @@ SMTP_SECURE="$(env_or_file SMTP_SECURE)"
 SMTP_USER="$(env_or_file SMTP_USER)"
 SMTP_PASSWORD="$(env_or_file SMTP_PASSWORD)"
 SMTP_FROM="$(env_or_file SMTP_FROM)"
+SMSQ_WEBHOOK_SECRET="$(env_or_file SMSQ_WEBHOOK_SECRET)"
+SMSQ_DEFAULT_TENANT_ID="$(env_or_file SMSQ_DEFAULT_TENANT_ID)"
 ADMIN_EMAIL="${ADMIN_EMAIL:-aminulislamborhan@gmail.com}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-12345}"
 AGENCY_PASSWORD="${AGENCY_PASSWORD:-12345}"
@@ -60,6 +62,7 @@ SMTP_HOST="${SMTP_HOST:-mail.inventivelab.bd}"
 SMTP_PORT="${SMTP_PORT:-465}"
 SMTP_SECURE="${SMTP_SECURE:-1}"
 SMTP_FROM="${SMTP_FROM:-OneTrack <noreply@inventivelab.bd>}"
+SMSQ_DEFAULT_TENANT_ID="${SMSQ_DEFAULT_TENANT_ID:-tenant-full}"
 
 RELEASE_SHA="${GITHUB_SHA:-$(git rev-parse --short HEAD 2>/dev/null || echo manual)}"
 RELEASE_SHA="${RELEASE_SHA:0:12}"
@@ -140,6 +143,8 @@ SMTP_SECURE='$SMTP_SECURE'
 SMTP_USER='$SMTP_USER'
 SMTP_PASSWORD='$SMTP_PASSWORD'
 SMTP_FROM='$SMTP_FROM'
+SMSQ_WEBHOOK_SECRET='$SMSQ_WEBHOOK_SECRET'
+SMSQ_DEFAULT_TENANT_ID='$SMSQ_DEFAULT_TENANT_ID'
 REMOTE_WEB_DIR='$REMOTE_WEB_DIR'
 REMOTE_RELEASE_DIR='$REMOTE_RELEASE_DIR'
 REMOTE_RELEASES_DIR='$REMOTE_RELEASES_DIR'
@@ -170,6 +175,8 @@ SMTP_SECURE=\$SMTP_SECURE
 SMTP_USER=\$SMTP_USER
 SMTP_PASSWORD=\$SMTP_PASSWORD
 SMTP_FROM=\$SMTP_FROM
+SMSQ_WEBHOOK_SECRET=\$SMSQ_WEBHOOK_SECRET
+SMSQ_DEFAULT_TENANT_ID=\$SMSQ_DEFAULT_TENANT_ID
 EOF
   chmod 600 "\$DB_PASSWORD_FILE"
   echo "[platform-api] wrote new \$DB_PASSWORD_FILE"
@@ -186,7 +193,12 @@ else
   set_kv SMTP_USER "\$SMTP_USER"
   set_kv SMTP_PASSWORD "\$SMTP_PASSWORD"
   set_kv SMTP_FROM "\$SMTP_FROM"
-  echo "[platform-api] updated auth + SMTP + CORS on \$DB_PASSWORD_FILE"
+  set_kv SMSQ_DEFAULT_TENANT_ID "\$SMSQ_DEFAULT_TENANT_ID"
+  # Keep an existing secret if this deploy did not supply a new one.
+  if [[ -n "\$SMSQ_WEBHOOK_SECRET" ]]; then
+    set_kv SMSQ_WEBHOOK_SECRET "\$SMSQ_WEBHOOK_SECRET"
+  fi
+  echo "[platform-api] updated auth + SMTP + CORS + SMSQ on \$DB_PASSWORD_FILE"
 fi
 
 cp "\$REMOTE_ROOT/deploy/Caddyfile.api.snippet" /etc/caddy/conf.d/onetrack-platform-api.caddy

@@ -53,6 +53,9 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-OneTrack <noreply@inventivelab.bd>}
+      # SMSQ inbound webhook only (MO). Generate a long random secret for the console URI.
+      SMSQ_WEBHOOK_SECRET: ${SMSQ_WEBHOOK_SECRET:-}
+      SMSQ_DEFAULT_TENANT_ID: ${SMSQ_DEFAULT_TENANT_ID:-tenant-full}
       UPLOAD_DIR: /data/uploads
     volumes:
       - onetrack_platform_uploads:/data/uploads

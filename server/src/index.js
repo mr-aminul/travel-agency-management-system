@@ -56,6 +56,11 @@ import {
   publicResetView,
   requestPasswordReset,
 } from './passwordReset.js'
+import {
+  handleSmsqWebhook,
+  listInboundSms,
+  mapInboundRow,
+} from './smsqWebhook.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -64,6 +69,7 @@ const bindHost = process.env.BIND_HOST || '127.0.0.1'
 
 app.disable('x-powered-by')
 app.use(express.json({ limit: '16mb' }))
+app.use(express.urlencoded({ extended: true }))
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN
@@ -736,6 +742,56 @@ app.get('/api/platform/public/track', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'track failed',
+    })
+  }
+})
+
+/**
+ * SMSQ MO webhook (inbound only — no SendSMS API required).
+ * Configure Endpoint Base URI as:
+ *   https://api.onetrack.inventivelab.bd/api/platform/webhooks/smsq?token=<SMSQ_WEBHOOK_SECRET>
+ * Method GET (or POST). Params: What, Who, Sender, Circle, Operator.
+ */
+async function smsqWebhookHandler(req, res) {
+  try {
+    const result = await handleSmsqWebhook(req)
+    if (!result.ok) {
+      res.status(result.status).type('text').send(result.error || 'error')
+      return
+    }
+    // SMSQ expects a fast success response; plain OK is safest for GET callbacks.
+    res.status(200).type('text').send('OK')
+  } catch (error) {
+    console.error(
+      '[smsq-webhook]',
+      error instanceof Error ? error.message : error,
+    )
+    res.status(500).type('text').send('error')
+  }
+}
+
+app.get('/api/platform/webhooks/smsq', smsqWebhookHandler)
+app.post('/api/platform/webhooks/smsq', smsqWebhookHandler)
+
+app.get('/api/platform/sms/inbound', requireAuth, async (req, res) => {
+  try {
+    const tenantId = isPlatformAdmin(req.auth)
+      ? String(req.query.tenantId ?? '').trim() || req.auth.tenantId
+      : req.auth.tenantId
+    if (!tenantId) {
+      res.status(400).json({ error: 'tenantId required.' })
+      return
+    }
+    const clientId = String(req.query.clientId ?? '').trim() || undefined
+    const rows = await listInboundSms({
+      tenantId,
+      clientId,
+      limit: req.query.limit,
+    })
+    res.json({ messages: rows.map(mapInboundRow) })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'list inbound sms failed',
     })
   }
 })

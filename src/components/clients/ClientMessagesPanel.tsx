@@ -15,6 +15,7 @@ import {
   validateClientMessage,
 } from '@/lib/clientMessagesStore'
 import { formatDisplayDate } from '@/lib/formatDate'
+import { useClientSmsThread } from '@/lib/useClientSmsThread'
 import type { Client } from '@/types/client'
 import type {
   ClientMessageAttachment,
@@ -51,8 +52,8 @@ function channelCopy(channel: ClientMessageChannel, address: string) {
       : 'Email note · no address on this profile'
   }
   return address
-    ? `Logged SMS note · ${address}`
-    : 'SMS note · no phone on this profile'
+    ? `SMS thread · ${address}`
+    : 'SMS · no phone on this profile'
 }
 
 export function ClientMessagesPanel({
@@ -62,7 +63,9 @@ export function ClientMessagesPanel({
   client: Client
   channel?: ClientMessageChannel
 }) {
-  const thread = useClientMessages(client.id, channel)
+  const emailThread = useClientMessages(client.id, 'email')
+  const smsThread = useClientSmsThread(client.id)
+  const thread = channel === 'sms' ? smsThread : emailThread
   const chronological = useMemo(() => [...thread].reverse(), [thread])
   const threadRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -80,10 +83,10 @@ export function ClientMessagesPanel({
     (isEmail
       ? Boolean(body.trim()) || Boolean(attachment)
       : Boolean(body.trim()))
-  const historyLabel = isEmail ? 'Email note history' : 'SMS note history'
+  const historyLabel = isEmail ? 'Email note history' : 'SMS history'
   const emptyLabel = isEmail
     ? 'No email notes yet — drafts are logged here, not delivered'
-    : 'No SMS notes yet — drafts are logged here, not delivered'
+    : 'No SMS yet — inbound replies from SMSQ appear here; notes stay local'
 
   useEffect(() => {
     const el = threadRef.current
@@ -175,26 +178,42 @@ export function ClientMessagesPanel({
             <p className="pd-client-messages__empty">{emptyLabel}</p>
           ) : (
             <ul className="pd-client-messages__list" aria-label={historyLabel}>
-              {chronological.map((item) => (
-                <li
-                  key={item.id}
-                  className="pd-client-messages__item pd-client-messages__item--out"
-                >
-                  <div className="pd-client-messages__bubble">
-                    {item.body ? <p>{item.body}</p> : null}
-                    {item.attachment ? (
-                      <img
-                        className="pd-client-messages__image"
-                        src={item.attachment.dataUrl}
-                        alt={item.attachment.name}
-                      />
-                    ) : null}
-                  </div>
-                  <p className="pd-client-messages__meta">
-                    {formatMessageStamp(item.createdAt)}
-                  </p>
-                </li>
-              ))}
+              {chronological.map((item) => {
+                const isInbound = item.direction === 'inbound'
+                return (
+                  <li
+                    key={item.id}
+                    className={[
+                      'pd-client-messages__item',
+                      isInbound
+                        ? 'pd-client-messages__item--in'
+                        : 'pd-client-messages__item--out',
+                    ].join(' ')}
+                  >
+                    <div
+                      className={[
+                        'pd-client-messages__bubble',
+                        isInbound ? 'pd-client-messages__bubble--in' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      {item.body ? <p>{item.body}</p> : null}
+                      {item.attachment ? (
+                        <img
+                          className="pd-client-messages__image"
+                          src={item.attachment.dataUrl}
+                          alt={item.attachment.name}
+                        />
+                      ) : null}
+                    </div>
+                    <p className="pd-client-messages__meta">
+                      {isInbound ? 'Inbound · ' : 'Note · '}
+                      {formatMessageStamp(item.createdAt)}
+                    </p>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

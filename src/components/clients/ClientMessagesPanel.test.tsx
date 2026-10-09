@@ -32,6 +32,7 @@ describe('client messages panel', () => {
   it('lets staff type an SMS note and save it', () => {
     renderMessages('sms')
 
+    expect(screen.getByText(/SMS thread ·/i)).toBeInTheDocument()
     const input = screen.getByRole('textbox', { name: 'Message' })
     const send = screen.getByRole('button', { name: 'Save note' })
     expect(send).toBeDisabled()
