@@ -152,13 +152,21 @@ app.post('/api/platform/auth/users', requireAuth, async (req, res) => {
       res.status(gate.status).json({ error: gate.error })
       return
     }
+    const requestedRole =
+      req.body?.role === 'sub_agent' ? 'sub_agent' : 'agency_user'
     const result = await createAgencyUser({
       email: req.body?.email,
       name: req.body?.name,
       password: req.body?.password,
       tenantId,
       id: req.body?.id,
-      memberRole: req.body?.memberRole || req.body?.role,
+      memberRole:
+        requestedRole === 'sub_agent'
+          ? undefined
+          : req.body?.memberRole ||
+            (req.body?.role !== 'sub_agent' ? req.body?.role : undefined),
+      role: requestedRole,
+      subAgentId: req.body?.subAgentId,
     })
     if (!result.ok) {
       res.status(result.status).json({ error: result.error })
@@ -189,7 +197,7 @@ async function assertCanManageAgencyUser(req, res) {
     .toLowerCase()
   const existing = await query(
     `select tenant_id from platform.users
-     where role = 'agency_user'
+     where role in ('agency_user', 'sub_agent')
        and (id = $1 or ($2 <> '' and lower(email) = $2))
      limit 1`,
     [userId, email],
@@ -576,8 +584,10 @@ app.post('/api/platform/invites', requireAuth, async (req, res) => {
       tenantId,
       email: req.body?.email,
       name: req.body?.name,
-      memberRole: req.body?.memberRole || req.body?.role,
+      memberRole: req.body?.memberRole,
       invitedBy: req.auth.user.id,
+      subAgentId: req.body?.subAgentId,
+      role: req.body?.role === 'sub_agent' ? 'sub_agent' : undefined,
     })
     if (!result.ok) {
       res.status(result.status).json({ error: result.error })

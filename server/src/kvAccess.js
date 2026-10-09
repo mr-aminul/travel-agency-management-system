@@ -27,6 +27,10 @@ export const TENANT_ARRAY_KEYS = new Set([
   'pd-custom-services',
   'pd-hidden-services',
   'pd-service-icon-overrides',
+  'pd-sub-agent-access-settings',
+  'pd-sub-agent-pending-changes',
+  'pd-sub-agent-logins',
+  'pd-local-invites',
 ])
 
 /** Object maps keyed by tenantId — agency gets only own entry */

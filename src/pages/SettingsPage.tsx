@@ -11,6 +11,7 @@ import {
   MousePointerClick,
   Palette,
   PanelLeftOpen,
+  Handshake,
   ShieldCheck,
   Sun,
   type LucideIcon,
@@ -59,6 +60,7 @@ import {
 import { useSidebarPrefs } from '@/layout/useSidebarPrefs'
 import { ServicesSettingsSection } from '@/components/settings/ServicesSettingsSection'
 import { UserAccessSection } from '@/components/settings/UserAccessSection'
+import { SubAgentAccessSection } from '@/components/settings/SubAgentAccessSection'
 import {
   settingsSectionPath,
   type SettingsSectionParam,
@@ -95,6 +97,12 @@ const SETTINGS_SECTIONS: {
       label: 'User-wise Access Management',
       info: 'Agency logins list down the left; pages run across as columns. Owners and managers can add users and set None, View, or Edit. Access is enforced in the app.',
       icon: ShieldCheck,
+    },
+    {
+      id: 'subAgentAccess',
+      label: 'Sub-agent access',
+      info: 'Require approval for partner edits, and choose which agency users can approve. Manage each partner’s login from their Sub Agent profile.',
+      icon: Handshake,
     },
     {
       id: 'appearance',
@@ -145,6 +153,7 @@ function isSettingsSectionId(value: string | null): value is SettingsSectionId {
     value === 'clientFields' ||
     value === 'services' ||
     value === 'userAccess' ||
+    value === 'subAgentAccess' ||
     value === 'appearance'
   )
 }
@@ -301,7 +310,8 @@ export default function SettingsPage() {
         {isEditor ||
         activeSection === 'services' ||
         activeSection === 'clientFields' ||
-        activeSection === 'userAccess' ? null : (
+        activeSection === 'userAccess' ||
+        activeSection === 'subAgentAccess' ? null : (
           <header className="pd-settings-panel__header">
             <h2 id="settings-panel-title" className="pd-settings-panel__title">
               {currentSection.label}
@@ -454,6 +464,10 @@ export default function SettingsPage() {
               title={currentSection.label}
               info={currentSection.info ?? ''}
             />
+          ) : null}
+
+          {activeSection === 'subAgentAccess' ? (
+            <SubAgentAccessSection />
           ) : null}
 
           {activeSection === 'appearance' ? (

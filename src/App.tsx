@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
-import { signedInHomePath } from '@/lib/modules'
+import { postLoginPath } from '@/lib/authWorkspaces'
 import { useAuth } from '@/lib/auth'
 
 const AuthenticatedLayout = lazy(() => import('@/layout/AuthenticatedLayout'))
@@ -24,6 +24,8 @@ const HrPayrollPage = lazy(() => import('@/pages/HrPayrollPage'))
 const EmployeeDetailPage = lazy(() => import('@/pages/EmployeeDetailPage'))
 const SubAgentsPage = lazy(() => import('@/pages/SubAgentsPage'))
 const SubAgentDetailPage = lazy(() => import('@/pages/SubAgentDetailPage'))
+const ApprovalsPage = lazy(() => import('@/pages/ApprovalsPage'))
+const MySubmissionsPage = lazy(() => import('@/pages/MySubmissionsPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const TrackClientPage = lazy(() => import('@/pages/TrackClientPage'))
@@ -38,6 +40,7 @@ const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'))
 const AcceptInvitePage = lazy(() => import('@/pages/auth/AcceptInvitePage'))
+const ChooseWorkspacePage = lazy(() => import('@/pages/auth/ChooseWorkspacePage'))
 
 function RouteFallback() {
   return <div className="pd-route-fallback" aria-busy="true" aria-live="polite" />
@@ -49,11 +52,11 @@ function LegacyAgentsRedirect() {
 }
 
 function CatchAllRedirect() {
-  const { status, user } = useAuth()
-  if (status !== 'authenticated') {
+  const { status, session } = useAuth()
+  if (status !== 'authenticated' || !session) {
     return <Navigate to="/login" replace />
   }
-  return <Navigate to={signedInHomePath(user?.role ?? 'agency_user')} replace />
+  return <Navigate to={postLoginPath(session)} replace />
 }
 
 /** Matches Vite `base` (`/` by default; `/platform/` when VITE_BASE_PATH is set for EC2). */
@@ -65,6 +68,7 @@ function App() {
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/choose-workspace" element={<ChooseWorkspacePage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset/:token" element={<ResetPasswordPage />} />
           <Route path="/invite/:token" element={<AcceptInvitePage />} />
@@ -96,6 +100,8 @@ function App() {
             />
             <Route path="sub-agents" element={<SubAgentsPage />} />
             <Route path="sub-agents/:id" element={<SubAgentDetailPage />} />
+            <Route path="approvals" element={<ApprovalsPage />} />
+            <Route path="my-submissions" element={<MySubmissionsPage />} />
             <Route path="partners" element={<Navigate to="/sub-agents" replace />} />
             <Route path="partners/:id" element={<LegacyAgentsRedirect />} />
             <Route path="agents" element={<Navigate to="/sub-agents" replace />} />

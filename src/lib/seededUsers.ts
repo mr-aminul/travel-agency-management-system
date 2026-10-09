@@ -5,6 +5,8 @@ export type SeededAuthUser = {
   email: string
   name: string
   role: UserRole
+  /** Set when role is sub_agent — CRM record this login belongs to. */
+  subAgentId?: string
 }
 
 export type SeededLoginAccount = {
@@ -93,5 +95,7 @@ export function findSeededAccountByEmail(
 }
 
 export function asUserRole(value: unknown): UserRole {
-  return value === 'platform_admin' ? 'platform_admin' : 'agency_user'
+  if (value === 'platform_admin') return 'platform_admin'
+  if (value === 'sub_agent') return 'sub_agent'
+  return 'agency_user'
 }

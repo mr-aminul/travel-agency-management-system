@@ -50,6 +50,7 @@ import {
 import { toServiceBoardItem } from '@/lib/clientServiceBoard'
 import { deriveClientServiceStatus } from '@/lib/clientServiceStatus'
 import { useRequests } from '@/lib/requestsStore'
+import { notifyIfPendingApproval } from '@/lib/notifyPendingApproval'
 import { clientPath, workDetailPath } from '@/lib/workPaths'
 import { getSubAgentById, useSubAgents } from '@/lib/subAgentsStore'
 import {
@@ -749,9 +750,17 @@ export default function ClientDetailPage() {
   }
 
   const handleCreateCase = (input: CreateCaseInput) => {
-    const created = createCase(input)
-    closeNewCase()
-    navigate(workDetailPath(created))
+    try {
+      const created = createCase(input)
+      closeNewCase()
+      navigate(workDetailPath(created))
+    } catch (error) {
+      if (notifyIfPendingApproval(error)) {
+        closeNewCase()
+        return
+      }
+      throw error
+    }
   }
 
   const discardChanges = () => {
@@ -786,36 +795,40 @@ export default function ClientDetailPage() {
     if (hasProfileError || hasCustomError) return
     const phone = normalizePhone(profileDraft.phone)
     // Identity (passport/NID) is owned by Documents — do not overwrite from Profile.
-    const updated = updateClient(client.id, {
-      name: profileDraft.name.trim(),
-      banglaName: profileDraft.banglaName.trim() || undefined,
-      phone,
-      email: profileDraft.email.trim() || undefined,
-      address: profileDraft.address.trim() || undefined,
-      fatherName: profileDraft.fatherName.trim() || undefined,
-      motherName: profileDraft.motherName.trim() || undefined,
-      dateOfBirth: profileDraft.dateOfBirth.trim() || undefined,
-      gender: profileDraft.gender,
-      maritalStatus: parseMaritalStatus(profileDraft.maritalStatus),
-      nationality: profileDraft.nationality.trim() || undefined,
-      placeOfBirth: profileDraft.placeOfBirth.trim() || undefined,
-      spouseName: profileDraft.spouseName.trim() || undefined,
-      bloodGroup: profileDraft.bloodGroup.trim() || undefined,
-      subAgentId: profileDraft.subAgentId.trim() || undefined,
-      customFields: compactCustomFieldValues({
-        ...Object.fromEntries(
-          Object.entries(client.customFields ?? {}).filter(
-            ([fieldId]) =>
-              !customFieldDefs.some((field) => field.id === fieldId),
+    try {
+      const updated = updateClient(client.id, {
+        name: profileDraft.name.trim(),
+        banglaName: profileDraft.banglaName.trim() || undefined,
+        phone,
+        email: profileDraft.email.trim() || undefined,
+        address: profileDraft.address.trim() || undefined,
+        fatherName: profileDraft.fatherName.trim() || undefined,
+        motherName: profileDraft.motherName.trim() || undefined,
+        dateOfBirth: profileDraft.dateOfBirth.trim() || undefined,
+        gender: profileDraft.gender,
+        maritalStatus: parseMaritalStatus(profileDraft.maritalStatus),
+        nationality: profileDraft.nationality.trim() || undefined,
+        placeOfBirth: profileDraft.placeOfBirth.trim() || undefined,
+        spouseName: profileDraft.spouseName.trim() || undefined,
+        bloodGroup: profileDraft.bloodGroup.trim() || undefined,
+        subAgentId: profileDraft.subAgentId.trim() || undefined,
+        customFields: compactCustomFieldValues({
+          ...Object.fromEntries(
+            Object.entries(client.customFields ?? {}).filter(
+              ([fieldId]) =>
+                !customFieldDefs.some((field) => field.id === fieldId),
+            ),
           ),
-        ),
-        ...emptyCustomFieldValues(customFieldDefs, {
-          ...client.customFields,
-          ...profileDraft.customFields,
+          ...emptyCustomFieldValues(customFieldDefs, {
+            ...client.customFields,
+            ...profileDraft.customFields,
+          }),
         }),
-      }),
-    })
-    if (updated) setDraft(toProfileDraft(updated, customFieldDefs))
+      })
+      if (updated) setDraft(toProfileDraft(updated, customFieldDefs))
+    } catch (error) {
+      notifyIfPendingApproval(error)
+    }
   }
 
   const displayName = profileDraft.name || client.name

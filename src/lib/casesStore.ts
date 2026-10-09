@@ -36,7 +36,9 @@ import {
   updateClient,
   updateClientRecord,
 } from '@/lib/clientsStore'
-import { getActiveTenantId } from '@/lib/authApi'
+import { getActiveTenantId, readSession } from '@/lib/authApi'
+import { queueOrApplySubAgentChange } from '@/lib/subAgentScope'
+import { PendingApprovalError } from '@/lib/pendingApprovalError'
 import {
   DATA_KEYS,
   injectClientSideSeeds,
@@ -605,10 +607,14 @@ export function useCases(): Case[] {
   const { session } = useAuth()
   const all = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const activeId = session?.tenantId ?? DEFAULT_TENANT_ID
-  return useMemo(
-    () => all.filter((item) => item.tenantId === activeId),
-    [all, activeId],
-  )
+  const subAgentId =
+    session?.user.role === 'sub_agent' ? session.user.subAgentId : undefined
+  return useMemo(() => {
+    const scoped = all.filter((item) => item.tenantId === activeId)
+    if (!subAgentId) return scoped
+    // getClientById already hides other partners' clients for sub-agent sessions.
+    return scoped.filter((item) => Boolean(getClientById(item.clientId)))
+  }, [all, activeId, subAgentId])
 }
 
 export function useCasesByClientId(clientId: string): Case[] {
@@ -660,6 +666,16 @@ export function createCase(input: CreateCaseInput): Case {
     throw new Error('This service line is not enabled for your agency.')
   }
 
+  const gate = queueOrApplySubAgentChange({
+    entityType: 'case',
+    action: 'create',
+    summary: `New ${input.service} for ${client.name}`,
+    payload: { input },
+  })
+  if ('queued' in gate) {
+    throw new PendingApprovalError(gate.queued)
+  }
+
   const createdAt = today()
   const serviceCountry =
     input.serviceCountry?.trim() ||
@@ -705,6 +721,22 @@ export function updateCase(
   id: string,
   patch: UpdateCaseInput,
 ): Case | undefined {
+  const existing = getCaseById(id)
+  if (!existing) return undefined
+  if (readSession()?.user.role === 'sub_agent' && !getClientById(existing.clientId)) {
+    return undefined
+  }
+  const gate = queueOrApplySubAgentChange({
+    entityType: 'case',
+    action: 'update',
+    entityId: id,
+    summary: `Update ${existing.service} for ${existing.clientName}`,
+    payload: { id, patch },
+  })
+  if ('queued' in gate) {
+    throw new PendingApprovalError(gate.queued)
+  }
+
   let updated: Case | undefined
   const updatedAt = today()
 

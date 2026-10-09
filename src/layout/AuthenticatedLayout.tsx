@@ -14,6 +14,7 @@ import { findTenantMemberForUser } from '@/lib/tenantMembersStore'
 import { canAccessPath } from '@/lib/pageAccess'
 import { getPageAccessLevel } from '@/lib/userAccessStore'
 import { buildAccessPageColumns } from '@/lib/accessPages'
+import { useOpenPendingChangeCount } from '@/lib/subAgentPendingChanges'
 import {
   filterNavItems,
   isPathAllowed,
@@ -33,14 +34,15 @@ const ACCESS_PAGES = buildAccessPageColumns(layoutConfig.navItems)
 export default function AuthenticatedLayout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { status, user, signOut } = useAuth()
+  const { status, user, session, signOut } = useAuth()
   const agencyProfile = useAgencyProfile()
   const tenant = useActiveTenant()
 
   const member =
-    user && user.role !== 'platform_admin'
+    user && user.role === 'agency_user'
       ? findTenantMemberForUser(tenant.id, user.id, user.email)
       : undefined
+  const pendingApprovals = useOpenPendingChangeCount(tenant.id)
 
   const navItems = useMemo(() => {
     const role = user?.role ?? 'agency_user'
@@ -50,19 +52,27 @@ export default function AuthenticatedLayout() {
       role,
     )
     const settingsBadge =
-      role === 'platform_admin'
+      role === 'platform_admin' || role === 'sub_agent'
         ? 0
         : settingsNavAlertCount(agencyProfile)
 
-    const withSettingsBadge = (items: typeof moduleFiltered) =>
-      items.map((item) =>
-        item.path === '/settings' && settingsBadge > 0
-          ? { ...item, badgeCount: settingsBadge }
-          : item,
-      )
+    const withBadges = (items: typeof moduleFiltered) =>
+      items.map((item) => {
+        if (item.path === '/settings' && settingsBadge > 0) {
+          return { ...item, badgeCount: settingsBadge }
+        }
+        if (
+          item.path === '/approvals' &&
+          role === 'agency_user' &&
+          pendingApprovals > 0
+        ) {
+          return { ...item, badgeCount: pendingApprovals }
+        }
+        return item
+      })
 
-    if (role === 'platform_admin' || !user) {
-      return withSettingsBadge(moduleFiltered)
+    if (role === 'platform_admin' || role === 'sub_agent' || !user) {
+      return withBadges(moduleFiltered)
     }
 
     const subjectId = member?.id ?? user.id
@@ -80,8 +90,14 @@ export default function AuthenticatedLayout() {
       if (!col) return [item]
       return getPageAccessLevel(subjectId, col.path) === 'none' ? [] : [item]
     })
-    return withSettingsBadge(accessFiltered)
-  }, [agencyProfile, tenant.enabledModules, user, member?.id])
+    return withBadges(accessFiltered)
+  }, [
+    agencyProfile,
+    tenant.enabledModules,
+    user,
+    member?.id,
+    pendingApprovals,
+  ])
 
   const brand = useMemo(() => {
     if (user?.role === 'platform_admin') {
@@ -103,10 +119,14 @@ export default function AuthenticatedLayout() {
     return {
       ...layoutConfig.brand,
       name: resolved.name,
-      subtitle: resolved.subtitle,
+      subtitle:
+        user?.role === 'sub_agent'
+          ? 'Partner portal'
+          : resolved.subtitle,
       logoUrl: resolved.logoUrl,
       isCustomLogo: resolved.isCustomLogo,
-      preserveSubtitleCase: resolved.hasCustomName,
+      preserveSubtitleCase:
+        user?.role === 'sub_agent' ? true : resolved.hasCustomName,
     }
   }, [agencyProfile, tenant.name, user?.role])
 
@@ -124,6 +144,10 @@ export default function AuthenticatedLayout() {
     return <Navigate to="/login" replace />
   }
 
+  if (session?.workspacePending) {
+    return <Navigate to="/choose-workspace" replace />
+  }
+
   if (user.role !== 'platform_admin' && tenant.status === 'suspended') {
     return (
       <div className="pd-page" aria-label="Suspended">
@@ -137,7 +161,10 @@ export default function AuthenticatedLayout() {
     )
   }
 
-  if (user.role !== 'platform_admin' && member?.status === 'disabled') {
+  if (
+    user.role === 'agency_user' &&
+    member?.status === 'disabled'
+  ) {
     return (
       <div className="pd-page" aria-label="Disabled">
         <p role="alert">

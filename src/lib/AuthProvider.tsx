@@ -7,8 +7,10 @@ import {
 import {
   type AuthSession,
   readSession,
+  selectAuthWorkspace,
   signInWithPassword as apiSignInWithPassword,
   signOut as apiSignOut,
+  writeSession,
 } from '@/lib/authApi'
 import { AuthContext, type AuthContextValue } from '@/lib/authContext'
 import { rehydratePlatformData } from '@/lib/data/rehydrate'
@@ -26,6 +28,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const selectWorkspace = useCallback(async (workspaceId: string) => {
+    const next = await selectAuthWorkspace(workspaceId)
+    setSession(next)
+    await rehydratePlatformData()
+    return next
+  }, [])
+
+  const requestWorkspacePicker = useCallback(() => {
+    void (async () => {
+      const current = readSession()
+      if (!current) return
+      const { listWorkspacesForUser } = await import('@/lib/authWorkspaces')
+      const workspaces =
+        current.workspaces && current.workspaces.length > 0
+          ? current.workspaces
+          : listWorkspacesForUser(current.user, current.tenantId)
+      if (workspaces.length < 2) return
+      const next = {
+        ...current,
+        workspaces,
+        workspacePending: true,
+      }
+      writeSession(next)
+      setSession(next)
+    })()
+  }, [])
+
   const signOut = useCallback(async () => {
     await apiSignOut()
     setSession(null)
@@ -37,9 +66,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: session?.user ?? null,
       session,
       signInWithPassword,
+      selectWorkspace,
+      requestWorkspacePicker,
       signOut,
     }),
-    [session, signInWithPassword, signOut],
+    [
+      session,
+      signInWithPassword,
+      selectWorkspace,
+      requestWorkspacePicker,
+      signOut,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

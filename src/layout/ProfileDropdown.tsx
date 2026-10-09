@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Crown, IdCard, LogOut, Settings } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeftRight, Crown, IdCard, LogOut, Settings } from 'lucide-react'
 import { SignOutConfirmModal } from '@/components/ConfirmModal'
 import { settingsNavItem, profileNavItem } from '@/config/layout'
 import { settingsNavAlertCount } from '@/lib/agencyProfileGaps'
@@ -26,11 +26,14 @@ export function ProfileDropdown({
     isMobile,
     closeOnEscape: true,
   })
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { user, session, requestWorkspacePicker } = useAuth()
   const agencyProfile = useAgencyProfile()
   const isPlatformAdmin = user?.role === 'platform_admin'
+  const isAgencyUser = user?.role === 'agency_user'
+  const canSwitchWorkspace = (session?.workspaces?.length ?? 0) > 1
   const member =
-    user && !isPlatformAdmin
+    user && isAgencyUser
       ? findTenantMemberForUser(getActiveTenantId(), user.id, user.email)
       : undefined
   const ProfileIcon =
@@ -85,42 +88,57 @@ export function ProfileDropdown({
             </div>
           </div>
           {!isPlatformAdmin ? (
-            <>
-          <Link
-            to={profileNavItem.path}
-            className="pd-topbar__dropdown-item"
-            onClick={() => setOpen(false)}
-            role="menuitem"
-          >
-            <ProfileIcon size={14} strokeWidth={2} />
-            {profileNavItem.label}
-          </Link>
-          <Link
-            to={settingsNavItem.path}
-            className="pd-topbar__dropdown-item"
-            onClick={() => setOpen(false)}
-            role="menuitem"
-            aria-label={
-              settingsBadge > 0
-                ? `${settingsNavItem.label}, ${settingsBadge} needing attention`
-                : undefined
-            }
-          >
-            <Settings size={14} strokeWidth={2} />
-            <span className="pd-topbar__dropdown-item-label">
-              {settingsNavItem.label}
-            </span>
-            {settingsBadge > 0 ? (
-              <span
-                className="pd-topbar__dropdown-badge"
-                aria-hidden
-                title={`${settingsBadge} needing attention`}
-              >
-                {settingsBadge}
+            <Link
+              to={profileNavItem.path}
+              className="pd-topbar__dropdown-item"
+              onClick={() => setOpen(false)}
+              role="menuitem"
+            >
+              <ProfileIcon size={14} strokeWidth={2} />
+              {profileNavItem.label}
+            </Link>
+          ) : null}
+          {isAgencyUser ? (
+            <Link
+              to={settingsNavItem.path}
+              className="pd-topbar__dropdown-item"
+              onClick={() => setOpen(false)}
+              role="menuitem"
+              aria-label={
+                settingsBadge > 0
+                  ? `${settingsNavItem.label}, ${settingsBadge} needing attention`
+                  : undefined
+              }
+            >
+              <Settings size={14} strokeWidth={2} />
+              <span className="pd-topbar__dropdown-item-label">
+                {settingsNavItem.label}
               </span>
-            ) : null}
-          </Link>
-            </>
+              {settingsBadge > 0 ? (
+                <span
+                  className="pd-topbar__dropdown-badge"
+                  aria-hidden
+                  title={`${settingsBadge} needing attention`}
+                >
+                  {settingsBadge}
+                </span>
+              ) : null}
+            </Link>
+          ) : null}
+          {canSwitchWorkspace ? (
+            <button
+              type="button"
+              className="pd-topbar__dropdown-item"
+              onClick={() => {
+                setOpen(false)
+                requestWorkspacePicker()
+                navigate('/choose-workspace')
+              }}
+              role="menuitem"
+            >
+              <ArrowLeftRight size={14} strokeWidth={2} />
+              Switch workspace
+            </button>
           ) : null}
           <button
             type="button"

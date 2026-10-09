@@ -19,16 +19,22 @@ function newSessionToken() {
 }
 
 function asUserRole(value) {
-  return value === 'platform_admin' ? 'platform_admin' : 'agency_user'
+  if (value === 'platform_admin') return 'platform_admin'
+  if (value === 'sub_agent') return 'sub_agent'
+  return 'agency_user'
 }
 
 function publicUser(row) {
-  return {
+  const user = {
     id: row.id,
     email: row.email,
     name: row.name,
     role: asUserRole(row.role),
   }
+  if (row.sub_agent_id) {
+    user.subAgentId = row.sub_agent_id
+  }
+  return user
 }
 
 /** Launch agency + platform admin logins — passwords come from env (never committed). */
@@ -160,7 +166,7 @@ export async function loginWithPassword(email, password) {
   }
 
   const result = await query(
-    `select id, email, name, role, tenant_id, password_hash, status
+    `select id, email, name, role, tenant_id, password_hash, status, sub_agent_id
      from platform.users
      where lower(email) = $1
      limit 1`,
@@ -198,7 +204,7 @@ export async function revokeSession(token) {
 export async function resolveSession(token) {
   if (!token) return null
   const result = await query(
-    `select u.id, u.email, u.name, u.role, u.tenant_id, u.status, s.expires_at
+    `select u.id, u.email, u.name, u.role, u.tenant_id, u.status, u.sub_agent_id, s.expires_at
      from platform.sessions s
      join platform.users u on u.id = s.user_id
      where s.token_hash = $1
@@ -267,6 +273,8 @@ export async function createAgencyUser({
   tenantId,
   id,
   memberRole,
+  role,
+  subAgentId,
 }) {
   const normalizedEmail = normalizeEmail(email)
   const trimmedName = String(name ?? '').trim()
@@ -274,10 +282,17 @@ export async function createAgencyUser({
   const resolvedTenantId = String(tenantId ?? '').trim()
   const userId =
     String(id ?? '').trim() || `user-${crypto.randomBytes(8).toString('hex')}`
+  const resolvedRole = role === 'sub_agent' ? 'sub_agent' : 'agency_user'
+  const resolvedSubAgentId =
+    resolvedRole === 'sub_agent' ? String(subAgentId ?? '').trim() : ''
   const resolvedMemberRole =
-    memberRole === 'owner' || memberRole === 'manager' || memberRole === 'staff'
-      ? memberRole
-      : 'staff'
+    resolvedRole === 'sub_agent'
+      ? null
+      : memberRole === 'owner' ||
+          memberRole === 'manager' ||
+          memberRole === 'staff'
+        ? memberRole
+        : 'staff'
 
   if (!normalizedEmail) {
     return { ok: false, status: 400, error: 'Email is required.' }
@@ -295,12 +310,80 @@ export async function createAgencyUser({
   if (!resolvedTenantId) {
     return { ok: false, status: 400, error: 'Agency is required.' }
   }
+  if (resolvedRole === 'sub_agent' && !resolvedSubAgentId) {
+    return { ok: false, status: 400, error: 'Sub agent is required.' }
+  }
 
   const existing = await query(
-    `select id from platform.users where lower(email) = $1 limit 1`,
+    `select id, role, tenant_id, sub_agent_id, name
+     from platform.users where lower(email) = $1 limit 1`,
     [normalizedEmail],
   )
   if (existing.rows[0]) {
+    const row = existing.rows[0]
+    // Same email: link agency ↔ partner instead of blocking.
+    if (resolvedRole === 'agency_user' && row.role === 'sub_agent') {
+      await query(
+        `update platform.users
+         set name = $2,
+             role = 'agency_user',
+             tenant_id = $3,
+             password_hash = $4,
+             status = 'active',
+             member_role = $5,
+             updated_at = now()
+         where id = $1`,
+        [
+          row.id,
+          trimmedName,
+          resolvedTenantId,
+          hashPassword(rawPassword),
+          resolvedMemberRole,
+        ],
+      )
+      return {
+        ok: true,
+        status: 200,
+        body: {
+          user: {
+            id: row.id,
+            email: normalizedEmail,
+            name: trimmedName,
+            role: 'agency_user',
+            ...(row.sub_agent_id ? { subAgentId: row.sub_agent_id } : {}),
+          },
+          tenantId: resolvedTenantId,
+          memberRole: resolvedMemberRole,
+          linked: true,
+        },
+      }
+    }
+    if (resolvedRole === 'sub_agent' && row.role === 'agency_user') {
+      await query(
+        `update platform.users
+         set sub_agent_id = $2,
+             status = 'active',
+             updated_at = now()
+         where id = $1`,
+        [row.id, resolvedSubAgentId],
+      )
+      return {
+        ok: true,
+        status: 200,
+        body: {
+          user: {
+            id: row.id,
+            email: normalizedEmail,
+            name: row.name || trimmedName,
+            role: 'agency_user',
+            subAgentId: resolvedSubAgentId,
+          },
+          tenantId: row.tenant_id || resolvedTenantId,
+          memberRole: null,
+          linked: true,
+        },
+      }
+    }
     return {
       ok: false,
       status: 409,
@@ -311,15 +394,17 @@ export async function createAgencyUser({
   const passwordHash = hashPassword(rawPassword)
   await query(
     `insert into platform.users
-       (id, email, name, role, tenant_id, password_hash, status, member_role, updated_at)
-     values ($1, $2, $3, 'agency_user', $4, $5, 'active', $6, now())`,
+       (id, email, name, role, tenant_id, password_hash, status, member_role, sub_agent_id, updated_at)
+     values ($1, $2, $3, $4, $5, $6, 'active', $7, $8, now())`,
     [
       userId,
       normalizedEmail,
       trimmedName,
+      resolvedRole,
       resolvedTenantId,
       passwordHash,
       resolvedMemberRole,
+      resolvedSubAgentId || null,
     ],
   )
 
@@ -331,7 +416,8 @@ export async function createAgencyUser({
         id: userId,
         email: normalizedEmail,
         name: trimmedName,
-        role: 'agency_user',
+        role: resolvedRole,
+        ...(resolvedSubAgentId ? { subAgentId: resolvedSubAgentId } : {}),
       },
       tenantId: resolvedTenantId,
       memberRole: resolvedMemberRole,
@@ -339,14 +425,14 @@ export async function createAgencyUser({
   }
 }
 
-/** Resolve agency user by id, else by email (members may predate shared ids). */
+/** Resolve agency or sub-agent user by id, else by email. */
 async function findAgencyUserRow({ userId, email }) {
   const id = String(userId ?? '').trim()
   if (id) {
     const byId = await query(
-      `select id, email, name, role, tenant_id, status
+      `select id, email, name, role, tenant_id, status, sub_agent_id
        from platform.users
-       where id = $1 and role = 'agency_user'
+       where id = $1 and role in ('agency_user', 'sub_agent')
        limit 1`,
       [id],
     )
@@ -355,9 +441,9 @@ async function findAgencyUserRow({ userId, email }) {
   const normalizedEmail = normalizeEmail(email)
   if (!normalizedEmail) return null
   const byEmail = await query(
-    `select id, email, name, role, tenant_id, status
+    `select id, email, name, role, tenant_id, status, sub_agent_id
      from platform.users
-     where lower(email) = $1 and role = 'agency_user'
+     where lower(email) = $1 and role in ('agency_user', 'sub_agent')
      limit 1`,
     [normalizedEmail],
   )

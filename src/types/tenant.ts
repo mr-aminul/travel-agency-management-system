@@ -1,4 +1,4 @@
-export type UserRole = 'platform_admin' | 'agency_user'
+export type UserRole = 'platform_admin' | 'agency_user' | 'sub_agent'
 
 export type TenantStatus = 'trial' | 'active' | 'suspended'
 

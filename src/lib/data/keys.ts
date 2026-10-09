@@ -39,6 +39,14 @@ export const DATA_KEYS = {
   agencyProfiles: 'pd-agency-profiles',
   /** Per-member page access matrix. */
   userPageAccess: 'pd-user-page-access',
+  /** Per-tenant sub-agent approval settings. */
+  subAgentAccessSettings: 'pd-sub-agent-access-settings',
+  /** Pending creates/updates submitted by logged-in sub-agents. */
+  subAgentPendingChanges: 'pd-sub-agent-pending-changes',
+  /** Login links: sub-agent CRM id ↔ auth user. */
+  subAgentLogins: 'pd-sub-agent-logins',
+  /** Local invite tokens when the platform API is offline. */
+  localInvites: 'pd-local-invites',
 } as const
 
 export type DataKey = (typeof DATA_KEYS)[keyof typeof DATA_KEYS]

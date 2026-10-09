@@ -80,6 +80,30 @@ describe('module entitlements', () => {
     expect(nav.map((item) => item.path)).toEqual(['/admin/tenants'])
   })
 
+  it('scopes sub-agent paths and nav', () => {
+    const leisure = getTenantById(TENANT_IDS.leisure)!
+    expect(isPathAllowed('/clients', leisure.enabledModules, 'sub_agent')).toBe(
+      true,
+    )
+    expect(
+      isPathAllowed('/my-submissions', leisure.enabledModules, 'sub_agent'),
+    ).toBe(true)
+    expect(
+      isPathAllowed('/sub-agents', leisure.enabledModules, 'sub_agent'),
+    ).toBe(false)
+    expect(
+      isPathAllowed('/settings', leisure.enabledModules, 'sub_agent'),
+    ).toBe(false)
+    const nav = filterNavItems(
+      layoutConfig.navItems,
+      leisure.enabledModules,
+      'sub_agent',
+    )
+    expect(nav.some((item) => item.path === '/my-submissions')).toBe(true)
+    expect(nav.some((item) => item.path === '/sub-agents')).toBe(false)
+    expect(nav.some((item) => item.path === '/settings')).toBe(false)
+  })
+
   it('hides HR and subAgents from leisure nav and does not list service types', () => {
     const leisure = getTenantById(TENANT_IDS.leisure)!
     const nav = filterNavItems(

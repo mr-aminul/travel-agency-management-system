@@ -11,6 +11,10 @@ export interface NavItem {
   moduleId?: ModuleId
   /** When true, only a platform admin sees this item. */
   adminOnly?: boolean
+  /** When true, only agency staff (not sub-agents) see this item. */
+  agencyOnly?: boolean
+  /** When true, only signed-in sub-agents see this item. */
+  subAgentOnly?: boolean
   /** Red count badge when this nav item needs attention. */
   badgeCount?: number
 }

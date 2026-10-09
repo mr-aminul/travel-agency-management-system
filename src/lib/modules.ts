@@ -192,7 +192,9 @@ export function pathAccess(pathname: string): PathAccess {
     path === '/partners' ||
     path.startsWith('/partners/') ||
     path === '/agents' ||
-    path.startsWith('/agents/')
+    path.startsWith('/agents/') ||
+    path === '/approvals' ||
+    path.startsWith('/approvals/')
   ) {
     return 'subAgents'
   }
@@ -215,11 +217,37 @@ export function signedInHomePath(role: UserRole): string {
   return role === 'platform_admin' ? '/admin/tenants' : '/'
 }
 
+/** Paths a logged-in sub-agent may open (scoped to their referrals in the UI). */
+const SUB_AGENT_ALLOWED_PREFIXES = [
+  '/',
+  '/clients',
+  '/service-board',
+  '/services',
+  '/documents',
+  '/payments',
+  '/profile',
+  '/help',
+  '/my-submissions',
+] as const
+
+export function isSubAgentPathAllowed(pathname: string): boolean {
+  const path =
+    pathname.endsWith('/') && pathname.length > 1
+      ? pathname.slice(0, -1)
+      : pathname
+  if (path === '/') return true
+  return SUB_AGENT_ALLOWED_PREFIXES.some(
+    (prefix) =>
+      prefix !== '/' && (path === prefix || path.startsWith(`${prefix}/`)),
+  )
+}
+
 export function isPathAllowed(
   pathname: string,
   modules: readonly ModuleId[],
   role: UserRole,
 ): boolean {
+  if (role === 'sub_agent') return isSubAgentPathAllowed(pathname)
   const access = pathAccess(pathname)
   if (role === 'platform_admin') return access === 'admin'
   if (access === 'core') return true
@@ -236,9 +264,22 @@ export function filterNavItems(
     return items.filter((item) => item.adminOnly)
   }
 
+  if (role === 'sub_agent') {
+    return items.flatMap((item) => {
+      if (item.adminOnly || item.agencyOnly) return []
+      if (item.subAgentOnly || isSubAgentPathAllowed(item.path)) {
+        const children = item.children
+          ? filterNavItems(item.children, modules, role)
+          : undefined
+        return [{ ...item, ...(children ? { children } : {}) }]
+      }
+      return []
+    })
+  }
+
   const enabled = moduleSet(modules)
   return items.flatMap((item) => {
-    if (item.adminOnly) return []
+    if (item.adminOnly || item.subAgentOnly) return []
     if (item.moduleId && !enabled.has(item.moduleId)) return []
     const children = item.children
       ? filterNavItems(item.children, modules, role)

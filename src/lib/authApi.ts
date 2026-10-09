@@ -12,6 +12,7 @@ import {
   type SeededAuthUser,
 } from '@/lib/seededUsers'
 import { DEFAULT_TENANT_ID } from '@/types/tenant'
+import type { AuthWorkspace } from '@/lib/authWorkspaces'
 
 export type AuthUser = SeededAuthUser
 
@@ -57,6 +58,11 @@ export type AuthSession = {
    * Prefer HttpOnly cookies in production; this field is for SPA token flows.
    */
   accessToken?: string
+  /** True when the user must pick agency vs partner portal. */
+  workspacePending?: boolean
+  /** Workspaces available for this login (agency and/or sub-agent). */
+  workspaces?: AuthWorkspace[]
+  activeWorkspaceId?: string
 }
 
 function readRawSession(): string | null {
@@ -85,11 +91,16 @@ function coerceUser(value: unknown): AuthUser | null {
   ) {
     return null
   }
+  const subAgentId =
+    typeof parsed.subAgentId === 'string' && parsed.subAgentId.trim()
+      ? parsed.subAgentId.trim()
+      : undefined
   return {
     id: parsed.id,
     email: parsed.email,
     name: parsed.name,
     role: asUserRole(parsed.role),
+    ...(subAgentId ? { subAgentId } : {}),
   }
 }
 
@@ -106,7 +117,20 @@ function coerceSession(value: unknown): AuthSession | null {
     parsed.accessToken === undefined || typeof parsed.accessToken === 'string'
       ? parsed.accessToken
       : undefined
-  return { user, tenantId, signedInAt: parsed.signedInAt, accessToken }
+  return {
+    user,
+    tenantId,
+    signedInAt: parsed.signedInAt,
+    accessToken,
+    workspacePending: parsed.workspacePending === true,
+    workspaces: Array.isArray(parsed.workspaces)
+      ? (parsed.workspaces as AuthSession['workspaces'])
+      : undefined,
+    activeWorkspaceId:
+      typeof parsed.activeWorkspaceId === 'string'
+        ? parsed.activeWorkspaceId
+        : undefined,
+  }
 }
 
 function migrateLegacySession(): AuthSession | null {
@@ -291,6 +315,15 @@ export type ProvisionedAgencyUser = {
   name: string
   role: AuthUser['role']
   tenantId: string
+  subAgentId?: string
+}
+
+export type ProvisionSubAgentUserInput = {
+  email: string
+  name: string
+  password: string
+  tenantId: string
+  subAgentId: string
 }
 
 /**
@@ -362,6 +395,95 @@ export async function provisionAgencyUser(
   }
 }
 
+/**
+ * Create a login for a CRM sub-agent (agency-set password).
+ * Uses the platform API when enabled; otherwise stores a local hashed login.
+ */
+export async function provisionSubAgentUser(
+  input: ProvisionSubAgentUserInput,
+): Promise<ProvisionedAgencyUser> {
+  const email = normalizeLoginEmail(input.email)
+  const name = input.name.trim()
+  const password = input.password
+  const tenantId = input.tenantId.trim()
+  const subAgentId = input.subAgentId.trim()
+  const id = `user-${crypto.randomUUID()}`
+
+  if (!email) throw new Error('Email is required.')
+  if (!name) throw new Error('Name is required.')
+  if (!password || password.length < 8) {
+    throw new Error('Password must be at least 8 characters.')
+  }
+  if (!tenantId) throw new Error('Agency is required.')
+  if (!subAgentId) throw new Error('Sub agent is required.')
+
+  if (authApiConfigured()) {
+    try {
+      const body = await apiFetch<{
+        user: AuthUser
+        tenantId: string
+      }>('/api/platform/auth/users', {
+        method: 'POST',
+        body: {
+          email,
+          name,
+          password,
+          tenantId,
+          id,
+          role: 'sub_agent',
+          subAgentId,
+        },
+      })
+      const user = coerceUser(body.user)
+      if (!user) throw new Error('Create-user response was incomplete.')
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        tenantId: body.tenantId || tenantId,
+        subAgentId: user.subAgentId ?? subAgentId,
+      }
+    } catch (error) {
+      if (!isNetworkFailure(error)) {
+        throw new Error(apiErrorMessage(error, 'Could not create login.'))
+      }
+    }
+  }
+
+  const existing =
+    findProvisionedAccountByEmail(email) ?? findSeededAccountByEmail(email)
+  if (existing) {
+    // Same email already has a login — attach partner access; keep their password.
+    return {
+      id: existing.user.id,
+      email: existing.user.email,
+      name: existing.user.name,
+      role: existing.user.role,
+      tenantId: existing.tenantId,
+      subAgentId,
+    }
+  }
+
+  const local = await saveProvisionedLogin({
+    id,
+    email,
+    name,
+    tenantId,
+    password,
+    role: 'sub_agent',
+    subAgentId,
+  })
+  return {
+    id: local.user.id,
+    email: local.user.email,
+    name: local.user.name,
+    role: local.user.role,
+    tenantId: local.tenantId,
+    subAgentId: local.user.subAgentId ?? subAgentId,
+  }
+}
+
 async function assertSessionAllowed(session: AuthSession): Promise<void> {
   if (session.user.role === 'platform_admin') return
 
@@ -375,6 +497,31 @@ async function assertSessionAllowed(session: AuthSession): Promise<void> {
   if (tenant?.status === 'suspended') {
     clearSession()
     throw new Error('This agency is suspended. Contact support.')
+  }
+
+  if (session.user.role === 'sub_agent') {
+    const [{ findSubAgentById }, { getSubAgentLogin }] = await Promise.all([
+      import('@/lib/subAgentsStore'),
+      import('@/lib/subAgentLoginsStore'),
+    ])
+    const subAgentId = session.user.subAgentId
+    if (!subAgentId) {
+      clearSession()
+      throw new Error('This partner login is incomplete. Contact your agency.')
+    }
+    const subAgent = findSubAgentById(subAgentId)
+    if (!subAgent || subAgent.status === 'Inactive') {
+      clearSession()
+      throw new Error(
+        'This partner account is inactive. Contact your agency.',
+      )
+    }
+    const link = getSubAgentLogin(subAgentId, session.tenantId)
+    if (link?.status === 'disabled') {
+      clearSession()
+      throw new Error('Your account is disabled. Contact your agency.')
+    }
+    return
   }
 
   const member = findTenantMemberForUser(
@@ -425,8 +572,42 @@ export async function signInWithPassword(
     session = await loginLocally(normalizedEmail, rawPassword)
   }
 
-  await assertSessionAllowed(session)
+  // Dynamic import avoids circular init with tenant/member stores.
+  const { withResolvedWorkspaces } = await import('@/lib/authWorkspaces')
+  session = withResolvedWorkspaces(session)
+  writeSession(session)
+
+  if (!session.workspacePending) {
+    await assertSessionAllowed(session)
+  }
   return session
+}
+
+/** Enter a workspace after the post-login picker (or switch later). */
+export async function selectAuthWorkspace(
+  workspaceId: string,
+): Promise<AuthSession> {
+  const current = readSession()
+  if (!current) {
+    throw new Error('Sign in again to choose a workspace.')
+  }
+  const { listWorkspacesForUser, applyWorkspaceToSession } = await import(
+    '@/lib/authWorkspaces'
+  )
+  const resolved =
+    current.workspaces && current.workspaces.length > 0
+      ? current.workspaces
+      : listWorkspacesForUser(current.user, current.tenantId)
+  const workspace = resolved.find((row) => row.id === workspaceId)
+  if (!workspace) {
+    throw new Error('That workspace is no longer available.')
+  }
+  const next = applyWorkspaceToSession(
+    { ...current, workspaces: resolved },
+    workspace,
+  )
+  writeSession(next)
+  return next
 }
 
 export async function setAgencyUserStatus(input: {
@@ -521,6 +702,8 @@ export type InviteCreateResult = {
   memberRole: string
   tenantId: string
   expiresAt: string
+  subAgentId?: string
+  role?: AuthUser['role']
 }
 
 export async function createUserInvite(input: {
@@ -528,43 +711,89 @@ export async function createUserInvite(input: {
   name: string
   memberRole?: 'owner' | 'manager' | 'staff'
   tenantId?: string
+  subAgentId?: string
+  role?: 'agency_user' | 'sub_agent'
 }): Promise<InviteCreateResult> {
-  return apiFetch<InviteCreateResult>('/api/platform/invites', {
-    method: 'POST',
-    body: {
-      email: input.email,
-      name: input.name,
-      memberRole: input.memberRole ?? 'staff',
-      tenantId: input.tenantId,
-    },
+  if (authApiConfigured()) {
+    try {
+      return await apiFetch<InviteCreateResult>('/api/platform/invites', {
+        method: 'POST',
+        body: {
+          email: input.email,
+          name: input.name,
+          memberRole: input.memberRole ?? 'staff',
+          tenantId: input.tenantId,
+          subAgentId: input.subAgentId,
+          role: input.role,
+        },
+      })
+    } catch (error) {
+      if (!isNetworkFailure(error)) {
+        throw new Error(apiErrorMessage(error, 'Could not create invite.'))
+      }
+    }
+  }
+
+  const { createLocalInvite } = await import('@/lib/localInvitesStore')
+  return createLocalInvite({
+    email: input.email,
+    name: input.name,
+    memberRole: input.memberRole ?? 'staff',
+    tenantId: input.tenantId ?? getActiveTenantId(),
+    subAgentId: input.subAgentId,
+    role: input.role ?? (input.subAgentId ? 'sub_agent' : 'agency_user'),
   })
 }
 
 export async function fetchInvite(token: string) {
-  return apiFetch<{
-    email: string
-    name: string
-    memberRole: string
-    tenantId: string
-    agencyName: string
-    expiresAt: string
-  }>(`/api/platform/public/invites/${encodeURIComponent(token)}`, {
-    skipAuth: true,
-  })
+  if (authApiConfigured()) {
+    try {
+      return await apiFetch<{
+        email: string
+        name: string
+        memberRole: string
+        tenantId: string
+        agencyName: string
+        expiresAt: string
+        subAgentId?: string
+        role?: AuthUser['role']
+      }>(`/api/platform/public/invites/${encodeURIComponent(token)}`, {
+        skipAuth: true,
+      })
+    } catch (error) {
+      if (!isNetworkFailure(error)) throw error
+    }
+  }
+  const { getLocalInviteView } = await import('@/lib/localInvitesStore')
+  const local = getLocalInviteView(token)
+  if (!local) throw new Error('Invite not found.')
+  return local
 }
 
 export async function acceptUserInvite(token: string, password: string) {
-  return apiFetch<{
-    userId: string
-    email: string
-    name: string
-    tenantId: string
-    memberRole: string
-  }>(`/api/platform/public/invites/${encodeURIComponent(token)}/accept`, {
-    method: 'POST',
-    skipAuth: true,
-    body: { password },
-  })
+  if (authApiConfigured()) {
+    try {
+      return await apiFetch<{
+        userId: string
+        email: string
+        name: string
+        tenantId: string
+        memberRole: string
+        subAgentId?: string
+        role?: AuthUser['role']
+      }>(`/api/platform/public/invites/${encodeURIComponent(token)}/accept`, {
+        method: 'POST',
+        skipAuth: true,
+        body: { password },
+      })
+    } catch (error) {
+      if (!isNetworkFailure(error)) {
+        throw new Error(apiErrorMessage(error, 'Could not accept invite.'))
+      }
+    }
+  }
+  const { acceptLocalInvite } = await import('@/lib/localInvitesStore')
+  return acceptLocalInvite(token, password)
 }
 
 export async function requestPasswordReset(email: string) {

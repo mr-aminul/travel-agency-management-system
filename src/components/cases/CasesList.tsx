@@ -30,6 +30,7 @@ import {
 } from '@/lib/serviceCatalog'
 import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { iconForService } from '@/lib/serviceIcons'
+import { notifyIfPendingApproval } from '@/lib/notifyPendingApproval'
 import { workDetailPath } from '@/lib/workPaths'
 import {
   serviceToSlug,
@@ -296,9 +297,17 @@ export function CasesList({
   }
 
   const handleCreateCase = (input: CreateCaseInput) => {
-    const created = createCase(input)
-    closeNewCaseModal()
-    navigate(workDetailPath(created))
+    try {
+      const created = createCase(input)
+      closeNewCaseModal()
+      navigate(workDetailPath(created))
+    } catch (error) {
+      if (notifyIfPendingApproval(error)) {
+        closeNewCaseModal()
+        return
+      }
+      throw error
+    }
   }
 
   const resetFilters = () => {

@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { layoutConfig } from '@/config/layout'
 import { useAuth } from '@/lib/auth'
-import { signedInHomePath } from '@/lib/modules'
+import { postLoginPath } from '@/lib/authWorkspaces'
 import { publicUrl } from '@/lib/publicUrl'
 import { Button, Input } from '@/components/ui'
 import {
@@ -15,7 +15,7 @@ import '@/styles/layout-login.css'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { status, user, signInWithPassword } = useAuth()
+  const { status, session, signInWithPassword } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
@@ -27,13 +27,8 @@ export default function LoginPage() {
   const emailError = validateRequiredEmail(email)
   const passwordError = validateRequiredPassword(password)
 
-  if (status === 'authenticated') {
-    return (
-      <Navigate
-        to={signedInHomePath(user?.role ?? 'agency_user')}
-        replace
-      />
-    )
+  if (status === 'authenticated' && session) {
+    return <Navigate to={postLoginPath(session)} replace />
   }
 
   const handlePasswordSignIn = async (event: FormEvent) => {
@@ -43,8 +38,8 @@ export default function LoginPage() {
     if (emailError || passwordError) return
     setIsSubmitting(true)
     try {
-      const session = await signInWithPassword(email, password)
-      navigate(signedInHomePath(session.user.role), { replace: true })
+      const next = await signInWithPassword(email, password)
+      navigate(postLoginPath(next), { replace: true })
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : 'Could not sign in.',

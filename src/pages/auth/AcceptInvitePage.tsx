@@ -3,10 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { layoutConfig } from '@/config/layout'
 import { acceptUserInvite, fetchInvite } from '@/lib/authApi'
 import { createTenantMember } from '@/lib/tenantMembersStore'
+import { upsertSubAgentLogin } from '@/lib/subAgentLoginsStore'
 import { publicUrl } from '@/lib/publicUrl'
 import { validateRequiredPassword } from '@/lib/fieldValidation'
 import { useTouchedFields } from '@/lib/useTouchedFields'
-import type { TenantMemberRole } from '@/types/tenant'
+import type { TenantMemberRole, UserRole } from '@/types/tenant'
 import { Button, Input } from '@/components/ui'
 import '@/styles/layout-login.css'
 
@@ -19,6 +20,8 @@ export default function AcceptInvitePage() {
     memberRole: string
     tenantId: string
     agencyName: string
+    subAgentId?: string
+    role?: UserRole
   } | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [password, setPassword] = useState('')
@@ -59,23 +62,38 @@ export default function AcceptInvitePage() {
     setIsSubmitting(true)
     try {
       const accepted = await acceptUserInvite(token, password)
-      const role = (
-        ['owner', 'manager', 'staff'].includes(accepted.memberRole)
-          ? accepted.memberRole
-          : 'staff'
-      ) as TenantMemberRole
-      try {
-        createTenantMember({
-          id: accepted.userId,
+      const isSubAgent =
+        accepted.role === 'sub_agent' ||
+        Boolean(accepted.subAgentId) ||
+        invite.role === 'sub_agent'
+      if (isSubAgent && accepted.subAgentId) {
+        upsertSubAgentLogin({
+          subAgentId: accepted.subAgentId,
           tenantId: accepted.tenantId,
-          name: accepted.name,
+          userId: accepted.userId,
           email: accepted.email,
-          role,
-          password,
           status: 'active',
+          activatedAt: new Date().toISOString(),
         })
-      } catch {
-        /* member row may already exist from admin side */
+      } else {
+        const role = (
+          ['owner', 'manager', 'staff'].includes(accepted.memberRole)
+            ? accepted.memberRole
+            : 'staff'
+        ) as TenantMemberRole
+        try {
+          createTenantMember({
+            id: accepted.userId,
+            tenantId: accepted.tenantId,
+            name: accepted.name,
+            email: accepted.email,
+            role,
+            password,
+            status: 'active',
+          })
+        } catch {
+          /* member row may already exist from admin side */
+        }
       }
       navigate('/login', { replace: true })
     } catch (caught) {
@@ -99,7 +117,11 @@ export default function AcceptInvitePage() {
       />
       <div className="pd-login__card">
         <div className="pd-login__brand">
-          <h1 className="pd-login__title">Join your agency</h1>
+          <h1 className="pd-login__title">
+            {invite?.role === 'sub_agent' || invite?.subAgentId
+              ? 'Join as partner'
+              : 'Join your agency'}
+          </h1>
           <p className="pd-login__subtitle">
             {invite
               ? `${invite.agencyName} · ${invite.email}`

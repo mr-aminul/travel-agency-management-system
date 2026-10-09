@@ -14,6 +14,7 @@ import {
   Contact,
   Copy,
   IdCard,
+  KeyRound,
   LayoutDashboard,
   LayoutGrid,
   Mail,
@@ -24,6 +25,8 @@ import {
   Users,
   Wallet,
 } from 'lucide-react'
+import { SubAgentLoginSection } from '@/components/subAgents/SubAgentLoginSection'
+import { notifyIfPendingApproval } from '@/lib/notifyPendingApproval'
 import type { LucideIcon } from 'lucide-react'
 import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import { AddClientSplitButton } from '@/components/clients/AddClientSplitButton'
@@ -68,7 +71,7 @@ import type {
 } from '@/types/client'
 import '@/styles/layout-clients.css'
 
-const PARTNER_TABS = ['overview', 'profile', 'clients'] as const
+const PARTNER_TABS = ['overview', 'profile', 'clients', 'login'] as const
 
 const CLIENT_STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'Pending', label: 'Pending' },
@@ -435,9 +438,17 @@ export default function SubAgentDetailPage() {
   }
 
   const handleCreateClient = (input: CreateClientInput) => {
-    const created = createClient({ ...input, subAgentId: subAgent.id })
-    setCustomerOpen(false)
-    navigate(`/clients/${created.id}?newCase=1`)
+    try {
+      const created = createClient({ ...input, subAgentId: subAgent.id })
+      setCustomerOpen(false)
+      navigate(`/clients/${created.id}?newCase=1`)
+    } catch (error) {
+      if (notifyIfPendingApproval(error)) {
+        setCustomerOpen(false)
+        return
+      }
+      throw error
+    }
   }
 
   const displayName = profileDraft.name || subAgent.name
@@ -1349,6 +1360,20 @@ export default function SubAgentDetailPage() {
                       </Table>
                     )}
                   </div>
+                ),
+              },
+              {
+                id: 'login',
+                label: <TabLabel icon={KeyRound}>Login</TabLabel>,
+                content: (
+                  <SubAgentLoginSection
+                    subAgent={subAgent}
+                    onEmailSaved={(email) => {
+                      if (subAgent.email !== email) {
+                        updateSubAgent(subAgent.id, { email })
+                      }
+                    }}
+                  />
                 ),
               },
             ]}

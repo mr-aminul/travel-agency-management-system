@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
-import { getActiveTenantId } from '@/lib/authApi'
+import { getActiveTenantId, readSession } from '@/lib/authApi'
+import { queueOrApplySubAgentChange } from '@/lib/subAgentScope'
+import { PendingApprovalError } from '@/lib/pendingApprovalError'
 import {
   DATA_KEYS,
   injectClientSideSeeds,
@@ -566,15 +568,18 @@ export function useClients(options: UseClientsOptions = {}): Client[] {
   const { session } = useAuth()
   const all = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const activeId = session?.tenantId ?? DEFAULT_TENANT_ID
+  const subAgentId =
+    session?.user.role === 'sub_agent' ? session.user.subAgentId : undefined
   return useMemo(() => {
     return all.filter((client) => {
       if (client.tenantId !== activeId) return false
+      if (subAgentId && client.subAgentId !== subAgentId) return false
       const isArchived = Boolean(client.archivedAt)
       if (archivedOnly) return isArchived
       if (!includeArchived && isArchived) return false
       return true
     })
-  }, [all, activeId, includeArchived, archivedOnly])
+  }, [all, activeId, includeArchived, archivedOnly, subAgentId])
 }
 
 export function useTrashedClients(): TrashedClient[] {
@@ -593,7 +598,19 @@ export function useTrashedClients(): TrashedClient[] {
 }
 
 export function getClientById(id: string): Client | undefined {
-  return clients.find((client) => client.id === id && inActiveTenant(client))
+  const client = clients.find(
+    (row) => row.id === id && inActiveTenant(row),
+  )
+  if (!client) return undefined
+  const session = readSession()
+  if (
+    session?.user.role === 'sub_agent' &&
+    session.user.subAgentId &&
+    client.subAgentId !== session.user.subAgentId
+  ) {
+    return undefined
+  }
+  return client
 }
 
 export function getClientByPhone(
@@ -649,51 +666,73 @@ export function createClient(
     throw new Error('This service line is not enabled for your agency.')
   }
 
+  const session = readSession()
+  const forcedSubAgentId =
+    session?.user.role === 'sub_agent' ? session.user.subAgentId : undefined
+  const resolvedInput: CreateClientInput = forcedSubAgentId
+    ? { ...input, subAgentId: forcedSubAgentId }
+    : input
+
+  const gate = queueOrApplySubAgentChange({
+    entityType: 'client',
+    action: 'create',
+    summary: `New client: ${resolvedInput.name.trim()}`,
+    payload: { input: resolvedInput, tenantId: assignedTenantId },
+  })
+  if ('queued' in gate) {
+    throw new PendingApprovalError(gate.queued)
+  }
+
   const created: Client = {
     id: `c-${Date.now().toString(36)}`,
     tenantId: assignedTenantId,
-    name: input.name.trim(),
+    name: resolvedInput.name.trim(),
     phone,
-    email: input.email?.trim() || undefined,
-    address: input.address?.trim() || input.presentAddress?.trim() || undefined,
-    banglaName: input.banglaName?.trim() || undefined,
-    fatherName: input.fatherName?.trim() || undefined,
-    motherName: input.motherName?.trim() || undefined,
-    dateOfBirth: input.dateOfBirth?.trim() || undefined,
-    gender: input.gender,
-    maritalStatus: input.maritalStatus,
-    nationality: input.nationality?.trim() || undefined,
-    placeOfBirth: input.placeOfBirth?.trim() || undefined,
-    spouseName: input.spouseName?.trim() || undefined,
-    bloodGroup: input.bloodGroup?.trim() || undefined,
-    whatsapp: input.whatsapp?.trim() || undefined,
+    email: resolvedInput.email?.trim() || undefined,
+    address:
+      resolvedInput.address?.trim() ||
+      resolvedInput.presentAddress?.trim() ||
+      undefined,
+    banglaName: resolvedInput.banglaName?.trim() || undefined,
+    fatherName: resolvedInput.fatherName?.trim() || undefined,
+    motherName: resolvedInput.motherName?.trim() || undefined,
+    dateOfBirth: resolvedInput.dateOfBirth?.trim() || undefined,
+    gender: resolvedInput.gender,
+    maritalStatus: resolvedInput.maritalStatus,
+    nationality: resolvedInput.nationality?.trim() || undefined,
+    placeOfBirth: resolvedInput.placeOfBirth?.trim() || undefined,
+    spouseName: resolvedInput.spouseName?.trim() || undefined,
+    bloodGroup: resolvedInput.bloodGroup?.trim() || undefined,
+    whatsapp: resolvedInput.whatsapp?.trim() || undefined,
     presentAddress:
-      input.presentAddress?.trim() || input.address?.trim() || undefined,
-    permanentAddress: input.permanentAddress?.trim() || undefined,
-    district: input.district?.trim() || undefined,
-    upazila: input.upazila?.trim() || undefined,
-    education: input.education?.trim() || undefined,
-    profession: input.profession?.trim() || undefined,
-    skillTrade: input.skillTrade?.trim() || undefined,
-    experience: input.experience?.trim() || undefined,
-    previousOverseasExp: input.previousOverseasExp?.trim() || undefined,
-    preferredCountry: input.preferredCountry?.trim() || undefined,
-    preferredJob: input.preferredJob?.trim() || undefined,
-    customFields: optionalCustomFields(input.customFields),
-    expectedSalary: input.expectedSalary?.trim() || undefined,
-    contractAmount: input.contractAmount,
-    branch: input.branch?.trim() || undefined,
-    subAgentId: input.subAgentId,
-    avatarUrl: input.avatarUrl?.trim() || undefined,
-    nid: input.nid?.trim() || undefined,
-    passport: input.passport?.trim() || undefined,
-    passportExpiry: input.passportExpiry?.trim() || undefined,
-    passportIssuedOn: input.passportIssuedOn?.trim() || undefined,
-    passportPlaceOfIssue: input.passportPlaceOfIssue?.trim() || undefined,
-    services: [input.primaryService],
+      resolvedInput.presentAddress?.trim() ||
+      resolvedInput.address?.trim() ||
+      undefined,
+    permanentAddress: resolvedInput.permanentAddress?.trim() || undefined,
+    district: resolvedInput.district?.trim() || undefined,
+    upazila: resolvedInput.upazila?.trim() || undefined,
+    education: resolvedInput.education?.trim() || undefined,
+    profession: resolvedInput.profession?.trim() || undefined,
+    skillTrade: resolvedInput.skillTrade?.trim() || undefined,
+    experience: resolvedInput.experience?.trim() || undefined,
+    previousOverseasExp: resolvedInput.previousOverseasExp?.trim() || undefined,
+    preferredCountry: resolvedInput.preferredCountry?.trim() || undefined,
+    preferredJob: resolvedInput.preferredJob?.trim() || undefined,
+    customFields: optionalCustomFields(resolvedInput.customFields),
+    expectedSalary: resolvedInput.expectedSalary?.trim() || undefined,
+    contractAmount: resolvedInput.contractAmount,
+    branch: resolvedInput.branch?.trim() || undefined,
+    subAgentId: resolvedInput.subAgentId,
+    avatarUrl: resolvedInput.avatarUrl?.trim() || undefined,
+    nid: resolvedInput.nid?.trim() || undefined,
+    passport: resolvedInput.passport?.trim() || undefined,
+    passportExpiry: resolvedInput.passportExpiry?.trim() || undefined,
+    passportIssuedOn: resolvedInput.passportIssuedOn?.trim() || undefined,
+    passportPlaceOfIssue: resolvedInput.passportPlaceOfIssue?.trim() || undefined,
+    services: [resolvedInput.primaryService],
     balance: 0,
     activeCases: 0,
-    idChecked: input.idChecked,
+    idChecked: resolvedInput.idChecked,
     createdAt: new Date().toISOString().slice(0, 10),
   }
   clients = [created, ...clients]
@@ -735,6 +774,18 @@ export function updateClient(
   id: string,
   patch: UpdateClientInput,
 ): Client | undefined {
+  const existing = getClientById(id)
+  if (!existing) return undefined
+  const gate = queueOrApplySubAgentChange({
+    entityType: 'client',
+    action: 'update',
+    entityId: id,
+    summary: `Update client: ${existing.name}`,
+    payload: { id, patch },
+  })
+  if ('queued' in gate) {
+    throw new PendingApprovalError(gate.queued)
+  }
   return applyClientPatch(id, patch, true)
 }
 

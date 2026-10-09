@@ -33,6 +33,7 @@ export function resolveUserPageAccess(input: {
   pathname: string
 }): PageAccessLevel {
   if (input.role === 'platform_admin') return 'edit'
+  if (input.role === 'sub_agent') return 'edit'
   const normalizedPath =
     input.pathname.endsWith('/') && input.pathname.length > 1
       ? input.pathname.slice(0, -1)
@@ -65,6 +66,9 @@ export function canAccessPath(input: {
 }): boolean {
   if (input.role === 'platform_admin') {
     return pathAccess(input.pathname) === 'admin'
+  }
+  if (input.role === 'sub_agent') {
+    return resolveUserPageAccess(input) !== 'none'
   }
   return resolveUserPageAccess(input) !== 'none'
 }

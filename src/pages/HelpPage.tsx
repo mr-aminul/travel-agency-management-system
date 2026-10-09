@@ -132,7 +132,7 @@ const GUIDES: Guide[] = [
   {
     id: 'partners',
     title: 'Sub agents & intake',
-    body: 'Track referring agencies, commissions, and public join links so partners can submit clients without staff login.',
+    body: 'Track referring agencies and commissions. Give partners a login (invite or set password) so they can manage their referrals; public join links still work without signing in. Approvals appear when Settings → Sub-agent access requires review.',
     icon: Handshake,
     links: [
       { label: 'Sub Agents', to: '/sub-agents' },

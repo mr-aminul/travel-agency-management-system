@@ -32,6 +32,7 @@ import {
   useClients,
 } from '@/lib/clientsStore'
 import { formatBdt } from '@/lib/dashboardMetrics'
+import { notifyIfPendingApproval } from '@/lib/notifyPendingApproval'
 import { useSubAgents } from '@/lib/subAgentsStore'
 import type { Case } from '@/types/case'
 import type { Client, CreateClientInput, ServiceType } from '@/types/client'
@@ -232,9 +233,17 @@ export default function ClientsPage() {
   }
 
   const handleCreateClient = (input: CreateClientInput) => {
-    const created = createClient(input)
-    closeNewClientModal()
-    navigate(`/clients/${created.id}?newCase=1`)
+    try {
+      const created = createClient(input)
+      closeNewClientModal()
+      navigate(`/clients/${created.id}?newCase=1`)
+    } catch (error) {
+      if (notifyIfPendingApproval(error)) {
+        closeNewClientModal()
+        return
+      }
+      throw error
+    }
   }
 
   const handleArchive = (client: Client) => {

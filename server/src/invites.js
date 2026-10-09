@@ -26,10 +26,17 @@ export async function createInvite({
   name,
   memberRole,
   invitedBy,
+  subAgentId,
+  role: inviteRole,
 }) {
   const normalizedEmail = normalizeEmail(email)
   const trimmedName = String(name ?? '').trim()
-  const role = asRole(memberRole)
+  const isSubAgent =
+    inviteRole === 'sub_agent' || Boolean(String(subAgentId ?? '').trim())
+  const role = isSubAgent ? 'staff' : asRole(memberRole)
+  const resolvedSubAgentId = isSubAgent
+    ? String(subAgentId ?? '').trim()
+    : ''
   if (!normalizedEmail) {
     return { ok: false, status: 400, error: 'Email is required.' }
   }
@@ -38,6 +45,9 @@ export async function createInvite({
   }
   if (!tenantId) {
     return { ok: false, status: 400, error: 'Agency is required.' }
+  }
+  if (isSubAgent && !resolvedSubAgentId) {
+    return { ok: false, status: 400, error: 'Sub agent is required.' }
   }
 
   const existingUser = await query(
@@ -65,8 +75,8 @@ export async function createInvite({
   const expiresAt = new Date(Date.now() + INVITE_TTL_MS)
   await query(
     `insert into platform.invites
-       (id, token, tenant_id, email, name, member_role, invited_by, expires_at, created_at)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, now())`,
+       (id, token, tenant_id, email, name, member_role, invited_by, expires_at, sub_agent_id, created_at)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())`,
     [
       id,
       token,
@@ -76,6 +86,7 @@ export async function createInvite({
       role,
       invitedBy || null,
       expiresAt.toISOString(),
+      resolvedSubAgentId || null,
     ],
   )
 
@@ -90,13 +101,16 @@ export async function createInvite({
       memberRole: role,
       tenantId,
       expiresAt: expiresAt.toISOString(),
+      ...(resolvedSubAgentId
+        ? { subAgentId: resolvedSubAgentId, role: 'sub_agent' }
+        : {}),
     },
   }
 }
 
 export async function getInviteByToken(token) {
   const result = await query(
-    `select id, token, tenant_id, email, name, member_role, expires_at, accepted_at
+    `select id, token, tenant_id, email, name, member_role, expires_at, accepted_at, sub_agent_id
      from platform.invites where token = $1 limit 1`,
     [String(token || '').trim()],
   )
@@ -131,6 +145,7 @@ export async function publicInviteView(token) {
   if (new Date(row.expires_at).getTime() <= Date.now()) {
     return { ok: false, status: 410, error: 'This invite has expired.' }
   }
+  const isSubAgent = Boolean(row.sub_agent_id)
   return {
     ok: true,
     status: 200,
@@ -141,6 +156,9 @@ export async function publicInviteView(token) {
       tenantId: row.tenant_id,
       agencyName: await agencyName(row.tenant_id),
       expiresAt: row.expires_at,
+      ...(isSubAgent
+        ? { subAgentId: row.sub_agent_id, role: 'sub_agent' }
+        : {}),
     },
   }
 }
@@ -165,6 +183,9 @@ export async function acceptInvite({ token, password }) {
 
   const passwordHash = hashPassword(rawPassword)
   const userId = `user-${crypto.randomBytes(8).toString('hex')}`
+  const isSubAgent = Boolean(row.sub_agent_id)
+  const userRole = isSubAgent ? 'sub_agent' : 'agency_user'
+  const memberRole = isSubAgent ? null : row.member_role
 
   const existing = await query(
     `select id from platform.users where lower(email) = $1 limit 1`,
@@ -178,7 +199,8 @@ export async function acceptInvite({ token, password }) {
            password_hash = $4,
            status = 'active',
            member_role = $5,
-           role = 'agency_user',
+           role = $6,
+           sub_agent_id = $7,
            updated_at = now()
        where id = $1`,
       [
@@ -186,7 +208,9 @@ export async function acceptInvite({ token, password }) {
         row.name,
         row.tenant_id,
         passwordHash,
-        row.member_role,
+        memberRole,
+        userRole,
+        row.sub_agent_id || null,
       ],
     )
     await query(
@@ -201,16 +225,28 @@ export async function acceptInvite({ token, password }) {
         email: row.email,
         name: row.name,
         tenantId: row.tenant_id,
-        memberRole: row.member_role,
+        memberRole: memberRole || 'staff',
+        ...(isSubAgent
+          ? { subAgentId: row.sub_agent_id, role: 'sub_agent' }
+          : {}),
       },
     }
   }
 
   await query(
     `insert into platform.users
-       (id, email, name, role, tenant_id, password_hash, status, member_role, updated_at)
-     values ($1, $2, $3, 'agency_user', $4, $5, 'active', $6, now())`,
-    [userId, row.email, row.name, row.tenant_id, passwordHash, row.member_role],
+       (id, email, name, role, tenant_id, password_hash, status, member_role, sub_agent_id, updated_at)
+     values ($1, $2, $3, $4, $5, $6, 'active', $7, $8, now())`,
+    [
+      userId,
+      row.email,
+      row.name,
+      userRole,
+      row.tenant_id,
+      passwordHash,
+      memberRole,
+      row.sub_agent_id || null,
+    ],
   )
   await query(`update platform.invites set accepted_at = now() where id = $1`, [
     row.id,
@@ -224,7 +260,10 @@ export async function acceptInvite({ token, password }) {
       email: row.email,
       name: row.name,
       tenantId: row.tenant_id,
-      memberRole: row.member_role,
+      memberRole: memberRole || 'staff',
+      ...(isSubAgent
+        ? { subAgentId: row.sub_agent_id, role: 'sub_agent' }
+        : {}),
     },
   }
 }

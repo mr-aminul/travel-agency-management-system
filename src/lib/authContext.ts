@@ -11,6 +11,9 @@ export type AuthContextValue = {
     email: string,
     password: string,
   ) => Promise<AuthSession>
+  selectWorkspace: (workspaceId: string) => Promise<AuthSession>
+  /** Re-open the workspace picker without signing out. */
+  requestWorkspacePicker: () => void
   signOut: () => Promise<void>
 }
 

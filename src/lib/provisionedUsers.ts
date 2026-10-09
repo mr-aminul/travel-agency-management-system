@@ -36,12 +36,17 @@ function normalizeAccount(value: unknown): ProvisionedLoginAccount | undefined {
   const passwordHash =
     typeof value.passwordHash === 'string' ? value.passwordHash.trim() : ''
   if (!id || !email || !name || !tenantId || !passwordHash) return undefined
+  const subAgentId =
+    typeof value.user.subAgentId === 'string' && value.user.subAgentId.trim()
+      ? value.user.subAgentId.trim()
+      : undefined
   return {
     user: {
       id,
       email: email.toLowerCase(),
       name,
       role: asUserRole(value.user.role) as UserRole,
+      ...(subAgentId ? { subAgentId } : {}),
     },
     tenantId,
     passwordHash,
@@ -80,6 +85,7 @@ export async function saveProvisionedLogin(input: {
   tenantId: string
   password: string
   role?: UserRole
+  subAgentId?: string
 }): Promise<ProvisionedLoginAccount> {
   const email = input.email.trim().toLowerCase()
   if (findSeededAccountByEmail(email) || findProvisionedAccountByEmail(email)) {
@@ -93,6 +99,7 @@ export async function saveProvisionedLogin(input: {
       email,
       name: input.name.trim(),
       role: input.role ?? 'agency_user',
+      ...(input.subAgentId ? { subAgentId: input.subAgentId } : {}),
     },
     tenantId: input.tenantId,
     passwordHash,
