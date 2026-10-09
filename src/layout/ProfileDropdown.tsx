@@ -152,7 +152,10 @@ export function ProfileDropdown({
                   try {
                     await stopViewAs()
                     setOpen(false)
-                    navigate('/admin/tenants', { replace: true })
+                    const { takeSupportReturnPath } = await import(
+                      '@/lib/adminPaths'
+                    )
+                    navigate(takeSupportReturnPath('/admin'), { replace: true })
                   } finally {
                     setExitViewAsBusy(false)
                   }

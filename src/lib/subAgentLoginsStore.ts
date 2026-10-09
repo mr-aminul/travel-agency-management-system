@@ -94,6 +94,15 @@ export function listSubAgentLoginsForEmail(email: string): SubAgentLoginLink[] {
   return cache.filter((row) => row.email === normalized)
 }
 
+/** All portal logins across tenants (platform admin directory). */
+export function listAllSubAgentLogins(): SubAgentLoginLink[] {
+  return cache
+}
+
+export function useAllSubAgentLogins(): SubAgentLoginLink[] {
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+
 export function upsertSubAgentLogin(
   link: SubAgentLoginLink,
 ): SubAgentLoginLink {

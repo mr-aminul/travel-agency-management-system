@@ -31,11 +31,16 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const TrackClientPage = lazy(() => import('@/pages/TrackClientPage'))
 const TrashPage = lazy(() => import('@/pages/TrashPage'))
 const PublicClientIntakePage = lazy(() => import('@/pages/PublicClientIntakePage'))
+const AdminOverviewPage = lazy(() => import('@/pages/admin/AdminOverviewPage'))
 const TenantsAdminPage = lazy(() => import('@/pages/admin/TenantsAdminPage'))
 const TenantAdminLayout = lazy(() => import('@/pages/admin/TenantAdminLayout'))
 const TenantOverviewPage = lazy(() => import('@/pages/admin/TenantOverviewPage'))
 const TenantUsersPage = lazy(() => import('@/pages/admin/TenantUsersPage'))
 const TenantModulesPage = lazy(() => import('@/pages/admin/TenantModulesPage'))
+const TenantActivityPage = lazy(() => import('@/pages/admin/TenantActivityPage'))
+const AdminPeoplePage = lazy(() => import('@/pages/admin/AdminPeoplePage'))
+const AdminActivityPage = lazy(() => import('@/pages/admin/AdminActivityPage'))
+const AdminPlatformPage = lazy(() => import('@/pages/admin/AdminPlatformPage'))
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'))
@@ -49,6 +54,19 @@ function RouteFallback() {
 function LegacyAgentsRedirect() {
   const { id } = useParams()
   return <Navigate to={id ? `/sub-agents/${id}` : '/sub-agents'} replace />
+}
+
+function LegacyTenantAdminRedirect() {
+  const { tenantId, '*': rest } = useParams()
+  if (!tenantId) return <Navigate to="/admin/agencies" replace />
+  const section = (rest ?? '').split('/')[0]
+  const mapped =
+    section === 'users'
+      ? 'people'
+      : section === 'modules'
+        ? 'product'
+        : section || 'overview'
+  return <Navigate to={`/admin/agencies/${tenantId}/${mapped}`} replace />
 }
 
 function CatchAllRedirect() {
@@ -129,17 +147,36 @@ function App() {
             <Route path="hr/attendance" element={<HrAttendancePage />} />
             <Route path="hr/payroll" element={<HrPayrollPage />} />
             <Route path="help" element={<HelpPage />} />
-            <Route path="admin" element={<Navigate to="/admin/tenants" replace />} />
-            <Route path="admin/tenants" element={<TenantsAdminPage />} />
+            <Route path="admin" element={<AdminOverviewPage />} />
+            <Route path="admin/agencies" element={<TenantsAdminPage />} />
             <Route
-              path="admin/tenants/:tenantId"
+              path="admin/agencies/:tenantId"
               element={<TenantAdminLayout />}
             >
               <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={<TenantOverviewPage />} />
-              <Route path="users" element={<TenantUsersPage />} />
-              <Route path="modules" element={<TenantModulesPage />} />
+              <Route path="people" element={<TenantUsersPage />} />
+              <Route path="product" element={<TenantModulesPage />} />
+              <Route path="activity" element={<TenantActivityPage />} />
+              {/* Legacy section aliases */}
+              <Route path="users" element={<Navigate to="../people" replace />} />
+              <Route
+                path="modules"
+                element={<Navigate to="../product" replace />}
+              />
             </Route>
+            <Route path="admin/people" element={<AdminPeoplePage />} />
+            <Route path="admin/activity" element={<AdminActivityPage />} />
+            <Route path="admin/platform" element={<AdminPlatformPage />} />
+            {/* Legacy Businesses URLs */}
+            <Route
+              path="admin/tenants"
+              element={<Navigate to="/admin/agencies" replace />}
+            />
+            <Route
+              path="admin/tenants/:tenantId/*"
+              element={<LegacyTenantAdminRedirect />}
+            />
             <Route path="settings" element={<SettingsPage />} />
             <Route
               path="settings/services/:serviceKey"

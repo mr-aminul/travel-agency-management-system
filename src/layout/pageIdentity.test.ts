@@ -19,10 +19,11 @@ describe('pageIdentity', () => {
   })
 
   it('collapses tenant admin tabs to the tenant shell', () => {
-    expect(pageIdentity('/admin/tenants/t1/users')).toBe('/admin/tenants/t1')
-    expect(pageIdentity('/admin/tenants/t1/overview')).toBe(
-      '/admin/tenants/t1',
+    expect(pageIdentity('/admin/agencies/t1/people')).toBe('/admin/agencies/t1')
+    expect(pageIdentity('/admin/agencies/t1/overview')).toBe(
+      '/admin/agencies/t1',
     )
+    expect(pageIdentity('/admin/tenants/t1/users')).toBe('/admin/tenants/t1')
   })
 
   it('still remounts when switching between clients', () => {

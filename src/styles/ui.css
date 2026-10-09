@@ -434,6 +434,26 @@ a.pd-btn {
   opacity: 0.85;
 }
 
+.pd-select--sm.pd-select--tone-completed .pd-select__trigger {
+  background: var(--color-status-completed-surface);
+  color: var(--color-status-completed);
+}
+
+.pd-select--sm.pd-select--tone-pending .pd-select__trigger {
+  background: var(--color-status-pending-surface);
+  color: var(--color-status-pending);
+}
+
+.pd-select--sm.pd-select--tone-on-hold .pd-select__trigger {
+  background: var(--color-status-on-hold-surface);
+  color: var(--color-status-on-hold);
+}
+
+.pd-select--sm.pd-select--tone-danger .pd-select__trigger {
+  background: var(--color-red-light);
+  color: var(--color-red);
+}
+
 .pd-select__panel--sm {
   min-width: 8.5rem;
 }
@@ -1482,6 +1502,21 @@ a.pd-btn {
   border-top: 0.1875rem solid var(--color-theme);
 }
 
+.pd-metric__head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.pd-metric__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-theme-ink);
+  flex-shrink: 0;
+}
+
 .pd-metric__label {
   font-size: 0.75rem;
   font-weight: 600;
@@ -2198,7 +2233,7 @@ a.pd-btn {
 
 .pd-breadcrumbs__link {
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-secondary);
   text-decoration: none;
 }
@@ -2210,7 +2245,7 @@ a.pd-btn {
 
 .pd-breadcrumbs__current {
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--color-text);
 }
 

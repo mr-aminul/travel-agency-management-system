@@ -35,15 +35,15 @@ function renderAdmin(path: string) {
       <MemoryRouter initialEntries={[path]}>
         <Suspense fallback={<p>Loading</p>}>
           <Routes>
-            <Route path="/admin/tenants" element={<TenantsAdminPage />} />
+            <Route path="/admin/agencies" element={<TenantsAdminPage />} />
             <Route
-              path="/admin/tenants/:tenantId"
+              path="/admin/agencies/:tenantId"
               element={<TenantAdminLayout />}
             >
               <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={<TenantOverviewPage />} />
-              <Route path="users" element={<TenantUsersPage />} />
-              <Route path="modules" element={<TenantModulesPage />} />
+              <Route path="people" element={<TenantUsersPage />} />
+              <Route path="product" element={<TenantModulesPage />} />
             </Route>
           </Routes>
         </Suspense>
@@ -52,31 +52,36 @@ function renderAdmin(path: string) {
   )
 }
 
-describe('platform admin businesses', () => {
-  it('lists onboarded businesses without stacking modules', async () => {
-    renderAdmin('/admin/tenants')
+describe('platform admin agencies', () => {
+  it('lists onboarded agencies without stacking modules', async () => {
+    renderAdmin('/admin/agencies')
 
     expect(
-      await screen.findByRole('heading', { name: 'Businesses' }),
+      await screen.findByRole('heading', { name: 'Agencies' }),
     ).toBeInTheDocument()
     expect(screen.getByText('Coastal Leisure')).toBeInTheDocument()
     expect(screen.getByText('Horizon Manpower')).toBeInTheDocument()
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
   })
 
-  it('opens a business users page and exposes a modules section', async () => {
-    renderAdmin('/admin/tenants')
+  it('opens agency overview and exposes product modules', async () => {
+    renderAdmin('/admin/agencies')
 
     fireEvent.click(await screen.findByText('Coastal Leisure'))
 
     expect(
       await screen.findByRole('heading', { name: 'Coastal Leisure' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('ops@coastalleisure.com')).toBeInTheDocument()
-    expect(screen.getByText('Farzana Rahman')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Modules' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'People' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Product' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('link', { name: 'Modules' }))
+    fireEvent.click(screen.getByRole('link', { name: 'People' }))
+    expect(
+      await screen.findByText('ops@coastalleisure.com'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Farzana Rahman')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('link', { name: 'Product' }))
     expect(
       await screen.findByRole('switch', { name: 'Tourist Visa' }),
     ).toBeInTheDocument()

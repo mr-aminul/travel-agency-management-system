@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Eye, Plus, Users } from 'lucide-react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { ADMIN_AGENCIES, adminAgencyPath, setSupportReturnPath } from '@/lib/adminPaths'
 import { useAuth } from '@/lib/useAuth'
 import {
   STAFF_MEMBER_ROLES,
@@ -28,7 +29,6 @@ import type {
 import {
   Avatar,
   avatarKindForMemberRole,
-  Badge,
   Button,
   CopyableText,
   EmptyState,
@@ -41,13 +41,32 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  type BadgeVariant,
+  type SelectOption,
 } from '@/components/ui'
 
-function statusBadgeVariant(status: TenantMemberStatus): BadgeVariant {
-  if (status === 'active') return 'completed'
-  if (status === 'invited') return 'pending'
-  return 'on-hold'
+type EditableStatus = 'active' | 'disabled'
+
+const STATUS_OPTIONS_BASE: SelectOption[] = [
+  { value: 'active', label: 'Active' },
+  { value: 'disabled', label: 'Disabled' },
+]
+
+function statusToneClass(status: string): string {
+  if (status === 'active') return 'pd-select--tone-completed'
+  if (status === 'invited') return 'pd-select--tone-pending'
+  return 'pd-select--tone-on-hold'
+}
+
+function statusOptions(current: string): SelectOption[] {
+  if (current === 'invited') {
+    return [{ value: 'invited', label: 'Invited' }, ...STATUS_OPTIONS_BASE]
+  }
+  return STATUS_OPTIONS_BASE
+}
+
+function asEditableStatus(value: string): EditableStatus | undefined {
+  if (value === 'active' || value === 'disabled') return value
+  return undefined
 }
 
 function roleLabel(role: TenantMemberRole): string {
@@ -72,7 +91,7 @@ export default function TenantUsersPage() {
   const tenant = useTenantById(tenantId)
   const members = useTenantMembersByTenantId(tenantId)
   const [createOpen, setCreateOpen] = useState(false)
-  const [viewAsBusyId, setViewAsBusyId] = useState<string | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<TenantMemberRole>('staff')
@@ -89,7 +108,7 @@ export default function TenantUsersPage() {
     useTouchedFields<CreateField>()
 
   if (!tenant) {
-    return <Navigate to="/admin/tenants" replace />
+    return <Navigate to={ADMIN_AGENCIES} replace />
   }
 
   const values = {
@@ -183,8 +202,9 @@ export default function TenantUsersPage() {
   const handleViewAs = async (member: TenantMember) => {
     if (member.status !== 'active') return
     setActionError(undefined)
-    setViewAsBusyId(member.id)
+    setBusyId(member.id)
     try {
+      setSupportReturnPath(adminAgencyPath(tenant.id, 'people'))
       await startViewAs({
         userId: member.id,
         email: member.email,
@@ -198,25 +218,33 @@ export default function TenantUsersPage() {
         error instanceof Error ? error.message : 'Could not start View as user.',
       )
     } finally {
-      setViewAsBusyId(null)
+      setBusyId(null)
     }
   }
 
-  const toggleDisabled = async (member: TenantMember) => {
+  const handleMemberStatusChange = async (
+    member: TenantMember,
+    nextRaw: string,
+  ) => {
+    const nextStatus = asEditableStatus(nextRaw)
+    if (!nextStatus || nextStatus === member.status) return
     setActionError(undefined)
-    const nextStatus: TenantMemberStatus =
-      member.status === 'disabled' ? 'active' : 'disabled'
+    setBusyId(member.id)
     try {
       await setAgencyUserStatus({
         userId: member.id,
         email: member.email,
-        status: nextStatus === 'disabled' ? 'disabled' : 'active',
+        status: nextStatus,
       })
-      updateTenantMember(member.id, { status: nextStatus })
+      updateTenantMember(member.id, {
+        status: nextStatus as TenantMemberStatus,
+      })
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : 'Could not update status.',
       )
+    } finally {
+      setBusyId(null)
     }
   }
 
@@ -439,25 +467,41 @@ export default function TenantUsersPage() {
     </Modal>
   )
 
+  const sectionHead = (
+    <div className="pd-client-detail__section-head">
+      <h2 className="pd-client-detail__section-title">
+        <span className="pd-client-detail__section-icon" aria-hidden>
+          <Users size={15} strokeWidth={2.25} />
+        </span>
+        People
+      </h2>
+      {addButton}
+    </div>
+  )
+
   if (members.length === 0) {
     return (
-      <>
-        <EmptyState
-          icon={Users}
-          title="No users yet"
-          description={`Add the first login for ${tenant.name}.`}
-          action={addButton}
-        />
+      <div className="pd-client-detail__overview" aria-label="People">
+        <section className="pd-client-detail__section pd-client-detail__section--compact">
+          {sectionHead}
+          <EmptyState
+            icon={Users}
+            title="No users yet"
+            description={`Add the first login for ${tenant.name}.`}
+            action={addButton}
+          />
+        </section>
         {createModal}
         {credentialsModal}
         {resetModal}
-      </>
+      </div>
     )
   }
 
   return (
-    <>
-      <div className="pd-admin__section-actions">{addButton}</div>
+    <div className="pd-client-detail__overview" aria-label="People">
+      <section className="pd-client-detail__section pd-client-detail__section--compact">
+      {sectionHead}
       {actionError && !resetMember ? (
         <p className="pd-field__error" role="alert">
           {actionError}
@@ -491,9 +535,17 @@ export default function TenantUsersPage() {
               </TableCell>
               <TableCell>{roleLabel(member.role)}</TableCell>
               <TableCell>
-                <Badge variant={statusBadgeVariant(member.status)}>
-                  {member.status}
-                </Badge>
+                <Select
+                  size="sm"
+                  aria-label={`Status for ${member.name}`}
+                  className={statusToneClass(member.status)}
+                  value={member.status}
+                  options={statusOptions(member.status)}
+                  disabled={busyId != null}
+                  onChange={(event) =>
+                    void handleMemberStatusChange(member, event.target.value)
+                  }
+                />
               </TableCell>
               <TableCell>
                 <span className="pd-admin__row-actions">
@@ -501,16 +553,17 @@ export default function TenantUsersPage() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      disabled={viewAsBusyId != null}
+                      disabled={busyId != null}
                       onClick={() => void handleViewAs(member)}
                     >
                       <Eye size={14} strokeWidth={2.25} aria-hidden />
-                      {viewAsBusyId === member.id ? 'Opening…' : 'View as'}
+                      {busyId === member.id ? 'Opening…' : 'View as'}
                     </Button>
                   ) : null}
                   <Button
                     variant="secondary"
                     size="sm"
+                    disabled={busyId != null}
                     onClick={() => {
                       setResetMember(member)
                       setResetPassword('')
@@ -519,22 +572,16 @@ export default function TenantUsersPage() {
                   >
                     Reset password
                   </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => void toggleDisabled(member)}
-                  >
-                    {member.status === 'disabled' ? 'Enable' : 'Disable'}
-                  </Button>
                 </span>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+      </section>
       {createModal}
       {credentialsModal}
       {resetModal}
-    </>
+    </div>
   )
 }

@@ -1,42 +1,50 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronRight, Plus } from 'lucide-react'
+import { Building2, ChevronRight, PauseCircle, Plus, Timer } from 'lucide-react'
 import { agencyWithOwnerCreateErrors } from '@/lib/agencyUserRules'
+import { ADMIN_AGENCIES, adminAgencyPath } from '@/lib/adminPaths'
 import { provisionAgencyUser } from '@/lib/authApi'
 import { createTenantMember, useTenantMembers } from '@/lib/tenantMembersStore'
-import { createTenant, useTenants } from '@/lib/tenantsStore'
+import { createTenant, setTenantStatus, useTenants } from '@/lib/tenantsStore'
 import { useAuth } from '@/lib/auth'
 import { useTouchedFields } from '@/lib/useTouchedFields'
-import type { TenantStatus } from '@/types/tenant'
+import type { Tenant, TenantStatus } from '@/types/tenant'
+import { StatCards, type StatCardItem } from '@/components/StatCards'
 import '@/styles/layout-admin.css'
+import '@/styles/layout-clients.css'
 import {
   Avatar,
-  Badge,
   Button,
   CopyableText,
+  EmptyState,
   Input,
   Modal,
   PageHeader,
+  SearchField,
+  Select,
+  SideDrawer,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  type BadgeVariant,
+  type SelectOption,
 } from '@/components/ui'
 
-function statusBadgeVariant(status: TenantStatus): BadgeVariant {
-  if (status === 'active') return 'completed'
-  if (status === 'trial') return 'pending'
-  return 'danger'
+const TENANT_STATUS_OPTIONS: SelectOption[] = [
+  { value: 'active', label: 'Active' },
+  { value: 'trial', label: 'Trial' },
+  { value: 'suspended', label: 'Suspended' },
+]
+
+function tenantStatusToneClass(status: TenantStatus): string {
+  if (status === 'active') return 'pd-select--tone-completed'
+  if (status === 'trial') return 'pd-select--tone-pending'
+  return 'pd-select--tone-danger'
 }
 
-type CreateField =
-  | 'name'
-  | 'ownerName'
-  | 'ownerEmail'
-  | 'ownerPassword'
+type CreateField = 'name' | 'ownerName' | 'ownerEmail' | 'ownerPassword'
 
 type CreatedCredentials = {
   agencyName: string
@@ -46,11 +54,20 @@ type CreatedCredentials = {
   tenantId: string
 }
 
+const STATUS_FILTERS = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'active', label: 'Active' },
+  { value: 'trial', label: 'Trial' },
+  { value: 'suspended', label: 'Suspended' },
+]
+
 export default function TenantsAdminPage() {
   const { user } = useAuth()
   const tenants = useTenants()
   const members = useTenantMembers()
   const navigate = useNavigate()
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState('')
   const [ownerName, setOwnerName] = useState('')
@@ -63,12 +80,48 @@ export default function TenantsAdminPage() {
   const { markAllTouched, showError, blur, resetTouched } =
     useTouchedFields<CreateField>()
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return tenants.filter((tenant) => {
+      if (statusFilter !== 'all' && tenant.status !== statusFilter) return false
+      if (!q) return true
+      return (
+        tenant.name.toLowerCase().includes(q) ||
+        tenant.slug.toLowerCase().includes(q)
+      )
+    })
+  }, [tenants, search, statusFilter])
+
   if (user?.role !== 'platform_admin') {
     return null
   }
 
   const values = { name, ownerName, ownerEmail, ownerPassword }
   const errors = agencyWithOwnerCreateErrors(values)
+
+  const cards: StatCardItem[] = [
+    {
+      id: 'total',
+      label: 'Agencies',
+      value: String(tenants.length),
+      icon: Building2,
+      tone: 'brand',
+    },
+    {
+      id: 'trial',
+      label: 'Trial',
+      value: String(tenants.filter((t) => t.status === 'trial').length),
+      icon: Timer,
+      tone: 'warning',
+    },
+    {
+      id: 'suspended',
+      label: 'Suspended',
+      value: String(tenants.filter((t) => t.status === 'suspended').length),
+      icon: PauseCircle,
+      tone: 'muted',
+    },
+  ]
 
   const closeCreate = () => {
     setCreateOpen(false)
@@ -129,11 +182,25 @@ export default function TenantsAdminPage() {
     }
   }
 
+  const hasFilters = search.trim() !== '' || statusFilter !== 'all'
+
+  const handleStatusChange = (tenant: Tenant, nextRaw: string) => {
+    if (
+      nextRaw !== 'active' &&
+      nextRaw !== 'trial' &&
+      nextRaw !== 'suspended'
+    ) {
+      return
+    }
+    if (nextRaw === tenant.status) return
+    setTenantStatus(tenant.id, nextRaw)
+  }
+
   return (
-    <div className="pd-page pd-admin" aria-label="Businesses">
+    <div className="pd-page pd-admin pd-clients" aria-label="Agencies">
       <PageHeader
-        title="Businesses"
-        description="Agencies onboarded to OneTrack. Open a business to see its people."
+        title="Agencies"
+        description="Customer businesses on OneTrack. Open one to manage people, product, or enter Support Mode."
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <Plus size={16} strokeWidth={2.25} aria-hidden />
@@ -142,66 +209,138 @@ export default function TenantsAdminPage() {
         }
       />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Business</TableHead>
-            <TableHead>Slug</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Users</TableHead>
-            <TableHead aria-label="Open" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {tenants.map((tenant) => {
-            const userCount = members.filter(
-              (member) => member.tenantId === tenant.id,
-            ).length
-            return (
-              <TableRow
-                key={tenant.id}
-                className="pd-admin__row"
-                onClick={() => navigate(`/admin/tenants/${tenant.id}/users`)}
-              >
-                <TableCell>
-                  <span className="pd-admin__user">
-                    <Avatar name={tenant.name} size="sm" kind="business" />
-                    <Link
-                      className="pd-admin__business-name"
-                      to={`/admin/tenants/${tenant.id}/users`}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      {tenant.name}
-                    </Link>
-                  </span>
-                </TableCell>
-                <TableCell className="pd-table__code">{tenant.slug}</TableCell>
-                <TableCell>
-                  <Badge variant={statusBadgeVariant(tenant.status)}>
-                    {tenant.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{userCount}</TableCell>
-                <TableCell>
-                  <ChevronRight
-                    size={16}
-                    strokeWidth={2}
-                    aria-hidden
-                    className="pd-admin__row-chevron"
-                  />
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+      <StatCards label="Agency counts" cards={cards} />
 
-      <Modal
+      <div className="pd-clients__toolbar">
+        <SearchField
+          className="pd-clients__search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          onClear={() => setSearch('')}
+          placeholder="Search agencies…"
+        />
+        <Select
+          label="Status"
+          value={statusFilter}
+          options={STATUS_FILTERS}
+          onChange={(event) => setStatusFilter(event.target.value)}
+        />
+        {hasFilters ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearch('')
+              setStatusFilter('all')
+            }}
+          >
+            Clear
+          </Button>
+        ) : null}
+      </div>
+
+      {tenants.length === 0 ? (
+        <EmptyState
+          icon={Building2}
+          title="No agencies yet"
+          description="Add the first agency and its owner login to get started."
+          action={
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus size={16} aria-hidden />
+              Add agency
+            </Button>
+          }
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Building2}
+          title="No matching agencies"
+          description="Try a different search or clear filters."
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('')
+                setStatusFilter('all')
+              }}
+            >
+              Clear filters
+            </Button>
+          }
+        />
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Agency</TableHead>
+              <TableHead>Slug</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Users</TableHead>
+              <TableHead aria-label="Open" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((tenant) => {
+              const userCount = members.filter(
+                (member) => member.tenantId === tenant.id,
+              ).length
+              const href = adminAgencyPath(tenant.id)
+              return (
+                <TableRow
+                  key={tenant.id}
+                  className="pd-admin__row"
+                  onClick={() => navigate(href)}
+                >
+                  <TableCell>
+                    <span className="pd-admin__user">
+                      <Avatar name={tenant.name} size="sm" kind="business" />
+                      <Link
+                        className="pd-admin__business-name"
+                        to={href}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        {tenant.name}
+                      </Link>
+                    </span>
+                  </TableCell>
+                  <TableCell className="pd-table__code">{tenant.slug}</TableCell>
+                  <TableCell
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
+                    <Select
+                      size="sm"
+                      aria-label={`Status for ${tenant.name}`}
+                      className={tenantStatusToneClass(tenant.status)}
+                      value={tenant.status}
+                      options={TENANT_STATUS_OPTIONS}
+                      onChange={(event) =>
+                        handleStatusChange(tenant, event.target.value)
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>{userCount}</TableCell>
+                  <TableCell>
+                    <ChevronRight
+                      size={16}
+                      strokeWidth={2}
+                      aria-hidden
+                      className="pd-admin__row-chevron"
+                    />
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      )}
+
+      <SideDrawer
         open={createOpen}
         onClose={closeCreate}
         title="Add agency"
-        description="Create the agency and its first owner login. Service lines can be enabled later."
-        actions={
+        description="Create the agency and its first owner login. Product modules can be enabled later."
+        footer={
           <>
             <Button
               variant="secondary"
@@ -267,14 +406,14 @@ export default function TenantsAdminPage() {
             </p>
           ) : null}
         </form>
-      </Modal>
+      </SideDrawer>
 
       <Modal
         open={createdCredentials != null}
         onClose={() => {
           const tenantId = createdCredentials?.tenantId
           setCreatedCredentials(null)
-          if (tenantId) navigate(`/admin/tenants/${tenantId}/users`)
+          if (tenantId) navigate(adminAgencyPath(tenantId, 'people'))
         }}
         title="Agency created"
         description="Share the owner login now. The password will not be shown again."
@@ -283,10 +422,11 @@ export default function TenantsAdminPage() {
             onClick={() => {
               const tenantId = createdCredentials?.tenantId
               setCreatedCredentials(null)
-              if (tenantId) navigate(`/admin/tenants/${tenantId}/users`)
+              if (tenantId) navigate(adminAgencyPath(tenantId, 'overview'))
+              else navigate(ADMIN_AGENCIES)
             }}
           >
-            Open users
+            Open agency
           </Button>
         }
       >

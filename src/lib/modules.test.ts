@@ -37,8 +37,10 @@ describe('module entitlements', () => {
     expect(pathAccess('/sub-agents')).toBe('subAgents')
     expect(pathAccess('/agents')).toBe('subAgents')
     expect(normalizeModuleId('agents')).toBe('subAgents')
+    expect(pathAccess('/admin')).toBe('admin')
+    expect(pathAccess('/admin/agencies')).toBe('admin')
+    expect(pathAccess('/admin/agencies/tenant-leisure/people')).toBe('admin')
     expect(pathAccess('/admin/tenants')).toBe('admin')
-    expect(pathAccess('/admin/tenants/tenant-leisure/users')).toBe('admin')
     expect(pathAccess('/payments')).toBe('finance')
     expect(pathAccess('/finance')).toBe('finance')
   })
@@ -58,10 +60,10 @@ describe('module entitlements', () => {
       isPathAllowed('/sub-agents', leisure.enabledModules, 'agency_user'),
     ).toBe(false)
     expect(
-      isPathAllowed('/admin/tenants', leisure.enabledModules, 'agency_user'),
+      isPathAllowed('/admin/agencies', leisure.enabledModules, 'agency_user'),
     ).toBe(false)
     expect(
-      isPathAllowed('/admin/tenants', leisure.enabledModules, 'platform_admin'),
+      isPathAllowed('/admin/agencies', leisure.enabledModules, 'platform_admin'),
     ).toBe(true)
     expect(
       isPathAllowed('/clients', leisure.enabledModules, 'platform_admin'),
@@ -71,13 +73,20 @@ describe('module entitlements', () => {
     )
   })
 
-  it('limits platform admin nav to tenant management', () => {
+  it('limits platform admin nav to control-plane homes', () => {
     const nav = filterNavItems(
       layoutConfig.navItems,
       [],
       'platform_admin',
     )
-    expect(nav.map((item) => item.path)).toEqual(['/admin/tenants'])
+    expect(nav.map((item) => item.path)).toEqual([
+      '/admin',
+      '/admin/agencies',
+      '/admin/people',
+      '/admin/activity',
+      '/admin/platform',
+      '/help',
+    ])
   })
 
   it('scopes sub-agent paths and nav', () => {
@@ -123,6 +132,7 @@ describe('module entitlements', () => {
     expect(labels).not.toContain('Ticketing')
     expect(labels).not.toContain('HR')
     expect(labels).not.toContain('Sub Agents')
+    expect(labels).not.toContain('Agencies')
     expect(labels).not.toContain('Businesses')
   })
 

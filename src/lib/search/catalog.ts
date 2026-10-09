@@ -63,12 +63,12 @@ function actionItems(user: SearchCatalogUser | null): SearchItem[] {
   if (user?.role === 'platform_admin') {
     return [
       {
-        id: 'action:businesses',
+        id: 'action:agencies',
         kind: 'action',
         scope: 'actions',
-        label: 'Open Businesses',
-        keywords: uniqueKeywords(['tenants', 'admin', 'agencies']),
-        path: '/admin/tenants',
+        label: 'Open Agencies',
+        keywords: uniqueKeywords(['tenants', 'admin', 'agencies', 'businesses']),
+        path: '/admin/agencies',
         icon: Briefcase,
       },
     ]

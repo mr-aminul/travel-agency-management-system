@@ -1,14 +1,22 @@
 import { Fragment, useCallback, useState, useEffect } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { profileNavItem } from '@/config/layout'
+import { ADMIN_AGENCIES } from '@/lib/adminPaths'
 import { APP_VERSION_LABEL } from '@/lib/appVersion'
+import { useTenantById } from '@/lib/tenantsStore'
 import { useAuth } from '@/lib/useAuth'
+import type { BreadcrumbItem } from '@/components/ui'
 import { pageIdentity } from './pageIdentity'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { GlobalSearchProvider } from './GlobalSearchProvider'
 import { useBreakpoint } from './useBreakpoint'
 import type { AppLayoutConfig, NavItem } from './types'
+
+function adminAgencyIdFromPath(pathname: string): string | undefined {
+  const match = pathname.match(/^\/admin\/(?:agencies|tenants)\/([^/]+)/)
+  return match?.[1]
+}
 
 interface AppLayoutProps extends AppLayoutConfig {
   profileSubtext?: string
@@ -52,7 +60,8 @@ export function AppLayout({
     setExitBusy(true)
     try {
       await stopViewAs()
-      navigate('/admin/tenants', { replace: true })
+      const { takeSupportReturnPath } = await import('@/lib/adminPaths')
+      navigate(takeSupportReturnPath('/admin'), { replace: true })
     } finally {
       setExitBusy(false)
     }
@@ -84,6 +93,15 @@ export function AppLayout({
       ? profileNavItem
       : (matchNavItem(pathname, navItems) ?? navItems[0])
 
+  const agencyId = adminAgencyIdFromPath(pathname)
+  const agencyTenant = useTenantById(agencyId ?? '')
+  const topBarBreadcrumbs: BreadcrumbItem[] | undefined = agencyId
+    ? [
+        { label: 'Agencies', href: ADMIN_AGENCIES },
+        { label: agencyTenant?.name ?? 'Agency' },
+      ]
+    : undefined
+
   const isFillPage =
     pathname === '/settings' ||
     pathname.startsWith('/settings/') ||
@@ -94,12 +112,30 @@ export function AppLayout({
       <div
         className={[
           'pd-app-shell',
+          isViewingAs ? 'pd-app-shell--support-mode' : '',
           isMobile ? 'pd-app-shell--mobile' : '',
           isMobile && isMobileOpen ? 'pd-app-shell--mobile-nav-open' : '',
         ]
           .filter(Boolean)
           .join(' ')}
       >
+        {isViewingAs ? (
+          <div className="pd-impersonation-banner" role="status">
+            <span>
+              Support Mode — viewing as{' '}
+              <strong>{user?.name ?? 'user'}</strong>
+              {actor?.name ? ` · signed in as ${actor.name}` : null}
+            </span>
+            <button
+              type="button"
+              className="pd-impersonation-banner__action"
+              disabled={exitBusy}
+              onClick={() => void handleStopViewAs()}
+            >
+              Exit
+            </button>
+          </div>
+        ) : null}
         <div className="pd-app-shell__main">
           <Sidebar
             navItems={navItems}
@@ -110,25 +146,10 @@ export function AppLayout({
           />
           <div className="pd-app-content">
             <div className="pd-app-content-card">
-              {isViewingAs ? (
-                <div className="pd-impersonation-banner" role="status">
-                  <span>
-                    Viewing as <strong>{user?.name ?? 'user'}</strong>
-                    {actor?.name ? ` · signed in as ${actor.name}` : null}
-                  </span>
-                  <button
-                    type="button"
-                    className="pd-impersonation-banner__action"
-                    disabled={exitBusy}
-                    onClick={() => void handleStopViewAs()}
-                  >
-                    Exit
-                  </button>
-                </div>
-              ) : null}
               <TopBar
                 title={currentNavItem?.label ?? 'App'}
                 titleIcon={currentNavItem?.icon}
+                breadcrumbs={topBarBreadcrumbs}
                 userName={userName}
                 profileSubtext={profileSubtext}
                 onSignOut={onSignOut}

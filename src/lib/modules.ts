@@ -216,7 +216,7 @@ export function pathAccess(pathname: string): PathAccess {
 }
 
 export function signedInHomePath(role: UserRole): string {
-  return role === 'platform_admin' ? '/admin/tenants' : '/'
+  return role === 'platform_admin' ? '/admin' : '/'
 }
 
 /** Paths a logged-in sub-agent may open (scoped to their referrals in the UI). */
@@ -263,7 +263,7 @@ export function filterNavItems(
   role: UserRole,
 ): NavItem[] {
   if (role === 'platform_admin') {
-    return items.filter((item) => item.adminOnly)
+    return items.filter((item) => item.adminOnly || item.path === '/help')
   }
 
   if (role === 'sub_agent') {

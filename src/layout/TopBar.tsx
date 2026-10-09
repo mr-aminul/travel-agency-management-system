@@ -1,6 +1,10 @@
 import type { LucideIcon } from 'lucide-react'
 import { Menu } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
+import {
+  Breadcrumbs,
+  type BreadcrumbItem,
+} from '@/components/ui'
 import { TopBarDarkMode } from './TopBarDarkMode'
 import { TopBarSearch } from './TopBarSearch'
 import { ProfileDropdown } from './ProfileDropdown'
@@ -8,6 +12,7 @@ import { ProfileDropdown } from './ProfileDropdown'
 interface TopBarProps {
   title: string
   titleIcon?: LucideIcon
+  breadcrumbs?: BreadcrumbItem[]
   userName?: string
   profileSubtext?: string
   onSignOut?: () => void
@@ -18,6 +23,7 @@ interface TopBarProps {
 export function TopBar({
   title,
   titleIcon: TitleIcon,
+  breadcrumbs,
   userName,
   profileSubtext,
   onSignOut,
@@ -29,14 +35,22 @@ export function TopBar({
 
   const titleBlock = (
     <div className="pd-topbar__title">
-      {TitleIcon && (
+      {TitleIcon ? (
         <TitleIcon
           size={18}
           strokeWidth={1.75}
           className="pd-topbar__title-icon"
+          aria-hidden
         />
+      ) : null}
+      {breadcrumbs && breadcrumbs.length > 0 ? (
+        <Breadcrumbs
+          className="pd-topbar__breadcrumbs"
+          items={breadcrumbs}
+        />
+      ) : (
+        <span className="pd-topbar__title-text">{title}</span>
       )}
-      <span className="pd-topbar__title-text">{title}</span>
     </div>
   )
 

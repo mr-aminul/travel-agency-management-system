@@ -1,15 +1,22 @@
+import { useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { countCasesForTenant, latestCaseActivityForTenant } from '@/lib/casesStore'
-import { countClientsForTenant } from '@/lib/clientsStore'
-import { formatDisplayDate } from '@/lib/formatDate'
 import {
-  countPaymentsForTenant,
-  latestPaymentActivityForTenant,
-} from '@/lib/paymentsStore'
+  Boxes,
+  Building2,
+  CircleDot,
+  NotebookPen,
+  type LucideIcon,
+} from 'lucide-react'
+import { ADMIN_AGENCIES, adminAgencyPath } from '@/lib/adminPaths'
+import { iconForModule, labelForModule } from '@/lib/moduleIcons'
 import { useTenantMembersByTenantId } from '@/lib/tenantMembersStore'
-import { setTenantStatus, useTenantById } from '@/lib/tenantsStore'
+import {
+  setTenantStatus,
+  updateTenantName,
+  useTenantById,
+} from '@/lib/tenantsStore'
 import type { TenantStatus } from '@/types/tenant'
-import { MetricTile, Select } from '@/components/ui'
+import { Button, Input, Select } from '@/components/ui'
 
 const STATUS_OPTIONS: { value: TenantStatus; label: string }[] = [
   { value: 'trial', label: 'Trial' },
@@ -17,93 +24,160 @@ const STATUS_OPTIONS: { value: TenantStatus; label: string }[] = [
   { value: 'suspended', label: 'Suspended' },
 ]
 
-function latestActivity(tenantId: string): string | undefined {
-  const caseStamp = latestCaseActivityForTenant(tenantId)
-  const paymentStamp = latestPaymentActivityForTenant(tenantId)
-  if (caseStamp && paymentStamp) {
-    return caseStamp > paymentStamp ? caseStamp : paymentStamp
-  }
-  return caseStamp ?? paymentStamp
+function SectionTitle({
+  icon: Icon,
+  children,
+}: {
+  icon: LucideIcon
+  children: ReactNode
+}) {
+  return (
+    <h2 className="pd-client-detail__section-title">
+      <span className="pd-client-detail__section-icon" aria-hidden>
+        <Icon size={15} strokeWidth={2.25} />
+      </span>
+      {children}
+    </h2>
+  )
+}
+
+function FieldLabel({
+  icon: Icon,
+  children,
+}: {
+  icon: LucideIcon
+  children: ReactNode
+}) {
+  return (
+    <dt>
+      <span className="pd-client-detail__field-icon" aria-hidden>
+        <Icon size={13} strokeWidth={2.25} />
+      </span>
+      {children}
+    </dt>
+  )
 }
 
 export default function TenantOverviewPage() {
   const { tenantId = '' } = useParams()
   const tenant = useTenantById(tenantId)
   const members = useTenantMembersByTenantId(tenantId)
+  const [nameDraft, setNameDraft] = useState<string | null>(null)
+  const [nameError, setNameError] = useState<string | undefined>()
+  const [billingNotes, setBillingNotes] = useState('')
 
   if (!tenant) {
-    return <Navigate to="/admin/tenants" replace />
+    return <Navigate to={ADMIN_AGENCIES} replace />
   }
 
-  const activeUsers = members.filter((member) => member.status === 'active').length
-  const clientCount = countClientsForTenant(tenant.id)
-  const caseCount = countCasesForTenant(tenant.id)
-  const paymentCount = countPaymentsForTenant(tenant.id)
-  const activity = latestActivity(tenant.id)
-  const moduleLabels = tenant.enabledModules
-    .map((id) => id.replace(/^services\./, ''))
-    .slice(0, 8)
+  const displayName = nameDraft ?? tenant.name
+  const owner =
+    members.find((m) => m.role === 'owner' && m.status === 'active') ??
+    members.find((m) => m.role === 'manager' && m.status === 'active') ??
+    members.find((m) => m.status === 'active')
+
+  const handleRename = () => {
+    setNameError(undefined)
+    try {
+      updateTenantName(tenant.id, displayName)
+      setNameDraft(null)
+    } catch (error) {
+      setNameError(
+        error instanceof Error ? error.message : 'Could not rename agency.',
+      )
+    }
+  }
 
   return (
-    <section className="pd-admin__overview" aria-label="Overview">
-      <div className="pd-admin__metrics">
-        <Link
-          className="pd-admin__metric-link"
-          to={`/admin/tenants/${tenant.id}/users`}
-        >
-          <MetricTile
-            label="Users"
-            value={members.length}
-            hint={`${activeUsers} active`}
-          />
-        </Link>
-        <MetricTile
-          label="Clients"
-          value={clientCount}
-          hint={`${caseCount} services · ${paymentCount} payments`}
-        />
-        <Link
-          className="pd-admin__metric-link"
-          to={`/admin/tenants/${tenant.id}/modules`}
-        >
-          <MetricTile
-            label="Modules"
-            value={tenant.enabledModules.length}
-            hint="Service lines & workspaces"
-          />
-        </Link>
-        <MetricTile
-          label="Status"
-          value={tenant.status === 'active' ? 'Active' : tenant.status}
-          hint={
-            activity
-              ? `Last activity ${formatDisplayDate(activity)}`
-              : tenant.slug
-          }
-        />
-      </div>
+    <div className="pd-client-detail__overview" aria-label="Overview">
+      <section className="pd-client-detail__section pd-client-detail__section--compact">
+        <div className="pd-client-detail__section-head">
+          <SectionTitle icon={Building2}>Agency</SectionTitle>
+        </div>
+        <dl className="pd-client-detail__fields">
+          <div className="pd-client-detail__field">
+            <FieldLabel icon={CircleDot}>Status</FieldLabel>
+            <dd>
+              <Select
+                aria-label="Status"
+                value={tenant.status}
+                options={STATUS_OPTIONS}
+                onChange={(event) => {
+                  const next = event.target.value as TenantStatus
+                  setTenantStatus(tenant.id, next)
+                }}
+              />
+            </dd>
+          </div>
+          <div className="pd-client-detail__field">
+            <FieldLabel icon={Building2}>Name</FieldLabel>
+            <dd>
+              <Input
+                aria-label="Name"
+                value={displayName}
+                onChange={(event) => setNameDraft(event.target.value)}
+                error={nameError}
+              />
+              {nameDraft != null && nameDraft.trim() !== tenant.name ? (
+                <div className="pd-admin__row-actions">
+                  <Button size="sm" onClick={handleRename}>
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setNameDraft(null)
+                      setNameError(undefined)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : null}
+            </dd>
+          </div>
+          <div className="pd-client-detail__field">
+            <FieldLabel icon={NotebookPen}>Billing notes</FieldLabel>
+            <dd>
+              <Input
+                aria-label="Billing notes"
+                value={billingNotes}
+                onChange={(event) => setBillingNotes(event.target.value)}
+                placeholder="Trial end · plan"
+              />
+            </dd>
+          </div>
+        </dl>
+        {!owner ? (
+          <p className="pd-admin__quiet">
+            No active user for Support Mode.{' '}
+            <Link to={adminAgencyPath(tenant.id, 'people')}>Add people</Link>.
+          </p>
+        ) : null}
+      </section>
 
-      {moduleLabels.length > 0 ? (
-        <p className="pd-ops__meta" aria-label="Enabled modules">
-          Modules · {moduleLabels.join(' · ')}
-          {tenant.enabledModules.length > moduleLabels.length
-            ? ` · +${tenant.enabledModules.length - moduleLabels.length} more`
-            : ''}
-        </p>
+      {tenant.enabledModules.length > 0 ? (
+        <section className="pd-client-detail__section pd-client-detail__section--compact">
+          <div className="pd-client-detail__section-head">
+            <SectionTitle icon={Boxes}>Modules</SectionTitle>
+          </div>
+          <ul className="pd-admin__chip-list" aria-label="Enabled modules">
+            {tenant.enabledModules.map((moduleId) => {
+              const Icon = iconForModule(moduleId)
+              const label = labelForModule(moduleId)
+              return (
+                <li key={moduleId}>
+                  <span className="pd-admin__module-chip" title={label}>
+                    <Icon size={14} strokeWidth={2.1} aria-hidden />
+                    <span>{label}</span>
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
       ) : null}
-
-      <div className="pd-admin__status-control">
-        <Select
-          label="Agency status"
-          value={tenant.status}
-          options={STATUS_OPTIONS}
-          onChange={(event) => {
-            const next = event.target.value as TenantStatus
-            setTenantStatus(tenant.id, next)
-          }}
-          hint="Suspended agencies cannot sign in."
-        />
-      </div>
-    </section>
+    </div>
   )
 }

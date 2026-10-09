@@ -98,7 +98,7 @@ export default function HomePage() {
     agencyProfileIsIncomplete(agencyProfile) && !profileNudgeDismissed
 
   if (user?.role === 'platform_admin') {
-    return <Navigate to="/admin/tenants" replace />
+    return <Navigate to="/admin" replace />
   }
 
   const links = QUICK_LINKS.filter((item) =>

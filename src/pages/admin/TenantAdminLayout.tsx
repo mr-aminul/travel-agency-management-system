@@ -1,15 +1,53 @@
-import { NavLink, Navigate, Outlet, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import {
+  NavLink,
+  Navigate,
+  Outlet,
+  useNavigate,
+  useParams,
+} from 'react-router-dom'
+import {
+  Boxes,
+  Calendar,
+  CircleDot,
+  ExternalLink,
+  LayoutDashboard,
+  ScrollText,
+  Users,
+  UsersRound,
+} from 'lucide-react'
 import { useAuth } from '@/lib/auth'
+import {
+  ADMIN_AGENCIES,
+  adminAgencyPath,
+  setSupportReturnPath,
+} from '@/lib/adminPaths'
+import { countCasesForTenant, latestCaseActivityForTenant } from '@/lib/casesStore'
+import { countClientsForTenant } from '@/lib/clientsStore'
+import { formatDisplayDate } from '@/lib/formatDate'
+import {
+  countPaymentsForTenant,
+  latestPaymentActivityForTenant,
+} from '@/lib/paymentsStore'
+import { useTenantMembersByTenantId } from '@/lib/tenantMembersStore'
 import { useTenantById } from '@/lib/tenantsStore'
 import { cx } from '@/lib/cx'
 import type { TenantStatus } from '@/types/tenant'
 import '@/styles/layout-admin.css'
-import { Badge, Breadcrumbs, PageHeader, type BadgeVariant } from '@/components/ui'
+import '@/styles/layout-clients.css'
+import {
+  Avatar,
+  Badge,
+  Button,
+  CopyableText,
+  type BadgeVariant,
+} from '@/components/ui'
 
 const SECTIONS = [
-  { to: 'overview', label: 'Overview' },
-  { to: 'users', label: 'Users' },
-  { to: 'modules', label: 'Modules' },
+  { to: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { to: 'people', label: 'People', icon: Users },
+  { to: 'product', label: 'Product', icon: Boxes },
+  { to: 'activity', label: 'Activity', icon: ScrollText },
 ] as const
 
 function statusBadgeVariant(status: TenantStatus): BadgeVariant {
@@ -18,50 +56,213 @@ function statusBadgeVariant(status: TenantStatus): BadgeVariant {
   return 'danger'
 }
 
+function statusLabel(status: TenantStatus): string {
+  if (status === 'active') return 'Active'
+  if (status === 'suspended') return 'Suspended'
+  return 'Trial'
+}
+
+function latestActivity(tenantId: string): string | undefined {
+  const caseStamp = latestCaseActivityForTenant(tenantId)
+  const paymentStamp = latestPaymentActivityForTenant(tenantId)
+  if (caseStamp && paymentStamp) {
+    return caseStamp > paymentStamp ? caseStamp : paymentStamp
+  }
+  return caseStamp ?? paymentStamp
+}
+
 export default function TenantAdminLayout() {
-  const { user } = useAuth()
+  const { user, startViewAs } = useAuth()
+  const navigate = useNavigate()
   const { tenantId } = useParams()
   const tenant = useTenantById(tenantId ?? '')
+  const members = useTenantMembersByTenantId(tenantId ?? '')
+  const [supportBusy, setSupportBusy] = useState(false)
+  const [supportError, setSupportError] = useState<string | undefined>()
 
   if (user?.role !== 'platform_admin') {
     return null
   }
 
   if (!tenant) {
-    return <Navigate to="/admin/tenants" replace />
+    return <Navigate to={ADMIN_AGENCIES} replace />
+  }
+
+  const activeUsers = members.filter((member) => member.status === 'active').length
+  const clientCount = countClientsForTenant(tenant.id)
+  const caseCount = countCasesForTenant(tenant.id)
+  const paymentCount = countPaymentsForTenant(tenant.id)
+  const activity = latestActivity(tenant.id)
+  const owner =
+    members.find((m) => m.role === 'owner' && m.status === 'active') ??
+    members.find((m) => m.role === 'manager' && m.status === 'active') ??
+    members.find((m) => m.status === 'active')
+
+  const handleOpenAgency = async () => {
+    if (!owner) {
+      setSupportError('Add an active owner before opening Support Mode.')
+      return
+    }
+    setSupportError(undefined)
+    setSupportBusy(true)
+    try {
+      setSupportReturnPath(adminAgencyPath(tenant.id, 'overview'))
+      await startViewAs({
+        userId: owner.id,
+        email: owner.email,
+        name: owner.name,
+        role: 'agency_user',
+        tenantId: tenant.id,
+      })
+      navigate('/', { replace: true })
+    } catch (error) {
+      setSupportError(
+        error instanceof Error
+          ? error.message
+          : 'Could not start Support Mode.',
+      )
+    } finally {
+      setSupportBusy(false)
+    }
   }
 
   return (
-    <div className="pd-page pd-admin" aria-label={tenant.name}>
-      <Breadcrumbs
-        items={[
-          { label: 'Businesses', href: '/admin/tenants' },
-          { label: tenant.name },
-        ]}
-      />
-      <PageHeader
-        title={tenant.name}
-        description={tenant.slug}
-        actions={
-          <Badge variant={statusBadgeVariant(tenant.status)}>
-            {tenant.status}
-          </Badge>
-        }
-      />
-      <nav className="pd-admin__subnav" aria-label="Business sections">
-        {SECTIONS.map((section) => (
-          <NavLink
-            key={section.to}
-            to={`/admin/tenants/${tenant.id}/${section.to}`}
-            className={({ isActive }) =>
-              cx('pd-admin__subnav-link', isActive && 'is-active')
-            }
+    <div
+      className="pd-page pd-client-detail pd-admin pd-admin--tenant"
+      aria-label={tenant.name}
+    >
+      <div className="pd-client-detail__layout">
+        <aside className="pd-client-detail__card" aria-label="Agency profile">
+          <div className="pd-client-detail__card-identity">
+            <Avatar name={tenant.name} size="xl" kind="business" />
+            <div className="pd-client-detail__title-row">
+              <h1 className="pd-client-detail__name">{tenant.name}</h1>
+            </div>
+          </div>
+
+          <div className="pd-client-detail__card-actions">
+            <Button
+              size="sm"
+              onClick={() => void handleOpenAgency()}
+              disabled={supportBusy || !owner}
+            >
+              <ExternalLink size={14} strokeWidth={2.25} aria-hidden />
+              {supportBusy ? 'Opening…' : 'Open agency'}
+            </Button>
+            {supportError ? (
+              <p className="pd-field__error" role="alert">
+                {supportError}
+              </p>
+            ) : null}
+          </div>
+
+          <dl className="pd-client-detail__card-fields">
+            <div className="pd-client-detail__card-field">
+              <dt>Status</dt>
+              <dd>
+                <Badge variant={statusBadgeVariant(tenant.status)}>
+                  {statusLabel(tenant.status)}
+                </Badge>
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Slug</dt>
+              <dd>
+                <CopyableText value={tenant.slug} label="slug" />
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Support</dt>
+              <dd>
+                {owner ? (
+                  owner.name
+                ) : (
+                  <span className="pd-client-detail__empty">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="pd-client-detail__card-field">
+              <dt>Clients</dt>
+              <dd>
+                {clientCount} · {caseCount} svc · {paymentCount} pay
+              </dd>
+            </div>
+          </dl>
+
+          <div className="pd-client-detail__card-snapshot" aria-label="Snapshot">
+            <NavLink
+              className="pd-client-detail__card-snap"
+              to={adminAgencyPath(tenant.id, 'people')}
+            >
+              <span className="pd-client-detail__card-snap-label">
+                <Users size={12} strokeWidth={2.25} aria-hidden /> Users
+              </span>
+              <span className="pd-client-detail__card-snap-value">
+                {members.length}
+                {activeUsers !== members.length ? ` · ${activeUsers}` : ''}
+              </span>
+            </NavLink>
+            <div className="pd-client-detail__card-snap" role="group">
+              <span className="pd-client-detail__card-snap-label">
+                <UsersRound size={12} strokeWidth={2.25} aria-hidden /> Clients
+              </span>
+              <span className="pd-client-detail__card-snap-value">
+                {clientCount}
+              </span>
+            </div>
+            <NavLink
+              className="pd-client-detail__card-snap"
+              to={adminAgencyPath(tenant.id, 'product')}
+            >
+              <span className="pd-client-detail__card-snap-label">
+                <Boxes size={12} strokeWidth={2.25} aria-hidden /> Modules
+              </span>
+              <span className="pd-client-detail__card-snap-value">
+                {tenant.enabledModules.length}
+              </span>
+            </NavLink>
+            <div className="pd-client-detail__card-snap" role="group">
+              <span className="pd-client-detail__card-snap-label">
+                <CircleDot size={12} strokeWidth={2.25} aria-hidden /> Status
+              </span>
+              <span className="pd-client-detail__card-snap-value">
+                {statusLabel(tenant.status)}
+              </span>
+            </div>
+          </div>
+
+          <p className="pd-client-detail__card-footer">
+            <Calendar size={12} strokeWidth={2.25} aria-hidden />
+            {activity
+              ? `Last activity ${formatDisplayDate(activity)}`
+              : 'No activity yet'}
+          </p>
+        </aside>
+
+        <div className="pd-client-detail__main">
+          <nav
+            className="pd-tabs__list pd-admin__detail-tabs"
+            aria-label="Agency sections"
           >
-            {section.label}
-          </NavLink>
-        ))}
-      </nav>
-      <Outlet />
+            {SECTIONS.map((section) => {
+              const Icon = section.icon
+              return (
+                <NavLink
+                  key={section.to}
+                  to={adminAgencyPath(tenant.id, section.to)}
+                  className={({ isActive }) =>
+                    cx('pd-tabs__tab', isActive && 'is-selected')
+                  }
+                >
+                  <Icon size={15} strokeWidth={2.25} aria-hidden />
+                  {section.label}
+                </NavLink>
+              )
+            })}
+          </nav>
+          <Outlet />
+        </div>
+      </div>
     </div>
   )
 }

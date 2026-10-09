@@ -73,7 +73,7 @@ export function listWorkspacesForUser(
         id: 'platform_admin',
         kind: 'platform_admin',
         title: 'Admin portal',
-        description: 'Manage agencies, users, and platform settings.',
+        description: 'Agencies, people, activity, and platform controls.',
       },
     ]
   }
@@ -255,6 +255,6 @@ export function withResolvedWorkspaces(
 
 export function postLoginPath(session: AuthSession): string {
   if (session.workspacePending) return '/choose-workspace'
-  if (session.user.role === 'platform_admin') return '/admin/tenants'
+  if (session.user.role === 'platform_admin') return '/admin'
   return '/'
 }

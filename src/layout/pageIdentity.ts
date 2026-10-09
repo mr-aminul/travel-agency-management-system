@@ -11,7 +11,7 @@ export function pageIdentity(pathname: string): string {
   if (clientService) return clientService[1]
 
   // Tenant admin shell owns tabs via nested Outlet.
-  const tenantAdmin = pathname.match(/^(\/admin\/tenants\/[^/]+)/)
+  const tenantAdmin = pathname.match(/^(\/admin\/(?:agencies|tenants)\/[^/]+)/)
   if (tenantAdmin) return tenantAdmin[1]
 
   return pathname

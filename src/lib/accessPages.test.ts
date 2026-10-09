@@ -57,6 +57,7 @@ describe('buildAccessPageColumns', () => {
     expect(labels).toContain('HR - Payroll')
     expect(labels).not.toContain('HR')
     expect(labels).not.toContain('Businesses')
+    expect(labels).not.toContain('Agencies')
     expect(columns.some((column) => column.path.startsWith('/admin'))).toBe(
       false,
     )

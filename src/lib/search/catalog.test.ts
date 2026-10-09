@@ -75,7 +75,7 @@ describe('buildSearchCatalog', () => {
     })
 
     expect(items.some((item) => item.id === 'client:c-284')).toBe(false)
-    expect(items.some((item) => item.id === 'action:businesses')).toBe(true)
-    expect(items.some((item) => item.id === 'page:/admin/tenants')).toBe(true)
+    expect(items.some((item) => item.id === 'action:agencies')).toBe(true)
+    expect(items.some((item) => item.id === 'page:/admin/agencies')).toBe(true)
   })
 })
