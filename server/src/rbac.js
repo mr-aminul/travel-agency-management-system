@@ -17,16 +17,74 @@ export function isElevatedMemberRole(role) {
   return role === 'owner' || role === 'manager'
 }
 
+async function loadMemberRoleFromKv(userId, email, tenantId) {
+  const result = await query(
+    `select value from platform.kv_store where key = 'pd-tenant-members-created'`,
+  )
+  const members = Array.isArray(result.rows[0]?.value)
+    ? result.rows[0].value
+    : []
+  const normalizedEmail = String(email ?? '')
+    .trim()
+    .toLowerCase()
+  const match = members.find((member) => {
+    if (!member || typeof member !== 'object') return false
+    if (tenantId && member.tenantId && member.tenantId !== tenantId) {
+      return false
+    }
+    if (member.status === 'disabled') return false
+    if (userId && member.id === userId) return true
+    if (
+      normalizedEmail &&
+      typeof member.email === 'string' &&
+      member.email.trim().toLowerCase() === normalizedEmail
+    ) {
+      return true
+    }
+    return false
+  })
+  if (!match) return null
+  if (
+    match.role === 'owner' ||
+    match.role === 'manager' ||
+    match.role === 'staff'
+  ) {
+    return match.role
+  }
+  return null
+}
+
 export async function loadMemberRole(userId, tenantId) {
   const result = await query(
-    `select member_role, role, tenant_id from platform.users where id = $1 limit 1`,
+    `select member_role, role, tenant_id, email
+     from platform.users where id = $1 limit 1`,
     [userId],
   )
   const row = result.rows[0]
   if (!row) return null
   if (row.role === 'platform_admin') return 'platform_admin'
   if (tenantId && row.tenant_id && row.tenant_id !== tenantId) return null
-  return row.member_role || 'staff'
+
+  if (
+    row.member_role === 'owner' ||
+    row.member_role === 'manager' ||
+    row.member_role === 'staff'
+  ) {
+    return row.member_role
+  }
+
+  // SPA roster is often ahead of users.member_role (older owners defaulted to staff).
+  const fromKv = await loadMemberRoleFromKv(
+    userId,
+    row.email,
+    tenantId || row.tenant_id,
+  )
+  if (fromKv) {
+    await setUserMemberRole(userId, fromKv).catch(() => {})
+    return fromKv
+  }
+
+  return 'staff'
 }
 
 export async function setUserMemberRole(userId, memberRole) {
