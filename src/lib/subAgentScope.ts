@@ -19,7 +19,7 @@ export function endApplyingApprovedChange() {
   applyingApprovedChange = false
 }
 
-/** CRM sub-agent id for the signed-in partner, if any. */
+/** CRM sub-agent id for the signed-in sub agent, if any. */
 export function getSessionSubAgentId(): string | undefined {
   const session = readSession()
   if (!session || session.user.role !== 'sub_agent') return undefined

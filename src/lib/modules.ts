@@ -148,6 +148,7 @@ const LEGACY_MODULE_ID: Record<string, ModuleId> = {
   'cases.leisure': 'services.tourPackage',
   'cases.ticketing': 'services.airTicket',
   agents: 'subAgents',
+  /** Legacy module id from before the sub-agent rename. */
   partners: 'subAgents',
 }
 
@@ -189,6 +190,7 @@ export function pathAccess(pathname: string): PathAccess {
   if (
     path === '/sub-agents' ||
     path.startsWith('/sub-agents/') ||
+    // Legacy paths from before the sub-agent rename
     path === '/partners' ||
     path.startsWith('/partners/') ||
     path === '/agents' ||

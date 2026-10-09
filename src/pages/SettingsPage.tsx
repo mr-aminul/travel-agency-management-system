@@ -101,7 +101,7 @@ const SETTINGS_SECTIONS: {
     {
       id: 'subAgentAccess',
       label: 'Sub-agent access',
-      info: 'Require approval for partner edits, and choose which agency users can approve. Manage each partner’s login from their Sub Agent profile.',
+      info: 'Require approval for sub-agent edits, and choose which agency users can approve. Manage each sub agent’s login from their Sub Agent profile.',
       icon: Handshake,
     },
     {

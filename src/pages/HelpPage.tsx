@@ -130,9 +130,9 @@ const GUIDES: Guide[] = [
     ],
   },
   {
-    id: 'partners',
+    id: 'sub-agents',
     title: 'Sub agents & intake',
-    body: 'Track referring agencies and commissions. Give partners a login (invite or set password) so they can manage their referrals; public join links still work without signing in. Approvals appear when Settings → Sub-agent access requires review.',
+    body: 'Track referring agencies and commissions. Give sub agents a login (invite or set password) so they can manage their referrals; public join links still work without signing in. Approvals appear when Settings → Sub-agent access requires review.',
     icon: Handshake,
     links: [
       { label: 'Sub Agents', to: '/sub-agents' },
@@ -215,7 +215,7 @@ const MAP_TILES: MapTile[] = [
   {
     path: '/sub-agents',
     label: 'Sub Agents',
-    description: 'Referring partners',
+    description: 'Referring sub agents',
     icon: Handshake,
   },
   {

@@ -121,7 +121,7 @@ export default function AuthenticatedLayout() {
       name: resolved.name,
       subtitle:
         user?.role === 'sub_agent'
-          ? 'Partner portal'
+          ? 'Sub agent portal'
           : resolved.subtitle,
       logoUrl: resolved.logoUrl,
       isCustomLogo: resolved.isCustomLogo,

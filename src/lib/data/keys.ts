@@ -8,7 +8,7 @@ export const DATA_KEYS = {
   clientsTrash: 'pd-clients-trash',
   clientsRemoved: 'pd-clients-removed',
   subAgentsCreated: 'pd-sub-agents-created',
-  /** Pre–Sub Agent rename. */
+  /** Legacy storage key (pre–sub-agent rename). Do not use in new code. */
   subAgentsCreatedLegacy: 'pd-partners-created',
   casesCreated: 'pd-cases-created',
   paymentsCreated: 'pd-payments-created',

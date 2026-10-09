@@ -47,7 +47,7 @@ export function SubAgentAccessSection() {
       <header className="pd-settings-panel__header">
         <h2 id="sub-agent-access-heading">Sub-agent access</h2>
         <p>
-          Control whether changes made by logged-in partners need agency
+          Control whether changes made by logged-in sub agents need agency
           approval before they go live.
         </p>
       </header>
@@ -59,7 +59,7 @@ export function SubAgentAccessSection() {
           label="Require approval for sub-agent edits"
         />
         <p className="pd-field-hint">
-          When on, new clients and service updates from partners stay pending
+          When on, new clients and service updates from sub agents stay pending
           until an approver accepts them.
         </p>
 
@@ -69,7 +69,7 @@ export function SubAgentAccessSection() {
           hint={
             approverMemberIds.length === 0
               ? 'Leave empty to let owners and managers approve.'
-              : 'Only selected agency users can approve pending partner changes.'
+              : 'Only selected agency users can approve pending sub-agent changes.'
           }
           value={approverMemberIds}
           onChange={(event) => setApproverMemberIds(event.target.value)}

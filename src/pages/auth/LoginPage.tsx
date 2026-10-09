@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff } from 'lucide-react'
+import { Building2, Eye, EyeOff, Handshake } from 'lucide-react'
 import { layoutConfig } from '@/config/layout'
 import { useAuth } from '@/lib/auth'
 import {
@@ -94,8 +94,16 @@ export default function LoginPage() {
               value={loginAs}
               onChange={(value) => setLoginAs(value as LoginIntent)}
               options={[
-                { value: 'agency', label: 'Agency login' },
-                { value: 'sub_agent', label: 'Sub agent login' },
+                {
+                  value: 'agency',
+                  label: 'Agency',
+                  icon: <Building2 size={13} strokeWidth={2} />,
+                },
+                {
+                  value: 'sub_agent',
+                  label: 'Sub agent',
+                  icon: <Handshake size={13} strokeWidth={2} />,
+                },
               ]}
             />
             <Input

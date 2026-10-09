@@ -358,7 +358,9 @@ function normalizeStoredClient(value: unknown): Client | undefined {
     nidFile: optionalFileRef(value.nidFile),
     avatarUrl: optionalString(value.avatarUrl),
     subAgentId:
-      optionalString(value.subAgentId) ?? optionalString(value.partnerId),
+      optionalString(value.subAgentId) ??
+      // Legacy field name from before the sub-agent rename.
+      optionalString(value.partnerId),
     services: services.length ? services : ['Tour Package'],
     balance: typeof value.balance === 'number' ? value.balance : 0,
     activeCases: typeof value.activeCases === 'number' ? value.activeCases : 0,

@@ -96,7 +96,7 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
         setStatus(
           existingLogin
             ? 'Invite created. They already have an agency login — after accepting, they should choose Sub agent login on the sign-in page.'
-            : 'Invite created. Copy the link and send it to the partner.',
+            : 'Invite created. Copy the link and send it to the sub agent.',
         )
       } else {
         const created = await provisionSubAgentUser({
@@ -117,7 +117,7 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
         setPassword('')
         setStatus(
           created.linkedExisting || grantMode === 'link'
-            ? 'Partner access linked. They keep their existing password and sign in with Sub agent login.'
+            ? 'Sub-agent access linked. They keep their existing password and sign in with Sub agent login.'
             : 'Login created. They can sign in with Sub agent login using this email and password.',
         )
       }
@@ -160,11 +160,11 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
   return (
     <section className="pd-settings-block" aria-labelledby="sub-agent-login-heading">
       <header className="pd-settings-block__header">
-        <h2 id="sub-agent-login-heading">Partner login</h2>
+        <h2 id="sub-agent-login-heading">Sub agent login</h2>
         <p>
-          Partners sign in with <strong>Sub agent login</strong> on the sign-in
-          page. If this email already runs an agency, we link partner access —
-          we do not overwrite their agency password.
+          Sub agents sign in with <strong>Sub agent login</strong> on the
+          sign-in page. If this email already runs an agency, we link sub-agent
+          access — we do not overwrite their agency password.
         </p>
       </header>
 
@@ -234,7 +234,7 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
                   ? 'Resend invite'
                   : 'Create invite'
                 : effectiveMode === 'link'
-                  ? 'Link partner access'
+                  ? 'Link sub-agent access'
                   : login
                     ? 'Reset password'
                     : 'Create login'}

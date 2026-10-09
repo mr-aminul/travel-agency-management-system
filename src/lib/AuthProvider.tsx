@@ -6,14 +6,19 @@ import {
 } from 'react'
 import {
   type AuthSession,
+  isViewingAsSession,
   readSession,
   selectAuthWorkspace,
+  sessionActor,
   signInWithPassword as apiSignInWithPassword,
   signOut as apiSignOut,
+  startViewAsUser,
+  stopViewAsUser,
   writeSession,
 } from '@/lib/authApi'
 import { AuthContext, type AuthContextValue } from '@/lib/authContext'
 import { rehydratePlatformData } from '@/lib/data/rehydrate'
+import { queryClient } from '@/lib/queryClient'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() => readSession())
@@ -42,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const requestWorkspacePicker = useCallback(() => {
     void (async () => {
       const current = readSession()
-      if (!current) return
+      if (!current || isViewingAsSession(current)) return
       const { listWorkspacesForUser } = await import('@/lib/authWorkspaces')
       const workspaces =
         current.workspaces && current.workspaces.length > 0
@@ -59,6 +64,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })()
   }, [])
 
+  const startViewAs = useCallback(
+    async (input: Parameters<typeof startViewAsUser>[0]) => {
+      const next = await startViewAsUser(input)
+      setSession(next)
+      queryClient.clear()
+      await rehydratePlatformData()
+      return next
+    },
+    [],
+  )
+
+  const stopViewAs = useCallback(async () => {
+    const next = await stopViewAsUser()
+    setSession(next)
+    queryClient.clear()
+    await rehydratePlatformData()
+    return next
+  }, [])
+
   const signOut = useCallback(async () => {
     await apiSignOut()
     setSession(null)
@@ -68,10 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       status: session ? 'authenticated' : 'anonymous',
       user: session?.user ?? null,
+      actor: sessionActor(session),
+      isViewingAs: isViewingAsSession(session),
       session,
       signInWithPassword,
       selectWorkspace,
       requestWorkspacePicker,
+      startViewAs,
+      stopViewAs,
       signOut,
     }),
     [
@@ -79,6 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithPassword,
       selectWorkspace,
       requestWorkspacePicker,
+      startViewAs,
+      stopViewAs,
       signOut,
     ],
   )

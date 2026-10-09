@@ -5,7 +5,11 @@ export type AuthStatus = 'authenticated' | 'anonymous'
 
 export type AuthContextValue = {
   status: AuthStatus
+  /** Effective user — the View-as target while impersonating. */
   user: AuthUser | null
+  /** Real signed-in user (platform admin when viewing as someone else). */
+  actor: AuthUser | null
+  isViewingAs: boolean
   session: AuthSession | null
   signInWithPassword: (
     email: string,
@@ -15,6 +19,15 @@ export type AuthContextValue = {
   selectWorkspace: (workspaceId: string) => Promise<AuthSession>
   /** Re-open the workspace picker without signing out. */
   requestWorkspacePicker: () => void
+  startViewAs: (input: {
+    userId: string
+    email?: string
+    name?: string
+    role?: AuthUser['role']
+    tenantId: string
+    subAgentId?: string
+  }) => Promise<AuthSession>
+  stopViewAs: () => Promise<AuthSession>
   signOut: () => Promise<void>
 }
 

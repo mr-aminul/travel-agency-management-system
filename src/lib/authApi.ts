@@ -58,11 +58,16 @@ export type AuthSession = {
    * Prefer HttpOnly cookies in production; this field is for SPA token flows.
    */
   accessToken?: string
-  /** True when the user must pick agency vs partner portal. */
+  /** True when the user must pick agency vs sub-agent portal. */
   workspacePending?: boolean
   /** Workspaces available for this login (agency and/or sub-agent). */
   workspaces?: AuthWorkspace[]
   activeWorkspaceId?: string
+  /**
+   * Real signed-in platform admin while `user` is a View-as target.
+   * Present only during platform-admin impersonation.
+   */
+  actor?: AuthUser
 }
 
 function readRawSession(): string | null {
@@ -117,6 +122,7 @@ function coerceSession(value: unknown): AuthSession | null {
     parsed.accessToken === undefined || typeof parsed.accessToken === 'string'
       ? parsed.accessToken
       : undefined
+  const actor = coerceUser(parsed.actor)
   return {
     user,
     tenantId,
@@ -130,7 +136,18 @@ function coerceSession(value: unknown): AuthSession | null {
       typeof parsed.activeWorkspaceId === 'string'
         ? parsed.activeWorkspaceId
         : undefined,
+    ...(actor && actor.id !== user.id ? { actor } : {}),
   }
+}
+
+/** Real signed-in identity (admin) even while viewing as another user. */
+export function sessionActor(session: AuthSession | null): AuthUser | null {
+  if (!session) return null
+  return session.actor ?? session.user
+}
+
+export function isViewingAsSession(session: AuthSession | null): boolean {
+  return Boolean(session?.actor)
 }
 
 function migrateLegacySession(): AuthSession | null {
@@ -457,8 +474,8 @@ export async function provisionSubAgentUser(
   const existing =
     findProvisionedAccountByEmail(email) ?? findSeededAccountByEmail(email)
   if (existing) {
-    // Same email already has a login — attach partner access; keep their password.
-    // Do not overwrite the agency password from the partner form.
+    // Same email already has a login — attach sub-agent access; keep their password.
+    // Do not overwrite the agency password from the sub-agent form.
     return {
       id: existing.user.id,
       email: existing.user.email,
@@ -516,13 +533,13 @@ async function assertSessionAllowed(session: AuthSession): Promise<void> {
     const subAgentId = session.user.subAgentId
     if (!subAgentId) {
       clearSession()
-      throw new Error('This partner login is incomplete. Contact your agency.')
+      throw new Error('This sub-agent login is incomplete. Contact your agency.')
     }
     const subAgent = findSubAgentById(subAgentId)
     if (!subAgent || subAgent.status === 'Inactive') {
       clearSession()
       throw new Error(
-        'This partner account is inactive. Contact your agency.',
+        'This sub-agent account is inactive. Contact your agency.',
       )
     }
     const link = getSubAgentLogin(subAgentId, session.tenantId)
@@ -611,6 +628,9 @@ export async function selectAuthWorkspace(
   if (!current) {
     throw new Error('Sign in again to choose a workspace.')
   }
+  if (isViewingAsSession(current)) {
+    throw new Error('Exit View as user before switching workspace.')
+  }
   const { listWorkspacesForUser, applyWorkspaceToSession } = await import(
     '@/lib/authWorkspaces'
   )
@@ -626,6 +646,158 @@ export async function selectAuthWorkspace(
     { ...current, workspaces: resolved },
     workspace,
   )
+  writeSession(next)
+  return next
+}
+
+type ViewAsResponse = {
+  user: AuthUser
+  tenantId: string
+  actor?: AuthUser
+  viewingAs?: boolean
+}
+
+async function applyViewAsResponse(
+  current: AuthSession,
+  body: ViewAsResponse,
+): Promise<AuthSession> {
+  const user = coerceUser(body.user)
+  if (!user) {
+    throw new Error('View as response was incomplete.')
+  }
+  const actor = coerceUser(body.actor) ?? current.actor ?? current.user
+  const { withResolvedWorkspaces } = await import('@/lib/authWorkspaces')
+  let next: AuthSession = {
+    ...current,
+    user,
+    tenantId: body.tenantId || current.tenantId,
+    actor,
+    workspacePending: false,
+    workspaces: undefined,
+    activeWorkspaceId: undefined,
+  }
+  next = withResolvedWorkspaces(next)
+  writeSession(next)
+  return next
+}
+
+/**
+ * Platform admin: see the app exactly as the target agency / sub-agent user.
+ * Keeps the admin Bearer token; server scopes data to the target.
+ */
+export async function startViewAsUser(input: {
+  userId: string
+  email?: string
+  name?: string
+  role?: AuthUser['role']
+  tenantId: string
+  subAgentId?: string
+}): Promise<AuthSession> {
+  const current = readSession()
+  const actor = sessionActor(current)
+  if (!current || !actor) {
+    throw new Error('Sign in again to view as a user.')
+  }
+  if (actor.role !== 'platform_admin') {
+    throw new Error('Only the platform admin can view as another user.')
+  }
+  if (input.userId === actor.id) {
+    throw new Error('You are already signed in as yourself.')
+  }
+
+  if (authApiConfigured() && current.accessToken) {
+    try {
+      const body = await apiFetch<ViewAsResponse>(
+        '/api/platform/auth/view-as',
+        {
+          method: 'POST',
+          body: {
+            userId: input.userId,
+            email: input.email,
+          },
+        },
+      )
+      return await applyViewAsResponse(current, body)
+    } catch (error) {
+      if (!isNetworkFailure(error) || !allowOfflineAuthFallback()) {
+        throw new Error(apiErrorMessage(error, 'Could not start View as user.'))
+      }
+    }
+  }
+
+  if (!allowOfflineAuthFallback() && authApiConfigured()) {
+    throw new Error('Could not reach the API to start View as user.')
+  }
+
+  const email = normalizeLoginEmail(input.email || '')
+  const seeded = email ? findSeededAccountByEmail(email) : null
+  const provisioned = email ? findProvisionedAccountByEmail(email) : null
+  const targetUser: AuthUser = seeded?.user ?? {
+    id: provisioned?.user.id || input.userId,
+    email: email || input.userId,
+    name: (input.name || provisioned?.user.name || email || 'User').trim(),
+    role: input.role === 'sub_agent' ? 'sub_agent' : 'agency_user',
+    ...(input.subAgentId
+      ? { subAgentId: input.subAgentId }
+      : provisioned?.user.subAgentId
+        ? { subAgentId: provisioned.user.subAgentId }
+        : {}),
+  }
+  return applyViewAsResponse(current, {
+    user: targetUser,
+    tenantId: seeded?.tenantId || provisioned?.tenantId || input.tenantId,
+    actor,
+    viewingAs: true,
+  })
+}
+
+/** Leave View as user and restore the platform admin session. */
+export async function stopViewAsUser(): Promise<AuthSession> {
+  const current = readSession()
+  if (!current) {
+    throw new Error('Sign in again.')
+  }
+  if (!isViewingAsSession(current) || !current.actor) {
+    return current
+  }
+
+  const actor = current.actor
+
+  if (authApiConfigured() && current.accessToken) {
+    try {
+      const body = await apiFetch<ViewAsResponse>(
+        '/api/platform/auth/view-as/stop',
+        {
+          method: 'POST',
+          body: {},
+        },
+      )
+      const user = coerceUser(body.user) ?? actor
+      const { withResolvedWorkspaces } = await import('@/lib/authWorkspaces')
+      const restored: AuthSession = {
+        user,
+        tenantId: body.tenantId || current.tenantId,
+        signedInAt: current.signedInAt,
+        accessToken: current.accessToken,
+      }
+      const next = withResolvedWorkspaces(restored)
+      writeSession(next)
+      return next
+    } catch (error) {
+      if (!isNetworkFailure(error) || !allowOfflineAuthFallback()) {
+        throw new Error(apiErrorMessage(error, 'Could not exit View as user.'))
+      }
+    }
+  }
+
+  const { withResolvedWorkspaces } = await import('@/lib/authWorkspaces')
+  let next: AuthSession = {
+    user: actor,
+    tenantId: current.tenantId,
+    signedInAt: current.signedInAt,
+    accessToken: current.accessToken,
+  }
+  next = withResolvedWorkspaces(next)
   writeSession(next)
   return next
 }

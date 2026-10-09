@@ -1,6 +1,13 @@
 import { useCallback, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeftRight, Crown, IdCard, LogOut, Settings } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  Crown,
+  IdCard,
+  LogOut,
+  Settings,
+  Undo2,
+} from 'lucide-react'
 import { SignOutConfirmModal } from '@/components/ConfirmModal'
 import { settingsNavItem, profileNavItem } from '@/config/layout'
 import { settingsNavAlertCount } from '@/lib/agencyProfileGaps'
@@ -27,11 +34,20 @@ export function ProfileDropdown({
     closeOnEscape: true,
   })
   const navigate = useNavigate()
-  const { user, session, requestWorkspacePicker } = useAuth()
+  const {
+    user,
+    actor,
+    session,
+    isViewingAs,
+    requestWorkspacePicker,
+    stopViewAs,
+  } = useAuth()
   const agencyProfile = useAgencyProfile()
   const isPlatformAdmin = user?.role === 'platform_admin'
   const isAgencyUser = user?.role === 'agency_user'
-  const canSwitchWorkspace = (session?.workspaces?.length ?? 0) > 1
+  const canSwitchWorkspace =
+    !isViewingAs && (session?.workspaces?.length ?? 0) > 1
+  const [exitViewAsBusy, setExitViewAsBusy] = useState(false)
   const member =
     user && isAgencyUser
       ? findTenantMemberForUser(getActiveTenantId(), user.id, user.email)
@@ -124,6 +140,29 @@ export function ProfileDropdown({
                 </span>
               ) : null}
             </Link>
+          ) : null}
+          {isViewingAs ? (
+            <button
+              type="button"
+              className="pd-topbar__dropdown-item"
+              disabled={exitViewAsBusy}
+              onClick={() => {
+                void (async () => {
+                  setExitViewAsBusy(true)
+                  try {
+                    await stopViewAs()
+                    setOpen(false)
+                    navigate('/admin/tenants', { replace: true })
+                  } finally {
+                    setExitViewAsBusy(false)
+                  }
+                })()
+              }}
+              role="menuitem"
+            >
+              <Undo2 size={14} strokeWidth={2} />
+              Back to {actor?.name ?? 'admin'}
+            </button>
           ) : null}
           {canSwitchWorkspace ? (
             <button

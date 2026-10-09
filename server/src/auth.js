@@ -201,12 +201,40 @@ export async function revokeSession(token) {
   ])
 }
 
+function sessionFromActorRow(row) {
+  return {
+    user: publicUser(row),
+    tenantId: row.tenant_id || 'tenant-full',
+  }
+}
+
+async function clearViewAs(token) {
+  await query(
+    `update platform.sessions set view_as_user_id = null where token_hash = $1`,
+    [tokenHash(token)],
+  )
+}
+
+/**
+ * Resolve the signed-in session. When a platform admin is viewing as another
+ * user, `user` / `tenantId` are the target and `actor` is the real admin.
+ */
 export async function resolveSession(token) {
   if (!token) return null
   const result = await query(
-    `select u.id, u.email, u.name, u.role, u.tenant_id, u.status, u.sub_agent_id, s.expires_at
+    `select
+       u.id, u.email, u.name, u.role, u.tenant_id, u.status, u.sub_agent_id,
+       s.expires_at, s.view_as_user_id,
+       t.id as view_as_id,
+       t.email as view_as_email,
+       t.name as view_as_name,
+       t.role as view_as_role,
+       t.tenant_id as view_as_tenant_id,
+       t.status as view_as_status,
+       t.sub_agent_id as view_as_sub_agent_id
      from platform.sessions s
      join platform.users u on u.id = s.user_id
+     left join platform.users t on t.id = s.view_as_user_id
      where s.token_hash = $1
      limit 1`,
     [tokenHash(token)],
@@ -220,10 +248,158 @@ export async function resolveSession(token) {
     ])
     return null
   }
-  return {
-    user: publicUser(row),
-    tenantId: row.tenant_id || 'tenant-full',
+
+  const actorSession = sessionFromActorRow(row)
+  const viewAsId =
+    typeof row.view_as_user_id === 'string' && row.view_as_user_id.trim()
+      ? row.view_as_user_id.trim()
+      : null
+
+  if (!viewAsId) {
+    return actorSession
   }
+
+  // Only platform admins may view as another user; clear stale overrides.
+  if (actorSession.user.role !== 'platform_admin') {
+    await clearViewAs(token)
+    return actorSession
+  }
+
+  if (
+    !row.view_as_id ||
+    row.view_as_status !== 'active' ||
+    row.view_as_role === 'platform_admin' ||
+    row.view_as_id === actorSession.user.id
+  ) {
+    await clearViewAs(token)
+    return actorSession
+  }
+
+  return {
+    user: publicUser({
+      id: row.view_as_id,
+      email: row.view_as_email,
+      name: row.view_as_name,
+      role: row.view_as_role,
+      sub_agent_id: row.view_as_sub_agent_id,
+    }),
+    tenantId: row.view_as_tenant_id || 'tenant-full',
+    actor: actorSession.user,
+    viewingAs: true,
+  }
+}
+
+/**
+ * Platform admin begins viewing the platform as another login.
+ * Accepts `userId` and/or `email` (email wins when both differ from seeds).
+ * Keeps the same session token; effective identity becomes the target.
+ */
+export async function startViewAs(token, { userId, email } = {}) {
+  const session = await resolveSession(token)
+  if (!session) {
+    return { ok: false, status: 401, error: 'Authentication required.' }
+  }
+  const actor = session.actor ?? session.user
+  if (actor.role !== 'platform_admin') {
+    return { ok: false, status: 403, error: 'Platform admin access required.' }
+  }
+
+  const targetId = String(userId ?? '').trim()
+  const targetEmail = normalizeEmail(email)
+  if (!targetId && !targetEmail) {
+    return { ok: false, status: 400, error: 'User is required.' }
+  }
+
+  const targetResult = targetEmail
+    ? await query(
+        `select id, email, name, role, tenant_id, status, sub_agent_id
+         from platform.users
+         where lower(email) = $1
+         limit 1`,
+        [targetEmail],
+      )
+    : await query(
+        `select id, email, name, role, tenant_id, status, sub_agent_id
+         from platform.users
+         where id = $1
+         limit 1`,
+        [targetId],
+      )
+  const target = targetResult.rows[0]
+  if (!target || target.status !== 'active') {
+    return {
+      ok: false,
+      status: 404,
+      error:
+        'That user has no active login yet. They need an accepted invite or password first.',
+    }
+  }
+  if (target.id === actor.id) {
+    return { ok: false, status: 400, error: 'You are already signed in as yourself.' }
+  }
+  if (target.role === 'platform_admin') {
+    return { ok: false, status: 400, error: 'Cannot view as another platform admin.' }
+  }
+
+  await query(
+    `update platform.sessions set view_as_user_id = $2 where token_hash = $1`,
+    [tokenHash(token), target.id],
+  )
+
+  const next = await resolveSession(token)
+  if (!next?.viewingAs) {
+    return { ok: false, status: 500, error: 'Could not start view as user.' }
+  }
+  return {
+    ok: true,
+    status: 200,
+    body: {
+      user: next.user,
+      tenantId: next.tenantId,
+      actor: next.actor,
+      viewingAs: true,
+    },
+  }
+}
+
+/** Restore the real platform admin identity on the current session. */
+export async function stopViewAs(token) {
+  const session = await resolveSession(token)
+  if (!session) {
+    return { ok: false, status: 401, error: 'Authentication required.' }
+  }
+  if (!session.viewingAs || !session.actor) {
+    return {
+      ok: true,
+      status: 200,
+      body: {
+        user: session.user,
+        tenantId: session.tenantId,
+        viewingAs: false,
+      },
+    }
+  }
+
+  await clearViewAs(token)
+  const next = await resolveSession(token)
+  if (!next) {
+    return { ok: false, status: 401, error: 'Authentication required.' }
+  }
+  return {
+    ok: true,
+    status: 200,
+    body: {
+      user: next.user,
+      tenantId: next.tenantId,
+      viewingAs: false,
+    },
+  }
+}
+
+/** Real signed-in user (admin) even while viewing as someone else. */
+export function sessionActor(session) {
+  if (!session) return null
+  return session.actor ?? session.user
 }
 
 export function readBearerToken(req) {
@@ -323,7 +499,7 @@ export async function createAgencyUser({
   )
   if (existing.rows[0]) {
     const row = existing.rows[0]
-    // Same email: link agency ↔ partner instead of blocking / overwriting password.
+    // Same email: link agency ↔ sub-agent instead of blocking / overwriting password.
     if (resolvedRole === 'agency_user' && row.role === 'sub_agent') {
       if (!rawPassword || rawPassword.length < 8) {
         return {
@@ -409,7 +585,7 @@ export async function createAgencyUser({
       ok: false,
       status: 404,
       error:
-        'No existing login for this email. Set a password to create partner access, or use an email that already has an agency login.',
+        'No existing login for this email. Set a password to create sub-agent access, or use an email that already has an agency login.',
     }
   }
 

@@ -1,4 +1,4 @@
-import { useId, type InputHTMLAttributes } from 'react'
+import { useId, type InputHTMLAttributes, type ReactNode } from 'react'
 import { cx } from '@/lib/cx'
 
 export type RadioProps = Omit<
@@ -6,10 +6,12 @@ export type RadioProps = Omit<
   'type'
 > & {
   label: string
+  icon?: ReactNode
 }
 
 export function Radio({
   label,
+  icon,
   id,
   className,
   disabled,
@@ -31,6 +33,11 @@ export function Radio({
         {...props}
       />
       <span className="pd-radio__dot" aria-hidden />
+      {icon ? (
+        <span className="pd-radio__icon" aria-hidden>
+          {icon}
+        </span>
+      ) : null}
       <span className="pd-radio__label">{label}</span>
     </label>
   )
@@ -39,7 +46,12 @@ export function Radio({
 export type RadioGroupProps = {
   legend?: string
   name: string
-  options: Array<{ value: string; label: string; disabled?: boolean }>
+  options: Array<{
+    value: string
+    label: string
+    icon?: ReactNode
+    disabled?: boolean
+  }>
   value?: string
   defaultValue?: string
   onChange?: (value: string) => void
@@ -66,6 +78,7 @@ export function RadioGroup({
             key={option.value}
             name={name}
             label={option.label}
+            icon={option.icon}
             value={option.value}
             disabled={option.disabled || disabled}
             checked={value !== undefined ? value === option.value : undefined}

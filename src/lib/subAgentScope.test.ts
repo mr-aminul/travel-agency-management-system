@@ -47,8 +47,8 @@ describe('queueOrApplySubAgentChange', () => {
     writeSession({
       user: {
         id: 'user-sa',
-        email: 'partner@test.com',
-        name: 'Partner',
+        email: 'sub-agent@test.com',
+        name: 'Sub Agent',
         role: 'sub_agent',
         subAgentId: 'AGT-T0001',
       },
@@ -76,8 +76,8 @@ describe('queueOrApplySubAgentChange', () => {
     writeSession({
       user: {
         id: 'user-sa',
-        email: 'partner@test.com',
-        name: 'Partner',
+        email: 'sub-agent@test.com',
+        name: 'Sub Agent',
         role: 'sub_agent',
         subAgentId: 'AGT-T0001',
       },
@@ -102,8 +102,8 @@ describe('queueOrApplySubAgentChange', () => {
     writeSession({
       user: {
         id: 'user-sa',
-        email: 'partner@test.com',
-        name: 'Partner',
+        email: 'sub-agent@test.com',
+        name: 'Sub Agent',
         role: 'sub_agent',
         subAgentId: 'AGT-T0001',
       },

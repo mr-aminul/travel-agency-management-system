@@ -1,7 +1,8 @@
-import { Fragment, useState, useEffect } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Fragment, useCallback, useState, useEffect } from 'react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { profileNavItem } from '@/config/layout'
 import { APP_VERSION_LABEL } from '@/lib/appVersion'
+import { useAuth } from '@/lib/useAuth'
 import { pageIdentity } from './pageIdentity'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
@@ -41,8 +42,21 @@ export function AppLayout({
   userName,
 }: AppLayoutProps) {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const { user, actor, isViewingAs, stopViewAs } = useAuth()
   const { isMobile } = useBreakpoint()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [exitBusy, setExitBusy] = useState(false)
+
+  const handleStopViewAs = useCallback(async () => {
+    setExitBusy(true)
+    try {
+      await stopViewAs()
+      navigate('/admin/tenants', { replace: true })
+    } finally {
+      setExitBusy(false)
+    }
+  }, [navigate, stopViewAs])
 
   useEffect(() => {
     if (!isMobile) setIsMobileOpen(false)
@@ -96,6 +110,22 @@ export function AppLayout({
           />
           <div className="pd-app-content">
             <div className="pd-app-content-card">
+              {isViewingAs ? (
+                <div className="pd-impersonation-banner" role="status">
+                  <span>
+                    Viewing as <strong>{user?.name ?? 'user'}</strong>
+                    {actor?.name ? ` · signed in as ${actor.name}` : null}
+                  </span>
+                  <button
+                    type="button"
+                    className="pd-impersonation-banner__action"
+                    disabled={exitBusy}
+                    onClick={() => void handleStopViewAs()}
+                  >
+                    Exit
+                  </button>
+                </div>
+              ) : null}
               <TopBar
                 title={currentNavItem?.label ?? 'App'}
                 titleIcon={currentNavItem?.icon}

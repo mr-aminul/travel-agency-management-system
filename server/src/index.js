@@ -12,6 +12,8 @@ import {
   seedAuthUsers,
   setAgencyUserPassword,
   setAgencyUserStatus,
+  startViewAs,
+  stopViewAs,
 } from './auth.js'
 import { appendAudit, listAudit } from './audit.js'
 import {
@@ -120,10 +122,71 @@ app.get('/api/platform/auth/me', async (req, res) => {
     res.json({
       user: session.user,
       tenantId: session.tenantId,
+      viewingAs: session.viewingAs === true,
+      ...(session.actor ? { actor: session.actor } : {}),
     })
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'session failed',
+    })
+  }
+})
+
+app.post('/api/platform/auth/view-as', requireAuth, async (req, res) => {
+  try {
+    const result = await startViewAs(req.accessToken, {
+      userId: req.body?.userId,
+      email: req.body?.email,
+    })
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    const actor = result.body.actor
+    if (actor) {
+      await appendAudit({
+        tenantId: result.body.tenantId,
+        actorUserId: actor.id,
+        actorEmail: actor.email,
+        action: 'auth.view_as_started',
+        entityType: 'user',
+        entityId: result.body.user.id,
+        summary: `Started viewing as ${result.body.user.name}`,
+        meta: { targetEmail: result.body.user.email },
+      }).catch(() => {})
+    }
+    res.status(200).json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'view as failed',
+    })
+  }
+})
+
+app.post('/api/platform/auth/view-as/stop', requireAuth, async (req, res) => {
+  try {
+    const prior = req.auth
+    const result = await stopViewAs(req.accessToken)
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    if (prior?.viewingAs && prior.actor) {
+      await appendAudit({
+        tenantId: prior.tenantId,
+        actorUserId: prior.actor.id,
+        actorEmail: prior.actor.email,
+        action: 'auth.view_as_stopped',
+        entityType: 'user',
+        entityId: prior.user.id,
+        summary: `Stopped viewing as ${prior.user.name}`,
+        meta: { targetEmail: prior.user.email },
+      }).catch(() => {})
+    }
+    res.status(200).json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'stop view as failed',
     })
   }
 })
@@ -181,7 +244,7 @@ app.post('/api/platform/auth/users', requireAuth, async (req, res) => {
       entityType: 'user',
       entityId: result.body.user.id,
       summary: result.body.linked
-        ? `Linked partner access for ${result.body.user.email}`
+        ? `Linked sub-agent access for ${result.body.user.email}`
         : `Created user ${result.body.user.email}`,
     })
     res.status(result.status === 200 ? 200 : 201).json(result.body)

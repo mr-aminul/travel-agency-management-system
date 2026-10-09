@@ -13,7 +13,7 @@ describe('authWorkspaces', () => {
     localStorage.removeItem(DATA_KEYS.subAgentLogins)
   })
 
-  it('lists agency and partner workspaces for a linked login', () => {
+  it('lists agency and sub-agent workspaces for a linked login', () => {
     upsertSubAgentLogin({
       subAgentId: 'AGT-T0001',
       tenantId: 'tenant-full',
@@ -80,7 +80,7 @@ describe('authWorkspaces', () => {
     expect(next.user.role).toBe('agency_user')
   })
 
-  it('enters partner workspace when login intent is sub_agent', () => {
+  it('enters sub-agent workspace when login intent is sub_agent', () => {
     upsertSubAgentLogin({
       subAgentId: 'AGT-T0001',
       tenantId: 'tenant-full',
@@ -103,12 +103,12 @@ describe('authWorkspaces', () => {
     expect(next.user.subAgentId).toBe('AGT-T0001')
   })
 
-  it('rejects agency intent when the account is partner-only', () => {
+  it('rejects agency intent when the account is sub-agent-only', () => {
     const base: AuthSession = {
       user: {
         id: 'user-sa',
-        email: 'partner-only@example.com',
-        name: 'Partner',
+        email: 'sub-agent-only@example.com',
+        name: 'Sub Agent',
         role: 'sub_agent',
         subAgentId: 'AGT-T0001',
       },
@@ -120,7 +120,7 @@ describe('authWorkspaces', () => {
     )
   })
 
-  it('applies partner workspace onto the session', () => {
+  it('applies sub-agent workspace onto the session', () => {
     const base: AuthSession = {
       user: {
         id: 'user-1',
@@ -137,7 +137,7 @@ describe('authWorkspaces', () => {
           tenantId: 'tenant-full',
           subAgentId: 'AGT-T0001',
           title: 'Sub agent of OneTrack',
-          description: 'Partner',
+          description: 'Sub agent',
         },
       ],
     }

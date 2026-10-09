@@ -221,7 +221,7 @@ export function withResolvedWorkspaces(
       const message =
         intent === 'agency'
           ? 'This account has no agency login. Choose Sub agent login, or ask your agency for access.'
-          : 'This account has no sub-agent login. Choose Agency login, or ask the agency to enable partner access.'
+          : 'This account has no sub-agent login. Choose Agency login, or ask the agency to enable sub-agent access.'
       throw new Error(message)
     }
     if (matched.length === 1) {
@@ -230,7 +230,7 @@ export function withResolvedWorkspaces(
         matched[0]!,
       )
     }
-    // Multiple partner links (or agencies) under the same intent → picker.
+    // Multiple sub-agent links (or agencies) under the same intent → picker.
     return {
       ...session,
       workspaces: matched,

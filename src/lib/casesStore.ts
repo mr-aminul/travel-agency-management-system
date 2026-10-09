@@ -612,7 +612,7 @@ export function useCases(): Case[] {
   return useMemo(() => {
     const scoped = all.filter((item) => item.tenantId === activeId)
     if (!subAgentId) return scoped
-    // getClientById already hides other partners' clients for sub-agent sessions.
+    // getClientById already hides other sub agents' clients for sub-agent sessions.
     return scoped.filter((item) => Boolean(getClientById(item.clientId)))
   }, [all, activeId, subAgentId])
 }

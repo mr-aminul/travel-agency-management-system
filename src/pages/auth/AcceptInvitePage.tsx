@@ -119,7 +119,7 @@ export default function AcceptInvitePage() {
         <div className="pd-login__brand">
           <h1 className="pd-login__title">
             {invite?.role === 'sub_agent' || invite?.subAgentId
-              ? 'Join as partner'
+              ? 'Join as sub agent'
               : 'Join your agency'}
           </h1>
           <p className="pd-login__subtitle">

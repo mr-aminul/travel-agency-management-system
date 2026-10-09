@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { Plus, Users } from 'lucide-react'
-import { Navigate, useParams } from 'react-router-dom'
+import { Eye, Plus, Users } from 'lucide-react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '@/lib/useAuth'
 import {
   STAFF_MEMBER_ROLES,
   staffMemberCreateErrors,
@@ -66,9 +67,12 @@ type CreatedCredentials = {
 
 export default function TenantUsersPage() {
   const { tenantId = '' } = useParams()
+  const navigate = useNavigate()
+  const { startViewAs } = useAuth()
   const tenant = useTenantById(tenantId)
   const members = useTenantMembersByTenantId(tenantId)
   const [createOpen, setCreateOpen] = useState(false)
+  const [viewAsBusyId, setViewAsBusyId] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<TenantMemberRole>('staff')
@@ -173,6 +177,28 @@ export default function TenantUsersPage() {
         error instanceof Error ? error.message : 'Could not add this user.',
       )
       setIsSubmitting(false)
+    }
+  }
+
+  const handleViewAs = async (member: TenantMember) => {
+    if (member.status !== 'active') return
+    setActionError(undefined)
+    setViewAsBusyId(member.id)
+    try {
+      await startViewAs({
+        userId: member.id,
+        email: member.email,
+        name: member.name,
+        role: 'agency_user',
+        tenantId: tenant.id,
+      })
+      navigate('/', { replace: true })
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : 'Could not start View as user.',
+      )
+    } finally {
+      setViewAsBusyId(null)
     }
   }
 
@@ -471,6 +497,17 @@ export default function TenantUsersPage() {
               </TableCell>
               <TableCell>
                 <span className="pd-admin__row-actions">
+                  {member.status === 'active' ? (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={viewAsBusyId != null}
+                      onClick={() => void handleViewAs(member)}
+                    >
+                      <Eye size={14} strokeWidth={2.25} aria-hidden />
+                      {viewAsBusyId === member.id ? 'Opening…' : 'View as'}
+                    </Button>
+                  ) : null}
                   <Button
                     variant="secondary"
                     size="sm"

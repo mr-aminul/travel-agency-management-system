@@ -98,7 +98,7 @@ export default function ApprovalsPage() {
       {visible.length === 0 ? (
         <EmptyState
           title={filter === 'pending' ? 'Nothing to approve' : 'No submissions yet'}
-          description="When partners add or edit clients and services, those changes appear here if approval is required."
+          description="When sub agents add or edit clients and services, those changes appear here if approval is required."
         />
       ) : (
         <ul className="pd-approval-list">

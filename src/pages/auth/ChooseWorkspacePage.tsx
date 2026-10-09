@@ -19,7 +19,7 @@ function iconFor(workspace: AuthWorkspace) {
 
 function toneFor(workspace: AuthWorkspace) {
   if (workspace.kind === 'platform_admin') return 'admin'
-  if (workspace.kind === 'sub_agent') return 'partner'
+  if (workspace.kind === 'sub_agent') return 'sub-agent'
   return 'agency'
 }
 

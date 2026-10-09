@@ -102,6 +102,7 @@ function App() {
             <Route path="sub-agents/:id" element={<SubAgentDetailPage />} />
             <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="my-submissions" element={<MySubmissionsPage />} />
+            {/* Legacy URLs from before the sub-agent rename */}
             <Route path="partners" element={<Navigate to="/sub-agents" replace />} />
             <Route path="partners/:id" element={<LegacyAgentsRedirect />} />
             <Route path="agents" element={<Navigate to="/sub-agents" replace />} />

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  COASTAL_OWNER_USER,
   DEMO_USER,
   PLATFORM_ADMIN_USER,
   SEED_AGENCY_PASSWORD,
@@ -7,9 +8,13 @@ import {
   clearSession,
   getAccessToken,
   isSignedIn,
+  isViewingAsSession,
   readSession,
+  sessionActor,
   signInWithPassword,
   signOut,
+  startViewAsUser,
+  stopViewAsUser,
   writeSession,
 } from '@/lib/authApi'
 import { TENANT_IDS } from '@/types/tenant'
@@ -114,5 +119,42 @@ describe('authApi session', () => {
     expect(getAccessToken()).toBe('tok')
     clearSession()
     expect(getAccessToken()).toBeNull()
+  })
+
+  it('lets the platform admin view as an agency user and exit', async () => {
+    await signInWithPassword(
+      'aminulislamborhan@gmail.com',
+      SEED_PLATFORM_ADMIN_PASSWORD,
+    )
+    const viewing = await startViewAsUser({
+      userId: COASTAL_OWNER_USER.id,
+      email: COASTAL_OWNER_USER.email,
+      name: COASTAL_OWNER_USER.name,
+      role: 'agency_user',
+      tenantId: TENANT_IDS.leisure,
+    })
+    expect(isViewingAsSession(viewing)).toBe(true)
+    expect(viewing.user.email).toBe(COASTAL_OWNER_USER.email)
+    expect(viewing.user.role).toBe('agency_user')
+    expect(viewing.tenantId).toBe(TENANT_IDS.leisure)
+    expect(sessionActor(viewing)?.email).toBe(PLATFORM_ADMIN_USER.email)
+
+    const restored = await stopViewAsUser()
+    expect(isViewingAsSession(restored)).toBe(false)
+    expect(restored.user.role).toBe('platform_admin')
+    expect(restored.actor).toBeUndefined()
+  })
+
+  it('rejects View as user for non-admin sessions', async () => {
+    await signInWithPassword('ops@coastalleisure.com', SEED_AGENCY_PASSWORD)
+    await expect(
+      startViewAsUser({
+        userId: DEMO_USER.id,
+        email: DEMO_USER.email,
+        name: DEMO_USER.name,
+        role: 'agency_user',
+        tenantId: TENANT_IDS.full,
+      }),
+    ).rejects.toThrow(/platform admin/i)
   })
 })

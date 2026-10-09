@@ -71,7 +71,7 @@ import type {
 } from '@/types/client'
 import '@/styles/layout-clients.css'
 
-const PARTNER_TABS = ['overview', 'profile', 'clients', 'login'] as const
+const SUB_AGENT_TABS = ['overview', 'profile', 'clients', 'login'] as const
 
 const CLIENT_STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'Pending', label: 'Pending' },
@@ -97,7 +97,7 @@ type ProfileDraft = {
 
 function tabFromSearch(searchParams: URLSearchParams): string {
   const tab = searchParams.get('tab')
-  return tab && PARTNER_TABS.includes(tab as (typeof PARTNER_TABS)[number])
+  return tab && SUB_AGENT_TABS.includes(tab as (typeof SUB_AGENT_TABS)[number])
     ? tab
     : 'overview'
 }

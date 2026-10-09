@@ -256,30 +256,124 @@
 }
 
 .pd-login__intent {
+  --intent-pad: 0.125rem;
   margin: 0;
-  padding: 0.85rem 0.9rem;
-  border: 1px solid var(--login-control-border);
-  border-radius: var(--login-control-radius);
-  background: var(--login-muted-bg);
+  padding: 0;
+  border: 0;
+  background: transparent;
   text-align: start;
 }
 
 .pd-login__intent .pd-radio-group__legend {
   padding: 0;
-  margin: 0 0 0.55rem;
-  color: var(--login-ink);
-  font-size: 0.8125rem;
-  font-weight: 650;
+  margin: 0 0 0.3rem;
+  color: var(--login-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .pd-login__intent .pd-radio-group__options {
+  --intent-seg-h: 2rem;
+  position: relative;
   display: grid;
-  gap: 0.45rem;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  gap: 0;
+  padding: var(--intent-pad);
+  isolation: isolate;
+  border: 1px solid var(--login-control-border);
+  border-radius: calc(var(--login-control-radius) - 0.125rem);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--login-ink) 3.5%, white),
+      color-mix(in srgb, var(--login-ink) 1.5%, white));
+  box-shadow: inset 0 1px 1px color-mix(in srgb, black 4%, transparent);
+}
+
+.pd-login__intent .pd-radio-group__options::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: var(--intent-pad);
+  left: var(--intent-pad);
+  width: calc(50% - var(--intent-pad));
+  height: var(--intent-seg-h);
+  border-radius: calc(var(--login-control-radius) - 0.25rem);
+  background: var(--color-theme);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-theme) 35%, transparent);
+  pointer-events: none;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pd-login__intent .pd-radio-group__options:has(.pd-radio:nth-child(2) .pd-radio__input:checked)::before {
+  transform: translateX(100%);
+}
+
+.pd-login__intent .pd-radio {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--intent-seg-h);
+  min-height: var(--intent-seg-h);
+  margin: 0;
+  padding: 0 0.5rem;
+  border-radius: calc(var(--login-control-radius) - 0.25rem);
+  color: var(--login-ink-muted);
+  transition: color 0.18s ease;
+}
+
+.pd-login__intent .pd-radio:hover {
+  color: color-mix(in srgb, var(--login-ink-muted) 35%, var(--login-ink));
+}
+
+.pd-login__intent .pd-radio:has(.pd-radio__input:checked) {
+  color: var(--color-on-theme, #fff);
+}
+
+.pd-login__intent .pd-radio:has(.pd-radio__input:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--color-theme) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.pd-login__intent .pd-radio:active {
+  color: var(--login-ink);
+}
+
+.pd-login__intent .pd-radio:has(.pd-radio__input:checked):active {
+  color: var(--color-on-theme, #fff);
+}
+
+.pd-login__intent .pd-radio__dot {
+  display: none;
+}
+
+.pd-login__intent .pd-radio__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  line-height: 0;
+}
+
+.pd-login__intent .pd-radio__icon svg {
+  display: block;
 }
 
 .pd-login__intent .pd-radio__label {
-  color: var(--login-ink);
-  font-weight: 550;
+  display: block;
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .pd-login__form .pd-field {
@@ -499,5 +593,9 @@
 
   .pd-login__google:hover {
     transform: none;
+  }
+
+  .pd-login__intent .pd-radio-group__options::before {
+    transition: none;
   }
 }

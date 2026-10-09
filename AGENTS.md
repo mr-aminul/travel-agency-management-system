@@ -2,6 +2,12 @@
 
 Project-specific guidance for AI coding agents.
 
+## Terminology
+
+- Use **sub agent** / **sub-agent** / `sub_agent` for referring agents who send clients.
+- Never use **partner** in UI copy, errors, comments, tests, variable names, or new code.
+- Legacy-only leftovers (`/partners` redirects, `pd-partners-created`, `partnerId` reads) must stay labeled as legacy and must not appear in new user-facing text.
+
 <!-- ASTRYX:START -->
 Product UI uses the custom `pd-*` design system (components under `src/components/ui`, styles under `src/styles`). Prefer extending existing `pd-*` patterns for new screens.
 
