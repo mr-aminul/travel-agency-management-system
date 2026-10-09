@@ -1,14 +1,16 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { cleanup, render, screen } from '@testing-library/react'
 import { AuthProvider } from '@/lib/AuthProvider'
 import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
+import * as useAgencyProfileMod from '@/layout/useAgencyProfile'
 import { TENANT_IDS } from '@/types/tenant'
 import CaseInvoicePage from '@/pages/CaseInvoicePage'
 
 afterEach(() => {
   cleanup()
   clearSession()
+  vi.restoreAllMocks()
 })
 
 function renderInvoice(path: string) {
@@ -36,6 +38,7 @@ describe('case invoice page', () => {
     renderInvoice('/clients/c-284/services/case-101/invoice')
 
     expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Share' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Print invoice' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Download PDF' })).toBeInTheDocument()
     expect(screen.getByText('INV-SR-00101')).toBeInTheDocument()
@@ -60,9 +63,32 @@ describe('case invoice page', () => {
         'This is a computer generated invoice and does not require a signature',
       ),
     ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('status', { name: 'Business profile incomplete' }),
+    ).not.toBeInTheDocument()
 
     const logo = document.querySelector('.pd-invoice__logo')
     expect(logo).toHaveAttribute('src', expect.stringContaining('images/logo.svg'))
     expect(screen.getByText('OneTrack')).toBeInTheDocument()
+  })
+
+  it('blocks share when business profile contact details are missing', () => {
+    vi.spyOn(useAgencyProfileMod, 'useAgencyProfile').mockReturnValue({
+      businessName: 'River Tours',
+      address: '',
+      mobile: '',
+      website: '',
+      profilePicture: null,
+    })
+    renderInvoice('/clients/c-284/services/case-101/invoice')
+
+    expect(
+      screen.getByRole('status', { name: 'Business profile incomplete' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Open Business profile' }),
+    ).toHaveAttribute('href', '/settings')
+    expect(screen.getByRole('button', { name: 'Share' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Print invoice' })).toBeEnabled()
   })
 })

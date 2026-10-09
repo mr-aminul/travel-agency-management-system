@@ -11,6 +11,8 @@ export interface NavItem {
   moduleId?: ModuleId
   /** When true, only a platform admin sees this item. */
   adminOnly?: boolean
+  /** Red count badge when this nav item needs attention. */
+  badgeCount?: number
 }
 
 export interface BrandConfig {

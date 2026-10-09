@@ -9,6 +9,14 @@ export {
   SEARCH_LIMIT_PER_GROUP,
 } from './rank'
 export {
+  placeholderHintsFromGroups,
+  placeholderPhrasesFromGroups,
+  SEARCH_PLACEHOLDER_FALLBACK,
+} from './placeholderPhrases'
+export type { SearchPlaceholderHint } from './placeholderPhrases'
+export { useTypewriterPlaceholder } from './useTypewriterPlaceholder'
+export type { TypewriterPlaceholder } from './useTypewriterPlaceholder'
+export {
   clearRecentSearches,
   readRecentSearchIds,
   rememberSearchVisit,

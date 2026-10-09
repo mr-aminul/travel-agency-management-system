@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Pencil, Plus, Printer, Trash2 } from 'lucide-react'
+import { BusinessProfileSetupNotice } from '@/components/BusinessProfileSetupNotice'
 import { DocumentPaper } from '@/components/documents/DocumentPaper'
 import { DocumentTemplateForm } from '@/components/documents/DocumentTemplateForm'
 import { DEFAULT_BRAND_NAME } from '@/lib/agencyProfile'
+import { agencyProfileIsIncomplete } from '@/lib/agencyProfileGaps'
 import { useAgencyProfile } from '@/layout/useAgencyProfile'
 import { useClients } from '@/lib/clientsStore'
 import { cx } from '@/lib/cx'
@@ -35,6 +37,7 @@ export default function DocumentsPage() {
   const templates = useDocumentTemplates()
   const clients = useClients()
   const profile = useAgencyProfile()
+  const profileIncomplete = agencyProfileIsIncomplete(profile)
   const agencyName = profile.businessName.trim() || DEFAULT_BRAND_NAME
   const [selectedId, setSelectedId] = useState<string | null>(
     templates[0]?.id ?? null,
@@ -188,12 +191,31 @@ export default function DocumentsPage() {
                     >
                       <Trash2 size={14} /> Delete
                     </Button>
-                    <Button size="sm" onClick={() => window.print()}>
+                    <Button
+                      size="sm"
+                      disabled={profileIncomplete}
+                      title={
+                        profileIncomplete
+                          ? 'Complete Business profile before printing'
+                          : undefined
+                      }
+                      onClick={() => {
+                        if (profileIncomplete) return
+                        window.print()
+                      }}
+                    >
                       <Printer size={14} /> Print
                     </Button>
                   </div>
                 ) : null}
               </div>
+
+              {profileIncomplete ? (
+                <BusinessProfileSetupNotice
+                  profile={profile}
+                  variant="documents"
+                />
+              ) : null}
 
               {hits.length > 0 ? (
                 <ul className="pd-docs__hits">

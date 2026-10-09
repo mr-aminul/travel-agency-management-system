@@ -74,6 +74,24 @@
   color: inherit;
 }
 
+.pd-settings-nav__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  margin-left: auto;
+  padding: 0 0.3125rem;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 750;
+  letter-spacing: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 .pd-settings-panel {
   display: flex;
   flex-direction: column;
@@ -322,6 +340,15 @@
 
 .pd-settings-form__fields>.pd-profile-photo {
   padding-top: 0;
+}
+
+.pd-settings-form__field.is-attention .pd-field__control {
+  border-color: color-mix(in srgb, var(--color-danger) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--color-danger) 5%, var(--color-surface));
+}
+
+.pd-settings-form__field.is-attention .pd-field--outlined .pd-field__label {
+  color: var(--color-danger);
 }
 
 .pd-settings-form__footer {

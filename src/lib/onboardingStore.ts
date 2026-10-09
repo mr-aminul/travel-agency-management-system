@@ -6,7 +6,10 @@ import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID } from '@/types/tenant'
 
 export type OnboardingState = {
+  /** Platform tour dismissed. */
   dismissed?: boolean
+  /** Home “complete business profile” nudge dismissed. */
+  businessProfileNudgeDismissed?: boolean
 }
 
 type OnboardingMap = Record<string, OnboardingState>
@@ -41,6 +44,8 @@ function normalizeState(value: unknown): OnboardingState {
   if (!isRecord(value)) return {}
   return {
     dismissed: value.dismissed === true,
+    businessProfileNudgeDismissed:
+      value.businessProfileNudgeDismissed === true,
   }
 }
 
@@ -91,6 +96,24 @@ export function dismissOnboarding(forTenantId = tenantId()): void {
 export function restoreOnboarding(forTenantId = tenantId()): void {
   const current = getOnboardingState(forTenantId)
   writeState(forTenantId, { ...current, dismissed: false })
+}
+
+export function dismissBusinessProfileNudge(forTenantId = tenantId()): void {
+  const current = getOnboardingState(forTenantId)
+  writeState(forTenantId, {
+    ...current,
+    businessProfileNudgeDismissed: true,
+  })
+}
+
+export function useBusinessProfileNudgeState(): { dismissed: boolean } {
+  const { session } = useAuth()
+  const all = useSyncExternalStore(subscribeOnboarding, getSnapshot, getSnapshot)
+  const activeId = session?.tenantId ?? DEFAULT_TENANT_ID
+  return useMemo(() => {
+    const state = all[activeId] ?? {}
+    return { dismissed: state.businessProfileNudgeDismissed === true }
+  }, [all, activeId])
 }
 
 export function resetOnboarding() {

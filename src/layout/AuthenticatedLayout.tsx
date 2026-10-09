@@ -8,6 +8,7 @@ import {
   DEFAULT_BRAND_NAME,
   resolveBrandDisplay,
 } from '@/lib/agencyProfile'
+import { settingsNavAlertCount } from '@/lib/agencyProfileGaps'
 import { layoutConfig } from '@/config/layout'
 import { findTenantMemberForUser } from '@/lib/tenantMembersStore'
 import { canAccessPath } from '@/lib/pageAccess'
@@ -48,10 +49,24 @@ export default function AuthenticatedLayout() {
       tenant.enabledModules,
       role,
     )
-    if (role === 'platform_admin' || !user) return moduleFiltered
+    const settingsBadge =
+      role === 'platform_admin'
+        ? 0
+        : settingsNavAlertCount(agencyProfile)
+
+    const withSettingsBadge = (items: typeof moduleFiltered) =>
+      items.map((item) =>
+        item.path === '/settings' && settingsBadge > 0
+          ? { ...item, badgeCount: settingsBadge }
+          : item,
+      )
+
+    if (role === 'platform_admin' || !user) {
+      return withSettingsBadge(moduleFiltered)
+    }
 
     const subjectId = member?.id ?? user.id
-    return moduleFiltered.flatMap((item) => {
+    const accessFiltered = moduleFiltered.flatMap((item) => {
       if (item.children?.length) {
         const children = item.children.filter((child) => {
           const col = ACCESS_PAGES.find((page) => page.path === child.path)
@@ -65,7 +80,8 @@ export default function AuthenticatedLayout() {
       if (!col) return [item]
       return getPageAccessLevel(subjectId, col.path) === 'none' ? [] : [item]
     })
-  }, [tenant.enabledModules, user, member?.id])
+    return withSettingsBadge(accessFiltered)
+  }, [agencyProfile, tenant.enabledModules, user, member?.id])
 
   const brand = useMemo(() => {
     if (user?.role === 'platform_admin') {

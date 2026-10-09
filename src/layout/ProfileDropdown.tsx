@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom'
 import { LogOut, Settings, UserRound } from 'lucide-react'
 import { SignOutConfirmModal } from '@/components/ConfirmModal'
 import { settingsNavItem, profileNavItem } from '@/config/layout'
+import { settingsNavAlertCount } from '@/lib/agencyProfileGaps'
 import { useAuth } from '@/lib/useAuth'
+import { useAgencyProfile } from './useAgencyProfile'
 import { useHoverMenu } from './useHoverMenu'
 import { CopyableText } from '@/components/ui'
 
@@ -23,7 +25,10 @@ export function ProfileDropdown({
     closeOnEscape: true,
   })
   const { user } = useAuth()
+  const agencyProfile = useAgencyProfile()
   const isPlatformAdmin = user?.role === 'platform_admin'
+  const settingsBadge =
+    isPlatformAdmin ? 0 : settingsNavAlertCount(agencyProfile)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
   const handleCloseConfirm = useCallback(() => {
     setShowSignOutConfirm(false)
@@ -87,9 +92,25 @@ export function ProfileDropdown({
             className="pd-topbar__dropdown-item"
             onClick={() => setOpen(false)}
             role="menuitem"
+            aria-label={
+              settingsBadge > 0
+                ? `${settingsNavItem.label}, ${settingsBadge} needing attention`
+                : undefined
+            }
           >
             <Settings size={14} strokeWidth={2} />
-            {settingsNavItem.label}
+            <span className="pd-topbar__dropdown-item-label">
+              {settingsNavItem.label}
+            </span>
+            {settingsBadge > 0 ? (
+              <span
+                className="pd-topbar__dropdown-badge"
+                aria-hidden
+                title={`${settingsBadge} needing attention`}
+              >
+                {settingsBadge}
+              </span>
+            ) : null}
           </Link>
             </>
           ) : null}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { Check, Share2 } from 'lucide-react'
+import { BusinessProfileSetupNotice } from '@/components/BusinessProfileSetupNotice'
 import { InvoicePageView } from '@/components/invoices/InvoicePageView'
 import { InvoicePrintActions } from '@/components/invoices/InvoicePrintActions'
 import { buildCaseInvoice } from '@/lib/caseInvoice'
@@ -15,6 +16,7 @@ import {
 import { workDetailPath } from '@/lib/workPaths'
 import { usePaymentsByCaseId } from '@/lib/paymentsStore'
 import { useAgencyProfile } from '@/layout/useAgencyProfile'
+import { agencyProfileIsIncomplete } from '@/lib/agencyProfileGaps'
 import { layoutConfig } from '@/config/layout'
 
 export default function CaseInvoicePage() {
@@ -26,6 +28,7 @@ export default function CaseInvoicePage() {
   const payments = usePaymentsByCaseId(recordId)
   const client = caseItem ? getClientById(caseItem.clientId) : undefined
   const profile = useAgencyProfile()
+  const profileIncomplete = agencyProfileIsIncomplete(profile)
 
   useEffect(() => {
     if (!copied) return
@@ -50,6 +53,7 @@ export default function CaseInvoicePage() {
   )
 
   const handleShare = async () => {
+    if (profileIncomplete) return
     const url = await createPublicInvoiceShare({
       invoice,
       caseId: caseItem.id,
@@ -61,11 +65,26 @@ export default function CaseInvoicePage() {
   return (
     <InvoicePageView
       invoice={invoice}
+      notice={
+        profileIncomplete ? (
+          <BusinessProfileSetupNotice profile={profile} variant="invoice" />
+        ) : null
+      }
       toolbar={
         <>
           <BackButton to={workDetailPath(caseItem)} label="Service" />
           <div className="pd-invoice-page__actions">
-            <Button size="sm" variant="secondary" onClick={() => void handleShare()}>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={profileIncomplete}
+              title={
+                profileIncomplete
+                  ? 'Complete Business profile before sharing'
+                  : undefined
+              }
+              onClick={() => void handleShare()}
+            >
               {copied ? (
                 <Check size={14} strokeWidth={2.25} aria-hidden />
               ) : (

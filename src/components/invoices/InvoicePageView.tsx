@@ -10,6 +10,8 @@ import '@fontsource/inter/latin-700.css'
 type InvoicePageViewProps = {
   invoice: CaseInvoice
   toolbar: ReactNode
+  /** Shown above the toolbar (e.g. incomplete business profile). */
+  notice?: ReactNode
   /** Outer chrome only (e.g. public page background). Must not change invoice layout. */
   frameClassName?: string
 }
@@ -17,6 +19,7 @@ type InvoicePageViewProps = {
 export function InvoicePageView({
   invoice,
   toolbar,
+  notice,
   frameClassName,
 }: InvoicePageViewProps) {
   const frameClass = ['pd-invoice-page-frame', frameClassName]
@@ -29,6 +32,9 @@ export function InvoicePageView({
         className="pd-page pd-invoice-page"
         aria-label={`Invoice ${invoice.invoiceNumber}`}
       >
+        {notice ? (
+          <div className="pd-invoice-page__notice">{notice}</div>
+        ) : null}
         <div className="pd-invoice-page__toolbar">{toolbar}</div>
         <div className="pd-invoice-page__stage">
           <InvoiceDocument invoice={invoice} />

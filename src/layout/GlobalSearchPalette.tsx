@@ -14,10 +14,13 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { cx } from '@/lib/cx'
 import {
+  placeholderHintsFromGroups,
   presentSearchResults,
   readRecentSearchIds,
   rememberSearchVisit,
+  SEARCH_PLACEHOLDER_FALLBACK,
   SEARCH_SCOPES,
+  useTypewriterPlaceholder,
   type HighlightRange,
   type RankedSearchItem,
   type SearchItem,
@@ -33,6 +36,8 @@ export type GlobalSearchHandle = {
 type GlobalSearchPaletteProps = {
   items: SearchItem[]
   onClose?: () => void
+  /** Typewriter Recent/Jump To hints — home hero only, not the top bar. */
+  animatePlaceholder?: boolean
 }
 
 function HighlightedText({
@@ -68,7 +73,10 @@ function SearchKbd({ children }: { children: ReactNode }) {
 export const GlobalSearchPalette = forwardRef<
   GlobalSearchHandle,
   GlobalSearchPaletteProps
->(function GlobalSearchPalette({ items, onClose }, ref) {
+>(function GlobalSearchPalette(
+  { items, onClose, animatePlaceholder = false },
+  ref,
+) {
   const navigate = useNavigate()
   const wrapRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -89,6 +97,19 @@ export const GlobalSearchPalette = forwardRef<
     [chipScope, items, query, recentIds],
   )
   const results = presented.flat
+
+  const idleHints = useMemo(() => {
+    if (!animatePlaceholder) return []
+    return placeholderHintsFromGroups(
+      presentSearchResults(items, '', 'all', recentIds).groups,
+    )
+  }, [animatePlaceholder, items, recentIds])
+  const typewriter = useTypewriterPlaceholder(
+    idleHints,
+    animatePlaceholder && !query.trim(),
+  )
+  const showHint = animatePlaceholder && !query.trim()
+  const HintIcon = typewriter.hint?.icon
 
   const resetIdleState = () => {
     setQuery('')
@@ -219,35 +240,57 @@ export const GlobalSearchPalette = forwardRef<
           className="pd-topbar__search-icon"
           aria-hidden
         />
-        <input
-          ref={inputRef}
-          type="search"
-          className="pd-topbar__search-input"
-          placeholder="Search…"
-          aria-label="Search OneTrack"
-          aria-expanded={open}
-          aria-controls={listId}
-          aria-activedescendant={
-            open && results[activeIndex]
-              ? `${listId}-option-${activeIndex}`
-              : undefined
-          }
-          aria-autocomplete="list"
-          aria-keyshortcuts="/"
-          role="combobox"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value)
-            setOpen(true)
-          }}
-          onFocus={() => {
-            setOpen(true)
-            setRecentIds(readRecentSearchIds())
-          }}
-          onKeyDown={handleKeyDown}
-          autoComplete="off"
-          spellCheck={false}
-        />
+        <span className="pd-topbar__search-field">
+          <input
+            ref={inputRef}
+            type="search"
+            className="pd-topbar__search-input"
+            placeholder={showHint ? '' : SEARCH_PLACEHOLDER_FALLBACK}
+            aria-label="Search OneTrack"
+            aria-expanded={open}
+            aria-controls={listId}
+            aria-activedescendant={
+              open && results[activeIndex]
+                ? `${listId}-option-${activeIndex}`
+                : undefined
+            }
+            aria-autocomplete="list"
+            aria-keyshortcuts="/"
+            role="combobox"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setOpen(true)
+            }}
+            onFocus={() => {
+              setOpen(true)
+              setRecentIds(readRecentSearchIds())
+            }}
+            onKeyDown={handleKeyDown}
+            autoComplete="off"
+            spellCheck={false}
+          />
+          {showHint ? (
+            <span className="pd-topbar__search-hint" aria-hidden>
+              {typewriter.hint?.avatarName ? (
+                <Avatar
+                  name={typewriter.hint.avatarName}
+                  src={typewriter.hint.avatarUrl}
+                  size="sm"
+                  className="pd-topbar__search-hint-avatar"
+                />
+              ) : HintIcon ? (
+                <span className="pd-topbar__search-hint-icon">
+                  <HintIcon size={14} strokeWidth={1.85} />
+                </span>
+              ) : null}
+              <span className="pd-topbar__search-hint-text">
+                {typewriter.text ||
+                  (typewriter.hint ? '\u00a0' : SEARCH_PLACEHOLDER_FALLBACK)}
+              </span>
+            </span>
+          ) : null}
+        </span>
         {query ? (
           <button
             type="button"

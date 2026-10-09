@@ -39,9 +39,18 @@ import {
   withBusinessNameFallback,
   type AgencyProfile,
 } from '@/lib/agencyProfile'
+import {
+  listAgencyProfileGaps,
+  settingsNavAlertCount,
+  type AgencyProfileGapId,
+} from '@/lib/agencyProfileGaps'
 import { updateTenantName } from '@/lib/tenantsStore'
 import { useActiveTenant } from '@/lib/useActiveTenant'
-import { validateRequiredName } from '@/lib/fieldValidation'
+import {
+  validateRequiredName,
+  validateRequiredPhone,
+  validateRequiredText,
+} from '@/lib/fieldValidation'
 import {
   applySidebarMode,
   type SidebarExpandMode,
@@ -65,7 +74,7 @@ const SETTINGS_SECTIONS: {
     {
       id: 'business',
       label: 'Business profile',
-      info: 'Business name is your agency name — shown in the sidebar, invoices, and documents. Contact details and logo are optional.',
+      info: 'Business name, address, and mobile appear on invoices and in the sidebar. Website and logo are optional.',
       icon: Building2,
     },
     {
@@ -170,6 +179,11 @@ export default function SettingsPage() {
     )
   }, [tenantId, tenant.name])
 
+  const agencyGaps = listAgencyProfileGaps(agencyDraft)
+  const businessAlertCount = settingsNavAlertCount(agencyDraft)
+  const missingGapIds = new Set(agencyGaps.map((gap) => gap.id))
+  const fieldIsMissing = (id: AgencyProfileGapId) => missingGapIds.has(id)
+
   const currentSection =
     SETTINGS_SECTIONS.find((section) => section.id === activeSection) ??
     SETTINGS_SECTIONS[0]
@@ -210,8 +224,15 @@ export default function SettingsPage() {
       agencyDraft.businessName,
       'Business name',
     )
-    if (nameError) {
-      setAgencyError(nameError)
+    const addressError = validateRequiredText(
+      agencyDraft.address,
+      'Address',
+      2,
+    )
+    const mobileError = validateRequiredPhone(agencyDraft.mobile)
+    const firstError = nameError ?? addressError ?? mobileError
+    if (firstError) {
+      setAgencyError(firstError)
       return
     }
     try {
@@ -221,6 +242,8 @@ export default function SettingsPage() {
         {
           ...agencyDraft,
           businessName: agencyDraft.businessName.trim(),
+          address: agencyDraft.address.trim(),
+          mobile: agencyDraft.mobile.trim(),
         },
         tenantId,
       )
@@ -240,18 +263,34 @@ export default function SettingsPage() {
         {SETTINGS_SECTIONS.map((section) => {
           const Icon = section.icon
           const selected = section.id === activeSection
+          const alertCount =
+            section.id === 'business' ? businessAlertCount : 0
           return (
             <button
               key={section.id}
               type="button"
               className={`pd-settings-nav__item${selected ? ' is-selected' : ''}`}
               aria-current={selected ? 'page' : undefined}
+              aria-label={
+                alertCount > 0
+                  ? `${section.label}, ${alertCount} needing attention`
+                  : undefined
+              }
               onClick={() => selectSection(section.id)}
             >
               <span className="pd-settings-nav__icon" aria-hidden>
                 <Icon size={16} strokeWidth={2} />
               </span>
               <span className="pd-settings-nav__label">{section.label}</span>
+              {alertCount > 0 ? (
+                <span
+                  className="pd-settings-nav__badge"
+                  aria-hidden
+                  title={`${alertCount} needing attention`}
+                >
+                  {alertCount}
+                </span>
+              ) : null}
             </button>
           )
         })}
@@ -288,40 +327,70 @@ export default function SettingsPage() {
                     updateAgencyField('profilePicture', photoUrl ?? null)
                   }
                 >
-                  <Input
-                    label="Business name"
-                    name="businessName"
-                    autoComplete="organization"
-                    placeholder="Your travel agency name"
-                    value={agencyDraft.businessName}
-                    onChange={(e) =>
-                      updateAgencyField('businessName', e.target.value)
-                    }
-                  />
+                  <div
+                    className={[
+                      'pd-settings-form__field',
+                      fieldIsMissing('businessName') && 'is-attention',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    <Input
+                      label="Business name"
+                      name="businessName"
+                      autoComplete="organization"
+                      placeholder="Your travel agency name"
+                      required
+                      value={agencyDraft.businessName}
+                      onChange={(e) =>
+                        updateAgencyField('businessName', e.target.value)
+                      }
+                    />
+                  </div>
                 </ProfilePhotoField>
-                <Textarea
-                  label="Address"
-                  name="address"
-                  autoComplete="street-address"
-                  placeholder="Office address"
-                  rows={3}
-                  value={agencyDraft.address}
-                  onChange={(e) =>
-                    updateAgencyField('address', e.target.value)
-                  }
-                />
-                <div className="pd-settings-form__grid">
-                  <Input
-                    label="Mobile number"
-                    name="mobile"
-                    type="tel"
-                    autoComplete="tel"
-                    placeholder="e.g. 01700 000000"
-                    value={agencyDraft.mobile}
+                <div
+                  className={[
+                    'pd-settings-form__field',
+                    fieldIsMissing('address') && 'is-attention',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  <Textarea
+                    label="Address"
+                    name="address"
+                    autoComplete="street-address"
+                    placeholder="Office address"
+                    rows={3}
+                    required
+                    value={agencyDraft.address}
                     onChange={(e) =>
-                      updateAgencyField('mobile', e.target.value)
+                      updateAgencyField('address', e.target.value)
                     }
                   />
+                </div>
+                <div className="pd-settings-form__grid">
+                  <div
+                    className={[
+                      'pd-settings-form__field',
+                      fieldIsMissing('mobile') && 'is-attention',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    <Input
+                      label="Mobile number"
+                      name="mobile"
+                      type="tel"
+                      autoComplete="tel"
+                      placeholder="e.g. 01700 000000"
+                      required
+                      value={agencyDraft.mobile}
+                      onChange={(e) =>
+                        updateAgencyField('mobile', e.target.value)
+                      }
+                    />
+                  </div>
                   <Input
                     label="Website"
                     name="website"

@@ -11,9 +11,16 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
+import { BusinessProfileSetupNotice } from '@/components/BusinessProfileSetupNotice'
 import { HomeGlobalSearch } from '@/components/home/HomeGlobalSearch'
 import { PlatformTour } from '@/components/onboarding/PlatformTour'
+import { useAgencyProfile } from '@/layout/useAgencyProfile'
+import { agencyProfileIsIncomplete } from '@/lib/agencyProfileGaps'
 import { isPathAllowed } from '@/lib/modules'
+import {
+  dismissBusinessProfileNudge,
+  useBusinessProfileNudgeState,
+} from '@/lib/onboardingStore'
 import { useActiveTenant } from '@/lib/useActiveTenant'
 import { useAuth } from '@/lib/useAuth'
 import '@/styles/layout-home.css'
@@ -77,7 +84,7 @@ const QUICK_LINKS: QuickLink[] = [
   {
     path: '/help',
     label: 'Help',
-    description: 'Everyday staff paths',
+    description: 'Workflow, search & FAQ',
     icon: HelpCircle,
   },
 ]
@@ -85,6 +92,10 @@ const QUICK_LINKS: QuickLink[] = [
 export default function HomePage() {
   const { user } = useAuth()
   const tenant = useActiveTenant()
+  const agencyProfile = useAgencyProfile()
+  const { dismissed: profileNudgeDismissed } = useBusinessProfileNudgeState()
+  const showProfileNudge =
+    agencyProfileIsIncomplete(agencyProfile) && !profileNudgeDismissed
 
   if (user?.role === 'platform_admin') {
     return <Navigate to="/admin/tenants" replace />
@@ -107,6 +118,14 @@ export default function HomePage() {
           Jump into a frequently used area to continue your work.
         </p>
       </header>
+
+      {showProfileNudge ? (
+        <BusinessProfileSetupNotice
+          profile={agencyProfile}
+          variant="home"
+          onDismiss={() => dismissBusinessProfileNudge()}
+        />
+      ) : null}
 
       <HomeGlobalSearch />
 

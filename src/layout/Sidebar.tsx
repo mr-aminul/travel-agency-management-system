@@ -41,6 +41,19 @@ function navLinkClass(collapsed: boolean, isActive: boolean, isChild = false) {
     .join(' ')
 }
 
+function NavBadge({ count }: { count: number }) {
+  if (count <= 0) return null
+  return (
+    <span
+      className="pd-sidebar-nav__badge"
+      aria-hidden="true"
+      title={`${count} needing attention`}
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
 function NavItemLink({
   item,
   collapsed,
@@ -52,14 +65,20 @@ function NavItemLink({
   onNavigate: () => void
   isChild?: boolean
 }) {
-  const { icon: Icon, label, path, end } = item
+  const { icon: Icon, label, path, end, badgeCount = 0 } = item
+  const ariaLabel =
+    collapsed || badgeCount > 0
+      ? badgeCount > 0
+        ? `${label}, ${badgeCount} needing attention`
+        : label
+      : undefined
 
   const link = (
     <NavLink
       to={path}
       end={end ?? path === '/'}
       className={({ isActive }) => navLinkClass(collapsed, isActive, isChild)}
-      aria-label={collapsed ? label : undefined}
+      aria-label={ariaLabel}
       onClick={(e) => {
         e.stopPropagation()
         onNavigate()
@@ -76,13 +95,20 @@ function NavItemLink({
       <span className="pd-sidebar-nav__label" aria-hidden={collapsed}>
         {label}
       </span>
+      <NavBadge count={badgeCount} />
     </NavLink>
   )
 
   if (!collapsed) return link
 
   return (
-    <Tooltip content={label} side="right" className="pd-sidebar-nav__tooltip">
+    <Tooltip
+      content={
+        badgeCount > 0 ? `${label} (${badgeCount} needing attention)` : label
+      }
+      side="right"
+      className="pd-sidebar-nav__tooltip"
+    >
       {link}
     </Tooltip>
   )

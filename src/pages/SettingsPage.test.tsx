@@ -3,6 +3,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { AuthProvider } from '@/lib/AuthProvider'
 import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
+import { saveAgencyProfile } from '@/lib/agencyProfile'
+import { DATA_KEYS } from '@/lib/data/keys'
 import { resetCustomServices } from '@/lib/customServicesStore'
 import { resetClientProfileFields } from '@/lib/clientProfileFieldsStore'
 import { resetHiddenServices } from '@/lib/hiddenServicesStore'
@@ -12,9 +14,12 @@ import { resetUserPageAccess } from '@/lib/userAccessStore'
 import { TENANT_IDS } from '@/types/tenant'
 import SettingsPage from '@/pages/SettingsPage'
 
+const INCOMPLETE_TENANT_ID = 'tenant-incomplete-profile'
+
 afterEach(() => {
   cleanup()
   clearSession()
+  localStorage.removeItem(DATA_KEYS.agencyProfiles)
   resetCustomServices()
   resetClientProfileFields()
   resetHiddenServices()
@@ -23,10 +28,10 @@ afterEach(() => {
   resetUserPageAccess()
 })
 
-function renderSettings(path: string) {
+function renderSettings(path: string, tenantId = TENANT_IDS.full) {
   writeSession({
     user: DEMO_USER,
-    tenantId: TENANT_IDS.full,
+    tenantId,
     signedInAt: '2026-01-01T00:00:00.000Z',
   })
   return render(
@@ -100,6 +105,38 @@ describe('settings service catalog', () => {
     ).toBeInTheDocument()
     const nameField = screen.getByLabelText('Business name')
     expect(nameField.closest('.pd-profile-photo__name')).not.toBeNull()
+  }, 15000)
+
+  it('badges Business profile and marks required fields when incomplete', async () => {
+    saveAgencyProfile(
+      {
+        businessName: 'River Tours',
+        address: '',
+        mobile: '',
+        website: '',
+        profilePicture: null,
+      },
+      INCOMPLETE_TENANT_ID,
+    )
+    renderSettings('/settings?section=business', INCOMPLETE_TENANT_ID)
+
+    expect(
+      await screen.findByRole('heading', { name: 'Business profile' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', {
+        name: 'Business profile, 1 needing attention',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByLabelText('Address').closest('.pd-settings-form__field'),
+    ).toHaveClass('is-attention')
+    expect(
+      screen.getByLabelText('Mobile number').closest('.pd-settings-form__field'),
+    ).toHaveClass('is-attention')
+    expect(
+      screen.getByLabelText('Business name').closest('.pd-settings-form__field'),
+    ).not.toHaveClass('is-attention')
   }, 15000)
 
   it('writes the section into the URL', async () => {
