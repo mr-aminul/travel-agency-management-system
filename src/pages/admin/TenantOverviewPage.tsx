@@ -1,14 +1,12 @@
 import { useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import {
-  Boxes,
   Building2,
   CircleDot,
   NotebookPen,
   type LucideIcon,
 } from 'lucide-react'
 import { ADMIN_AGENCIES, adminAgencyPath } from '@/lib/adminPaths'
-import { iconForModule, labelForModule } from '@/lib/moduleIcons'
 import { useTenantMembersByTenantId } from '@/lib/tenantMembersStore'
 import {
   setTenantStatus,
@@ -156,28 +154,6 @@ export default function TenantOverviewPage() {
           </p>
         ) : null}
       </section>
-
-      {tenant.enabledModules.length > 0 ? (
-        <section className="pd-client-detail__section pd-client-detail__section--compact">
-          <div className="pd-client-detail__section-head">
-            <SectionTitle icon={Boxes}>Modules</SectionTitle>
-          </div>
-          <ul className="pd-admin__chip-list" aria-label="Enabled modules">
-            {tenant.enabledModules.map((moduleId) => {
-              const Icon = iconForModule(moduleId)
-              const label = labelForModule(moduleId)
-              return (
-                <li key={moduleId}>
-                  <span className="pd-admin__module-chip" title={label}>
-                    <Icon size={14} strokeWidth={2.1} aria-hidden />
-                    <span>{label}</span>
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      ) : null}
     </div>
   )
 }

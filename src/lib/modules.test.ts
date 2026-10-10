@@ -1,5 +1,6 @@
 import { describe, expect, it, afterEach } from 'vitest'
 import { layoutConfig } from '@/config/layout'
+import { DATA_KEYS, saveJson } from '@/lib/data'
 import {
   MODULE_GROUPS,
   filterNavItems,
@@ -172,5 +173,24 @@ describe('module entitlements', () => {
         .find((item) => item.path === '/hr')
         ?.children?.map((child) => child.label),
     ).toEqual(['Employees', 'Attendance & Leave', 'Payroll'])
+  })
+
+  it('keeps toggles when the agency also exists in created tenants', () => {
+    const leisure = getTenantById(TENANT_IDS.leisure)!
+    saveJson(DATA_KEYS.tenantsCreated, [
+      {
+        ...leisure,
+        enabledModules: ['finance'],
+      },
+    ])
+    window.dispatchEvent(new Event('pd-data-rehydrated'))
+
+    setTenantModuleEnabled(TENANT_IDS.leisure, 'hr', true)
+    expect(getTenantById(TENANT_IDS.leisure)!.enabledModules).toContain('hr')
+
+    setTenantModuleEnabled(TENANT_IDS.leisure, 'finance', false)
+    expect(getTenantById(TENANT_IDS.leisure)!.enabledModules).not.toContain(
+      'finance',
+    )
   })
 })

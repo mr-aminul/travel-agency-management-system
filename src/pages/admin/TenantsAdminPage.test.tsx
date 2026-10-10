@@ -8,16 +8,20 @@ import {
   clearSession,
   writeSession,
 } from '@/lib/authApi'
+import { getTenantById, resetTenantEntitlements } from '@/lib/tenantsStore'
 import { TENANT_IDS } from '@/types/tenant'
 import TenantsAdminPage from '@/pages/admin/TenantsAdminPage'
 import TenantAdminLayout from '@/pages/admin/TenantAdminLayout'
+import TenantAllPage from '@/pages/admin/TenantAllPage'
 import TenantOverviewPage from '@/pages/admin/TenantOverviewPage'
 import TenantUsersPage from '@/pages/admin/TenantUsersPage'
 import TenantModulesPage from '@/pages/admin/TenantModulesPage'
+import TenantActivityPage from '@/pages/admin/TenantActivityPage'
 
 afterEach(() => {
   cleanup()
   clearSession()
+  resetTenantEntitlements()
 })
 
 function asAdmin() {
@@ -40,10 +44,12 @@ function renderAdmin(path: string) {
               path="/admin/agencies/:tenantId"
               element={<TenantAdminLayout />}
             >
-              <Route index element={<Navigate to="overview" replace />} />
+              <Route index element={<Navigate to="all" replace />} />
+              <Route path="all" element={<TenantAllPage />} />
               <Route path="overview" element={<TenantOverviewPage />} />
               <Route path="people" element={<TenantUsersPage />} />
               <Route path="product" element={<TenantModulesPage />} />
+              <Route path="activity" element={<TenantActivityPage />} />
             </Route>
           </Routes>
         </Suspense>
@@ -72,8 +78,12 @@ describe('platform admin agencies', () => {
     expect(
       await screen.findByRole('heading', { name: 'Coastal Leisure' }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'All' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'People' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Product' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('switch', { name: 'Tourist Visa' }),
+    ).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('link', { name: 'People' }))
     expect(
@@ -85,5 +95,26 @@ describe('platform admin agencies', () => {
     expect(
       await screen.findByRole('switch', { name: 'Tourist Visa' }),
     ).toBeInTheDocument()
+  })
+
+  it('keeps a confirmed product toggle after leaving and returning', async () => {
+    renderAdmin(`/admin/agencies/${TENANT_IDS.leisure}/product`)
+
+    const hrSwitch = await screen.findByRole('switch', { name: 'HR' })
+    expect(hrSwitch).not.toBeChecked()
+
+    fireEvent.click(hrSwitch)
+    fireEvent.click(await screen.findByRole('button', { name: 'Enable' }))
+
+    expect(await screen.findByRole('switch', { name: 'HR' })).toBeChecked()
+    expect(getTenantById(TENANT_IDS.leisure)!.enabledModules).toContain('hr')
+
+    fireEvent.click(screen.getByRole('link', { name: 'People' }))
+    expect(
+      await screen.findByText('ops@coastalleisure.com'),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('link', { name: 'Product' }))
+    expect(await screen.findByRole('switch', { name: 'HR' })).toBeChecked()
   })
 })

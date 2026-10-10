@@ -12,6 +12,7 @@ import {
   CircleDot,
   ExternalLink,
   LayoutDashboard,
+  LayoutGrid,
   ScrollText,
   Users,
   UsersRound,
@@ -44,6 +45,7 @@ import {
 } from '@/components/ui'
 
 const SECTIONS = [
+  { to: 'all', label: 'All', icon: LayoutGrid },
   { to: 'overview', label: 'Overview', icon: LayoutDashboard },
   { to: 'people', label: 'People', icon: Users },
   { to: 'product', label: 'Product', icon: Boxes },
@@ -106,7 +108,7 @@ export default function TenantAdminLayout() {
     setSupportError(undefined)
     setSupportBusy(true)
     try {
-      setSupportReturnPath(adminAgencyPath(tenant.id, 'overview'))
+      setSupportReturnPath(adminAgencyPath(tenant.id, 'all'))
       await startViewAs({
         userId: owner.id,
         email: owner.email,
@@ -215,7 +217,7 @@ export default function TenantAdminLayout() {
               to={adminAgencyPath(tenant.id, 'product')}
             >
               <span className="pd-client-detail__card-snap-label">
-                <Boxes size={12} strokeWidth={2.25} aria-hidden /> Modules
+                <Boxes size={12} strokeWidth={2.25} aria-hidden /> Product
               </span>
               <span className="pd-client-detail__card-snap-value">
                 {tenant.enabledModules.length}

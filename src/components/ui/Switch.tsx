@@ -25,7 +25,6 @@ export function Switch({
         disabled && 'is-disabled',
         className,
       )}
-      htmlFor={inputId}
     >
       <input
         id={inputId}

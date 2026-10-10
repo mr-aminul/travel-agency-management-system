@@ -34,6 +34,7 @@ const PublicClientIntakePage = lazy(() => import('@/pages/PublicClientIntakePage
 const AdminOverviewPage = lazy(() => import('@/pages/admin/AdminOverviewPage'))
 const TenantsAdminPage = lazy(() => import('@/pages/admin/TenantsAdminPage'))
 const TenantAdminLayout = lazy(() => import('@/pages/admin/TenantAdminLayout'))
+const TenantAllPage = lazy(() => import('@/pages/admin/TenantAllPage'))
 const TenantOverviewPage = lazy(() => import('@/pages/admin/TenantOverviewPage'))
 const TenantUsersPage = lazy(() => import('@/pages/admin/TenantUsersPage'))
 const TenantModulesPage = lazy(() => import('@/pages/admin/TenantModulesPage'))
@@ -65,7 +66,7 @@ function LegacyTenantAdminRedirect() {
       ? 'people'
       : section === 'modules'
         ? 'product'
-        : section || 'overview'
+        : section || 'all'
   return <Navigate to={`/admin/agencies/${tenantId}/${mapped}`} replace />
 }
 
@@ -153,7 +154,8 @@ function App() {
               path="admin/agencies/:tenantId"
               element={<TenantAdminLayout />}
             >
-              <Route index element={<Navigate to="overview" replace />} />
+              <Route index element={<Navigate to="all" replace />} />
+              <Route path="all" element={<TenantAllPage />} />
               <Route path="overview" element={<TenantOverviewPage />} />
               <Route path="people" element={<TenantUsersPage />} />
               <Route path="product" element={<TenantModulesPage />} />

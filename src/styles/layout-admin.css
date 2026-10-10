@@ -82,6 +82,13 @@
   border-bottom-color: var(--color-theme-ink);
 }
 
+.pd-admin__all-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
 .pd-admin--tenant a.pd-client-detail__card-snap {
   text-decoration: none;
   color: inherit;

@@ -420,26 +420,29 @@ export function setTenantModuleEnabled(
   moduleId: ModuleId,
   enabled: boolean,
 ): Tenant | undefined {
+  // An agency can appear in both the seed list and pd-tenants-created (launch
+  // bootstrap). Snapshot merge prefers created rows, so both must be patched
+  // or the UI snaps back to the stale copy after emit().
   const seedPatch = patchTenantModules(tenants, tenantId, moduleId, enabled)
-  if (seedPatch.updated) {
-    tenants = seedPatch.list
-    persistOverrides(tenants)
-    emit()
-    return seedPatch.updated
-  }
   const createdPatch = patchTenantModules(
     createdTenants,
     tenantId,
     moduleId,
     enabled,
   )
+
+  if (!seedPatch.updated && !createdPatch.updated) return undefined
+
+  if (seedPatch.updated) {
+    tenants = seedPatch.list
+    persistOverrides(tenants)
+  }
   if (createdPatch.updated) {
     createdTenants = createdPatch.list
     persistCreatedTenants()
-    emit()
-    return createdPatch.updated
   }
-  return undefined
+  emit()
+  return getTenantById(tenantId)
 }
 
 export function tenantHasModule(tenant: Tenant, moduleId: ModuleId) {

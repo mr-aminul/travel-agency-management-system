@@ -13,10 +13,11 @@ export const ADMIN_PLATFORM = '/admin/platform'
 export function adminAgencyPath(
   tenantId: string,
   section:
+    | 'all'
     | 'overview'
     | 'people'
     | 'product'
-    | 'activity' = 'overview',
+    | 'activity' = 'all',
 ): string {
   return `${ADMIN_AGENCIES}/${tenantId}/${section}`
 }

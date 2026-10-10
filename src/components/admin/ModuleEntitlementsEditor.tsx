@@ -1,8 +1,15 @@
+import { useState } from 'react'
 import { MODULE_GROUPS, type ModuleCatalogItem } from '@/lib/modules'
 import { iconForModule } from '@/lib/moduleIcons'
-import { setTenantModuleEnabled } from '@/lib/tenantsStore'
+import { setTenantModuleEnabled, useTenantById } from '@/lib/tenantsStore'
 import type { ModuleId, Tenant } from '@/types/tenant'
-import { Switch } from '@/components/ui'
+import { ConfirmDialog, Switch } from '@/components/ui'
+
+type PendingToggle = {
+  moduleId: ModuleId
+  next: boolean
+  label: string
+}
 
 function ModuleRow({
   module,
@@ -11,7 +18,7 @@ function ModuleRow({
 }: {
   module: ModuleCatalogItem
   checked: boolean
-  onToggle: (moduleId: ModuleId, next: boolean) => void
+  onToggle: (moduleId: ModuleId, next: boolean, label: string) => void
 }) {
   const Icon = iconForModule(module.id)
 
@@ -27,7 +34,9 @@ function ModuleRow({
         label={module.label}
         className="pd-admin__module-switch"
         checked={checked}
-        onChange={(event) => onToggle(module.id, event.target.checked)}
+        onChange={(event) =>
+          onToggle(module.id, event.target.checked, module.label)
+        }
       />
     </li>
   )
@@ -40,15 +49,35 @@ export function ModuleEntitlementsEditor({
   tenant: Tenant
   onChange?: (tenant: Tenant) => void
 }) {
-  const enabled = new Set(tenant.enabledModules)
+  // Prefer the live store row so toggles re-render even if a parent passes a
+  // stale tenant snapshot (e.g. All view stacking several sections).
+  const liveTenant = useTenantById(tenant.id) ?? tenant
+  const enabled = new Set(liveTenant.enabledModules)
   const servicesGroup = MODULE_GROUPS.find((group) => group.id === 'services')
   const workspaceModules = MODULE_GROUPS.filter(
     (group) => group.id !== 'services',
   ).flatMap((group) => group.modules)
+  const [pending, setPending] = useState<PendingToggle | null>(null)
 
-  const toggle = (moduleId: ModuleId, next: boolean) => {
-    const updated = setTenantModuleEnabled(tenant.id, moduleId, next)
+  const requestToggle = (
+    moduleId: ModuleId,
+    next: boolean,
+    label: string,
+  ) => {
+    setPending({ moduleId, next, label })
+  }
+
+  const closeConfirm = () => setPending(null)
+
+  const confirmToggle = () => {
+    if (!pending) return
+    const updated = setTenantModuleEnabled(
+      liveTenant.id,
+      pending.moduleId,
+      pending.next,
+    )
     if (updated) onChange?.(updated)
+    setPending(null)
   }
 
   return (
@@ -70,7 +99,7 @@ export function ModuleEntitlementsEditor({
                 key={module.id}
                 module={module}
                 checked={enabled.has(module.id)}
-                onToggle={toggle}
+                onToggle={requestToggle}
               />
             ))}
           </ul>
@@ -94,12 +123,32 @@ export function ModuleEntitlementsEditor({
                 key={module.id}
                 module={module}
                 checked={enabled.has(module.id)}
-                onToggle={toggle}
+                onToggle={requestToggle}
               />
             ))}
           </ul>
         </section>
       ) : null}
+
+      <ConfirmDialog
+        open={pending != null}
+        onClose={closeConfirm}
+        onConfirm={confirmToggle}
+        title={
+          pending
+            ? `${pending.next ? 'Enable' : 'Disable'} ${pending.label}?`
+            : 'Change product?'
+        }
+        description={
+          pending
+            ? pending.next
+              ? `Are you sure you want to enable ${pending.label} for this agency?`
+              : `Are you sure you want to disable ${pending.label} for this agency?`
+            : undefined
+        }
+        confirmLabel={pending?.next ? 'Enable' : 'Disable'}
+        confirmVariant={pending?.next ? 'primary' : 'danger'}
+      />
     </div>
   )
 }
