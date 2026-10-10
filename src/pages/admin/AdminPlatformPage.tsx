@@ -126,22 +126,22 @@ export default function AdminPlatformPage() {
                 <div>
                   <h2 className="pd-admin__panel-title">Default module pack</h2>
                   <p className="pd-admin__panel-desc">
-                    Applied when a new agency is created. Per-agency product
-                    entitlements can still be edited on the agency Product tab.
+                    New agencies start with every product switch off. You turn
+                    on what each agency needs on their Product tab.
                   </p>
                 </div>
               </header>
-              <ul className="pd-admin__chip-list">
-                {defaultLabels.map((label) => (
-                  <li key={label}>
-                    <Badge variant="pending">{label}</Badge>
-                  </li>
-                ))}
-              </ul>
-              <p className="pd-admin__quiet">
-                Editable default packs are coming next — today these match{' '}
-                <code>DEFAULT_STARTER_MODULES</code>.
-              </p>
+              {defaultLabels.length === 0 ? (
+                <p className="pd-admin__quiet">Nothing enabled by default.</p>
+              ) : (
+                <ul className="pd-admin__chip-list">
+                  {defaultLabels.map((label) => (
+                    <li key={label}>
+                      <Badge variant="pending">{label}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           ) : null}
 

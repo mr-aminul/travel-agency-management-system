@@ -139,6 +139,28 @@ describe('settings service catalog', () => {
     ).not.toHaveClass('is-attention')
   }, 15000)
 
+  it('can leave Sub-agent access for Service catalog and User access', async () => {
+    renderSettings('/settings?section=subAgentAccess')
+
+    expect(
+      await screen.findByRole('heading', { name: 'Sub-agent access' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Service catalog' }))
+    expect(
+      await screen.findByRole('heading', { name: 'Service catalog' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'User-wise Access Management' }),
+    )
+    expect(
+      await screen.findByRole('heading', {
+        name: 'User-wise Access Management',
+      }),
+    ).toBeInTheDocument()
+  }, 15000)
+
   it('writes the section into the URL', async () => {
     renderSettings('/settings')
 

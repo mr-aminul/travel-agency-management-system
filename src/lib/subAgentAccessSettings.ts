@@ -1,6 +1,6 @@
 import { DATA_KEYS, loadJsonParsed, saveJson } from '@/lib/data'
 import { getActiveTenantId } from '@/lib/authApi'
-import { useSyncExternalStore } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import type { SubAgentAccessSettings } from '@/types/subAgentAccess'
 
 const STORAGE_KEY = DATA_KEYS.subAgentAccessSettings
@@ -92,8 +92,12 @@ export function useSubAgentAccessSettings(
   tenantId = getActiveTenantId(),
 ): SubAgentAccessSettings {
   const all = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
-  return (
-    all.find((row) => row.tenantId === tenantId) ??
-    defaultSubAgentAccessSettings(tenantId)
+  // Memoize so callers that depend on `approverMemberIds` do not see a fresh
+  // `[]` every render when the tenant has no saved row (that loop froze Settings).
+  return useMemo(
+    () =>
+      all.find((row) => row.tenantId === tenantId) ??
+      defaultSubAgentAccessSettings(tenantId),
+    [all, tenantId],
   )
 }

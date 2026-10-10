@@ -10,6 +10,7 @@ import {
 } from '@/lib/modules'
 import { TENANT_IDS } from '@/types/tenant'
 import {
+  createTenant,
   getTenantById,
   setTenantModuleEnabled,
   resetTenantEntitlements,
@@ -173,6 +174,12 @@ describe('module entitlements', () => {
         .find((item) => item.path === '/hr')
         ?.children?.map((child) => child.label),
     ).toEqual(['Employees', 'Attendance & Leave', 'Payroll'])
+  })
+
+  it('creates agencies with every product module off', () => {
+    const agency = createTenant({ name: 'Blank Agency Co' })
+    expect(agency.enabledModules).toEqual([])
+    expect(getTenantById(agency.id)?.enabledModules).toEqual([])
   })
 
   it('keeps toggles when the agency also exists in created tenants', () => {

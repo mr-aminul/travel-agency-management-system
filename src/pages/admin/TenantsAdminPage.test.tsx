@@ -70,7 +70,7 @@ describe('platform admin agencies', () => {
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
   })
 
-  it('shows the agency setup checklist on platform overview', async () => {
+  it('takes platform overview Add agency into the create drawer', async () => {
     asAdmin()
     const { default: AdminOverviewPage } = await import(
       '@/pages/admin/AdminOverviewPage'
@@ -81,17 +81,17 @@ describe('platform admin agencies', () => {
           <Suspense fallback={<p>Loading</p>}>
             <Routes>
               <Route path="/admin" element={<AdminOverviewPage />} />
+              <Route path="/admin/agencies" element={<TenantsAdminPage />} />
             </Routes>
           </Suspense>
         </MemoryRouter>
       </AuthProvider>,
     )
 
+    fireEvent.click(await screen.findByRole('button', { name: 'Add agency' }))
     expect(
-      await screen.findByRole('heading', { name: 'Set up an agency' }),
+      await screen.findByRole('heading', { name: 'Add agency' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('Turn on product')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Go to agencies' })).toBeInTheDocument()
   })
 
   it('opens agency overview and exposes product modules', async () => {

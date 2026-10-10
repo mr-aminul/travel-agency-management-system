@@ -35,16 +35,8 @@ const NAMES_KEY = DATA_KEYS.tenantNames
 const STATUSES_KEY = DATA_KEYS.tenantStatuses
 const CREATED_TENANTS_KEY = DATA_KEYS.tenantsCreated
 
-/** Sensible default catalog for newly onboarded agencies. */
-export const DEFAULT_STARTER_MODULES: ModuleId[] = [
-  'services.touristVisa',
-  'services.studentVisa',
-  'services.airTicket',
-  'services.hotelBooking',
-  'services.tourPackage',
-  'finance',
-  'documents',
-]
+/** New agencies start with nothing enabled — platform admin turns product on. */
+export const DEFAULT_STARTER_MODULES: ModuleId[] = []
 
 const SEED_TENANTS: Tenant[] = [
   {

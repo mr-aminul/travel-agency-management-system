@@ -9,13 +9,11 @@ import {
 import {
   Boxes,
   Calendar,
-  CircleDot,
   ExternalLink,
   LayoutDashboard,
   LayoutGrid,
   ScrollText,
   Users,
-  UsersRound,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import {
@@ -40,7 +38,6 @@ import {
   Avatar,
   Badge,
   Button,
-  CopyableText,
   type BadgeVariant,
 } from '@/components/ui'
 
@@ -168,25 +165,9 @@ export default function TenantAdminLayout() {
               </dd>
             </div>
             <div className="pd-client-detail__card-field">
-              <dt>Slug</dt>
+              <dt>Usage</dt>
               <dd>
-                <CopyableText value={tenant.slug} label="slug" />
-              </dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Support</dt>
-              <dd>
-                {owner ? (
-                  owner.name
-                ) : (
-                  <span className="pd-client-detail__empty">—</span>
-                )}
-              </dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Clients</dt>
-              <dd>
-                {clientCount} · {caseCount} svc · {paymentCount} pay
+                {clientCount} clients · {caseCount} svc · {paymentCount} pay
               </dd>
             </div>
           </dl>
@@ -204,14 +185,6 @@ export default function TenantAdminLayout() {
                 {activeUsers !== members.length ? ` · ${activeUsers}` : ''}
               </span>
             </NavLink>
-            <div className="pd-client-detail__card-snap" role="group">
-              <span className="pd-client-detail__card-snap-label">
-                <UsersRound size={12} strokeWidth={2.25} aria-hidden /> Clients
-              </span>
-              <span className="pd-client-detail__card-snap-value">
-                {clientCount}
-              </span>
-            </div>
             <NavLink
               className="pd-client-detail__card-snap"
               to={adminAgencyPath(tenant.id, 'product')}
@@ -223,14 +196,6 @@ export default function TenantAdminLayout() {
                 {tenant.enabledModules.length}
               </span>
             </NavLink>
-            <div className="pd-client-detail__card-snap" role="group">
-              <span className="pd-client-detail__card-snap-label">
-                <CircleDot size={12} strokeWidth={2.25} aria-hidden /> Status
-              </span>
-              <span className="pd-client-detail__card-snap-value">
-                {statusLabel(tenant.status)}
-              </span>
-            </div>
           </div>
 
           <p className="pd-client-detail__card-footer">

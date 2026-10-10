@@ -1,5 +1,5 @@
-import { useMemo, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Building2, ChevronRight, PauseCircle, Plus, Timer } from 'lucide-react'
 import { agencyWithOwnerCreateErrors } from '@/lib/agencyUserRules'
 import { ADMIN_AGENCIES, adminAgencyPath } from '@/lib/adminPaths'
@@ -66,9 +66,18 @@ export default function TenantsAdminPage() {
   const tenants = useTenants()
   const members = useTenantMembers()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [createOpen, setCreateOpen] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') return
+    setCreateOpen(true)
+    const next = new URLSearchParams(searchParams)
+    next.delete('new')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
   const [name, setName] = useState('')
   const [ownerName, setOwnerName] = useState('')
   const [ownerEmail, setOwnerEmail] = useState('')
@@ -339,7 +348,7 @@ export default function TenantsAdminPage() {
         open={createOpen}
         onClose={closeCreate}
         title="Add agency"
-        description="Create the agency and its first owner login. Product modules can be enabled later."
+        description="Create the agency and its first owner login. Product starts fully off — you turn on what they need next."
         footer={
           <>
             <Button
@@ -359,7 +368,12 @@ export default function TenantsAdminPage() {
           </>
         }
       >
-        <form id="pd-admin-create-agency" onSubmit={handleCreate} noValidate>
+        <form
+          id="pd-admin-create-agency"
+          className="pd-admin__form-stack"
+          onSubmit={handleCreate}
+          noValidate
+        >
           <Input
             label="Agency name"
             required
@@ -413,7 +427,7 @@ export default function TenantsAdminPage() {
         onClose={() => {
           const tenantId = createdCredentials?.tenantId
           setCreatedCredentials(null)
-          if (tenantId) navigate(adminAgencyPath(tenantId, 'all'))
+          if (tenantId) navigate(adminAgencyPath(tenantId, 'product'))
         }}
         title="Agency created"
         description="Share the owner login now. The password will not be shown again."
@@ -422,11 +436,11 @@ export default function TenantsAdminPage() {
             onClick={() => {
               const tenantId = createdCredentials?.tenantId
               setCreatedCredentials(null)
-              if (tenantId) navigate(adminAgencyPath(tenantId, 'all'))
+              if (tenantId) navigate(adminAgencyPath(tenantId, 'product'))
               else navigate(ADMIN_AGENCIES)
             }}
           >
-            Continue setup
+            Turn on product
           </Button>
         }
       >
@@ -446,12 +460,6 @@ export default function TenantsAdminPage() {
                 label="password"
               />
             </p>
-            <ol className="pd-admin__checklist pd-admin__checklist--compact">
-              <li>
-                <strong>Next:</strong>
-                <span>Set status, turn on product, then Open agency.</span>
-              </li>
-            </ol>
           </>
         ) : null}
       </Modal>

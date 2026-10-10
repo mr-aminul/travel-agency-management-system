@@ -96,60 +96,21 @@ export default function AdminOverviewPage() {
         title="Overview"
         description="Platform pulse — agencies that need attention and shortcuts into daily ops."
         actions={
-          <Button onClick={() => navigate(ADMIN_AGENCIES)}>All agencies</Button>
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => navigate(ADMIN_AGENCIES)}
+            >
+              All agencies
+            </Button>
+            <Button onClick={() => navigate(`${ADMIN_AGENCIES}?new=1`)}>
+              Add agency
+            </Button>
+          </>
         }
       />
 
       <StatCards label="Platform metrics" cards={cards} />
-
-      <section
-        className="pd-admin__panel"
-        aria-labelledby="admin-setup-checklist-title"
-      >
-        <header className="pd-admin__panel-header">
-          <div>
-            <h2
-              id="admin-setup-checklist-title"
-              className="pd-admin__panel-title"
-            >
-              Set up an agency
-            </h2>
-            <p className="pd-admin__panel-desc">
-              Use this every time you onboard a customer. Do the steps in order.
-            </p>
-          </div>
-          <Button variant="secondary" onClick={() => navigate(ADMIN_AGENCIES)}>
-            Go to agencies
-          </Button>
-        </header>
-        <ol className="pd-admin__checklist">
-          <li>
-            <strong>Add the agency</strong>
-            <span>Create it with an owner name, email, and password.</span>
-          </li>
-          <li>
-            <strong>Set status</strong>
-            <span>Trial while they evaluate; Active when they are live.</span>
-          </li>
-          <li>
-            <strong>Turn on product</strong>
-            <span>
-              On the agency page, enable the services and workspaces they need.
-            </span>
-          </li>
-          <li>
-            <strong>Check people</strong>
-            <span>Make sure the owner can sign in; add staff if needed.</span>
-          </li>
-          <li>
-            <strong>Open agency</strong>
-            <span>
-              Use Open agency to see their workspace, then ask them to finish
-              business profile and send their first client link.
-            </span>
-          </li>
-        </ol>
-      </section>
 
       <section className="pd-admin__panel" aria-labelledby="admin-attention-title">
         <header className="pd-admin__panel-header">

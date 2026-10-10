@@ -553,7 +553,7 @@
 }
 
 /* Transform on the page-enter animation would trap sticky positioning. */
-.pd-client-detail > .pd-client-detail__layout {
+.pd-client-detail>.pd-client-detail__layout {
   animation: none;
 }
 
@@ -1960,12 +1960,12 @@
     width: 2rem;
   }
 
-  .pd-clients__toolbar-end > .pd-btn,
-  .pd-clients__toolbar-end > .pd-split-btn {
+  .pd-clients__toolbar-end>.pd-btn,
+  .pd-clients__toolbar-end>.pd-split-btn {
     flex: 0 0 auto;
   }
 
-  .pd-clients__toolbar-end > :last-child {
+  .pd-clients__toolbar-end> :last-child {
     margin-inline-start: auto;
   }
 

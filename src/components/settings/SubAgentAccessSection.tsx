@@ -22,7 +22,7 @@ export function SubAgentAccessSection() {
   useEffect(() => {
     setRequireApproval(saved.requireApproval)
     setApproverMemberIds(saved.approverMemberIds)
-  }, [saved.requireApproval, saved.approverMemberIds])
+  }, [saved])
 
   useEffect(() => {
     if (!status) return
