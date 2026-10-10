@@ -92,32 +92,21 @@ export function StepBranchRulesEditor({
     ])
   }
 
-  if (selectFields.length === 0) {
-    return (
-      <div className="pd-settings-template__branches">
-        <span className="pd-settings-template__needs-label">Next step</span>
-        <p className="pd-settings-template__needs-empty">
-          Add a dropdown field on a document to branch this status (e.g. Fit /
-          Unfit). Otherwise goes to {defaultNext}.
-        </p>
-      </div>
-    )
-  }
-
   return (
     <div className="pd-settings-template__branches">
       <div className="pd-settings-template__branches-head">
-        <span className="pd-settings-template__needs-label">Next step</span>
-        <Button type="button" variant="ghost" size="sm" onClick={addRule}>
-          <Plus size={12} />
-          Branch
-        </Button>
+        <div className="pd-settings-template__branches-label">
+          <span className="pd-settings-template__needs-label">Next step</span>
+          <span className="pd-settings-template__next-chip">{defaultNext}</span>
+        </div>
+        {selectFields.length > 0 ? (
+          <Button type="button" variant="ghost" size="sm" onClick={addRule}>
+            <Plus size={12} />
+            Branch
+          </Button>
+        ) : null}
       </div>
-      <p className="pd-field-hint">
-        Default: {defaultNext}. Branches run when this status completes — first
-        match wins.
-      </p>
-      {rules.length ? (
+      {selectFields.length > 0 && rules.length ? (
         <ul className="pd-settings-template__branch-list">
           {rules.map((rule, index) => {
             const fieldOptions = selectFields.map((field) => ({

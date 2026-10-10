@@ -4,7 +4,14 @@ import { DocumentFieldsEditor } from '@/components/settings/DocumentFieldsEditor
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { StepBranchRulesEditor } from '@/components/settings/StepBranchRulesEditor'
 import { cx } from '@/lib/cx'
-import { Button, Checkbox, ConfirmDialog, Input, Select } from '@/components/ui'
+import {
+  Button,
+  Checkbox,
+  ConfirmDialog,
+  Input,
+  Select,
+  Switch,
+} from '@/components/ui'
 import {
   getDefaultDocumentForm,
   getEditableDocumentFields,
@@ -30,6 +37,7 @@ import { toggleStepRequiredDocument } from '@/lib/stepDocumentLinks'
 import type { ServiceType } from '@/types/case'
 import type { DocumentFormFieldDraft } from '@/types/documentFormField'
 import type { ServiceStepBranchRule } from '@/types/serviceTemplate'
+import '@/styles/layout-journey.css'
 
 const ALL_COUNTRIES = ''
 
@@ -376,7 +384,7 @@ export function ServiceTemplateEditor({
       </div>
 
       <div className="pd-settings-template__panes">
-        <div className="pd-settings-template__block">
+        <div className="pd-settings-template__block pd-settings-template__block--journey">
           <div className="pd-settings-template__head">
             <div>
               <span className="pd-settings-template__label">
@@ -399,162 +407,183 @@ export function ServiceTemplateEditor({
               Add at least one status step before saving.
             </p>
           ) : (
-            <ol className="pd-settings-template__list pd-settings-template__list--steps">
-              {steps.map((step, index) => {
-                const needed = step.requiredDocumentIds ?? []
-                const namedNeeded = needed
-                  .map((id) => documents.find((doc) => doc.id === id))
-                  .filter((doc): doc is (typeof documents)[number] => Boolean(doc))
-                return (
-                  <li key={step.id} className="pd-settings-template__step">
-                    <div className="pd-settings-template__row">
-                      <span className="pd-settings-template__index" aria-hidden>
-                        {index + 1}
-                      </span>
-                      <Input
-                        aria-label={`Step ${index + 1}`}
-                        placeholder="e.g. Medical"
-                        value={step.label}
-                        onChange={(event) => {
-                          const label = event.target.value
-                          setSteps((current) =>
-                            current.map((item) =>
-                              item.id === step.id ? { ...item, label } : item,
-                            ),
-                          )
-                          markDirty()
-                        }}
-                      />
-                      <span className="pd-settings-template__row-actions">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-label="Move step up"
-                          disabled={index === 0}
-                          onClick={() => moveStep(index, -1)}
-                        >
-                          <ChevronUp size={14} />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-label="Move step down"
-                          disabled={index === steps.length - 1}
-                          onClick={() => moveStep(index, 1)}
-                        >
-                          <ChevronDown size={14} />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-label={`Remove ${step.label || 'step'}`}
-                          onClick={() => {
-                            setSteps((current) =>
-                              current
-                                .filter((item) => item.id !== step.id)
-                                .map((item) => ({
-                                  ...item,
-                                  branchRules: item.branchRules?.filter(
-                                    (rule) => rule.nextStepId !== step.id,
+            <div className="pd-journey pd-settings-template__journey">
+              <ol className="pd-journey__steps" aria-label="Status journey">
+                {steps.map((step, index) => {
+                  const needed = step.requiredDocumentIds ?? []
+                  const namedNeeded = needed
+                    .map((id) => documents.find((doc) => doc.id === id))
+                    .filter(
+                      (doc): doc is (typeof documents)[number] => Boolean(doc),
+                    )
+                  return (
+                    <li
+                      key={step.id}
+                      className="pd-journey__step pd-settings-template__journey-step"
+                    >
+                      <div className="pd-journey__row">
+                        <span className="pd-journey__marker" aria-hidden>
+                          {index + 1}
+                        </span>
+                        <span className="pd-journey__body">
+                          <span className="pd-journey__head pd-settings-template__journey-head">
+                            <Input
+                              className="pd-settings-template__journey-title"
+                              aria-label={`Step ${index + 1}`}
+                              placeholder="e.g. Medical"
+                              value={step.label}
+                              onChange={(event) => {
+                                const label = event.target.value
+                                setSteps((current) =>
+                                  current.map((item) =>
+                                    item.id === step.id
+                                      ? { ...item, label }
+                                      : item,
                                   ),
-                                })),
-                            )
-                            markDirty()
-                          }}
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </span>
-                    </div>
-                    <div className="pd-settings-template__needs">
-                      <span className="pd-settings-template__needs-label">
-                        Needs docs
-                      </span>
-                      <div className="pd-settings-template__needs-chips">
-                        {namedNeeded.map((doc) => (
-                          <button
-                            key={doc.id}
-                            type="button"
-                            className="pd-settings-template__needs-chip"
-                            onClick={() => setStepNeedsDoc(step.id, doc.id)}
-                            aria-label={`Remove ${doc.name || 'document'} from Needs docs`}
-                          >
-                            <span>{doc.name || 'Untitled'}</span>
-                            <X size={12} aria-hidden />
-                          </button>
-                        ))}
-                        {documents.length === 0 ? (
-                          <span className="pd-settings-template__needs-empty">
-                            Add documents first
-                          </span>
-                        ) : (
-                          <details className="pd-settings-template__needs-picker">
-                            <summary>
-                              <Plus size={12} aria-hidden />
-                              {needed.length ? 'Edit' : 'Add'}
-                            </summary>
-                            <div
-                              className="pd-settings-template__needs-menu"
-                              role="group"
-                              aria-label={`Needs docs for ${step.label || `step ${index + 1}`}`}
-                            >
-                              {documents.map((doc) => {
-                                const checked = needed.includes(doc.id)
-                                const ownedElsewhere = steps.some(
-                                  (other) =>
-                                    other.id !== step.id &&
-                                    (other.requiredDocumentIds ?? []).includes(
-                                      doc.id,
-                                    ),
                                 )
-                                return (
-                                  <Checkbox
+                                markDirty()
+                              }}
+                            />
+                            <span className="pd-settings-template__row-actions">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label="Move step up"
+                                disabled={index === 0}
+                                onClick={() => moveStep(index, -1)}
+                              >
+                                <ChevronUp size={14} />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label="Move step down"
+                                disabled={index === steps.length - 1}
+                                onClick={() => moveStep(index, 1)}
+                              >
+                                <ChevronDown size={14} />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label={`Remove ${step.label || 'step'}`}
+                                onClick={() => {
+                                  setSteps((current) =>
+                                    current
+                                      .filter((item) => item.id !== step.id)
+                                      .map((item) => ({
+                                        ...item,
+                                        branchRules: item.branchRules?.filter(
+                                          (rule) =>
+                                            rule.nextStepId !== step.id,
+                                        ),
+                                      })),
+                                  )
+                                  markDirty()
+                                }}
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </span>
+                          </span>
+                          <div className="pd-settings-template__step-body">
+                            <div className="pd-settings-template__needs">
+                              <span className="pd-settings-template__needs-label">
+                                Needs docs
+                              </span>
+                              <div className="pd-settings-template__needs-chips">
+                                {namedNeeded.map((doc) => (
+                                  <button
                                     key={doc.id}
-                                    label={
-                                      ownedElsewhere && !checked
-                                        ? `${doc.name || 'Untitled'} (move here)`
-                                        : doc.name || 'Untitled'
-                                    }
-                                    checked={checked}
-                                    onChange={() =>
+                                    type="button"
+                                    className="pd-settings-template__needs-chip"
+                                    onClick={() =>
                                       setStepNeedsDoc(step.id, doc.id)
                                     }
-                                  />
-                                )
-                              })}
+                                    aria-label={`Remove ${doc.name || 'document'} from Needs docs`}
+                                  >
+                                    <span>{doc.name || 'Untitled'}</span>
+                                    <X size={12} aria-hidden />
+                                  </button>
+                                ))}
+                                {documents.length === 0 ? (
+                                  <span className="pd-settings-template__needs-empty">
+                                    Add documents first
+                                  </span>
+                                ) : (
+                                  <details className="pd-settings-template__needs-picker">
+                                    <summary>
+                                      <Plus size={12} aria-hidden />
+                                      {needed.length ? 'Edit' : 'Add'}
+                                    </summary>
+                                    <div
+                                      className="pd-settings-template__needs-menu"
+                                      role="group"
+                                      aria-label={`Needs docs for ${step.label || `step ${index + 1}`}`}
+                                    >
+                                      {documents.map((doc) => {
+                                        const checked = needed.includes(doc.id)
+                                        const ownedElsewhere = steps.some(
+                                          (other) =>
+                                            other.id !== step.id &&
+                                            (
+                                              other.requiredDocumentIds ?? []
+                                            ).includes(doc.id),
+                                        )
+                                        return (
+                                          <Checkbox
+                                            key={doc.id}
+                                            label={
+                                              ownedElsewhere && !checked
+                                                ? `${doc.name || 'Untitled'} (move here)`
+                                                : doc.name || 'Untitled'
+                                            }
+                                            checked={checked}
+                                            onChange={() =>
+                                              setStepNeedsDoc(step.id, doc.id)
+                                            }
+                                          />
+                                        )
+                                      })}
+                                    </div>
+                                  </details>
+                                )}
+                              </div>
                             </div>
-                          </details>
-                        )}
+                            <StepBranchRulesEditor
+                              step={step}
+                              steps={steps}
+                              documents={documents}
+                              fieldsByDocId={fieldsByDocId}
+                              onChange={(
+                                branchRules: ServiceStepBranchRule[],
+                              ) => {
+                                setSteps((current) =>
+                                  current.map((item) =>
+                                    item.id === step.id
+                                      ? {
+                                          ...item,
+                                          branchRules: branchRules.length
+                                            ? branchRules
+                                            : undefined,
+                                        }
+                                      : item,
+                                  ),
+                                )
+                                markDirty()
+                              }}
+                            />
+                          </div>
+                        </span>
                       </div>
-                    </div>
-                    <StepBranchRulesEditor
-                      step={step}
-                      steps={steps}
-                      documents={documents}
-                      fieldsByDocId={fieldsByDocId}
-                      onChange={(branchRules: ServiceStepBranchRule[]) => {
-                        setSteps((current) =>
-                          current.map((item) =>
-                            item.id === step.id
-                              ? {
-                                  ...item,
-                                  branchRules: branchRules.length
-                                    ? branchRules
-                                    : undefined,
-                                }
-                              : item,
-                          ),
-                        )
-                        markDirty()
-                      }}
-                    />
-                  </li>
-                )
-              })}
-            </ol>
+                    </li>
+                  )
+                })}
+              </ol>
+            </div>
           )}
         </div>
 
@@ -602,26 +631,22 @@ export function ServiceTemplateEditor({
                           markDirty()
                         }}
                       />
-                      <button
-                        type="button"
-                        className={cx(
-                          'pd-settings-template__need',
-                          doc.required && 'is-required',
-                        )}
-                        aria-pressed={doc.required}
-                        onClick={() => {
+                      <Switch
+                        className="pd-settings-template__need-switch"
+                        label="Required"
+                        checked={doc.required}
+                        onChange={(event) => {
+                          const required = event.target.checked
                           setDocuments((current) =>
                             current.map((item) =>
                               item.id === doc.id
-                                ? { ...item, required: !item.required }
+                                ? { ...item, required }
                                 : item,
                             ),
                           )
                           markDirty()
                         }}
-                      >
-                        {doc.required ? 'Required' : 'Optional'}
-                      </button>
+                      />
                       <Button
                         type="button"
                         variant="ghost"

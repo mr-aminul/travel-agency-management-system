@@ -273,10 +273,14 @@ describe('settings service catalog', () => {
       await screen.findByRole('heading', { name: 'Visa processing' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save checklist' })).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'Visa' })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Change icon for Visa processing',
+      }),
     )
+    expect(
+      screen.getByRole('option', { name: 'Visa' }),
+    ).toHaveAttribute('aria-selected', 'true')
   }, 15000)
 
   it('keeps focus in the service name field while typing', async () => {
@@ -307,5 +311,15 @@ describe('settings service catalog', () => {
     expect(screen.getByRole('button', { name: 'Back to Catalog' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save checklist' })).toBeInTheDocument()
     expect(screen.queryByRole('table', { name: 'Service catalog' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('listbox', { name: 'Service icons' }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Change icon for Tourist Visa' }),
+    )
+    expect(
+      screen.getByRole('listbox', { name: 'Service icons' }),
+    ).toBeInTheDocument()
   }, 15000)
 })
