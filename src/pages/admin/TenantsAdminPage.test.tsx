@@ -70,6 +70,30 @@ describe('platform admin agencies', () => {
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
   })
 
+  it('shows the agency setup checklist on platform overview', async () => {
+    asAdmin()
+    const { default: AdminOverviewPage } = await import(
+      '@/pages/admin/AdminOverviewPage'
+    )
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={['/admin']}>
+          <Suspense fallback={<p>Loading</p>}>
+            <Routes>
+              <Route path="/admin" element={<AdminOverviewPage />} />
+            </Routes>
+          </Suspense>
+        </MemoryRouter>
+      </AuthProvider>,
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Set up an agency' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Turn on product')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Go to agencies' })).toBeInTheDocument()
+  })
+
   it('opens agency overview and exposes product modules', async () => {
     renderAdmin('/admin/agencies')
 

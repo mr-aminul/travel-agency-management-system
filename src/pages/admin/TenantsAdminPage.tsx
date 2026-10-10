@@ -413,7 +413,7 @@ export default function TenantsAdminPage() {
         onClose={() => {
           const tenantId = createdCredentials?.tenantId
           setCreatedCredentials(null)
-          if (tenantId) navigate(adminAgencyPath(tenantId, 'people'))
+          if (tenantId) navigate(adminAgencyPath(tenantId, 'all'))
         }}
         title="Agency created"
         description="Share the owner login now. The password will not be shown again."
@@ -422,11 +422,11 @@ export default function TenantsAdminPage() {
             onClick={() => {
               const tenantId = createdCredentials?.tenantId
               setCreatedCredentials(null)
-              if (tenantId) navigate(adminAgencyPath(tenantId, 'overview'))
+              if (tenantId) navigate(adminAgencyPath(tenantId, 'all'))
               else navigate(ADMIN_AGENCIES)
             }}
           >
-            Open agency
+            Continue setup
           </Button>
         }
       >
@@ -446,6 +446,12 @@ export default function TenantsAdminPage() {
                 label="password"
               />
             </p>
+            <ol className="pd-admin__checklist pd-admin__checklist--compact">
+              <li>
+                <strong>Next:</strong>
+                <span>Set status, turn on product, then Open agency.</span>
+              </li>
+            </ol>
           </>
         ) : null}
       </Modal>

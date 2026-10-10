@@ -189,6 +189,66 @@
   margin-top: 0;
 }
 
+.pd-admin__checklist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  counter-reset: admin-setup;
+}
+
+.pd-admin__checklist > li {
+  display: grid;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+  column-gap: 0.75rem;
+  align-items: start;
+  counter-increment: admin-setup;
+}
+
+.pd-admin__checklist > li::before {
+  content: counter(admin-setup);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-theme) 14%, transparent);
+  color: var(--color-theme-ink);
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pd-admin__checklist strong {
+  display: block;
+  font-weight: 750;
+  color: var(--color-theme-ink);
+}
+
+.pd-admin__checklist span {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.pd-admin__checklist--compact {
+  margin-top: 0.85rem;
+  gap: 0.5rem;
+}
+
+.pd-admin__checklist--compact > li {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pd-admin__checklist--compact > li::before {
+  display: none;
+}
+
 .pd-admin__tabs {
   display: flex;
   flex-wrap: wrap;
