@@ -11,9 +11,12 @@ import { shouldUseApiDataBackend } from '@/lib/data'
 import { validateRequiredPassport } from '@/lib/fieldValidation'
 import { publicUrl } from '@/lib/publicUrl'
 import { iconForService } from '@/lib/serviceIcons'
-import { buildServiceJourney } from '@/lib/serviceJourney'
+import {
+  buildServiceJourney,
+  type JourneyStepDefInput,
+} from '@/lib/serviceJourney'
 import { useTouchedFields } from '@/lib/useTouchedFields'
-import type { Case } from '@/types/case'
+import type { Case, CaseStatus, CaseStepRecord } from '@/types/case'
 import '@/styles/layout-track.css'
 import { Badge, Button, Input } from '@/components/ui'
 
@@ -22,7 +25,16 @@ type PublicTrackService = {
   type?: string
   status?: string
   currentStep?: string
+  currentStepId?: string
+  caseId?: string
+  destination?: string
+  serviceCountry?: string
+  stage?: Case['stage']
+  steps?: Record<string, Pick<CaseStepRecord, 'completedAt' | 'detail'>>
+  createdAt?: string
+  updatedAt?: string
   balance?: number
+  templateSteps?: JourneyStepDefInput[]
 }
 
 type PublicTrackResult = {
@@ -37,6 +49,63 @@ type TrackServiceChip = {
   caseId: string
   statusLabel: string
   caseItem?: Case
+  stepDefs?: JourneyStepDefInput[]
+}
+
+const PUBLIC_CASE_STATUSES: CaseStatus[] = [
+  'Pending',
+  'In-Progress',
+  'On-Hold',
+  'Completed',
+  'Cancelled',
+]
+
+function asCaseStatus(value: unknown): CaseStatus {
+  if (
+    typeof value === 'string' &&
+    (PUBLIC_CASE_STATUSES as string[]).includes(value)
+  ) {
+    return value as CaseStatus
+  }
+  return 'In-Progress'
+}
+
+/** Map the public API service payload into a Case for ServiceJourney. */
+function caseFromPublicTrack(item: PublicTrackService): Case {
+  const service = String(item.type ?? 'Service')
+  const currentStepId = String(
+    item.currentStepId || item.currentStep || 'registered',
+  )
+  const steps: Record<string, CaseStepRecord> = {}
+  if (item.steps && typeof item.steps === 'object') {
+    for (const [stepId, record] of Object.entries(item.steps)) {
+      steps[stepId] = {
+        completedAt: record?.completedAt ?? null,
+        detail: record?.detail,
+      }
+    }
+  }
+  const createdAt = item.createdAt || new Date(0).toISOString()
+  const updatedAt = item.updatedAt || createdAt
+  return {
+    id: item.id,
+    tenantId: 'public',
+    caseId: item.caseId || item.id,
+    clientId: 'public',
+    clientName: '',
+    service,
+    status: asCaseStatus(item.status),
+    stage: item.stage ?? 'Processing',
+    currentStepId,
+    steps,
+    documents: [],
+    destination: item.destination,
+    serviceCountry: item.serviceCountry,
+    serviceFee: 0,
+    balance: typeof item.balance === 'number' ? item.balance : 0,
+    createdAt,
+    updatedAt,
+  }
 }
 
 function pickDefault(
@@ -137,12 +206,18 @@ export default function TrackClientPage() {
         statusLabel: item.status,
         caseItem: item,
       }))
-    : (remote?.services ?? []).map((item) => ({
-        id: item.id,
-        service: String(item.type ?? 'Service'),
-        caseId: item.id,
-        statusLabel: item.currentStep || item.status || 'In progress',
-      }))
+    : (remote?.services ?? []).map((item) => {
+        const caseItem = caseFromPublicTrack(item)
+        return {
+          id: item.id,
+          service: caseItem.service,
+          destination: caseItem.destination,
+          caseId: caseItem.caseId,
+          statusLabel: item.currentStep || item.status || 'In progress',
+          caseItem,
+          stepDefs: item.templateSteps,
+        }
+      })
 
   const selected = useMemo(
     () => pickDefault(chips, params.get('case')),
@@ -150,7 +225,11 @@ export default function TrackClientPage() {
   )
   const journey = useMemo(
     () =>
-      selected?.caseItem ? buildServiceJourney(selected.caseItem) : null,
+      selected?.caseItem
+        ? buildServiceJourney(selected.caseItem, {
+            stepDefs: selected.stepDefs,
+          })
+        : null,
     [selected],
   )
   const currentLabel =
@@ -289,7 +368,10 @@ export default function TrackClientPage() {
             ) : null}
 
             {selected.caseItem && journey ? (
-              <ServiceJourney item={selected.caseItem} />
+              <ServiceJourney
+                item={selected.caseItem}
+                stepDefs={selected.stepDefs}
+              />
             ) : null}
           </section>
         ) : null}

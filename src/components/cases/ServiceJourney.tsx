@@ -3,6 +3,7 @@ import { Check } from 'lucide-react'
 import { cx } from '@/lib/cx'
 import {
   buildServiceJourney,
+  type JourneyStepDefInput,
   type JourneyStepState,
   type JourneyStepView,
 } from '@/lib/serviceJourney'
@@ -12,6 +13,8 @@ import '@/styles/layout-journey.css'
 export type ServiceJourneyProps = {
   item: Case
   interactive?: boolean
+  /** When set (public track), use these labels instead of local templates. */
+  stepDefs?: JourneyStepDefInput[]
   progressAriaLabel?: string
   onStepActivate?: (stepId: string, state: JourneyStepState) => void
 }
@@ -59,12 +62,13 @@ function JourneyRow({
 export function ServiceJourney({
   item,
   interactive = false,
+  stepDefs,
   progressAriaLabel = 'Application progress',
   onStepActivate,
 }: ServiceJourneyProps) {
   const journey = useMemo(
-    () => buildServiceJourney(item, { interactive }),
-    [item, interactive],
+    () => buildServiceJourney(item, { interactive, stepDefs }),
+    [item, interactive, stepDefs],
   )
 
   return (

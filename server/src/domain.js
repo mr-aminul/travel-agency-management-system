@@ -373,6 +373,91 @@ export async function writeDomainKey(key, value, auth) {
   else throw new Error(`Unknown domain key ${key}`)
 }
 
+function sameText(left, right) {
+  return String(left || '')
+    .trim()
+    .toLowerCase() ===
+    String(right || '')
+      .trim()
+      .toLowerCase()
+}
+
+/** Strip uploads/fields — public track only needs progress labels. */
+function publicCaseSteps(steps) {
+  if (!steps || typeof steps !== 'object' || Array.isArray(steps)) return {}
+  const out = {}
+  for (const [stepId, record] of Object.entries(steps)) {
+    if (!record || typeof record !== 'object') continue
+    const completedAt =
+      typeof record.completedAt === 'string' || record.completedAt === null
+        ? record.completedAt
+        : null
+    const detail =
+      typeof record.detail === 'string' && record.detail.trim()
+        ? record.detail.trim()
+        : undefined
+    out[stepId] = detail ? { completedAt, detail } : { completedAt }
+  }
+  return out
+}
+
+function publicTemplateSteps(templates, tenantId, serviceName, serviceCountry) {
+  const forService = asArray(templates).filter(
+    (item) =>
+      item &&
+      typeof item === 'object' &&
+      item.tenantId === tenantId &&
+      sameText(item.serviceName, serviceName),
+  )
+  const country = String(serviceCountry || '').trim()
+  const matched =
+    (country
+      ? forService.find((item) => sameText(item.country, country))
+      : undefined) ||
+    forService.find((item) => !String(item.country || '').trim())
+  if (!matched || !Array.isArray(matched.steps)) return undefined
+  const steps = matched.steps
+    .map((step) => {
+      if (!step || typeof step !== 'object') return null
+      const id = typeof step.id === 'string' ? step.id.trim() : ''
+      const label = typeof step.label === 'string' ? step.label.trim() : ''
+      if (!id || !label) return null
+      return { id, label }
+    })
+    .filter(Boolean)
+  return steps.length ? steps : undefined
+}
+
+function publicTrackService(item, templates) {
+  const service =
+    item.service || item.type || item.serviceType || item.title || 'Service'
+  const currentStepId = item.currentStepId || item.currentStep || ''
+  const serviceCountry =
+    typeof item.serviceCountry === 'string' ? item.serviceCountry : undefined
+  const templateSteps = publicTemplateSteps(
+    templates,
+    item.tenantId,
+    service,
+    serviceCountry,
+  )
+  return {
+    id: item.id,
+    type: service,
+    status: item.status,
+    currentStep: currentStepId,
+    currentStepId,
+    caseId: item.caseId || item.id,
+    destination: item.destination,
+    serviceCountry,
+    stage: item.stage,
+    steps: publicCaseSteps(item.steps),
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    balance: typeof item.balance === 'number' ? item.balance : undefined,
+    ...(templateSteps ? { templateSteps } : {}),
+  }
+}
+
 /** Public passport lookup against domain table (safe fields only). */
 export async function trackByPassport(passport, tenantSlug) {
   const normalized = String(passport || '')
@@ -443,6 +528,8 @@ export async function trackByPassport(passport, tenantSlug) {
     )
   }
 
+  const templates = asArray(await readKv('pd-service-templates'))
+
   return {
     ok: true,
     status: 200,
@@ -452,13 +539,7 @@ export async function trackByPassport(passport, tenantSlug) {
         passport: client.passport,
         services: Array.isArray(client.services) ? client.services : [],
       },
-      services: cases.map((item) => ({
-        id: item.id,
-        type: item.type || item.serviceType || item.service || item.title,
-        status: item.status,
-        currentStep: item.currentStep || item.currentStepId,
-        balance: typeof item.balance === 'number' ? item.balance : undefined,
-      })),
+      services: cases.map((item) => publicTrackService(item, templates)),
     },
   }
 }

@@ -1,8 +1,6 @@
 import {
   getStepDefsForCase,
-  getStepIndex,
   isPipelineStepComplete,
-  templateCountry,
 } from '@/lib/caseChecklist'
 import { formatDisplayDate } from '@/lib/formatDate'
 import type { Case } from '@/types/case'
@@ -25,6 +23,12 @@ export type ServiceJourneyView = {
   totalCount: number
   progressPercent: number
   stageLabel: string
+}
+
+/** Minimal step list for public track when tenant templates are not hydrated. */
+export type JourneyStepDefInput = {
+  id: string
+  label: string
 }
 
 function completedAtFor(item: Case, stepId: string, done: boolean): string | null {
@@ -62,21 +66,46 @@ function dateFor(
   return { dateLabel: 'Now' }
 }
 
+function resolveDefs(item: Case, stepDefs?: JourneyStepDefInput[]) {
+  if (stepDefs?.length) {
+    return stepDefs.map((step) => ({ id: step.id, label: step.label }))
+  }
+  return getStepDefsForCase(item).map((step) => ({
+    id: step.id,
+    label: step.label,
+  }))
+}
+
+function stepIsComplete(
+  item: Case,
+  stepId: string,
+  index: number,
+  currentIndex: number,
+  usingCustomDefs: boolean,
+): boolean {
+  if (item.status === 'Completed') return true
+  if (item.steps[stepId]?.completedAt) return true
+  if (usingCustomDefs) return currentIndex >= 0 && index < currentIndex
+  return isPipelineStepComplete(item, stepId)
+}
+
 export function buildServiceJourney(
   item: Case,
-  options?: { interactive?: boolean },
+  options?: { interactive?: boolean; stepDefs?: JourneyStepDefInput[] },
 ): ServiceJourneyView {
   const interactive = options?.interactive ?? false
-  const country = templateCountry(item)
-  const defs = getStepDefsForCase(item)
-  const currentIndex = getStepIndex(
-    item.service,
-    item.currentStepId,
-    country,
-  )
+  const usingCustomDefs = Boolean(options?.stepDefs?.length)
+  const defs = resolveDefs(item, options?.stepDefs)
+  const currentIndex = defs.findIndex((def) => def.id === item.currentStepId)
 
   const steps = defs.map((def, index) => {
-    const done = isPipelineStepComplete(item, def.id)
+    const done = stepIsComplete(
+      item,
+      def.id,
+      index,
+      currentIndex,
+      usingCustomDefs,
+    )
     const isCurrent =
       item.status !== 'Completed' && index === currentIndex
     const state: JourneyStepState = isCurrent

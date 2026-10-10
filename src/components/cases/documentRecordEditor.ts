@@ -7,12 +7,15 @@ import {
 } from '@/lib/caseDocumentForms'
 import { recordCaseDocument, recordIdentityDocument } from '@/lib/casesStore'
 import type { IdentityKind } from '@/lib/clientDocuments'
+import { useDocumentFormFieldsVersion } from '@/lib/documentFormFieldsStore'
 import { storeFile } from '@/lib/fileStore'
 import type { CaseDocument } from '@/types/case'
 
 export type DocumentDrawerMode = 'view' | 'edit'
 
 export function useDocumentRecordEditor(document: CaseDocument | null) {
+  // Re-read field schemas when Settings → Document fields changes.
+  const formVersion = useDocumentFormFieldsVersion()
   const form = document ? getDocumentForm(document.id) : null
   const [fields, setFields] = useState<Record<string, string>>({})
   const [fileName, setFileName] = useState('')
@@ -34,6 +37,7 @@ export function useDocumentRecordEditor(document: CaseDocument | null) {
         document.fileId ?? '',
         document.detail,
         JSON.stringify(document.fields ?? {}),
+        String(formVersion),
       ].join(':')
     : ''
 

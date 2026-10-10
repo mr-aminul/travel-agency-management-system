@@ -111,7 +111,7 @@ const GUIDES: Guide[] = [
   {
     id: 'services',
     title: 'Services & Service Board',
-    body: 'A service file is the work: tourist visa, air ticket, tour package, and more. The Service Board shows who is ready for which checklist step.',
+    body: 'A service file is the work: tourist visa, air ticket, tour package, and more. The Service Board shows who is ready for which checklist step. Set documents and upload fields in the Service catalog.',
     icon: Kanban,
     links: [
       { label: 'Services', to: '/services' },

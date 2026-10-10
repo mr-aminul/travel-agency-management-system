@@ -1,12 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Plus, Trash2, X } from 'lucide-react'
+import { DocumentFieldsEditor } from '@/components/settings/DocumentFieldsEditor'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
+import { StepBranchRulesEditor } from '@/components/settings/StepBranchRulesEditor'
 import { cx } from '@/lib/cx'
 import { Button, Checkbox, ConfirmDialog, Input, Select } from '@/components/ui'
+import {
+  getDefaultDocumentForm,
+  getEditableDocumentFields,
+} from '@/lib/caseDocumentForms'
 import {
   destinationCountryOptions,
   normalizeCountryName,
 } from '@/lib/destinationCountries'
+import {
+  clearDocumentFormOverride,
+  documentFieldsEqual,
+  saveDocumentFormOverride,
+} from '@/lib/documentFormFieldsStore'
 import {
   deleteServiceTemplate,
   listServiceCountries,
@@ -17,15 +28,35 @@ import {
 import { resolveServiceTemplate } from '@/lib/resolveServiceTemplate'
 import { toggleStepRequiredDocument } from '@/lib/stepDocumentLinks'
 import type { ServiceType } from '@/types/case'
+import type { DocumentFormFieldDraft } from '@/types/documentFormField'
+import type { ServiceStepBranchRule } from '@/types/serviceTemplate'
 
 const ALL_COUNTRIES = ''
 
 function draftFrom(service: ServiceType, country: string) {
   const resolved = resolveServiceTemplate(service, country)
+  const documents = resolved.documents.map((doc) => ({ ...doc }))
+  const fieldsByDocId: Record<string, DocumentFormFieldDraft[]> = {}
+  for (const doc of documents) {
+    fieldsByDocId[doc.id] = getEditableDocumentFields(doc.id).map((field) => ({
+      ...field,
+    }))
+  }
   return {
     steps: resolved.steps.map((step) => ({ ...step })),
-    documents: resolved.documents.map((doc) => ({ ...doc })),
+    documents,
+    fieldsByDocId,
   }
+}
+
+function cloneFieldsMap(
+  map: Record<string, DocumentFormFieldDraft[]>,
+): Record<string, DocumentFormFieldDraft[]> {
+  const next: Record<string, DocumentFormFieldDraft[]> = {}
+  for (const [id, fields] of Object.entries(map)) {
+    next[id] = fields.map((field) => ({ ...field }))
+  }
+  return next
 }
 
 export function ServiceTemplateEditor({
@@ -48,6 +79,10 @@ export function ServiceTemplateEditor({
   )
   const [steps, setSteps] = useState(initial.steps)
   const [documents, setDocuments] = useState(initial.documents)
+  const [fieldsByDocId, setFieldsByDocId] = useState(() =>
+    cloneFieldsMap(initial.fieldsByDocId),
+  )
+  const [expandedDocId, setExpandedDocId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [dirty, setDirty] = useState(false)
@@ -63,6 +98,8 @@ export function ServiceTemplateEditor({
     const next = draftFrom(service, country)
     setSteps(next.steps)
     setDocuments(next.documents)
+    setFieldsByDocId(cloneFieldsMap(next.fieldsByDocId))
+    setExpandedDocId(null)
     setDirty(false)
     setError(null)
   }, [service, country])
@@ -105,17 +142,31 @@ export function ServiceTemplateEditor({
   }
 
   const addDocument = () => {
+    const id = nextTemplateItemId(
+      `document ${documents.length + 1}`,
+      documents.map((doc) => doc.id),
+    )
+    const fields = getDefaultDocumentForm(id).fields.map((field) => ({
+      ...field,
+    }))
     setDocuments((current) => [
       ...current,
       {
-        id: nextTemplateItemId(
-          `document ${current.length + 1}`,
-          current.map((doc) => doc.id),
-        ),
+        id,
         name: '',
         required: true,
       },
     ])
+    setFieldsByDocId((current) => ({ ...current, [id]: fields }))
+    setExpandedDocId(id)
+    markDirty()
+  }
+
+  const setDocumentFields = (
+    documentId: string,
+    fields: DocumentFormFieldDraft[],
+  ) => {
+    setFieldsByDocId((current) => ({ ...current, [documentId]: fields }))
     markDirty()
   }
 
@@ -135,6 +186,15 @@ export function ServiceTemplateEditor({
     setError(null)
     setStatus(null)
     try {
+      for (const doc of documents) {
+        const fields = fieldsByDocId[doc.id] ?? []
+        const defaults = getDefaultDocumentForm(doc.id).fields
+        if (documentFieldsEqual(fields, defaults)) {
+          clearDocumentFormOverride(doc.id)
+        } else {
+          saveDocumentFormOverride(doc.id, fields)
+        }
+      }
       saveServiceTemplate({
         serviceName: service,
         country,
@@ -144,8 +204,8 @@ export function ServiceTemplateEditor({
       setDirty(false)
       setStatus(
         country
-          ? `Saved. New ${country} files use this checklist.`
-          : 'Saved. New files without a country match use this checklist.',
+          ? `Saved. New ${country} files use this checklist and fields.`
+          : 'Saved. New files without a country match use this checklist and fields.',
       )
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not save.')
@@ -157,6 +217,8 @@ export function ServiceTemplateEditor({
     const fallback = draftFrom(service, country)
     setSteps(fallback.steps)
     setDocuments(fallback.documents)
+    setFieldsByDocId(cloneFieldsMap(fallback.fieldsByDocId))
+    setExpandedDocId(null)
     setError(null)
     setDirty(false)
     setResetOpen(false)
@@ -324,7 +386,7 @@ export function ServiceTemplateEditor({
                 </span>
                 <SettingsInfo
                   title="Status journey"
-                  body="Staff move a file through these steps, in this order. Needs docs must be uploaded before that status can be marked complete."
+                  body="Staff move a file through these steps. Needs docs must be filed before that status can complete. Add dropdown fields on documents, then branch Next step rules (e.g. Fit → Visa, Unfit → Re-medical)."
                 />
               </span>
             </div>
@@ -391,7 +453,14 @@ export function ServiceTemplateEditor({
                           aria-label={`Remove ${step.label || 'step'}`}
                           onClick={() => {
                             setSteps((current) =>
-                              current.filter((item) => item.id !== step.id),
+                              current
+                                .filter((item) => item.id !== step.id)
+                                .map((item) => ({
+                                  ...item,
+                                  branchRules: item.branchRules?.filter(
+                                    (rule) => rule.nextStepId !== step.id,
+                                  ),
+                                })),
                             )
                             markDirty()
                           }}
@@ -461,6 +530,27 @@ export function ServiceTemplateEditor({
                         )}
                       </div>
                     </div>
+                    <StepBranchRulesEditor
+                      step={step}
+                      steps={steps}
+                      documents={documents}
+                      fieldsByDocId={fieldsByDocId}
+                      onChange={(branchRules: ServiceStepBranchRule[]) => {
+                        setSteps((current) =>
+                          current.map((item) =>
+                            item.id === step.id
+                              ? {
+                                  ...item,
+                                  branchRules: branchRules.length
+                                    ? branchRules
+                                    : undefined,
+                                }
+                              : item,
+                          ),
+                        )
+                        markDirty()
+                      }}
+                    />
                   </li>
                 )
               })}
@@ -478,7 +568,7 @@ export function ServiceTemplateEditor({
                 </span>
                 <SettingsInfo
                   title="Documents"
-                  body="Papers this service should collect on new files."
+                  body="Papers this service should collect. Open a paper to set the fields staff fill in on upload."
                 />
               </span>
             </div>
@@ -488,70 +578,110 @@ export function ServiceTemplateEditor({
           </div>
           {documents.length === 0 ? (
             <p className="pd-settings-service-empty">
-              No documents yet. Add the papers this service should collect.
+              No documents yet. Add a paper, name it, and set the fields to collect.
             </p>
           ) : (
             <ul className="pd-settings-template__list">
-              {documents.map((doc) => (
-                <li key={doc.id} className="pd-settings-template__row">
-                  <Input
-                    aria-label="Document name"
-                    placeholder="e.g. Police clearance"
-                    value={doc.name}
-                    onChange={(event) => {
-                      const name = event.target.value
-                      setDocuments((current) =>
-                        current.map((item) =>
-                          item.id === doc.id ? { ...item, name } : item,
-                        ),
-                      )
-                      markDirty()
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className={cx(
-                      'pd-settings-template__need',
-                      doc.required && 'is-required',
-                    )}
-                    aria-pressed={doc.required}
-                    onClick={() => {
-                      setDocuments((current) =>
-                        current.map((item) =>
-                          item.id === doc.id
-                            ? { ...item, required: !item.required }
-                            : item,
-                        ),
-                      )
-                      markDirty()
-                    }}
-                  >
-                    {doc.required ? 'Required' : 'Optional'}
-                  </button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Remove ${doc.name || 'document'}`}
-                    onClick={() => {
-                      setDocuments((current) =>
-                        current.filter((item) => item.id !== doc.id),
-                      )
-                      setSteps((current) =>
-                        current.map((step) => ({
-                          ...step,
-                          requiredDocumentIds: (
-                            step.requiredDocumentIds ?? []
-                          ).filter((id) => id !== doc.id),
-                        })),
-                      )
-                      markDirty()
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </li>
-              ))}
+              {documents.map((doc) => {
+                const fieldCount = fieldsByDocId[doc.id]?.length ?? 0
+                const expanded = expandedDocId === doc.id
+                return (
+                  <li key={doc.id} className="pd-settings-template__doc">
+                    <div className="pd-settings-template__row">
+                      <Input
+                        aria-label="Document name"
+                        placeholder="e.g. Police clearance"
+                        value={doc.name}
+                        onChange={(event) => {
+                          const name = event.target.value
+                          setDocuments((current) =>
+                            current.map((item) =>
+                              item.id === doc.id ? { ...item, name } : item,
+                            ),
+                          )
+                          markDirty()
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className={cx(
+                          'pd-settings-template__need',
+                          doc.required && 'is-required',
+                        )}
+                        aria-pressed={doc.required}
+                        onClick={() => {
+                          setDocuments((current) =>
+                            current.map((item) =>
+                              item.id === doc.id
+                                ? { ...item, required: !item.required }
+                                : item,
+                            ),
+                          )
+                          markDirty()
+                        }}
+                      >
+                        {doc.required ? 'Required' : 'Optional'}
+                      </button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-expanded={expanded}
+                        aria-label={
+                          expanded
+                            ? `Hide fields for ${doc.name || 'document'}`
+                            : `Set fields for ${doc.name || 'document'}`
+                        }
+                        onClick={() =>
+                          setExpandedDocId(expanded ? null : doc.id)
+                        }
+                      >
+                        {fieldCount} field{fieldCount === 1 ? '' : 's'}
+                        {expanded ? (
+                          <ChevronUp size={14} />
+                        ) : (
+                          <ChevronDown size={14} />
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Remove ${doc.name || 'document'}`}
+                        onClick={() => {
+                          setDocuments((current) =>
+                            current.filter((item) => item.id !== doc.id),
+                          )
+                          setFieldsByDocId((current) => {
+                            const next = { ...current }
+                            delete next[doc.id]
+                            return next
+                          })
+                          if (expandedDocId === doc.id) setExpandedDocId(null)
+                          setSteps((current) =>
+                            current.map((step) => ({
+                              ...step,
+                              requiredDocumentIds: (
+                                step.requiredDocumentIds ?? []
+                              ).filter((id) => id !== doc.id),
+                            })),
+                          )
+                          markDirty()
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                    {expanded ? (
+                      <DocumentFieldsEditor
+                        documentId={doc.id}
+                        fields={fieldsByDocId[doc.id] ?? []}
+                        onChange={(fields) => setDocumentFields(doc.id, fields)}
+                      />
+                    ) : null}
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

@@ -5,7 +5,6 @@ import {
   buildProgressAtStep,
   deriveStageFromStep,
   getNextStepDef,
-  isLastStep,
 } from '@/lib/caseChecklist'
 import { identityKindForDocumentId, type IdentityKind } from '@/lib/clientDocuments'
 import {
@@ -955,25 +954,14 @@ export function completeCurrentStep(
     hydrated.fields.travelledOn ||
     hydrated.fields.departureConfirmedOn
 
-  if (isLastStep(item)) {
-    const updated = updateCase(id, {
-      steps,
-      documents,
-      status: 'Completed',
-      currentStepId: currentId,
-      departureDate: departureFromFields || item.departureDate,
-    })
-    return updated
-      ? { ok: true, case: updated }
-      : { ok: false, errors: { form: 'Could not complete step.' } }
-  }
-
-  const next = getNextStepDef(item)
+  // Branch rules (dropdown values on documents) can jump to a non-linear next step.
+  const next = getNextStepDef({ ...item, documents, steps })
   if (!next) {
     const updated = updateCase(id, {
       steps,
       documents,
       status: 'Completed',
+      currentStepId: currentId,
       departureDate: departureFromFields || item.departureDate,
     })
     return updated

@@ -9,6 +9,10 @@ import { DATA_KEYS, loadJsonParsed, removeJson, saveJson } from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
 import { slugifyServiceName } from '@/types/case'
 import { DEFAULT_TENANT_ID } from '@/types/tenant'
+import {
+  normalizeBranchRules,
+  validateStepBranchRules,
+} from '@/lib/stepBranchRules'
 import { syncDocumentUnlockSteps } from '@/lib/stepDocumentLinks'
 import type {
   ServiceDocumentConfig,
@@ -53,10 +57,12 @@ function normalizeStep(value: unknown): ServiceStepConfig | undefined {
         .map((item) => item.trim())
         .filter(Boolean)
     : undefined
+  const branchRules = normalizeBranchRules(value.branchRules)
   return {
     id,
     label,
     ...(requiredDocumentIds?.length ? { requiredDocumentIds } : {}),
+    ...(branchRules?.length ? { branchRules } : {}),
   }
 }
 
@@ -235,6 +241,7 @@ export function saveServiceTemplate(input: {
       id: step.id.trim() || nextTemplateItemId(step.label, []),
       label: step.label.trim(),
       requiredDocumentIds: step.requiredDocumentIds,
+      branchRules: normalizeBranchRules(step.branchRules),
     }))
     .filter((step) => step.label.length > 0)
   const rawDocuments = input.documents
@@ -250,6 +257,8 @@ export function saveServiceTemplate(input: {
   if (rawSteps.length === 0) {
     throw new Error('Add at least one status step for this service.')
   }
+  const branchError = validateStepBranchRules(rawSteps)
+  if (branchError) throw new Error(branchError)
 
   const { steps, documents } = syncDocumentUnlockSteps(rawSteps, rawDocuments)
 

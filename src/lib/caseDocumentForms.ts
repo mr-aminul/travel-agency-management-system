@@ -1,6 +1,8 @@
+import { getDocumentFormOverride } from '@/lib/documentFormFieldsStore'
 import { formatDisplayDate } from '@/lib/formatDate'
+import type { DocumentFormFieldType } from '@/types/documentFormField'
 
-export type DocumentFieldType = 'text' | 'date' | 'number'
+export type DocumentFieldType = DocumentFormFieldType
 
 export type DocumentFieldDef = {
   key: string
@@ -8,6 +10,7 @@ export type DocumentFieldDef = {
   type: DocumentFieldType
   required?: boolean
   placeholder?: string
+  options?: string[]
 }
 
 export type DocumentFormDef = {
@@ -15,6 +18,29 @@ export type DocumentFormDef = {
   fields: DocumentFieldDef[]
   /** When set, also write these keys onto the client profile. */
   syncToClient?: Partial<Record<'passport' | 'nid', string>>
+}
+
+export type BuiltinDocumentFormOption = {
+  documentId: string
+  label: string
+}
+
+const DOCUMENT_LABELS: Record<string, string> = {
+  passport: 'Passport',
+  nid: 'National ID',
+  id: 'ID document',
+  medical: 'Medical',
+  vaccine: 'Vaccine',
+  demand: 'Demand letter',
+  bmet: 'BMET',
+  offer: 'Offer letter',
+  financial: 'Financial',
+  visa: 'Visa',
+  package: 'Package',
+  itinerary: 'Itinerary',
+  deposit: 'Deposit',
+  payment: 'Payment',
+  ticket: 'Ticket',
 }
 
 /**
@@ -90,9 +116,9 @@ const FORMS: Record<string, DocumentFormDef> = {
       {
         key: 'result',
         label: 'Result',
-        type: 'text',
+        type: 'select',
         required: true,
-        placeholder: 'Fit / Unfit',
+        options: ['Fit', 'Unfit'],
       },
     ],
   },
@@ -219,8 +245,41 @@ const FALLBACK: DocumentFormDef = {
   ],
 }
 
+export function listBuiltinDocumentForms(): BuiltinDocumentFormOption[] {
+  return Object.keys(FORMS).map((documentId) => ({
+    documentId,
+    label: DOCUMENT_LABELS[documentId] ?? documentId,
+  }))
+}
+
+export function getDefaultDocumentForm(documentId: string): DocumentFormDef {
+  const base = FORMS[documentId]
+  if (base) {
+    return {
+      ...base,
+      fields: base.fields.map((field) => ({ ...field })),
+    }
+  }
+  return {
+    ...FALLBACK,
+    documentId,
+    fields: FALLBACK.fields.map((field) => ({ ...field })),
+  }
+}
+
 export function getDocumentForm(documentId: string): DocumentFormDef {
-  return FORMS[documentId] ?? { ...FALLBACK, documentId }
+  const base = getDefaultDocumentForm(documentId)
+  const override = getDocumentFormOverride(documentId)
+  if (!override) return base
+  return {
+    ...base,
+    fields: override.fields.map((field) => ({ ...field })),
+  }
+}
+
+/** Effective field list for settings editors (override or built-in default). */
+export function getEditableDocumentFields(documentId: string): DocumentFieldDef[] {
+  return getDocumentForm(documentId).fields.map((field) => ({ ...field }))
 }
 
 export function validateDocumentFields(

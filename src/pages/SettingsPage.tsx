@@ -89,7 +89,7 @@ const SETTINGS_SECTIONS: {
     {
       id: 'services',
       label: 'Service catalog',
-      info: 'These are the lines you sell. Open one to set the status journey and documents. New files pick up the checklist you save. Add a country when that destination needs a different journey or documents.',
+      info: 'These are the lines you sell. Open one to set the status journey, documents, and the fields staff fill in on upload. New files pick up the checklist you save. Add a country when that destination needs a different journey or documents.',
       icon: Briefcase,
     },
     {

@@ -19,6 +19,8 @@ export const DATA_KEYS = {
   serviceTemplates: 'pd-service-templates',
   documentTemplates: 'pd-document-print-templates',
   clientProfileFields: 'pd-client-profile-fields',
+  /** Per-tenant field schemas for document upload forms (passport, medical, …). */
+  documentFormFields: 'pd-document-form-fields',
   customServices: 'pd-custom-services',
   hiddenServices: 'pd-hidden-services',
   serviceIconOverrides: 'pd-service-icon-overrides',

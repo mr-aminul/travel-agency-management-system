@@ -13,7 +13,9 @@ import {
   Ticket,
 } from 'lucide-react'
 import { formatDisplayDate } from '@/lib/formatDate'
+import { resolveServiceTemplate } from '@/lib/resolveServiceTemplate'
 import { getServiceTemplateOverride, resolveServiceTemplateOverride } from '@/lib/serviceTemplatesStore'
+import { matchBranchNextStepId } from '@/lib/stepBranchRules'
 import type {
   BuiltinServiceType,
   Case,
@@ -331,19 +333,26 @@ export function getCurrentStepLabel(item: Case): string {
 
 export function getNextStepDef(item: Case): StepDef | null {
   if (item.status === 'Completed' || item.status === 'Cancelled') return null
+  const country = templateCountry(item)
   const defs = getStepDefsForCase(item)
-  const index = getStepIndex(
-    item.service,
-    item.currentStepId,
-    templateCountry(item),
+  const index = getStepIndex(item.service, item.currentStepId, country)
+  if (index < 0) return null
+
+  const templateStep = resolveServiceTemplate(item.service, country).steps.find(
+    (step) => step.id === item.currentStepId,
   )
+  const branchedId = matchBranchNextStepId(
+    templateStep,
+    item.documents,
+    new Set(defs.map((def) => def.id)),
+  )
+  if (branchedId) {
+    return defs.find((def) => def.id === branchedId) ?? null
+  }
+
   return defs[index + 1] ?? null
 }
 
 export function isLastStep(item: Case): boolean {
-  const defs = getStepDefsForCase(item)
-  return (
-    getStepIndex(item.service, item.currentStepId, templateCountry(item)) >=
-    defs.length - 1
-  )
+  return getNextStepDef(item) === null
 }

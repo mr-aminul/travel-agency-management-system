@@ -3,7 +3,7 @@ import { FileViewer } from '@/components/cases/FileViewer'
 import { formatDisplayDate } from '@/lib/formatDate'
 import type { DocumentFormDef } from '@/lib/caseDocumentForms'
 import type { CaseDocument } from '@/types/case'
-import { FileDropzone, Input } from '@/components/ui'
+import { FileDropzone, Input, Select } from '@/components/ui'
 
 function ReadOnlyField({
   label,
@@ -93,25 +93,41 @@ export function DocumentRecordFields({
     </dl>
   ) : (
     <div className="pd-doc-inspect__form-fields">
-      {form.fields.map((field) => (
-        <Input
-          key={field.key}
-          label={field.label}
-          required={field.required}
-          type={
-            field.type === 'date'
-              ? 'date'
-              : field.type === 'number'
-                ? 'number'
-                : 'text'
-          }
-          inputMode={field.type === 'number' ? 'decimal' : undefined}
-          value={fields[field.key] ?? ''}
-          placeholder={field.placeholder}
-          onChange={(event) => onFieldChange(field.key, event.target.value)}
-          error={triedSubmit ? errors[field.key] : undefined}
-        />
-      ))}
+      {form.fields.map((field) =>
+        field.type === 'select' ? (
+          <Select
+            key={field.key}
+            label={field.label}
+            required={field.required}
+            value={fields[field.key] ?? ''}
+            placeholder={field.placeholder || 'Choose…'}
+            options={(field.options ?? []).map((option) => ({
+              value: option,
+              label: option,
+            }))}
+            onChange={(event) => onFieldChange(field.key, event.target.value)}
+            error={triedSubmit ? errors[field.key] : undefined}
+          />
+        ) : (
+          <Input
+            key={field.key}
+            label={field.label}
+            required={field.required}
+            type={
+              field.type === 'date'
+                ? 'date'
+                : field.type === 'number'
+                  ? 'number'
+                  : 'text'
+            }
+            inputMode={field.type === 'number' ? 'decimal' : undefined}
+            value={fields[field.key] ?? ''}
+            placeholder={field.placeholder}
+            onChange={(event) => onFieldChange(field.key, event.target.value)}
+            error={triedSubmit ? errors[field.key] : undefined}
+          />
+        ),
+      )}
     </div>
   )
 

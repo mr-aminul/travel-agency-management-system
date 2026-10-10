@@ -7,6 +7,7 @@ import { saveAgencyProfile } from '@/lib/agencyProfile'
 import { DATA_KEYS } from '@/lib/data/keys'
 import { resetCustomServices } from '@/lib/customServicesStore'
 import { resetClientProfileFields } from '@/lib/clientProfileFieldsStore'
+import { resetDocumentFormFields } from '@/lib/documentFormFieldsStore'
 import { resetHiddenServices } from '@/lib/hiddenServicesStore'
 import { resetServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { resetServiceTemplates } from '@/lib/serviceTemplatesStore'
@@ -22,6 +23,7 @@ afterEach(() => {
   localStorage.removeItem(DATA_KEYS.agencyProfiles)
   resetCustomServices()
   resetClientProfileFields()
+  resetDocumentFormFields()
   resetHiddenServices()
   resetServiceIconOverrides()
   resetServiceTemplates()
@@ -87,6 +89,53 @@ describe('settings service catalog', () => {
     )
     expect(await screen.findByText('Profession')).toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'Client fields' })).toBeInTheDocument()
+  }, 15000)
+
+  it('sets document fields beside the document in the service checklist', async () => {
+    renderSettings('/settings/services/tourist-visa')
+
+    expect(
+      await screen.findByRole('button', { name: 'Save checklist' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /set fields for machine readable passport/i,
+      }),
+    )
+    expect(screen.getByText('Fields to fill in')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Field name 1'), {
+      target: { value: 'Pass no.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save checklist' }))
+
+    expect(
+      await screen.findByText(/saved\. new files without a country match/i),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Field name 1')).toHaveValue('Pass no.')
+  }, 15000)
+
+  it('adds a next-step branch from a document dropdown', async () => {
+    renderSettings('/settings/services/work-permit-visa')
+
+    expect(
+      await screen.findByRole('button', { name: 'Save checklist' }),
+    ).toBeInTheDocument()
+
+    const medicalFields = screen.getByRole('button', {
+      name: /set fields for medical/i,
+    })
+    fireEvent.click(medicalFields)
+    expect(screen.getByText('Fields to fill in')).toBeInTheDocument()
+
+    // Medical Result is already a Fit/Unfit dropdown — branch from Medical step.
+    const branchButtons = screen.getAllByRole('button', { name: 'Branch' })
+    expect(branchButtons.length).toBeGreaterThan(0)
+    fireEvent.click(branchButtons[0])
+    expect(screen.getByLabelText('Branch field 1')).toBeInTheDocument()
+    expect(screen.getByLabelText('Branch value 1')).toBeInTheDocument()
+    expect(screen.getByLabelText('Branch next step 1')).toBeInTheDocument()
   }, 15000)
 
   it('puts the business name beside the profile photo', async () => {
