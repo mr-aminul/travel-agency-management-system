@@ -13,16 +13,6 @@ export type PlatformAuditEntry = {
   createdAt: string
 }
 
-export type PlatformInboundSms = {
-  id: string
-  tenantId?: string
-  clientId?: string
-  from?: string
-  body?: string
-  receivedAt?: string
-  createdAt?: string
-}
-
 export async function listPlatformAudit(options?: {
   tenantId?: string
   limit?: number
@@ -36,24 +26,6 @@ export async function listPlatformAudit(options?: {
       `/api/platform/audit${query ? `?${query}` : ''}`,
     )
     return Array.isArray(body.entries) ? body.entries : []
-  } catch {
-    return []
-  }
-}
-
-export async function listPlatformInboundSms(options?: {
-  tenantId?: string
-  limit?: number
-}): Promise<PlatformInboundSms[]> {
-  try {
-    const params = new URLSearchParams()
-    if (options?.tenantId) params.set('tenantId', options.tenantId)
-    if (options?.limit != null) params.set('limit', String(options.limit))
-    const query = params.toString()
-    const body = await apiFetch<{ messages?: PlatformInboundSms[] }>(
-      `/api/platform/sms/inbound${query ? `?${query}` : ''}`,
-    )
-    return Array.isArray(body.messages) ? body.messages : []
   } catch {
     return []
   }

@@ -179,7 +179,7 @@ export default function AdminOverviewPage() {
           <Activity size={18} aria-hidden />
           <span>
             <strong>Activity</strong>
-            <span>Audit log and inbound SMS</span>
+            <span>Audit log</span>
           </span>
         </Link>
         <Link className="pd-admin__shortcut" to={ADMIN_PLATFORM}>

@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { AuthProvider } from '@/lib/AuthProvider'
 import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import { getClientById } from '@/lib/clientsStore'
@@ -11,7 +17,6 @@ vi.mock('@/lib/smsInboundApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/smsInboundApi')>()
   return {
     ...actual,
-    fetchInboundSms: vi.fn(async () => []),
     sendClientSmsViaApi: vi.fn(async () => ({
       ok: true,
       mobile: '8801712345678',
@@ -49,17 +54,32 @@ function renderMessages(channel: 'sms' | 'email' = 'sms') {
 }
 
 describe('client messages panel', () => {
-  it('sends an SMS through the platform API then shows it in the thread', async () => {
+  it('requires Send SMS click and confirmation before sending', async () => {
     renderMessages('sms')
 
-    expect(screen.getByText(/SMS thread ·/i)).toBeInTheDocument()
+    expect(screen.getByText(/SMS ·/i)).toBeInTheDocument()
     const input = screen.getByRole('textbox', { name: 'Message' })
     const send = screen.getByRole('button', { name: 'Send SMS' })
     expect(send).toBeDisabled()
 
     fireEvent.change(input, { target: { value: 'Please bring your passport.' } })
     expect(send).toBeEnabled()
+
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' })
+    expect(sendClientSmsViaApi).not.toHaveBeenCalled()
+    expect(
+      screen.queryByRole('heading', { name: /Confirm sending to/i }),
+    ).not.toBeInTheDocument()
+
     fireEvent.click(send)
+    expect(
+      screen.getByRole('heading', {
+        name: /Confirm sending to 01712345678\?/i,
+      }),
+    ).toBeInTheDocument()
+    expect(sendClientSmsViaApi).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
 
     await waitFor(() => {
       expect(sendClientSmsViaApi).toHaveBeenCalledWith({
@@ -81,11 +101,11 @@ describe('client messages panel', () => {
     expect(editor.tagName).toBe('TEXTAREA')
     expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
 
-    const send = screen.getByRole('button', { name: 'Save note' })
+    const save = screen.getByRole('button', { name: 'Save note' })
     fireEvent.change(editor, {
       target: { value: 'Your documents are ready for pickup.' },
     })
-    fireEvent.click(send)
+    fireEvent.click(save)
 
     expect(
       screen.getByText('Your documents are ready for pickup.'),
