@@ -184,6 +184,10 @@ function App() {
               path="settings/services/:serviceKey"
               element={<SettingsPage />}
             />
+            <Route
+              path="settings/services-v2/:serviceKey"
+              element={<SettingsPage />}
+            />
             <Route path="trash" element={<TrashPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>

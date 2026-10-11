@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { AuthProvider } from '@/lib/AuthProvider'
 import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
+import { resetClientActionItems } from '@/lib/clientActionItemsStore'
 import { TENANT_IDS } from '@/types/tenant'
 import ClientDetailPage from '@/pages/ClientDetailPage'
 import CaseDetailPage from '@/pages/CaseDetailPage'
@@ -11,6 +12,7 @@ import { clientTrackingUrl } from '@/lib/publicUrl'
 afterEach(() => {
   cleanup()
   clearSession()
+  resetClientActionItems()
 })
 
 function renderClient(path: string) {
@@ -79,6 +81,30 @@ describe('client overview', () => {
     expect(within(profile).getByText('Services')).toBeInTheDocument()
     expect(within(profile).getByText('Due balance')).toBeInTheDocument()
     expect(within(profile).getByText('৳ 45,000')).toBeInTheDocument()
+  })
+
+  it('lets staff add and complete action items on overview', () => {
+    renderClient('/clients/c-284')
+
+    const actionItems = screen.getByLabelText('Action items')
+    expect(
+      within(actionItems).getByText(/Track follow-ups for this client/i),
+    ).toBeInTheDocument()
+
+    fireEvent.change(within(actionItems).getByLabelText('New action item'), {
+      target: { value: 'Collect passport copy' },
+    })
+    fireEvent.click(within(actionItems).getByRole('button', { name: 'Add' }))
+
+    const checkbox = within(actionItems).getByRole('checkbox', {
+      name: 'Collect passport copy',
+    })
+    expect(checkbox).not.toBeChecked()
+    expect(within(actionItems).getByText('1 open')).toBeInTheDocument()
+
+    fireEvent.click(checkbox)
+    expect(checkbox).toBeChecked()
+    expect(within(actionItems).queryByText('1 open')).not.toBeInTheDocument()
   })
 
   it('opens services from the profile snapshot', () => {

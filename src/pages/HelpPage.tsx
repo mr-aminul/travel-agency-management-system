@@ -132,7 +132,7 @@ const GUIDES: Guide[] = [
   {
     id: 'sub-agents',
     title: 'Sub agents & intake',
-    body: 'Track referring agencies and commissions. Give sub agents a login (invite or set password) so they can manage their referrals; public join links still work without signing in. Approvals appear when Settings → Sub-agent access requires review.',
+    body: 'Track referring agencies and commissions. Give sub agents a login (invite or set password) so they can manage their referrals; public join links still work without signing in. Approvals appear when Settings → Access Management requires review for sub-agent edits.',
     icon: Handshake,
     links: [
       { label: 'Sub Agents', to: '/sub-agents' },
@@ -157,7 +157,7 @@ const GUIDES: Guide[] = [
     icon: Settings,
     links: [
       { label: 'Settings', to: '/settings' },
-      { label: 'User access', to: settingsSectionPath('userAccess') },
+      { label: 'Access Management', to: settingsSectionPath('userAccess') },
       { label: 'Trash', to: '/trash' },
     ],
   },
@@ -351,7 +351,7 @@ export default function HelpPage() {
               <li>
                 Owners and managers set per-page access (None / View / Edit) under{' '}
                 <Link to={settingsSectionPath('userAccess')}>
-                  Settings → User access
+                  Settings → Access Management
                 </Link>
                 .
               </li>

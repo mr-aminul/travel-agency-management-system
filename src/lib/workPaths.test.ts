@@ -5,7 +5,9 @@ import {
   hrEmployeesPath,
   hrPayrollPath,
   serviceCatalogEditorPath,
+  serviceCatalogEditorPathV2,
   serviceCatalogPath,
+  serviceCatalogPathV2,
   settingsSectionPath,
   workListPath,
 } from '@/lib/workPaths'
@@ -38,7 +40,11 @@ describe('settings and catalog paths', () => {
     expect(settingsSectionPath()).toBe('/settings')
     expect(settingsSectionPath('business')).toBe('/settings')
     expect(serviceCatalogPath()).toBe('/settings?section=services')
+    expect(serviceCatalogPathV2()).toBe('/settings?section=servicesV2')
     expect(settingsSectionPath('userAccess')).toBe(
+      '/settings?section=userAccess',
+    )
+    expect(settingsSectionPath('subAgentAccess')).toBe(
       '/settings?section=userAccess',
     )
     expect(serviceCatalogEditorPath('Tourist Visa')).toBe(
@@ -46,6 +52,9 @@ describe('settings and catalog paths', () => {
     )
     expect(serviceCatalogEditorPath('Hajj/Umrah Visa')).toBe(
       '/settings/services/hajj-umrah-visa',
+    )
+    expect(serviceCatalogEditorPathV2('Tourist Visa')).toBe(
+      '/settings/services-v2/tourist-visa',
     )
   })
 })

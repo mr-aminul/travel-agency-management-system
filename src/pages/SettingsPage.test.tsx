@@ -45,6 +45,10 @@ function renderSettings(path: string, tenantId = TENANT_IDS.full) {
             path="/settings/services/:serviceKey"
             element={<SettingsPage />}
           />
+          <Route
+            path="/settings/services-v2/:serviceKey"
+            element={<SettingsPage />}
+          />
         </Routes>
       </MemoryRouter>
     </AuthProvider>,
@@ -56,10 +60,12 @@ describe('settings service catalog', () => {
     renderSettings('/settings?section=services')
 
     expect(
-      await screen.findByRole('heading', { name: 'Service catalog' }),
+      await screen.findByRole('heading', { name: 'Service catalog', exact: true }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('heading', { name: 'Service catalog' }).closest('header'),
+      screen
+        .getByRole('heading', { name: 'Service catalog', exact: true })
+        .closest('header'),
     ).toHaveTextContent('Add service')
     expect(
       screen.getByRole('navigation', { name: 'Settings sections' }),
@@ -69,6 +75,26 @@ describe('settings service catalog', () => {
       screen.getByRole('link', { name: 'Tourist Visa' }),
     ).toHaveAttribute('href', '/settings/services/tourist-visa')
     expect(screen.queryByRole('heading', { name: 'Catalog' })).not.toBeInTheDocument()
+  }, 15000)
+
+  it('names the settings section Service catalog v2 and lists lines', async () => {
+    renderSettings('/settings?section=servicesV2')
+
+    expect(
+      await screen.findByRole('heading', { name: 'Service catalog v2' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Service catalog v2' }).closest('header'),
+    ).toHaveTextContent('Add service')
+    expect(
+      screen.getByRole('navigation', { name: 'Settings sections' }),
+    ).toHaveTextContent('Service catalog v2')
+    expect(
+      screen.getByRole('table', { name: 'Service catalog v2' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Tourist Visa' }),
+    ).toHaveAttribute('href', '/settings/services-v2/tourist-visa')
   }, 15000)
 
   it('opens add-field in a right panel and creates the field', async () => {
@@ -116,7 +142,7 @@ describe('settings service catalog', () => {
     expect(screen.getByLabelText('Field name 1')).toHaveValue('Pass no.')
   }, 15000)
 
-  it('adds a next-step branch from a document dropdown', async () => {
+  it('lists auto branches from a document dropdown to wire', async () => {
     renderSettings('/settings/services/work-permit-visa')
 
     expect(
@@ -129,13 +155,14 @@ describe('settings service catalog', () => {
     fireEvent.click(medicalFields)
     expect(screen.getByText('Fields to fill in')).toBeInTheDocument()
 
-    // Medical Result is already a Fit/Unfit dropdown — branch from Medical step.
-    const branchButtons = screen.getAllByRole('button', { name: 'Branch' })
-    expect(branchButtons.length).toBeGreaterThan(0)
-    fireEvent.click(branchButtons[0])
-    expect(screen.getByLabelText('Branch field 1')).toBeInTheDocument()
-    expect(screen.getByLabelText('Branch value 1')).toBeInTheDocument()
-    expect(screen.getByLabelText('Branch next step 1')).toBeInTheDocument()
+    // Medical Result is already a Fit/Unfit dropdown — slots appear on Medical.
+    fireEvent.click(screen.getByRole('button', { name: 'Medical' }))
+    expect(screen.getByText('Branch')).toBeInTheDocument()
+    fireEvent.click(
+      screen.getByRole('button', { name: /Result = Fit → Choose next step/i }),
+    )
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByLabelText('Branch next step')).toBeInTheDocument()
   }, 15000)
 
   it('puts the business name beside the profile photo', async () => {
@@ -188,25 +215,32 @@ describe('settings service catalog', () => {
     ).not.toHaveClass('is-attention')
   }, 15000)
 
-  it('can leave Sub-agent access for Service catalog and User access', async () => {
+  it('maps legacy Sub-agent access URLs onto Access Management', async () => {
     renderSettings('/settings?section=subAgentAccess')
 
     expect(
-      await screen.findByRole('heading', { name: 'Sub-agent access' }),
+      await screen.findByRole('heading', { name: 'Access Management' }),
     ).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Service catalog' }))
     expect(
-      await screen.findByRole('heading', { name: 'Service catalog' }),
+      screen.getByRole('heading', { name: 'Sub-agent access' }),
     ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Sub-agent access' }),
+    ).not.toBeInTheDocument()
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'User-wise Access Management' }),
+      screen.getByRole('button', { name: 'Service catalog', exact: true }),
     )
     expect(
       await screen.findByRole('heading', {
-        name: 'User-wise Access Management',
+        name: 'Service catalog',
+        exact: true,
       }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Access Management' }))
+    expect(
+      await screen.findByRole('heading', { name: 'Access Management' }),
     ).toBeInTheDocument()
   }, 15000)
 
@@ -225,18 +259,18 @@ describe('settings service catalog', () => {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'User-wise Access Management',
+        name: 'Access Management',
       }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('navigation', { name: 'Settings sections' }),
-    ).toHaveTextContent('User-wise Access Management')
+    ).toHaveTextContent('Access Management')
     expect(
       screen.queryByRole('button', { name: 'Employees' }),
     ).not.toBeInTheDocument()
 
     const table = screen.getByRole('table', {
-      name: 'User-wise Access Management',
+      name: 'Access Management',
     })
     expect(table).toHaveTextContent('HR - Employees')
     expect(table).toHaveTextContent('HR - Attendance & Leave')

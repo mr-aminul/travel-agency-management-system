@@ -106,3 +106,28 @@ export function toggleStepRequiredDocument(
     return step
   })
 }
+
+/** Attach a document to a step (moves it off any other step). */
+export function assignDocumentToStep(
+  steps: ServiceStepConfig[],
+  stepId: string,
+  documentId: string,
+): ServiceStepConfig[] {
+  return steps.map((step) => {
+    const current = step.requiredDocumentIds ?? []
+    if (step.id === stepId) {
+      if (current.includes(documentId)) return step
+      return {
+        ...step,
+        requiredDocumentIds: [...current, documentId],
+      }
+    }
+    if (current.includes(documentId)) {
+      return {
+        ...step,
+        requiredDocumentIds: current.filter((id) => id !== documentId),
+      }
+    }
+    return step
+  })
+}

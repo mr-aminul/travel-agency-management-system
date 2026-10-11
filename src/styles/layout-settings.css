@@ -1,10 +1,8 @@
 /* Settings page — loaded only with SettingsPage
-   Frame: section rail ~16rem | content fill
-   Responsive: <=767px rail stacks as a horizontal strip; content fills the rest */
+   Frame: sticky section topbar | content fill */
 .pd-settings {
-  display: grid;
-  grid-template-columns: 16rem minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   align-items: stretch;
   width: 100%;
   height: 100%;
@@ -13,33 +11,49 @@
 }
 
 .pd-settings-nav {
+  position: sticky;
+  top: 0;
+  z-index: 4;
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  flex-direction: row;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.375rem;
   min-height: 0;
-  padding: 0.75rem;
+  padding: 0.5rem 0.75rem;
   border: 0;
-  border-inline-end: 1px solid var(--color-border);
+  border-block-end: 1px solid var(--color-border);
   border-radius: 0;
-  background: transparent;
-  overflow-y: auto;
+  background: var(--color-surface, #fff);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.pd-settings-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .pd-settings-nav__item {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  width: 100%;
-  padding: 0.625rem 0.75rem;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
   border: 0;
   border-radius: 0.5rem;
   background: transparent;
   color: var(--color-text-sec);
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background-color 0.15s ease,
-    color 0.15s ease;
+    color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .pd-settings-nav__item:hover {
@@ -48,23 +62,29 @@
 }
 
 .pd-settings-nav__item.is-selected {
-  background: color-mix(in srgb, var(--color-theme) 12%, transparent);
-  color: var(--color-text);
+  background: var(--color-theme);
+  color: var(--color-on-theme);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-theme) 22%, transparent);
+}
+
+.pd-settings-nav__item.is-selected:hover {
+  background: color-mix(in srgb, var(--color-theme) 88%, white);
+  color: var(--color-on-theme);
 }
 
 .pd-settings-nav__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.25rem;
+  height: 1.25rem;
   margin-top: 0;
   flex-shrink: 0;
   color: inherit;
 }
 
 .pd-settings-nav__item.is-selected .pd-settings-nav__icon {
-  color: var(--color-theme-ink);
+  color: inherit;
 }
 
 .pd-settings-nav__label {
@@ -80,7 +100,7 @@
   justify-content: center;
   min-width: 1.125rem;
   height: 1.125rem;
-  margin-left: auto;
+  margin-left: 0.125rem;
   padding: 0 0.3125rem;
   border-radius: 999px;
   background: var(--color-danger);
@@ -94,6 +114,7 @@
 
 .pd-settings-panel {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 1.25rem;
   min-width: 0;
@@ -661,8 +682,19 @@
   gap: 0.75rem;
   flex-wrap: wrap;
   flex-shrink: 0;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 0.75rem);
+  background: var(--color-surface-raised, var(--color-bg));
+}
+
+.pd-settings-catalog-editor__delete {
+  color: var(--color-danger);
+}
+
+.pd-settings-catalog-editor__delete:hover:not(:disabled) {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
 }
 
 .pd-settings-catalog-editor__title-row {
@@ -826,50 +858,135 @@
   box-shadow: var(--shadow-low, 0 0.0625rem 0.125rem color-mix(in srgb, var(--color-text) 4%, transparent));
 }
 
-.pd-settings-template__journey {
-  gap: 0;
-}
-
-.pd-settings-template__journey-step:not(:last-child)::before {
-  background: color-mix(in srgb, var(--color-theme) 40%, var(--color-border));
-}
-
-.pd-settings-template__journey-step .pd-journey__marker {
-  border-color: color-mix(in srgb, var(--color-theme) 45%, var(--color-border));
-  color: var(--color-theme-ink);
-  font-weight: 800;
-}
-
-.pd-settings-template__journey-head {
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.pd-settings-template__journey-title {
-  flex: 1;
+.pd-settings-template__journey-split {
+  display: grid;
+  grid-template-columns: minmax(11rem, 0.9fr) minmax(0, 1.35fr);
+  gap: 0.875rem;
+  align-items: start;
   min-width: 0;
 }
 
-.pd-settings-template__journey-title .pd-field__control {
-  font-family: var(--font-heading);
-  font-size: 0.95rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.pd-settings-template__step-body {
+.pd-settings-template__step-rail {
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
-  margin-top: 0.35rem;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.pd-settings-template__step-rail-row {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 0.5rem);
+}
+
+.pd-settings-template__step-rail-row.is-selected {
+  border-color: color-mix(in srgb, var(--color-theme) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-theme) 8%, transparent);
+}
+
+.pd-settings-template__step-rail-select {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0.5rem 0.625rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pd-settings-template__step-rail-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-theme) 45%, var(--color-border));
+  border-radius: 999px;
+  color: var(--color-theme-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.pd-settings-template__step-rail-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.pd-settings-template__step-rail-actions {
+  display: flex;
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+.pd-settings-template__step-rail-row:hover .pd-settings-template__step-rail-actions,
+.pd-settings-template__step-rail-row.is-selected .pd-settings-template__step-rail-actions {
+  opacity: 1;
+}
+
+.pd-settings-template__step-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  padding: 0.875rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
   border-radius: var(--radius-md, 0.5rem);
   background: color-mix(
     in srgb,
-    var(--color-text) 2.5%,
+    var(--color-text) 2%,
     var(--color-surface-raised, var(--color-bg))
   );
+}
+
+.pd-settings-template__panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pd-settings-template__panel-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pd-settings-template__panel-label {
+  color: var(--color-text-sec);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pd-settings-template__needs-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.pd-settings-template__exceptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
 }
 
 .pd-settings-template__row {
@@ -902,11 +1019,29 @@
   background: color-mix(in srgb, var(--color-surface-raised, var(--color-bg)) 70%, transparent);
 }
 
+.pd-settings-doc-fields--compact {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: auto;
+}
+
 .pd-settings-doc-fields__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+.pd-settings-doc-fields--compact .pd-settings-doc-fields__head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: 0.35rem;
+  background: color-mix(in srgb, var(--color-bg) 94%, transparent);
 }
 
 .pd-settings-doc-fields__title {
@@ -926,10 +1061,21 @@
   list-style: none;
 }
 
+.pd-settings-doc-fields--compact .pd-settings-doc-fields__list {
+  gap: 0.5rem;
+}
+
 .pd-settings-doc-fields__item {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
+}
+
+.pd-settings-doc-fields--compact .pd-settings-doc-fields__item {
+  padding: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--color-bg) 70%, transparent);
 }
 
 .pd-settings-doc-fields__row {
@@ -939,51 +1085,22 @@
   gap: 0.5rem;
 }
 
+.pd-settings-doc-fields--compact .pd-settings-doc-fields__row {
+  grid-template-columns: minmax(0, 1fr) minmax(5.25rem, 6.5rem) auto auto;
+  gap: 0.375rem;
+}
+
 .pd-settings-doc-fields__row .pd-field {
   min-width: 0;
 }
 
-.pd-settings-template__branches {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  min-width: 0;
-  padding-top: 0.5rem;
-  border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+.pd-settings-doc-fields--compact .pd-settings-doc-fields__row .pd-field__label,
+.pd-settings-doc-fields--compact .pd-field-hint {
+  display: none;
 }
 
-.pd-settings-template__branches-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.pd-settings-template__branches-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.pd-settings-template__branches-label .pd-settings-template__needs-label {
-  margin-top: 0;
-}
-
-.pd-settings-template__next-chip {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  padding: 0.1875rem 0.5rem;
-  border: 1px solid color-mix(in srgb, var(--color-theme) 35%, var(--color-border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-theme) 10%, transparent);
-  color: var(--color-theme-ink);
+.pd-settings-doc-fields--compact .pd-settings-doc-fields__req .pd-check__label {
   font-size: 0.6875rem;
-  font-weight: 650;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .pd-settings-template__branch-list {
@@ -993,6 +1110,132 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.pd-settings-template__branch-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
+  border-radius: var(--radius-md, 0.5rem);
+  background: color-mix(in srgb, var(--color-surface-2, #f6f7f9) 70%, transparent);
+}
+
+.pd-settings-template__branch-summary-text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0.125rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 550;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pd-settings-template__branch-summary-text:hover,
+.pd-settings-template__branch-summary-text:focus-visible {
+  color: var(--color-theme-ink);
+}
+
+.pd-settings-template__branch-drawer-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.pd-settings-template__branch-drawer-empty {
+  margin: 0;
+  color: var(--color-text-sec);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.pd-settings-template__branch-drawer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.pd-settings-template__branch-drawer-actions-end {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.pd-settings-template__branch-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pd-settings-template__branch-choice-label {
+  color: var(--color-text-sec);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pd-settings-template__branch-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.pd-settings-template__branch-choice-list--chips {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.pd-settings-template__branch-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--color-surface, #fff);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pd-settings-template__branch-choice-list--chips .pd-settings-template__branch-option {
+  width: auto;
+  min-width: 4.5rem;
+  align-items: center;
+}
+
+.pd-settings-template__branch-option:hover {
+  border-color: color-mix(in srgb, var(--color-theme) 40%, var(--color-border));
+}
+
+.pd-settings-template__branch-option.is-selected {
+  border-color: color-mix(in srgb, var(--color-theme) 55%, var(--color-border));
+  background: color-mix(in srgb, var(--color-theme) 10%, transparent);
+  color: var(--color-theme-ink);
+}
+
+.pd-settings-template__branch-option-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.pd-settings-template__branch-option-hint {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
 }
 
 .pd-settings-template__branch-row {
@@ -1158,7 +1401,7 @@
   margin-right: auto;
 }
 
-/* User-wise access — rounded table card like Payments */
+/* Access Management — rounded table card like Payments */
 .pd-user-access {
   min-width: 0;
   max-width: 100%;
@@ -1250,6 +1493,30 @@
   color: var(--color-red);
 }
 
+/* Sub-agent access card under the user grid */
+.pd-user-access__sub-agent {
+  margin-top: 0.25rem;
+  max-width: 36rem;
+}
+
+.pd-user-access__sub-agent-field {
+  flex: 1 1 12rem;
+  min-width: 0;
+  max-width: 20rem;
+}
+
+.pd-user-access__sub-agent-switch .pd-switch__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 @media (max-width: 1023px) {
   .pd-settings-template__panes {
     grid-template-columns: 1fr;
@@ -1257,30 +1524,11 @@
 }
 
 @media (max-width: 767px) {
-  .pd-settings {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
-  }
-
   .pd-settings-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    gap: 0.375rem;
-    padding: 0.5rem 0.75rem;
-    border-inline-end: 0;
-    border-block-end: 1px solid var(--color-border);
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .pd-settings-nav::-webkit-scrollbar {
-    display: none;
+    padding: 0.5rem 0.625rem;
   }
 
   .pd-settings-nav__item {
-    flex: 0 0 auto;
-    min-width: 9.5rem;
     padding: 0.5rem 0.625rem;
   }
 
@@ -1305,18 +1553,12 @@
     grid-template-columns: 1fr;
   }
 
-  .pd-settings-template__branches {
-    padding-left: 0;
+  .pd-settings-template__journey-split {
+    grid-template-columns: 1fr;
   }
 
-  .pd-settings-template__needs {
-    padding-left: 0;
-    flex-wrap: wrap;
-  }
-
-  .pd-settings-template__needs-menu {
-    min-width: 0;
-    max-width: min(20rem, calc(100vw - 2rem));
+  .pd-settings-template__step-rail-actions {
+    opacity: 1;
   }
 
   /* Sticky frozen columns eat too much width on phones — allow natural scroll. */
@@ -1340,5 +1582,726 @@
   .pd-user-access__name,
   .pd-user-access__role {
     white-space: normal;
+  }
+}
+/* Service catalog v2 — flowchart canvas */
+.pd-settings-panel--flow {
+  overflow: hidden;
+  padding: 0;
+}
+
+.pd-settings-panel--flow .pd-settings-panel__body {
+  overflow: hidden;
+  height: 100%;
+}
+
+.pd-settings-catalog-editor--flow {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+}
+
+.pd-settings-catalog-editor--flow > .pd-settings-form__status,
+.pd-settings-catalog-editor--flow > .pd-settings-catalog__composer {
+  position: static;
+  z-index: 1;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: var(--color-bg);
+}
+
+.pd-service-flow {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.pd-service-flow__topbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  flex-shrink: 0;
+  padding: 0.5rem 0.875rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.pd-service-flow__topbar-left {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.pd-service-flow__identity {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.pd-service-flow__identity .pd-settings-catalog-editor__title-row {
+  flex: 0 1 auto;
+}
+
+.pd-service-flow__identity .pd-settings-catalog-editor__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 12rem;
+}
+
+.pd-service-flow__country {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--color-border);
+}
+
+.pd-service-flow__country-select {
+  min-width: 9rem;
+  max-width: 12rem;
+}
+
+.pd-service-flow__add-country {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.pd-service-flow__add-country .pd-field {
+  min-width: 10rem;
+}
+
+.pd-service-flow__actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+@media (max-width: 960px) {
+  .pd-service-flow__topbar,
+  .pd-service-flow__topbar-left,
+  .pd-service-flow__identity,
+  .pd-service-flow__country,
+  .pd-service-flow__actions {
+    flex-wrap: wrap;
+  }
+
+  .pd-service-flow__country {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+.pd-service-flow__dirty {
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--color-theme-ink);
+}
+
+.pd-service-flow__status {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0.4rem 0.875rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.pd-service-flow__workspace {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pd-service-flow__body {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      120% 80% at 10% 0%,
+      color-mix(in srgb, var(--color-theme) 8%, transparent),
+      transparent 55%
+    ),
+    var(--color-bg);
+}
+
+.pd-service-flow__canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.pd-service-flow-branch-dialog__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pd-service-flow-branch-dialog__empty {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-text-sec);
+}
+
+.pd-service-flow-branch-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.pd-service-flow__controls {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: none;
+  background: var(--color-bg);
+}
+
+.pd-service-flow__controls button {
+  background: var(--color-bg);
+  border-bottom-color: var(--color-border);
+  fill: var(--color-text-sec);
+}
+
+.pd-service-flow__controls button:hover {
+  background: color-mix(in srgb, var(--color-text) 5%, var(--color-bg));
+}
+
+.pd-service-flow__minimap {
+  border: 1px solid var(--color-border);
+  border-radius: 0.65rem;
+  overflow: hidden;
+  background: var(--color-bg) !important;
+}
+
+.pd-service-flow__inspector {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  width: min(22rem, calc(100% - 1.5rem));
+  min-width: 0;
+  min-height: 0;
+  padding: 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 0.75rem);
+  background: color-mix(in srgb, var(--color-bg) 94%, transparent);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+.pd-service-flow__inspector:has(.pd-service-flow__inspector-block--document) {
+  width: min(24rem, calc(100% - 1.5rem));
+}
+
+.pd-service-flow__inspector-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.pd-service-flow__inspector-block--document {
+  flex: 1;
+  min-height: 0;
+}
+
+.pd-service-flow__inspector-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.pd-service-flow__inspector-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.pd-service-flow__doc-required {
+  gap: 0.375rem;
+}
+
+.pd-service-flow__doc-required .pd-switch__label {
+  font-size: 0.75rem;
+}
+
+.pd-service-flow__inspector-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 0.9375rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.pd-service-flow__inspector-copy {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-text-muted, color-mix(in srgb, var(--color-text) 62%, transparent));
+}
+
+.pd-service-flow__inspector-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.pd-service-flow__doc-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.pd-service-flow-node {
+  width: 16.5rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.85rem;
+  background: var(--color-bg);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text) 6%, transparent);
+  color: var(--color-text);
+  overflow: hidden;
+}
+
+.pd-service-flow-node--step {
+  padding: 0;
+  background: transparent;
+}
+
+.pd-service-flow-insert {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 7.5rem;
+  pointer-events: all;
+}
+
+.pd-service-flow-insert--empty {
+  width: 16.5rem;
+  height: auto;
+  min-height: 7.5rem;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.35rem 0;
+}
+
+.pd-service-flow-insert__plus {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--color-theme);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-theme-ink);
+  opacity: 0;
+  transform: scale(0.92);
+  cursor: pointer;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text) 8%, transparent);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.pd-service-flow-insert.is-hot .pd-service-flow-insert__plus,
+.pd-service-flow-insert--empty .pd-service-flow-insert__plus,
+.pd-service-flow-insert:focus-within .pd-service-flow-insert__plus {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.pd-service-flow-insert__plus:hover,
+.pd-service-flow-insert.is-preview .pd-service-flow-insert__plus {
+  background: var(--color-theme);
+  color: var(--color-on-theme);
+}
+
+.pd-service-flow-insert__skeleton {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16.5rem;
+  transform: translate(-50%, -50%);
+  border: 1.5px dashed color-mix(in srgb, var(--color-theme) 50%, var(--color-border));
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--color-theme) 6%, var(--color-bg));
+  overflow: hidden;
+  opacity: 0.92;
+  pointer-events: none;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+.pd-service-flow-insert--empty .pd-service-flow-insert__skeleton {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+}
+
+.pd-service-flow-insert__skeleton-main {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem 0.875rem 0.65rem;
+  background: color-mix(in srgb, var(--color-theme) 72%, var(--color-bg));
+  color: var(--color-on-theme);
+}
+
+.pd-service-flow-insert__skeleton-chip {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--color-on-theme) 22%, transparent);
+  flex-shrink: 0;
+}
+
+.pd-service-flow-insert__skeleton-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-on-theme);
+  opacity: 0.92;
+}
+
+.pd-service-flow-insert__skeleton-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.55rem;
+  background: color-mix(in srgb, var(--color-theme) 8%, var(--color-bg));
+}
+
+.pd-service-flow-insert__skeleton-line {
+  display: block;
+  height: 1.65rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-bg) 88%, var(--color-theme));
+  border: 1px solid color-mix(in srgb, var(--color-theme) 16%, var(--color-border));
+}
+
+.pd-service-flow-node.is-selected {
+  border-color: color-mix(in srgb, var(--color-theme) 55%, var(--color-border));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-theme) 22%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+.pd-service-flow-node__main {
+  padding: 0.75rem 0.875rem 0.65rem;
+  background: var(--color-theme);
+  color: var(--color-on-theme);
+}
+
+.pd-service-flow-node__main .pd-service-flow-node__title {
+  color: var(--color-on-theme);
+}
+
+.pd-service-flow-node__main .pd-service-flow-node__index {
+  background: color-mix(in srgb, var(--color-on-theme) 18%, transparent);
+  color: var(--color-on-theme);
+}
+
+.pd-service-flow-node__main .pd-service-flow-node__badge {
+  background: color-mix(in srgb, var(--color-on-theme) 18%, transparent);
+  color: var(--color-on-theme);
+}
+
+.pd-service-flow-node__head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pd-service-flow-node__docs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem 0.55rem;
+  background: color-mix(in srgb, var(--color-theme) 8%, var(--color-bg));
+  border-top: 1px solid color-mix(in srgb, var(--color-theme) 22%, var(--color-border));
+}
+
+.pd-service-flow-node__docs-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pd-service-flow-node__docs-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  flex: 1;
+  padding: 0.2rem 0.2rem;
+  color: var(--color-theme-ink);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.pd-service-flow-node__docs-count {
+  margin-left: 0.15rem;
+  min-width: 1.1rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-theme) 16%, transparent);
+  color: var(--color-theme-ink);
+  text-align: center;
+  font-size: 0.675rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-service-flow-node__docs-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--color-theme);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-theme-ink);
+  cursor: pointer;
+}
+
+.pd-service-flow-node__docs-add:hover {
+  border-color: var(--color-theme);
+  color: var(--color-on-theme);
+  background: var(--color-theme);
+}
+
+.pd-service-flow-node__docs-empty {
+  margin: 0 0.15rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--color-text-muted, color-mix(in srgb, var(--color-text) 62%, transparent));
+}
+
+.pd-service-flow-node__docs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-service-flow-node__doc-row {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 1px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.pd-service-flow-node__doc-row:hover {
+  border-color: color-mix(in srgb, var(--color-theme) 35%, var(--color-border));
+}
+
+.pd-service-flow-node__doc-row.is-selected {
+  border-color: color-mix(in srgb, var(--color-theme) 55%, var(--color-border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-theme) 16%, transparent);
+}
+
+.pd-service-flow-node__icon,
+.pd-service-flow-node__index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--color-theme) 12%, transparent);
+  color: var(--color-theme-ink);
+  flex-shrink: 0;
+}
+
+.pd-service-flow-node__index {
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.pd-service-flow-node__title {
+  min-width: 0;
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-text);
+}
+
+.pd-service-flow-node__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  color: var(--color-text-sec);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.pd-service-flow-node__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--color-text-sec);
+}
+
+.pd-service-flow-node__muted {
+  color: var(--color-text-muted, color-mix(in srgb, var(--color-text) 62%, transparent));
+}
+
+.pd-service-flow-handle {
+  width: 0.5rem !important;
+  height: 0.5rem !important;
+  border: 1.5px solid var(--color-border) !important;
+  background: var(--color-bg) !important;
+}
+
+.pd-service-flow__edge .react-flow__edge-path {
+  stroke: color-mix(in srgb, var(--color-text) 28%, transparent);
+  stroke-width: 1.5;
+}
+
+.pd-service-flow__edge--branch .react-flow__edge-path {
+  stroke: var(--color-theme-ink);
+  stroke-width: 1.75;
+}
+
+.pd-service-flow-branch-tip {
+  width: 1.35rem;
+  height: 1.35rem;
+  position: relative;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  border-radius: 999px;
+}
+
+.pd-service-flow-branch-tip:active {
+  cursor: grabbing;
+}
+
+.pd-service-flow-branch-tip__dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg);
+  box-shadow: 0 0 0 2px var(--color-bg);
+  pointer-events: none;
+}
+
+.pd-service-flow-branch-tip.is-selected .pd-service-flow-branch-tip__dot,
+.pd-service-flow-branch-tip:hover .pd-service-flow-branch-tip__dot {
+  border-color: color-mix(in srgb, var(--color-theme) 55%, var(--color-border));
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 0 4px color-mix(in srgb, var(--color-theme) 22%, transparent);
+}
+
+.pd-service-flow-branch-tip__handle {
+  width: 0.25rem !important;
+  height: 0.25rem !important;
+  border: none !important;
+  background: transparent !important;
+  left: 0 !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%);
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.pd-service-flow-branch-tip__handle--in {
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
+.pd-service-flow__edge .react-flow__edge-textbg {
+  fill: var(--color-bg);
+}
+
+.pd-service-flow__edge .react-flow__edge-text {
+  fill: var(--color-text-sec);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.react-flow__edge.pd-service-flow__edge--branch .react-flow__edge-text {
+  fill: var(--color-theme-ink);
+}
+
+@media (max-width: 1100px) {
+  .pd-service-flow__inspector {
+    top: auto;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: auto;
+    max-height: min(40vh, 22rem);
   }
 }

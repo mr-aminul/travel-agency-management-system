@@ -16,6 +16,8 @@ export const DATA_KEYS = {
   attendanceCreated: 'pd-attendance-created',
   requestsCreated: 'pd-requests-created',
   clientMessages: 'pd-client-messages',
+  /** Per-client staff action items / todos on the profile overview. */
+  clientActionItems: 'pd-client-action-items',
   serviceTemplates: 'pd-service-templates',
   documentTemplates: 'pd-document-print-templates',
   clientProfileFields: 'pd-client-profile-fields',

@@ -1,0 +1,334 @@
+import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Trash2 } from 'lucide-react'
+import { ServiceIconPicker } from '@/components/settings/ServiceIconPicker'
+import { SettingsInfo } from '@/components/settings/SettingsInfo'
+import { ServiceFlowEditorV2 } from '@/components/settings/flow/ServiceFlowEditorV2'
+import { renameServiceOnCases } from '@/lib/casesStore'
+import { renameServiceOnClients } from '@/lib/clientsStore'
+import { BackButton, Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
+import {
+  deleteCustomService,
+  updateCustomService,
+} from '@/lib/customServicesStore'
+import { hideCatalogService } from '@/lib/hiddenServicesStore'
+import {
+  resolveCatalogEditorService,
+  useCatalogServiceRefs,
+} from '@/lib/serviceCatalog'
+import {
+  setServiceIconOverride,
+  useServiceIconOverrides,
+} from '@/lib/serviceIconOverridesStore'
+import {
+  defaultIconIdForService,
+  iconFromId,
+  selectedIconIdForService,
+  type ServiceIconId,
+} from '@/lib/serviceIcons'
+import {
+  validateOptionalText,
+  validateRequiredText,
+} from '@/lib/fieldValidation'
+import { useTouchedFields } from '@/lib/useTouchedFields'
+import {
+  serviceCatalogEditorPathV2,
+  serviceCatalogPathV2,
+} from '@/lib/workPaths'
+
+export function ServiceCatalogEditorV2({
+  serviceKey,
+  onDirtyChange,
+}: {
+  serviceKey: string
+  onDirtyChange?: (dirty: boolean) => void
+}) {
+  const navigate = useNavigate()
+  useCatalogServiceRefs()
+  useServiceIconOverrides()
+  const item = resolveCatalogEditorService(serviceKey)
+  const [name, setName] = useState(item?.label ?? '')
+  const [description, setDescription] = useState(item?.description ?? '')
+  const [iconId, setIconId] = useState<ServiceIconId | null>(
+    item ? (selectedIconIdForService(item.key) ?? null) : null,
+  )
+  const [identityError, setIdentityError] = useState<string | null>(null)
+  const [identityStatus, setIdentityStatus] = useState<string | null>(null)
+  const [templateDirty, setTemplateDirty] = useState(false)
+  const [pendingLeave, setPendingLeave] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState(false)
+  const { markAllTouched, showError, blur } = useTouchedFields<
+    'name' | 'description'
+  >()
+  const nameError = validateRequiredText(name, 'Service name', 2)
+  const descriptionError = validateOptionalText(description, 'Description', 500)
+
+  const savedIconId = item ? (selectedIconIdForService(item.key) ?? null) : null
+  const iconDirty = iconId !== savedIconId
+  const identityDirty =
+    item?.kind === 'custom' &&
+    (name.trim() !== (item.label ?? '') ||
+      description.trim() !== (item.description ?? '') ||
+      iconDirty)
+  const dirty = templateDirty || identityDirty
+
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
+
+  useEffect(() => {
+    return () => onDirtyChange?.(false)
+  }, [onDirtyChange])
+
+  useEffect(() => {
+    if (!item) return
+    setName(item.label)
+    setDescription(item.description)
+    setIconId(selectedIconIdForService(item.key) ?? null)
+    setIdentityError(null)
+    setIdentityStatus(null)
+    setTemplateDirty(false)
+  }, [item?.key, item?.label, item?.description])
+
+  const requestLeave = (href: string) => {
+    if (dirty) {
+      setPendingLeave(href)
+      return
+    }
+    navigate(href)
+  }
+
+  const saveIdentity = (event: FormEvent) => {
+    event.preventDefault()
+    if (!item) return
+    setIdentityError(null)
+    if (item.kind === 'custom') {
+      markAllTouched(['name', 'description'])
+      if (nameError || descriptionError) return
+    }
+    try {
+      if (item.kind === 'custom' && item.customId) {
+        const updated = updateCustomService(item.customId, {
+          name,
+          description,
+          iconId,
+        })
+        if (!updated) throw new Error('Could not save that service.')
+        if (item.key !== updated.name) {
+          renameServiceOnCases(item.key, updated.name)
+          renameServiceOnClients(item.key, updated.name)
+        }
+        setIdentityStatus('Service details saved.')
+        if (item.key !== updated.name) {
+          navigate(serviceCatalogEditorPathV2(updated.name), { replace: true })
+        }
+        return
+      }
+      setServiceIconOverride(item.key, iconId)
+      setIdentityStatus('Icon saved.')
+    } catch (caught) {
+      setIdentityError(
+        caught instanceof Error ? caught.message : 'Could not save that service.',
+      )
+    }
+  }
+
+  const confirmDelete = () => {
+    if (!item) return
+    if (item.kind === 'custom' && item.customId) {
+      deleteCustomService(item.customId)
+    } else {
+      hideCatalogService(item.key)
+    }
+    setPendingDelete(false)
+    onDirtyChange?.(false)
+    navigate(serviceCatalogPathV2())
+  }
+
+  if (!item) {
+    return (
+      <div className="pd-settings-catalog-editor">
+        <h2 id="settings-panel-title" className="pd-settings-catalog-editor__title">
+          Service catalog v2
+        </h2>
+        <p className="pd-settings-service-empty">
+          That service is not in the catalog.
+        </p>
+        <BackButton to={serviceCatalogPathV2()} label="Catalog" />
+      </div>
+    )
+  }
+
+  const previewIconId =
+    iconId ?? defaultIconIdForService(item.kind === 'custom' ? name : item.label)
+  const TitleIcon = iconFromId(previewIconId)
+
+  const applyIcon = (next: ServiceIconId | null) => {
+    setIconId(next)
+    setIdentityError(null)
+    if (item.kind !== 'builtin') {
+      setIdentityStatus(null)
+      return
+    }
+    try {
+      setServiceIconOverride(item.key, next)
+      setIdentityStatus('Icon saved.')
+    } catch (caught) {
+      setIdentityError(
+        caught instanceof Error ? caught.message : 'Could not save that icon.',
+      )
+    }
+  }
+
+  return (
+    <>
+      <div className="pd-settings-catalog-editor pd-settings-catalog-editor--flow">
+        {item.kind === 'builtin' && (identityError || identityStatus) ? (
+          <p
+            className={[
+              'pd-settings-form__status',
+              identityError && 'pd-settings-form__status--error',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            role={identityError ? 'alert' : undefined}
+          >
+            {identityError ?? identityStatus}
+          </p>
+        ) : null}
+
+        {item.kind === 'custom' ? (
+          <form
+            className="pd-settings-catalog__composer"
+            onSubmit={saveIdentity}
+          >
+            <Input
+              label="Service name"
+              name="customServiceName"
+              required
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value)
+                setIdentityError(null)
+                setIdentityStatus(null)
+              }}
+              onBlur={blur('name')}
+              error={showError('name') ? nameError : undefined}
+            />
+            <Textarea
+              label="Description"
+              name="customServiceDescription"
+              rows={2}
+              value={description}
+              onChange={(event) => {
+                setDescription(event.target.value)
+                setIdentityError(null)
+                setIdentityStatus(null)
+              }}
+              onBlur={blur('description')}
+              error={showError('description') ? descriptionError : undefined}
+            />
+            <div className="pd-settings-catalog__composer-actions">
+              <p
+                className={[
+                  'pd-settings-form__status',
+                  identityError && 'pd-settings-form__status--error',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                role={identityError ? 'alert' : undefined}
+              >
+                {identityError ?? identityStatus ?? ''}
+              </p>
+              <Button type="submit" size="sm" disabled={!identityDirty}>
+                Save details
+              </Button>
+            </div>
+          </form>
+        ) : null}
+
+        <ServiceFlowEditorV2
+          key={item.key}
+          service={item.key}
+          isCustom={item.kind === 'custom'}
+          onDirtyChange={setTemplateDirty}
+          leading={
+            <>
+              <BackButton
+                label="Catalog"
+                onClick={() => requestLeave(serviceCatalogPathV2())}
+              />
+              <div className="pd-settings-catalog-editor__title-row">
+                <ServiceIconPicker
+                  variant="popover"
+                  value={iconId}
+                  serviceName={item.kind === 'custom' ? name : item.label}
+                  onChange={applyIcon}
+                  triggerClassName="pd-settings-catalog-editor__title-icon"
+                  triggerAriaLabel={`Change icon for ${item.label}`}
+                  trigger={
+                    <TitleIcon size={18} strokeWidth={2.25} aria-hidden />
+                  }
+                />
+                <h2
+                  id="settings-panel-title"
+                  className="pd-settings-catalog-editor__title"
+                >
+                  {item.label}
+                </h2>
+                <SettingsInfo
+                  title={item.label}
+                  body={
+                    item.kind === 'custom' && item.description
+                      ? `${item.description}. New files pick up the checklist you save here. Add a country when that destination needs a different journey or documents.`
+                      : 'New files pick up the checklist you save here. Add a country when that destination needs a different journey or documents.'
+                  }
+                />
+              </div>
+            </>
+          }
+          trailing={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="pd-settings-catalog-editor__delete"
+              onClick={() => setPendingDelete(true)}
+            >
+              <Trash2 size={14} />
+              Delete
+            </Button>
+          }
+        />
+      </div>
+
+      <ConfirmDialog
+        open={pendingLeave != null}
+        onClose={() => setPendingLeave(null)}
+        onConfirm={() => {
+          const href = pendingLeave
+          setPendingLeave(null)
+          onDirtyChange?.(false)
+          if (href) navigate(href)
+        }}
+        title="Discard unsaved changes?"
+        description="The checklist or name you were editing has not been saved."
+        confirmLabel="Discard"
+        confirmVariant="danger"
+      />
+      <ConfirmDialog
+        open={pendingDelete}
+        onClose={() => setPendingDelete(false)}
+        onConfirm={confirmDelete}
+        title={`Delete ${item.label}?`}
+        description={
+          item.kind === 'custom'
+            ? 'New files will no longer offer it. Existing files stay.'
+            : 'Hide it from new files. Existing files stay, and you can restore it later.'
+        }
+        confirmLabel="Delete"
+        confirmVariant="danger"
+      />
+    </>
+  )
+}

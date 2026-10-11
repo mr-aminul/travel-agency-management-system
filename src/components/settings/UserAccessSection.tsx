@@ -46,6 +46,7 @@ import {
   setPageAccessLevel,
   useUserPageAccess,
 } from '@/lib/userAccessStore'
+import { SubAgentAccessSection } from '@/components/settings/SubAgentAccessSection'
 import type { TenantMemberRole, TenantMemberStatus } from '@/types/tenant'
 import type { PageAccessLevel } from '@/types/userAccess'
 
@@ -256,6 +257,7 @@ export function UserAccessSection({
             ) : undefined
           }
         />
+        <SubAgentAccessSection />
         {createModal}
       </div>
     )
@@ -336,6 +338,7 @@ export function UserAccessSection({
           </TableBody>
         </Table>
       </div>
+      <SubAgentAccessSection />
       {createModal}
     </div>
   )

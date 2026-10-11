@@ -1,5 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { Button, Checkbox, Input, Select, Textarea } from '@/components/ui'
+import { cx } from '@/lib/cx'
 import { requiredKeysForDocument } from '@/lib/documentFormFieldsStore'
 import type {
   DocumentFormFieldDraft,
@@ -43,12 +44,16 @@ export function DocumentFieldsEditor({
   documentId,
   fields,
   onChange,
+  variant = 'default',
 }: {
   documentId: string
   fields: DocumentFormFieldDraft[]
   onChange: (fields: DocumentFormFieldDraft[]) => void
+  /** Compact single-column layout for the flow inspector. */
+  variant?: 'default' | 'compact'
 }) {
   const lockedKeys = new Set(requiredKeysForDocument(documentId))
+  const isCompact = variant === 'compact'
 
   const updateField = (
     index: number,
@@ -70,9 +75,7 @@ export function DocumentFieldsEditor({
           patch.key === undefined
         ) {
           const used = new Set(
-            fields
-              .filter((_, j) => j !== index)
-              .map((item) => item.key),
+            fields.filter((_, j) => j !== index).map((item) => item.key),
           )
           next.key = keyFromLabel(patch.label, used)
         }
@@ -97,17 +100,26 @@ export function DocumentFieldsEditor({
   }
 
   return (
-    <div className="pd-settings-doc-fields">
+    <div
+      className={cx(
+        'pd-settings-doc-fields',
+        isCompact && 'pd-settings-doc-fields--compact',
+      )}
+    >
       <div className="pd-settings-doc-fields__head">
-        <span className="pd-settings-doc-fields__title">Fields to fill in</span>
+        <span className="pd-settings-doc-fields__title">
+          {isCompact ? `Fields (${fields.length})` : 'Fields to fill in'}
+        </span>
         <Button type="button" variant="ghost" size="sm" onClick={addField}>
           <Plus size={14} />
-          Add field
+          {isCompact ? 'Add' : 'Add field'}
         </Button>
       </div>
       {fields.length === 0 ? (
         <p className="pd-settings-service-empty">
-          Add at least one field staff will complete when uploading this paper.
+          {isCompact
+            ? 'No fields yet. Add what staff fill in on upload.'
+            : 'Add at least one field staff will complete when uploading this paper.'}
         </p>
       ) : (
         <ul className="pd-settings-doc-fields__list">
@@ -130,15 +142,23 @@ export function DocumentFieldsEditor({
                   <Select
                     aria-label={`Type for ${field.label || `field ${index + 1}`}`}
                     value={field.type}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const type = event.target.value as DocumentFormFieldType
                       updateField(index, {
-                        type: event.target.value as DocumentFormFieldType,
+                        type,
+                        ...(type === 'select' && !(field.options?.length)
+                          ? { options: ['Fit', 'Unfit'] }
+                          : {}),
                       })
-                    }
+                    }}
                     options={TYPE_OPTIONS}
                   />
                   <Checkbox
-                    label="Required"
+                    className={
+                      isCompact ? 'pd-settings-doc-fields__req' : undefined
+                    }
+                    label={isCompact ? 'Req' : 'Required'}
+                    title={locked ? 'Linked to client profile' : undefined}
                     checked={Boolean(field.required)}
                     onChange={(event) =>
                       updateField(index, { required: event.target.checked })
@@ -163,9 +183,13 @@ export function DocumentFieldsEditor({
                 {field.type === 'select' ? (
                   <Textarea
                     aria-label={`Choices for ${field.label || `field ${index + 1}`}`}
-                    label="Choices"
-                    hint="One choice per line — used for dropdowns and next-step branches"
-                    rows={2}
+                    label={isCompact ? undefined : 'Choices'}
+                    hint={
+                      isCompact
+                        ? undefined
+                        : 'One choice per line — used for dropdowns and next-step branches'
+                    }
+                    rows={isCompact ? 2 : 2}
                     placeholder={'Fit\nUnfit'}
                     value={optionsText(field)}
                     onChange={(event) =>
@@ -183,7 +207,7 @@ export function DocumentFieldsEditor({
           })}
         </ul>
       )}
-      {lockedKeys.size > 0 ? (
+      {!isCompact && lockedKeys.size > 0 ? (
         <p className="pd-field-hint">
           Some fields stay linked to the client profile — you can rename them,
           but not remove them.

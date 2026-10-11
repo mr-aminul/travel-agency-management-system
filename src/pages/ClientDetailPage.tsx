@@ -30,6 +30,7 @@ import { CasesList } from '@/components/cases/CasesList'
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon'
 import { ClientServicesWorkspace } from '@/components/cases/ClientServicesWorkspace'
 import { NewCaseForm } from '@/components/cases/NewCaseForm'
+import { ClientActionItems } from '@/components/clients/ClientActionItems'
 import { ClientCustomFieldControl } from '@/components/clients/ClientCustomFieldControl'
 import { ClientDocumentsPanel } from '@/components/clients/ClientDocumentsPanel'
 import { ClientMessagesPanel } from '@/components/clients/ClientMessagesPanel'
@@ -1154,6 +1155,8 @@ export default function ClientDetailPage() {
                         </div>
                       </dl>
                     </section>
+
+                    <ClientActionItems clientId={client.id} />
 
                     <Accordion
                       className="pd-accordion--cards pd-client-detail__services-accordion"

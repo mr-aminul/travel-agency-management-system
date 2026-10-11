@@ -217,10 +217,11 @@ export function ServiceCatalogEditor({
             type="button"
             variant="ghost"
             size="sm"
+            className="pd-settings-catalog-editor__delete"
             onClick={() => setPendingDelete(true)}
           >
             <Trash2 size={14} />
-            {item.kind === 'custom' ? 'Delete' : 'Remove'}
+            Delete
           </Button>
         </header>
 
@@ -314,17 +315,13 @@ export function ServiceCatalogEditor({
         open={pendingDelete}
         onClose={() => setPendingDelete(false)}
         onConfirm={confirmDelete}
-        title={
-          item.kind === 'custom'
-            ? `Delete ${item.label}?`
-            : `Remove ${item.label}?`
-        }
+        title={`Delete ${item.label}?`}
         description={
           item.kind === 'custom'
             ? 'New files will no longer offer it. Existing files stay.'
             : 'Hide it from new files. Existing files stay, and you can restore it later.'
         }
-        confirmLabel={item.kind === 'custom' ? 'Delete' : 'Remove'}
+        confirmLabel="Delete"
         confirmVariant="danger"
       />
     </>

@@ -1,5 +1,8 @@
 import type { ClientProfileField } from '@/types/clientProfileField'
-import { DESTINATION_COUNTRIES } from '@/lib/destinationCountries'
+import {
+  DESTINATION_COUNTRIES,
+  formatCountryLabel,
+} from '@/lib/destinationCountries'
 
 export function emptyCustomFieldValues(
   defs: ClientProfileField[],
@@ -36,11 +39,14 @@ export function countrySelectOptions(current = '') {
   const listed = DESTINATION_COUNTRIES as readonly string[]
   const extra =
     current && !listed.includes(current)
-      ? [{ value: current, label: current }]
+      ? [{ value: current, label: formatCountryLabel(current) }]
       : []
   return [
     { value: '', label: '—' },
     ...extra,
-    ...listed.map((country) => ({ value: country, label: country })),
+    ...listed.map((country) => ({
+      value: country,
+      label: formatCountryLabel(country),
+    })),
   ]
 }

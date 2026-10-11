@@ -1083,6 +1083,91 @@
   gap: 1rem;
 }
 
+.pd-client-action-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pd-client-action-items__meta {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.pd-client-action-items__empty {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.pd-client-action-items__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pd-client-action-items__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.25rem 0.125rem;
+  border-radius: 0.5rem;
+}
+
+.pd-client-action-items__row:hover {
+  background: color-mix(in srgb, var(--color-border) 35%, transparent);
+}
+
+.pd-client-action-items__check {
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.pd-client-action-items__check .pd-check__label {
+  word-break: break-word;
+}
+
+.pd-client-action-items__row.is-done .pd-check__label {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.pd-client-action-items__remove {
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+.pd-client-action-items__row:hover .pd-client-action-items__remove,
+.pd-client-action-items__remove:focus-visible {
+  opacity: 1;
+}
+
+.pd-client-action-items__composer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pd-client-action-items__composer .pd-field {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.pd-client-action-items__error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-red);
+}
+
 .pd-payments {
   display: flex;
   flex-direction: column;

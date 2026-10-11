@@ -9,7 +9,9 @@ export type SettingsSectionParam =
   | 'business'
   | 'clientFields'
   | 'services'
+  | 'servicesV2'
   | 'userAccess'
+  /** @deprecated Use `userAccess` — sub-agent controls live there now. */
   | 'subAgentAccess'
   | 'appearance'
 
@@ -41,6 +43,8 @@ export function settingsSectionPath(
   section: SettingsSectionParam = 'business',
 ): string {
   if (section === 'business') return '/settings'
+  // Sub-agent approval settings moved into Access Management.
+  if (section === 'subAgentAccess') return '/settings?section=userAccess'
   return `/settings?section=${section}`
 }
 
@@ -50,6 +54,14 @@ export function serviceCatalogPath(): string {
 
 export function serviceCatalogEditorPath(service: ServiceType): string {
   return `/settings/services/${serviceToSlug(service)}`
+}
+
+export function serviceCatalogPathV2(): string {
+  return settingsSectionPath('servicesV2')
+}
+
+export function serviceCatalogEditorPathV2(service: ServiceType): string {
+  return `/settings/services-v2/${serviceToSlug(service)}`
 }
 
 /** Client profile. Optional tab keeps the same person in view. */

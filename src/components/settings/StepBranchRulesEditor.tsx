@@ -1,5 +1,12 @@
-import { Plus, Trash2 } from 'lucide-react'
-import { Button, Select } from '@/components/ui'
+import { useMemo, useState } from 'react'
+import { Trash2 } from 'lucide-react'
+import { Button, SideDrawer } from '@/components/ui'
+import {
+  listBranchSlotsForStep,
+  unwireBranchSlot,
+  upsertBranchRule,
+  type BranchSlot,
+} from '@/lib/serviceBranchFields'
 import type { DocumentFormFieldDraft } from '@/types/documentFormField'
 import type {
   ServiceDocumentConfig,
@@ -7,38 +14,51 @@ import type {
   ServiceStepConfig,
 } from '@/types/serviceTemplate'
 
-type SelectFieldRef = {
-  documentId: string
-  documentName: string
-  fieldKey: string
-  fieldLabel: string
-  options: string[]
-}
-
-function listSelectFields(
-  documents: ServiceDocumentConfig[],
-  fieldsByDocId: Record<string, DocumentFormFieldDraft[]>,
-): SelectFieldRef[] {
-  const refs: SelectFieldRef[] = []
-  for (const doc of documents) {
-    for (const field of fieldsByDocId[doc.id] ?? []) {
-      if (field.type !== 'select') continue
-      const options = (field.options ?? []).map((item) => item.trim()).filter(Boolean)
-      if (options.length === 0) continue
-      refs.push({
-        documentId: doc.id,
-        documentName: doc.name || 'Untitled',
-        fieldKey: field.key,
-        fieldLabel: field.label || field.key,
-        options,
-      })
-    }
-  }
-  return refs
-}
-
-function fieldToken(documentId: string, fieldKey: string) {
-  return `${documentId}::${fieldKey}`
+function ChoiceList({
+  label,
+  ariaLabel,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  ariaLabel: string
+  options: { value: string; label: string }[]
+  value: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <div className="pd-settings-template__branch-choice">
+      <span className="pd-settings-template__branch-choice-label">{label}</span>
+      <div
+        className="pd-settings-template__branch-choice-list"
+        role="radiogroup"
+        aria-label={ariaLabel}
+      >
+        {options.map((option) => {
+          const selected = option.value === value
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              className={
+                selected
+                  ? 'pd-settings-template__branch-option is-selected'
+                  : 'pd-settings-template__branch-option'
+              }
+              onClick={() => onChange(option.value)}
+            >
+              <span className="pd-settings-template__branch-option-label">
+                {option.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export function StepBranchRulesEditor({
@@ -54,147 +74,131 @@ export function StepBranchRulesEditor({
   fieldsByDocId: Record<string, DocumentFormFieldDraft[]>
   onChange: (rules: ServiceStepBranchRule[]) => void
 }) {
-  const selectFields = listSelectFields(documents, fieldsByDocId)
-  const rules = step.branchRules ?? []
+  const slots = useMemo(
+    () => listBranchSlotsForStep(step, documents, fieldsByDocId),
+    [step, documents, fieldsByDocId],
+  )
+
   const nextStepOptions = steps
     .filter((item) => item.id !== step.id)
     .map((item) => ({
       value: item.id,
       label: item.label || item.id,
     }))
-  const defaultNext =
-    steps[steps.findIndex((item) => item.id === step.id) + 1]?.label ??
-    'Complete file'
 
-  const updateRule = (
-    index: number,
-    patch: Partial<ServiceStepBranchRule>,
-  ) => {
+  const [draft, setDraft] = useState<BranchSlot | null>(null)
+
+  const wireSlot = (slot: BranchSlot, nextStepId: string) => {
     onChange(
-      rules.map((rule, i) => (i === index ? { ...rule, ...patch } : rule)),
+      upsertBranchRule(step.branchRules, {
+        documentId: slot.documentId,
+        fieldKey: slot.fieldKey,
+        equals: slot.equals,
+        nextStepId,
+      }),
     )
+    setDraft(null)
   }
 
-  const addRule = () => {
-    const first = selectFields[0]
-    const next =
-      nextStepOptions[0]?.value ??
-      steps.find((item) => item.id !== step.id)?.id ??
-      ''
-    onChange([
-      ...rules,
-      {
-        documentId: first?.documentId ?? '',
-        fieldKey: first?.fieldKey ?? '',
-        equals: first?.options[0] ?? '',
-        nextStepId: next,
-      },
-    ])
+  const clearSlot = (slot: BranchSlot) => {
+    onChange(unwireBranchSlot(step.branchRules, slot) ?? [])
   }
 
   return (
-    <div className="pd-settings-template__branches">
-      <div className="pd-settings-template__branches-head">
-        <div className="pd-settings-template__branches-label">
-          <span className="pd-settings-template__needs-label">Next step</span>
-          <span className="pd-settings-template__next-chip">{defaultNext}</span>
-        </div>
-        {selectFields.length > 0 ? (
-          <Button type="button" variant="ghost" size="sm" onClick={addRule}>
-            <Plus size={12} />
-            Branch
-          </Button>
-        ) : null}
+    <section className="pd-settings-template__exceptions">
+      <div className="pd-settings-template__panel-label-row">
+        <span className="pd-settings-template__panel-label">Branch</span>
       </div>
-      {selectFields.length > 0 && rules.length ? (
+
+      {slots.length === 0 ? (
+        <p className="pd-service-flow__inspector-copy">
+          Add a Dropdown field on a document this step needs. Each choice
+          appears here so you can wire the next step.
+        </p>
+      ) : (
         <ul className="pd-settings-template__branch-list">
-          {rules.map((rule, index) => {
-            const fieldOptions = selectFields.map((field) => ({
-              value: fieldToken(field.documentId, field.fieldKey),
-              label: `${field.documentName} · ${field.fieldLabel}`,
-            }))
-            const selectedField =
-              selectFields.find(
-                (field) =>
-                  field.documentId === rule.documentId &&
-                  field.fieldKey === rule.fieldKey,
-              ) ?? selectFields[0]
-            const valueOptions = (selectedField?.options ?? []).map(
-              (option) => ({
-                value: option,
-                label: option,
-              }),
-            )
+          {slots.map((slot) => {
+            const nextLabel =
+              steps.find((item) => item.id === slot.nextStepId)?.label ||
+              slot.nextStepId
+            const wired = Boolean(slot.nextStepId)
             return (
-              <li key={`${rule.documentId}-${rule.fieldKey}-${index}`}>
-                <div className="pd-settings-template__branch-row">
-                  <span className="pd-settings-template__branch-when">When</span>
-                  <Select
-                    aria-label={`Branch field ${index + 1}`}
-                    value={fieldToken(
-                      selectedField?.documentId ?? '',
-                      selectedField?.fieldKey ?? '',
-                    )}
-                    options={fieldOptions}
-                    onChange={(event) => {
-                      const [documentId, fieldKey] = event.target.value.split('::')
-                      const nextField = selectFields.find(
-                        (field) =>
-                          field.documentId === documentId &&
-                          field.fieldKey === fieldKey,
-                      )
-                      updateRule(index, {
-                        documentId: documentId ?? '',
-                        fieldKey: fieldKey ?? '',
-                        equals: nextField?.options[0] ?? '',
-                      })
-                    }}
-                  />
-                  <span className="pd-settings-template__branch-when">is</span>
-                  <Select
-                    aria-label={`Branch value ${index + 1}`}
-                    value={
-                      valueOptions.some((option) => option.value === rule.equals)
-                        ? rule.equals
-                        : (valueOptions[0]?.value ?? '')
-                    }
-                    options={valueOptions}
-                    onChange={(event) =>
-                      updateRule(index, { equals: event.target.value })
-                    }
-                  />
-                  <span className="pd-settings-template__branch-when">go to</span>
-                  <Select
-                    aria-label={`Branch next step ${index + 1}`}
-                    value={
-                      nextStepOptions.some(
-                        (option) => option.value === rule.nextStepId,
-                      )
-                        ? rule.nextStepId
-                        : (nextStepOptions[0]?.value ?? '')
-                    }
-                    options={nextStepOptions}
-                    onChange={(event) =>
-                      updateRule(index, { nextStepId: event.target.value })
-                    }
-                  />
-                  <Button
+              <li
+                key={`${slot.documentId}-${slot.fieldKey}-${slot.equals}`}
+              >
+                <div className="pd-settings-template__branch-summary">
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Remove branch ${index + 1}`}
-                    onClick={() =>
-                      onChange(rules.filter((_, i) => i !== index))
-                    }
+                    className="pd-settings-template__branch-summary-text"
+                    onClick={() => setDraft(slot)}
+                    disabled={nextStepOptions.length === 0}
                   >
-                    <Trash2 size={14} />
-                  </Button>
+                    {slot.fieldLabel} = {slot.equals}
+                    {wired
+                      ? ` → ${nextLabel || '…'}`
+                      : ' → Choose next step'}
+                  </button>
+                  {wired ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Clear branch ${slot.fieldLabel} = ${slot.equals}`}
+                      onClick={() => clearSlot(slot)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  ) : null}
                 </div>
               </li>
             )
           })}
         </ul>
-      ) : null}
-    </div>
+      )}
+
+      <SideDrawer
+        open={draft != null}
+        onClose={() => setDraft(null)}
+        title="Wire branch"
+        description={
+          draft
+            ? `When ${draft.fieldLabel} is “${draft.equals}”, go to…`
+            : undefined
+        }
+        className="pd-settings-branch-drawer"
+        footer={
+          <div className="pd-settings-template__branch-drawer-actions">
+            <span />
+            <div className="pd-settings-template__branch-drawer-actions-end">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setDraft(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        {draft ? (
+          <div className="pd-settings-template__branch-drawer-fields">
+            {nextStepOptions.length === 0 ? (
+              <p className="pd-settings-template__branch-drawer-empty">
+                Add another status step first, then wire this branch.
+              </p>
+            ) : (
+              <ChoiceList
+                label="go to"
+                ariaLabel="Branch next step"
+                value={draft.nextStepId}
+                options={nextStepOptions}
+                onChange={(nextStepId) => wireSlot(draft, nextStepId)}
+              />
+            )}
+          </div>
+        ) : null}
+      </SideDrawer>
+    </section>
   )
 }

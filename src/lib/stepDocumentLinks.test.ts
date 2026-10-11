@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  assignDocumentToStep,
   syncDocumentUnlockSteps,
   toggleStepRequiredDocument,
   withRequiredDocumentIds,
@@ -19,6 +20,20 @@ describe('stepDocumentLinks', () => {
     )
     expect(steps[0].requiredDocumentIds).toEqual(['itinerary'])
     expect(steps[1].requiredDocumentIds).toEqual(['visa'])
+  })
+
+  it('assigns a document to a step from the canvas without toggling off', () => {
+    const next = assignDocumentToStep(
+      [
+        { id: 'applied', label: 'Visa applied', requiredDocumentIds: [] },
+        { id: 'visa', label: 'Visa issued', requiredDocumentIds: [] },
+      ],
+      'applied',
+      'itinerary',
+    )
+    expect(next[0].requiredDocumentIds).toEqual(['itinerary'])
+    const again = assignDocumentToStep(next, 'applied', 'itinerary')
+    expect(again[0].requiredDocumentIds).toEqual(['itinerary'])
   })
 
   it('keeps a document on only one status when toggled', () => {

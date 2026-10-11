@@ -1,17 +1,22 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import {
+  useMatch,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom'
 import { Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
 import {
   Briefcase,
   Building2,
   Check,
   Contact,
+  Layers,
   Monitor,
   Moon,
   MousePointerClick,
   Palette,
   PanelLeftOpen,
-  Handshake,
   ShieldCheck,
   Sun,
   type LucideIcon,
@@ -21,6 +26,7 @@ import '@/styles/layout-settings.css'
 import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { ServiceCatalogEditor } from '@/components/settings/ServiceCatalogEditor'
+import { ServiceCatalogEditorV2 } from '@/components/settings/ServiceCatalogEditorV2'
 import { ClientProfileFieldsSection } from '@/components/settings/ClientProfileFieldsSection'
 import { getActiveTenantId } from '@/lib/authApi'
 import {
@@ -59,8 +65,9 @@ import {
 } from '@/lib/sidebarPrefs'
 import { useSidebarPrefs } from '@/layout/useSidebarPrefs'
 import { ServicesSettingsSection } from '@/components/settings/ServicesSettingsSection'
+import { ServicesSettingsSectionV2 } from '@/components/settings/ServicesSettingsSectionV2'
 import { UserAccessSection } from '@/components/settings/UserAccessSection'
-import { SubAgentAccessSection } from '@/components/settings/SubAgentAccessSection'
+import { cx } from '@/lib/cx'
 import {
   settingsSectionPath,
   type SettingsSectionParam,
@@ -93,16 +100,16 @@ const SETTINGS_SECTIONS: {
       icon: Briefcase,
     },
     {
-      id: 'userAccess',
-      label: 'User-wise Access Management',
-      info: 'Agency logins list down the left; pages run across as columns. Owners and managers can add users and set None, View, or Edit. Access is enforced in the app.',
-      icon: ShieldCheck,
+      id: 'servicesV2',
+      label: 'Service catalog v2',
+      info: 'These are the lines you sell. Open one to set the status journey, documents, and the fields staff fill in on upload. New files pick up the checklist you save. Add a country when that destination needs a different journey or documents.',
+      icon: Layers,
     },
     {
-      id: 'subAgentAccess',
-      label: 'Sub-agent access',
-      info: 'Require approval for sub-agent edits, and choose which agency users can approve. Manage each sub agent’s login from their Sub Agent profile.',
-      icon: Handshake,
+      id: 'userAccess',
+      label: 'Access Management',
+      info: 'Agency logins list down the left; pages run across as columns. Owners and managers can add users and set None, View, or Edit.',
+      icon: ShieldCheck,
     },
     {
       id: 'appearance',
@@ -152,10 +159,22 @@ function isSettingsSectionId(value: string | null): value is SettingsSectionId {
     value === 'business' ||
     value === 'clientFields' ||
     value === 'services' ||
+    value === 'servicesV2' ||
     value === 'userAccess' ||
-    value === 'subAgentAccess' ||
     value === 'appearance'
   )
+}
+
+/** Legacy `subAgentAccess` bookmarks land on Access Management. */
+function resolveSettingsSection(
+  value: string | null,
+  isEditor: boolean,
+  isEditorV2: boolean,
+): SettingsSectionId {
+  if (isEditor) return isEditorV2 ? 'servicesV2' : 'services'
+  if (value === 'subAgentAccess') return 'userAccess'
+  if (isSettingsSectionId(value)) return value
+  return 'business'
 }
 
 export default function SettingsPage() {
@@ -163,12 +182,15 @@ export default function SettingsPage() {
   const { serviceKey } = useParams()
   const [searchParams] = useSearchParams()
   const sectionParam = searchParams.get('section')
+  const isEditorV2 = Boolean(
+    useMatch({ path: '/settings/services-v2/:serviceKey', end: true }),
+  )
   const isEditor = Boolean(serviceKey)
-  const activeSection: SettingsSectionId = isEditor
-    ? 'services'
-    : isSettingsSectionId(sectionParam)
-      ? sectionParam
-      : 'business'
+  const activeSection: SettingsSectionId = resolveSettingsSection(
+    sectionParam,
+    isEditor,
+    isEditorV2,
+  )
   const [themeMode, setThemeMode] = useState(readThemeMode)
   const [customColor, setCustomColor] = useState(readCustomThemeColor)
   const [appearance, setAppearance] = useState(readAppearance)
@@ -306,12 +328,18 @@ export default function SettingsPage() {
         })}
       </nav>
 
-      <section className="pd-settings-panel" aria-labelledby="settings-panel-title">
+      <section
+        className={cx(
+          'pd-settings-panel',
+          activeSection === 'servicesV2' && isEditor && 'pd-settings-panel--flow',
+        )}
+        aria-labelledby="settings-panel-title"
+      >
         {isEditor ||
         activeSection === 'services' ||
+        activeSection === 'servicesV2' ||
         activeSection === 'clientFields' ||
-        activeSection === 'userAccess' ||
-        activeSection === 'subAgentAccess' ? null : (
+        activeSection === 'userAccess' ? null : (
           <header className="pd-settings-panel__header">
             <h2 id="settings-panel-title" className="pd-settings-panel__title">
               {currentSection.label}
@@ -459,15 +487,26 @@ export default function SettingsPage() {
             )
           ) : null}
 
+          {activeSection === 'servicesV2' ? (
+            isEditor && serviceKey ? (
+              <ServiceCatalogEditorV2
+                key={serviceKey}
+                serviceKey={serviceKey}
+                onDirtyChange={setEditorDirty}
+              />
+            ) : (
+              <ServicesSettingsSectionV2
+                title={currentSection.label}
+                info={currentSection.info ?? ''}
+              />
+            )
+          ) : null}
+
           {activeSection === 'userAccess' ? (
             <UserAccessSection
               title={currentSection.label}
               info={currentSection.info ?? ''}
             />
-          ) : null}
-
-          {activeSection === 'subAgentAccess' ? (
-            <SubAgentAccessSection />
           ) : null}
 
           {activeSection === 'appearance' ? (
