@@ -57,6 +57,9 @@ jobs:
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
           SMSQ_WEBHOOK_SECRET: ${{ secrets.SMSQ_WEBHOOK_SECRET }}
           SMSQ_DEFAULT_TENANT_ID: ${{ secrets.SMSQ_DEFAULT_TENANT_ID }}
+          SMSQ_API_KEY: ${{ secrets.SMSQ_API_KEY }}
+          SMSQ_CLIENT_ID: ${{ secrets.SMSQ_CLIENT_ID }}
+          SMSQ_SENDER_ID: ${{ secrets.SMSQ_SENDER_ID }}
           GITHUB_SHA: ${{ github.sha }}
         run: bash scripts/deploy-to-vps.sh
 

@@ -63,6 +63,7 @@ import {
   listInboundSms,
   mapInboundRow,
 } from './smsqWebhook.js'
+import { sendSmsToClient } from './smsqSend.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -868,6 +869,39 @@ app.get('/api/platform/sms/inbound', requireAuth, async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'list inbound sms failed',
+    })
+  }
+})
+
+app.post('/api/platform/sms/send', requireAuth, async (req, res) => {
+  try {
+    const tenantId = req.auth.tenantId
+    if (!tenantId) {
+      res.status(400).json({ error: 'tenantId required.' })
+      return
+    }
+    const clientId = String(req.body?.clientId ?? '').trim()
+    const message = String(req.body?.body ?? req.body?.message ?? '')
+    if (!clientId) {
+      res.status(400).json({ error: 'clientId required.' })
+      return
+    }
+    const result = await sendSmsToClient({
+      tenantId,
+      clientId,
+      message,
+    })
+    if (!result.ok) {
+      res.status(result.status).json({
+        error: result.error,
+        provider: result.provider ?? undefined,
+      })
+      return
+    }
+    res.status(200).json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'send sms failed',
     })
   }
 })

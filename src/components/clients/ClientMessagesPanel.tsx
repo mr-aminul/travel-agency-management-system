@@ -15,6 +15,7 @@ import {
   validateClientMessage,
 } from '@/lib/clientMessagesStore'
 import { formatDisplayDate } from '@/lib/formatDate'
+import { sendClientSmsViaApi } from '@/lib/smsInboundApi'
 import { useClientSmsThread } from '@/lib/useClientSmsThread'
 import type { Client } from '@/types/client'
 import type {
@@ -75,18 +76,20 @@ export function ClientMessagesPanel({
     ClientMessageAttachment | undefined
   >()
   const [error, setError] = useState<string | undefined>()
+  const [isSendingSms, setIsSendingSms] = useState(false)
 
   const isEmail = channel === 'email'
   const address = isEmail ? client.email?.trim() ?? '' : client.phone.trim()
   const canSend =
     Boolean(address) &&
+    !isSendingSms &&
     (isEmail
       ? Boolean(body.trim()) || Boolean(attachment)
       : Boolean(body.trim()))
   const historyLabel = isEmail ? 'Email note history' : 'SMS history'
   const emptyLabel = isEmail
     ? 'No email notes yet — drafts are logged here, not delivered'
-    : 'No SMS yet — inbound replies from SMSQ appear here; notes stay local'
+    : 'No SMS yet — send a message or wait for a client reply'
 
   useEffect(() => {
     const el = threadRef.current
@@ -124,7 +127,7 @@ export function ClientMessagesPanel({
     }
   }
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     const validation = validateClientMessage(
       channel,
@@ -136,12 +139,37 @@ export function ClientMessagesPanel({
       setError(validation)
       return
     }
+
+    if (!isEmail) {
+      setIsSendingSms(true)
+      setError(undefined)
+      try {
+        await sendClientSmsViaApi({
+          clientId: client.id,
+          body: body.trim(),
+        })
+        sendClientMessage({
+          clientId: client.id,
+          channel: 'sms',
+          body,
+        })
+        setBody('')
+      } catch (caught) {
+        setError(
+          caught instanceof Error ? caught.message : 'Could not send this SMS.',
+        )
+      } finally {
+        setIsSendingSms(false)
+      }
+      return
+    }
+
     try {
       sendClientMessage({
         clientId: client.id,
         channel,
         body,
-        attachment: isEmail ? attachment : undefined,
+        attachment,
       })
       setBody('')
       clearAttachment()
@@ -208,7 +236,11 @@ export function ClientMessagesPanel({
                       ) : null}
                     </div>
                     <p className="pd-client-messages__meta">
-                      {isInbound ? 'Inbound · ' : 'Note · '}
+                      {isInbound
+                        ? 'Inbound · '
+                        : item.channel === 'sms'
+                          ? 'Sent · '
+                          : 'Note · '}
                       {formatMessageStamp(item.createdAt)}
                     </p>
                   </li>
@@ -318,12 +350,12 @@ export function ClientMessagesPanel({
               }}
               placeholder="Message"
               aria-label="Message"
-              disabled={!address}
+              disabled={!address || isSendingSms}
               autoComplete="off"
               error={error}
             />
             <Button type="submit" disabled={!canSend}>
-              Save note
+              {isSendingSms ? 'Sending…' : 'Send SMS'}
             </Button>
           </form>
         )}
