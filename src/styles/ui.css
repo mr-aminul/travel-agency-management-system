@@ -1,5 +1,5 @@
 /**
- * Shared UI primitives — theme tokens only, no hardcoded brand hexes.
+ * Shared UI primitives: theme tokens only, no hardcoded brand hexes.
  * Status chips use status-* tokens; brand tints use brand / theme roles.
  */
 
@@ -218,7 +218,7 @@ a.pd-btn {
   flex-direction: column;
   gap: 0.375rem;
   min-width: 0;
-  /* Notch + control fill — override on light/dark surfaces so labels never clash */
+  /* Notch + control fill. Override on light/dark surfaces so labels never clash. */
   --pd-field-fill: var(--color-bg);
 }
 
@@ -234,7 +234,7 @@ a.pd-btn {
   font-weight: 700;
 }
 
-/* Outlined / notched label (sits on the control border) — default for labeled fields */
+/* Outlined / notched label (sits on the control border). Default for labeled fields. */
 .pd-field--outlined {
   position: relative;
   gap: 0;
@@ -923,7 +923,7 @@ a.pd-btn {
   margin-top: 1rem;
 }
 
-/* Outlined fields notch their labels onto the top border — stack needs room
+/* Outlined fields notch their labels onto the top border. Stack needs room
    so controls / errors don't collide with the next field's label. */
 .pd-modal__body > form {
   display: flex;
@@ -939,7 +939,7 @@ a.pd-btn {
 }
 
 /* ── Side drawer (right panel) ────────────────────────────────────── */
-/* Portaled to body — must clear shell chrome (topbar z-index 20, mobile nav 50). */
+/* Portaled to body. Must clear shell chrome (topbar z-index 20, mobile nav 50). */
 
 .pd-drawer {
   position: fixed;
@@ -985,7 +985,7 @@ a.pd-btn {
   outline: none;
 }
 
-/* One-shot open only — re-applying this after resize looked like a reopen bump. */
+/* One-shot open only. Re-applying this after resize looked like a reopen bump. */
 .pd-drawer__panel.is-entering {
   animation: pd-drawer-in 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -1176,6 +1176,13 @@ a.pd-btn {
   flex: 1;
 }
 
+.pd-page-header__title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem 0.75rem;
+}
+
 .pd-page-header__title {
   margin: 0;
   font-family: var(--font-heading);
@@ -1184,6 +1191,12 @@ a.pd-btn {
   letter-spacing: -0.03em;
   color: var(--color-text);
   line-height: 1.2;
+}
+
+.pd-page-header__title-aside {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .pd-page-header__description {

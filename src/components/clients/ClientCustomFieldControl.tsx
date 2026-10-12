@@ -47,7 +47,7 @@ export function ClientCustomFieldControl({
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
         options={[
-          { value: '', label: '—' },
+          { value: '', label: '-' },
           ...field.options.map((option) => ({ value: option, label: option })),
         ]}
       />

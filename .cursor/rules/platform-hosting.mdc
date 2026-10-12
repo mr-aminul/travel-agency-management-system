@@ -18,7 +18,7 @@ Production lives on the inventivelab **VPS** (Caddy + Docker). No Vercel.
 **Preferred:** push to `main` → GitHub Actions workflow `.github/workflows/deploy-vps.yml` (secrets in repo Settings). Manual rollback: Actions → Deploy VPS → Run workflow → set `rollback_sha`.
 
 ```bash
-# local fallback — needs VPS_HOST / VPS_USER / VPS_PASSWORD in .env
+# local fallback: needs VPS_HOST / VPS_USER / VPS_PASSWORD in .env
 npm run deploy:vps   # build SPA + rsync UI/API + docker compose + Caddy
 ```
 
@@ -30,7 +30,7 @@ npm run deploy:vps   # build SPA + rsync UI/API + docker compose + Caddy
 ## Frontend env
 
 - Never put `DB_*`, RDS passwords, PEM contents, or encryption keys in `VITE_*` or committed files.
-- Server `.env` on the VPS holds `PLATFORM_DB_PASSWORD` and auth seeds — not the Vite app.
+- Server `.env` on the VPS holds `PLATFORM_DB_PASSWORD` and auth seeds, not the Vite app.
 
 ## Legacy EC2 `/platform`
 

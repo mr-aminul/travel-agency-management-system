@@ -187,7 +187,7 @@ export function DocumentFieldsEditor({
                     hint={
                       isCompact
                         ? undefined
-                        : 'One choice per line — used for dropdowns and next-step branches'
+                        : 'One choice per line. Used for dropdowns and next-step branches.'
                     }
                     rows={isCompact ? 2 : 2}
                     placeholder={'Fit\nUnfit'}
@@ -209,7 +209,7 @@ export function DocumentFieldsEditor({
       )}
       {!isCompact && lockedKeys.size > 0 ? (
         <p className="pd-field-hint">
-          Some fields stay linked to the client profile — you can rename them,
+          Some fields stay linked to the client profile. You can rename them,
           but not remove them.
         </p>
       ) : null}

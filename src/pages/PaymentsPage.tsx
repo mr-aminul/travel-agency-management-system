@@ -279,7 +279,7 @@ export default function PaymentsPage() {
                     {payment.txnId ? ` · ${payment.txnId}` : ''}
                   </TableCell>
                   <TableCell>{formatPaymentAmount(payment.amount)}</TableCell>
-                  <TableCell>{payment.note || '—'}</TableCell>
+                  <TableCell>{payment.note || '-'}</TableCell>
                 </TableRow>
               )
             })}

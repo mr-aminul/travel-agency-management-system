@@ -2,7 +2,7 @@ import type { NavItem } from '@/layout/types'
 
 /** One page column in the user-access matrix. */
 export type AccessPageColumn = {
-  /** Stable key — the page path. */
+  /** Stable key: the page path. */
   id: string
   path: string
   /** Display label. Subpages use "Parent - Child". */

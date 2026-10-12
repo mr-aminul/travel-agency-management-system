@@ -33,7 +33,7 @@ export function AgingChart({ buckets }: AgingChartProps) {
           return (
             <li key={bucket.key} className="pd-dash-aging__col">
               <span className="pd-dash-aging__amount">
-                {bucket.amount ? formatCompactBdt(bucket.amount) : '—'}
+                {bucket.amount ? formatCompactBdt(bucket.amount) : '-'}
               </span>
               <span className="pd-dash-aging__track">
                 <span

@@ -1,6 +1,6 @@
 /**
  * Promote the three launch agencies (OneTrack, Coastal Leisure, Horizon Manpower)
- * into real platform tenants + domain rows — same path as agencies created via signup.
+ * into real platform tenants + domain rows, same path as agencies created via signup.
  * Idempotent: upserts by id; never deletes Ismail or other created tenants.
  */
 import { readFileSync } from 'node:fs'
@@ -65,7 +65,7 @@ export async function ensureLaunchAgencies() {
   const data = loadData()
   const launchIds = new Set(data.tenants.map((t) => t.id))
 
-  // 1) Tenants — same store as Ismail (pd-tenants-created)
+  // 1) Tenants: same store as Ismail (pd-tenants-created)
   const existingTenants = asArray(await readKv('pd-tenants-created'))
   const others = existingTenants.filter(
     (t) => t && typeof t === 'object' && !launchIds.has(t.id),
@@ -77,7 +77,7 @@ export async function ensureLaunchAgencies() {
   const profiles = asObject(await readKv('pd-agency-profiles'))
   await writeKv('pd-agency-profiles', { ...profiles, ...data.profiles })
 
-  // 3) Domain tables — clients / cases / payments
+  // 3) Domain tables: clients / cases / payments
   for (const client of data.clients) {
     await upsertClient(client.tenantId, client)
   }

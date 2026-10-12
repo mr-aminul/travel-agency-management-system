@@ -37,7 +37,7 @@ function publicUser(row) {
   return user
 }
 
-/** Launch agency + platform admin logins — passwords come from env (never committed). */
+/** Launch agency + platform admin logins. Passwords come from env (never committed). */
 function seedDefinitions() {
   const adminEmail =
     process.env.PLATFORM_ADMIN_EMAIL?.trim().toLowerCase() ||
@@ -547,7 +547,7 @@ export async function createAgencyUser({
       resolvedRole === 'sub_agent' &&
       (row.role === 'agency_user' || row.role === 'sub_agent')
     ) {
-      // Never rewrite password here — agency owners keep their existing login.
+      // Never rewrite password here. Agency owners keep their existing login.
       await query(
         `update platform.users
          set sub_agent_id = $2,

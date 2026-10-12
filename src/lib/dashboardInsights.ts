@@ -67,6 +67,37 @@ export type MonthBucket = {
   change: number | null
 }
 
+export type DashPeriod =
+  | 'this-week'
+  | 'last-week'
+  | 'this-month'
+  | 'last-month'
+  | 'this-year'
+  | 'all'
+
+export const DASH_PERIODS: { id: DashPeriod; label: string }[] = [
+  { id: 'this-week', label: 'This week' },
+  { id: 'last-week', label: 'Last week' },
+  { id: 'this-month', label: 'This month' },
+  { id: 'last-month', label: 'Last month' },
+  { id: 'this-year', label: 'This year' },
+  { id: 'all', label: 'All time' },
+]
+
+export type DashPeriodWindow = {
+  id: DashPeriod
+  label: string
+  priorLabel: string
+  startDay: number
+  endDay: number
+  priorStartDay: number
+  priorEndDay: number
+  /** Aging and stock metrics are read as of this calendar day. */
+  asOf: Date
+  trendGrain: 'day' | 'month'
+  trendMeta: string
+}
+
 export type NamedCount = {
   key: string
   label: string
@@ -324,6 +355,247 @@ export function collectionsByMonth(
   return buckets
 }
 
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+
+function startOfWeekMonday(parts: DateParts): DateParts {
+  const date = new Date(parts.y, parts.m - 1, parts.d)
+  const weekday = date.getDay()
+  const offset = weekday === 0 ? -6 : 1 - weekday
+  date.setDate(date.getDate() + offset)
+  return partsFromDate(date)
+}
+
+function endOfMonth(parts: DateParts): DateParts {
+  const date = new Date(parts.y, parts.m, 0)
+  return partsFromDate(date)
+}
+
+function dateFromDayNumber(day: number): Date {
+  const y = Math.floor(day / 10_000)
+  const m = Math.floor((day % 10_000) / 100)
+  const d = day % 100
+  return new Date(y, m - 1, d)
+}
+
+function dayFromIso(value: string): number | null {
+  const parts = parseDateParts(value)
+  return parts ? toDayNumber(parts) : null
+}
+
+function inDayRange(day: number, startDay: number, endDay: number): boolean {
+  return day >= startDay && day <= endDay
+}
+
+export function resolveDashPeriod(
+  period: DashPeriod,
+  asOf: Date = new Date(),
+): DashPeriodWindow {
+  const today = partsFromDate(asOf)
+  const todayDay = toDayNumber(today)
+
+  if (period === 'this-week') {
+    const start = startOfWeekMonday(today)
+    const priorEnd = addDays(start, -1)
+    const priorStart = startOfWeekMonday(priorEnd)
+    return {
+      id: period,
+      label: 'This week',
+      priorLabel: 'Last week',
+      startDay: toDayNumber(start),
+      endDay: todayDay,
+      priorStartDay: toDayNumber(priorStart),
+      priorEndDay: toDayNumber(priorEnd),
+      asOf,
+      trendGrain: 'day',
+      trendMeta: 'Daily',
+    }
+  }
+
+  if (period === 'last-week') {
+    const thisWeekStart = startOfWeekMonday(today)
+    const start = addDays(thisWeekStart, -7)
+    const end = addDays(thisWeekStart, -1)
+    const priorEnd = addDays(start, -1)
+    const priorStart = startOfWeekMonday(priorEnd)
+    return {
+      id: period,
+      label: 'Last week',
+      priorLabel: 'Prior week',
+      startDay: toDayNumber(start),
+      endDay: toDayNumber(end),
+      priorStartDay: toDayNumber(priorStart),
+      priorEndDay: toDayNumber(priorEnd),
+      asOf: dateFromDayNumber(toDayNumber(end)),
+      trendGrain: 'day',
+      trendMeta: 'Daily',
+    }
+  }
+
+  if (period === 'this-month') {
+    const start = { y: today.y, m: today.m, d: 1 }
+    const priorEnd = addDays(start, -1)
+    const priorStart = { y: priorEnd.y, m: priorEnd.m, d: 1 }
+    return {
+      id: period,
+      label: 'This month',
+      priorLabel: 'Last month',
+      startDay: toDayNumber(start),
+      endDay: todayDay,
+      priorStartDay: toDayNumber(priorStart),
+      priorEndDay: toDayNumber(priorEnd),
+      asOf,
+      trendGrain: 'day',
+      trendMeta: MONTH_LABELS[today.m - 1],
+    }
+  }
+
+  if (period === 'last-month') {
+    const thisMonthStart = { y: today.y, m: today.m, d: 1 }
+    const start = addMonths(thisMonthStart, -1)
+    const end = endOfMonth(start)
+    const priorStart = addMonths(start, -1)
+    const priorEnd = endOfMonth(priorStart)
+    return {
+      id: period,
+      label: 'Last month',
+      priorLabel: 'Prior month',
+      startDay: toDayNumber(start),
+      endDay: toDayNumber(end),
+      priorStartDay: toDayNumber(priorStart),
+      priorEndDay: toDayNumber(priorEnd),
+      asOf: dateFromDayNumber(toDayNumber(end)),
+      trendGrain: 'day',
+      trendMeta: MONTH_LABELS[start.m - 1],
+    }
+  }
+
+  if (period === 'this-year') {
+    const start = { y: today.y, m: 1, d: 1 }
+    const priorStart = { y: today.y - 1, m: 1, d: 1 }
+    const priorEnd = { y: today.y - 1, m: 12, d: 31 }
+    return {
+      id: period,
+      label: 'This year',
+      priorLabel: 'Last year',
+      startDay: toDayNumber(start),
+      endDay: todayDay,
+      priorStartDay: toDayNumber(priorStart),
+      priorEndDay: toDayNumber(priorEnd),
+      asOf,
+      trendGrain: 'month',
+      trendMeta: String(today.y),
+    }
+  }
+
+  const yearStart = { y: today.y, m: 1, d: 1 }
+  return {
+    id: 'all',
+    label: 'All time',
+    priorLabel: 'This year',
+    startDay: 1970_01_01,
+    endDay: todayDay,
+    priorStartDay: toDayNumber(yearStart),
+    priorEndDay: todayDay,
+    asOf,
+    trendGrain: 'month',
+    trendMeta: '12 months',
+  }
+}
+
+export function sumPaymentsBetween(
+  payments: Payment[],
+  startDay: number,
+  endDay: number,
+): number {
+  let total = 0
+  for (const payment of payments) {
+    const day = dayFromIso(payment.createdAt)
+    if (day == null || !inDayRange(day, startDay, endDay)) continue
+    total += payment.amount
+  }
+  return total
+}
+
+export function casesCreatedBetween(
+  cases: Case[],
+  startDay: number,
+  endDay: number,
+): Case[] {
+  return cases.filter((item) => {
+    const day = dayFromIso(item.createdAt)
+    return day != null && inDayRange(day, startDay, endDay)
+  })
+}
+
+/** Open files that already existed by the end of the period. */
+export function openCasesAsOf(cases: Case[], endDay: number): Case[] {
+  return cases.filter((item) => {
+    if (!isOpenCase(item)) return false
+    const day = dayFromIso(item.createdAt)
+    return day != null && day <= endDay
+  })
+}
+
+function attachBucketChanges(buckets: MonthBucket[]): MonthBucket[] {
+  for (let i = 0; i < buckets.length; i += 1) {
+    const bucket = buckets[i]
+    if (!bucket || i === 0) continue
+    const previous = buckets[i - 1]
+    if (!previous) continue
+    bucket.change = ratioChange(bucket.amount, previous.amount)
+  }
+  return buckets
+}
+
+export function collectionsTrendForPeriod(
+  payments: Payment[],
+  window: DashPeriodWindow,
+): MonthBucket[] {
+  if (window.id === 'all') {
+    return collectionsByMonth(payments, 12, window.asOf)
+  }
+
+  if (window.trendGrain === 'month') {
+    const end = partsFromDate(window.asOf)
+    const start = partsFromDate(dateFromDayNumber(window.startDay))
+    const monthCount = (end.y - start.y) * 12 + (end.m - start.m) + 1
+    return collectionsByMonth(payments, Math.max(monthCount, 1), window.asOf)
+  }
+
+  const buckets: MonthBucket[] = []
+  const index = new Map<string, MonthBucket>()
+  let cursor = window.startDay
+  while (cursor <= window.endDay) {
+    const parts = partsFromDate(dateFromDayNumber(cursor))
+    const key = `${parts.y}-${String(parts.m).padStart(2, '0')}-${String(parts.d).padStart(2, '0')}`
+    const weekday = new Date(parts.y, parts.m - 1, parts.d).getDay()
+    const spanDays = daysBetween(
+      partsFromDate(dateFromDayNumber(window.startDay)),
+      partsFromDate(dateFromDayNumber(window.endDay)),
+    )
+    const label =
+      spanDays <= 7
+        ? WEEKDAY_LABELS[weekday]
+        : String(parts.d)
+    const bucket: MonthBucket = { key, label, amount: 0, change: null }
+    buckets.push(bucket)
+    index.set(key, bucket)
+    cursor = toDayNumber(addDays(parts, 1))
+  }
+
+  for (const payment of payments) {
+    const parts = parseDateParts(payment.createdAt)
+    if (!parts) continue
+    const day = toDayNumber(parts)
+    if (!inDayRange(day, window.startDay, window.endDay)) continue
+    const key = `${parts.y}-${String(parts.m).padStart(2, '0')}-${String(parts.d).padStart(2, '0')}`
+    const bucket = index.get(key)
+    if (bucket) bucket.amount += payment.amount
+  }
+
+  return attachBucketChanges(buckets)
+}
+
 export function casesByStatus(cases: Case[]): NamedCount[] {
   const counts = new Map<CaseStatus, number>()
   for (const item of cases) {
@@ -559,6 +831,68 @@ export function topOutstanding(cases: Case[], limit = 5): LinkedAmountItem[] {
     }))
 }
 
+/** Days ahead a departure still changes who gets called first. */
+const DEPARTURE_CALL_WINDOW_DAYS = 14
+
+export type CollectBalance = {
+  id: string
+  name: string
+  service: string
+  ageDays: number
+  amount: number
+  href: string
+  /** Set only when the client departs within the call window. */
+  departsOn: string | null
+}
+
+/**
+ * Open balances to chase. Past-due files come first, then the largest
+ * balances. A departure inside two weeks is attached so the call happens
+ * before the client leaves.
+ */
+export function balancesToCollect(
+  cases: Case[],
+  limit = 8,
+  asOf: Date = new Date(),
+): CollectBalance[] {
+  const asOfParts = partsFromDate(asOf)
+  const asOfNum = toDayNumber(asOfParts)
+  const windowEnd = toDayNumber(addDays(asOfParts, DEPARTURE_CALL_WINDOW_DAYS))
+
+  return cases
+    .filter((item) => isOpenCase(item) && item.balance > 0)
+    .map((item) => {
+      const opened = parseDateParts(item.createdAt)
+      const ageDays = opened ? Math.max(0, daysBetween(opened, asOfParts)) : 0
+      const departure = item.departureDate
+        ? parseDateParts(item.departureDate)
+        : null
+      const departureNum = departure ? toDayNumber(departure) : null
+      const departsSoon =
+        departureNum != null &&
+        departureNum >= asOfNum &&
+        departureNum <= windowEnd
+      return {
+        id: item.id,
+        name: item.clientName,
+        service: item.service,
+        ageDays,
+        amount: item.balance,
+        href: workDetailPath(item),
+        departsOn: departsSoon ? (item.departureDate ?? null) : null,
+      }
+    })
+    .sort((left, right) => {
+      const leftLate = left.ageDays > 30 ? 1 : 0
+      const rightLate = right.ageDays > 30 ? 1 : 0
+      if (leftLate !== rightLate) return rightLate - leftLate
+      if (left.amount !== right.amount) return right.amount - left.amount
+      if (left.ageDays !== right.ageDays) return right.ageDays - left.ageDays
+      return left.name.localeCompare(right.name)
+    })
+    .slice(0, limit)
+}
+
 export function upcomingDepartures(
   cases: Case[],
   limit = 5,
@@ -673,7 +1007,7 @@ export function buildExecutivePulse(
         id: 'collections-down',
         tone: 'watch',
         title: `Collections down ${pct}% vs prior 30 days`,
-        detail: 'Cash intake cooled — review open balances and subAgent follow-ups.',
+        detail: 'Cash intake cooled. Review open balances and subAgent follow-ups.',
       })
     }
   }

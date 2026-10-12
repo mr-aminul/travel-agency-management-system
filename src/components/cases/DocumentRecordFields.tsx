@@ -17,7 +17,7 @@ function ReadOnlyField({
   return (
     <div className="pd-step-view__field">
       <dt>{label}</dt>
-      <dd>{isDate ? formatDisplayDate(value) : value || '—'}</dd>
+      <dd>{isDate ? formatDisplayDate(value) : value || '-'}</dd>
     </div>
   )
 }

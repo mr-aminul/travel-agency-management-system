@@ -253,7 +253,7 @@ export function toServiceBoardItem(
     clientId: item.clientId,
     clientName: item.clientName,
     service: item.service,
-    destination: item.destination?.trim() || '—',
+    destination: item.destination?.trim() || '-',
     stepId: step.id,
     stepLabel: step.label,
     stage: step.stage,

@@ -11,10 +11,10 @@ export function fillPrintPlaceholders(
   vars: { agency: string; license: string; date: string; country: string },
 ): string {
   return text
-    .split('{{agency}}').join(vars.agency || '—')
-    .split('{{license}}').join(vars.license || '—')
+    .split('{{agency}}').join(vars.agency || '-')
+    .split('{{license}}').join(vars.license || '-')
     .split('{{date}}').join(vars.date)
-    .split('{{country}}').join(vars.country || '—')
+    .split('{{country}}').join(vars.country || '-')
 }
 
 export function clientToPrintRow(

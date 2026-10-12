@@ -1,5 +1,5 @@
 /**
- * Compatibility re-export — compliance docs now live in caseDocuments.ts
+ * Compatibility re-export. Compliance docs now live in caseDocuments.ts
  * and are persisted on each Case.
  */
 export {

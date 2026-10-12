@@ -4,7 +4,6 @@ import {
   FileText,
   Handshake,
   HelpCircle,
-  Kanban,
   UserRoundSearch,
   Users,
   UsersRound,
@@ -42,14 +41,8 @@ const QUICK_LINKS: QuickLink[] = [
   {
     path: '/services',
     label: 'Services',
-    description: 'Open services',
+    description: 'List or board of open files',
     icon: ClipboardList,
-  },
-  {
-    path: '/service-board',
-    label: 'Service Board',
-    description: 'Who is ready for which step',
-    icon: Kanban,
   },
   {
     path: '/payments',

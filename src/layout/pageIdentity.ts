@@ -3,7 +3,7 @@
  * Nested URLs that only open in-page panels keep the parent mounted.
  */
 export function pageIdentity(pathname: string): string {
-  // Nested case detail renders inside client detail — keep parent mounted.
+  // Nested case detail renders inside client detail. Keep parent mounted.
   // Invoice is a separate route and should remount normally.
   const clientService = pathname.match(
     /^(\/clients\/[^/]+)\/services\/[^/]+$/,

@@ -13,7 +13,7 @@ export type SelectFieldRef = {
   options: string[]
 }
 
-/** One dropdown choice on a step — may or may not be wired to a next step yet. */
+/** One dropdown choice on a step. May or may not be wired to a next step yet. */
 export type BranchSlot = {
   documentId: string
   documentName: string
@@ -68,7 +68,7 @@ function ruleMatchesSlot(
   )
 }
 
-/** Every dropdown choice on documents this step needs — auto branches to wire. */
+/** Every dropdown choice on documents this step needs. Auto branches to wire. */
 export function listBranchSlotsForStep(
   step: ServiceStepConfig,
   documents: ServiceDocumentConfig[],

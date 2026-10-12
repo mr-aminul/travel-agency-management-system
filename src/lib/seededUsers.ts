@@ -5,7 +5,7 @@ export type SeededAuthUser = {
   email: string
   name: string
   role: UserRole
-  /** Set when role is sub_agent — CRM record this login belongs to. */
+  /** Set when role is sub_agent. CRM record this login belongs to. */
   subAgentId?: string
 }
 

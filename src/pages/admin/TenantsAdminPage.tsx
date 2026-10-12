@@ -348,7 +348,7 @@ export default function TenantsAdminPage() {
         open={createOpen}
         onClose={closeCreate}
         title="Add agency"
-        description="Create the agency and its first owner login. Product starts fully off — you turn on what they need next."
+        description="Create the agency and its first owner login. Product starts fully off. You turn on what they need next."
         footer={
           <>
             <Button
@@ -412,7 +412,7 @@ export default function TenantsAdminPage() {
             error={
               showError('ownerPassword') ? errors.ownerPassword : undefined
             }
-            hint="Owner signs in with this password. Share it securely — it is only shown once."
+            hint="Owner signs in with this password. Share it securely. It is only shown once."
           />
           {formError ? (
             <p className="pd-field__error" role="alert">

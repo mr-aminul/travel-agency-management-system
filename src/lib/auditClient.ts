@@ -17,7 +17,7 @@ export type AuditEventInput = {
   meta?: Record<string, unknown>
 }
 
-/** Best-effort server audit — never blocks the UI path. */
+/** Best-effort server audit. Never blocks the UI path. */
 export async function logAuditEvent(input: AuditEventInput): Promise<void> {
   if (!shouldUseApiDataBackend()) return
   const token = getAccessToken()

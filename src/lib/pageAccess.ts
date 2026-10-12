@@ -42,7 +42,7 @@ export function resolveUserPageAccess(input: {
   if (normalizedPath === '/') return 'edit'
   const pagePath = longestMatchingPath(input.pathname)
   if (!pagePath) {
-    // Core pages not in the matrix (service board, settings, profile, trash, …)
+    // Core pages not in the matrix (settings, profile, trash, …)
     return 'edit'
   }
   const member = findTenantMemberForUser(

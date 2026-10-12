@@ -4,7 +4,7 @@ import { bootstrapDataBackend } from './bootstrapData'
 import { initAppearanceListener } from './lib/brand'
 import { initKeyboardFocus } from './lib/keyboardFocus'
 
-/* Login-critical fonts only — shell weights load with AuthenticatedLayout */
+/* Login-critical fonts only. Shell weights load with AuthenticatedLayout. */
 import '@fontsource/inter/latin-400.css'
 import '@fontsource/inter/latin-500.css'
 import '@fontsource/plus-jakarta-sans/latin-800.css'

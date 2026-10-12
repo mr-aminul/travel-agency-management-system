@@ -1,7 +1,7 @@
 import type { Case, CaseStatus } from '@/types/case'
 import type { SubAgentStatus } from '@/types/subAgent'
 
-/** Most actionable first — used when a client has multiple service files. */
+/** Most actionable first. Used when a client has multiple service files. */
 const STATUS_PRIORITY: CaseStatus[] = [
   'On-Hold',
   'In-Progress',

@@ -95,7 +95,7 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
         })
         setStatus(
           existingLogin
-            ? 'Invite created. They already have an agency login — after accepting, they should choose Sub agent login on the sign-in page.'
+            ? 'Invite created. They already have an agency login. After accepting, they should choose Sub agent login on the sign-in page.'
             : 'Invite created. Copy the link and send it to the sub agent.',
         )
       } else {
@@ -164,7 +164,7 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
         <p>
           Sub agents sign in with <strong>Sub agent login</strong> on the
           sign-in page. If this email already runs an agency, we link sub-agent
-          access — we do not overwrite their agency password.
+          access. We do not overwrite their agency password.
         </p>
       </header>
 
@@ -178,7 +178,7 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
 
       {existingLogin && !login ? (
         <p className="pd-settings-block__meta" role="status">
-          This email already has an agency login. Prefer linking — they will use
+          This email already has an agency login. Prefer linking. They will use
           the same password and choose Sub agent login when signing in.
         </p>
       ) : null}

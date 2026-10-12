@@ -78,7 +78,7 @@ export const StepFlowNode = memo(function StepFlowNode({
         </div>
         {data.documents.length === 0 ? (
           <p className="pd-service-flow-node__docs-empty">
-            None yet — attach in the inspector.
+            None yet. Attach in the inspector.
           </p>
         ) : (
           <ul className="pd-service-flow-node__docs-list">

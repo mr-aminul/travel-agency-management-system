@@ -1,4 +1,4 @@
-/* Cases — list + detail (OneTrack theme) */
+/* Cases: list + detail (OneTrack theme) */
 
 .pd-cases {
   display: flex;
@@ -12,6 +12,42 @@
   justify-content: space-between;
   gap: 0.75rem 1rem;
   flex-wrap: wrap;
+}
+
+/* List / Board segmented control (also used on the board header) */
+.pd-services__view-toggle {
+  display: inline-flex;
+  align-self: center;
+  padding: 0.15rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.7rem;
+  background: var(--color-surface);
+}
+
+.pd-services__view-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: transparent;
+  appearance: none;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pd-services__view-option:hover:not(.is-selected) {
+  color: var(--color-text);
+}
+
+.pd-services__view-option.is-selected {
+  background: var(--color-theme);
+  color: var(--color-on-theme, #fff);
 }
 
 .pd-cases__filters {
@@ -981,7 +1017,7 @@
   line-height: 1.45;
 }
 
-/* Full-screen file viewer — above portaled side drawers (z-index 200). */
+/* Full-screen file viewer, above portaled side drawers (z-index 200). */
 
 .pd-file-fs {
   position: fixed;
@@ -1718,7 +1754,7 @@
   color: var(--color-danger);
 }
 
-/* Document preview sits on the panel — no nested card. */
+/* Document preview sits on the panel, no nested card. */
 .pd-doc-inspect .pd-file-viewer {
   padding: 0;
   border: 0;

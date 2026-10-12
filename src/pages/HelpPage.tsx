@@ -22,7 +22,7 @@ import { Accordion, Button, PageHeader } from '@/components/ui'
 import { useGlobalSearch } from '@/layout/GlobalSearchProvider'
 import { isPathAllowed } from '@/lib/modules'
 import type { ModuleId, UserRole } from '@/types/tenant'
-import { settingsSectionPath } from '@/lib/workPaths'
+import { settingsSectionPath, workBoardPath } from '@/lib/workPaths'
 import { useActiveTenant } from '@/lib/useActiveTenant'
 import { useAuth } from '@/lib/useAuth'
 import '@/styles/layout-help.css'
@@ -77,7 +77,7 @@ const FLOW_STEPS: FlowStep[] = [
     id: 'board',
     label: 'Move the file',
     hint: 'Board + checklist steps',
-    to: '/service-board',
+    to: workBoardPath(),
     icon: Kanban,
   },
   {
@@ -110,12 +110,12 @@ const GUIDES: Guide[] = [
   },
   {
     id: 'services',
-    title: 'Services & Service Board',
-    body: 'A service file is the work: tourist visa, air ticket, tour package, and more. The Service Board shows who is ready for which checklist step. Set documents and upload fields in the Service catalog.',
-    icon: Kanban,
+    title: 'Services',
+    body: 'A service file is the work: tourist visa, air ticket, tour package, and more. On Services, switch List / Board — the board shows who is ready for which checklist step. Set documents and upload fields in the Service catalog.',
+    icon: ClipboardList,
     links: [
-      { label: 'Services', to: '/services' },
-      { label: 'Service Board', to: '/service-board' },
+      { label: 'Services (list)', to: '/services' },
+      { label: 'Services (board)', to: workBoardPath() },
       { label: 'Service catalog', to: settingsSectionPath('services') },
     ],
   },
@@ -185,14 +185,8 @@ const MAP_TILES: MapTile[] = [
   {
     path: '/services',
     label: 'Services',
-    description: 'Open service files',
+    description: 'List or board of open files',
     icon: ClipboardList,
-  },
-  {
-    path: '/service-board',
-    label: 'Service Board',
-    description: 'Who is ready next',
-    icon: Kanban,
   },
   {
     path: '/payments',
@@ -302,7 +296,7 @@ export default function HelpPage() {
           <>
             <p>
               A <strong>client</strong> is the person (passport, contact, referral).
-              A <strong>service</strong> is the file of work for them — for example a
+              A <strong>service</strong> is the file of work for them, for example a
               tourist visa or air ticket. One client can have many services.
             </p>
           </>
@@ -316,7 +310,7 @@ export default function HelpPage() {
             <p>
               Share the public{' '}
               <Link to="/track">Track</Link> page. Recipients only need the passport
-              number — no staff account is required.
+              number. No staff account is required.
             </p>
           </>
         ),
@@ -393,14 +387,14 @@ export default function HelpPage() {
     <div className="pd-page pd-help" aria-label="Help">
       <PageHeader
         title="Help"
-        description="How OneTrack fits together — from registering a client to sharing status."
+        description="How OneTrack fits together, from registering a client to sharing status."
       />
 
       <section className="pd-help__intro" aria-label="Overview">
         <div>
           <p className="pd-help__lede">
             Staff work moves through a simple loop: register the person, open a
-            service file, advance checklist steps on the Service Board, collect
+            service file, advance checklist steps on the Services board, collect
             payment, then let clients track progress with a passport number.
           </p>
           <nav className="pd-help__toc" aria-label="On this page">

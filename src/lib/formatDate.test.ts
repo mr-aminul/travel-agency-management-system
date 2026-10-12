@@ -20,8 +20,8 @@ describe('formatDisplayDate', () => {
   })
 
   it('returns the empty placeholder when missing', () => {
-    expect(formatDisplayDate(undefined)).toBe('—')
-    expect(formatDisplayDate('')).toBe('—')
+    expect(formatDisplayDate(undefined)).toBe('-')
+    expect(formatDisplayDate('')).toBe('-')
     expect(formatDisplayDate(null, '')).toBe('')
   })
 
@@ -48,7 +48,7 @@ describe('formatDisplayDateTime', () => {
   })
 
   it('returns the empty placeholder when missing', () => {
-    expect(formatDisplayDateTime(undefined)).toBe('—')
+    expect(formatDisplayDateTime(undefined)).toBe('-')
     expect(formatDisplayDateTime('', '')).toBe('')
   })
 })

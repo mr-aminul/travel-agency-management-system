@@ -250,7 +250,7 @@ export function createTenantMember(
     name: input.name.trim(),
     email,
     role: input.role ?? 'staff',
-    // Password was set by admin — member can sign in immediately.
+    // Password was set by admin. Member can sign in immediately.
     status: input.status ?? 'active',
   }
   members = [created, ...members]

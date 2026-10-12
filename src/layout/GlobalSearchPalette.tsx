@@ -37,7 +37,7 @@ export type GlobalSearchHandle = {
 type GlobalSearchPaletteProps = {
   items: SearchItem[]
   onClose?: () => void
-  /** Typewriter Recent/Jump To hints — home hero only, not the top bar. */
+  /** Typewriter Recent/Jump To hints. Home hero only, not the top bar. */
   animatePlaceholder?: boolean
 }
 

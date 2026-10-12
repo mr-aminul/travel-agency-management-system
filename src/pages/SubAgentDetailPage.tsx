@@ -544,7 +544,7 @@ export default function SubAgentDetailPage() {
                     label="email address"
                   />
                 ) : (
-                  <span className="pd-client-detail__empty">—</span>
+                  <span className="pd-client-detail__empty">-</span>
                 )}
               </dd>
             </div>
@@ -554,7 +554,7 @@ export default function SubAgentDetailPage() {
                 {displayLicense ? (
                   <ContactChip value={displayLicense} label="license number" />
                 ) : (
-                  <span className="pd-client-detail__empty">—</span>
+                  <span className="pd-client-detail__empty">-</span>
                 )}
               </dd>
             </div>
@@ -564,7 +564,7 @@ export default function SubAgentDetailPage() {
                 {displayBranch ? (
                   <ContactChip value={displayBranch} label="branch" />
                 ) : (
-                  <span className="pd-client-detail__empty">—</span>
+                  <span className="pd-client-detail__empty">-</span>
                 )}
               </dd>
             </div>
@@ -574,7 +574,7 @@ export default function SubAgentDetailPage() {
                 {displayAddress ? (
                   <ContactChip value={displayAddress} label="address" />
                 ) : (
-                  <span className="pd-client-detail__empty">—</span>
+                  <span className="pd-client-detail__empty">-</span>
                 )}
               </dd>
             </div>
@@ -648,7 +648,7 @@ export default function SubAgentDetailPage() {
                             {displayEmail ? (
                               <CopyableText value={displayEmail} />
                             ) : (
-                              <span className="pd-client-detail__empty">—</span>
+                              <span className="pd-client-detail__empty">-</span>
                             )}
                           </dd>
                         </div>
@@ -656,7 +656,7 @@ export default function SubAgentDetailPage() {
                           <FieldLabel icon={MapPin}>Address</FieldLabel>
                           <dd>
                             {displayAddress || (
-                              <span className="pd-client-detail__empty">—</span>
+                              <span className="pd-client-detail__empty">-</span>
                             )}
                           </dd>
                         </div>
@@ -664,7 +664,7 @@ export default function SubAgentDetailPage() {
                           <FieldLabel icon={IdCard}>License</FieldLabel>
                           <dd>
                             {displayLicense || (
-                              <span className="pd-client-detail__empty">—</span>
+                              <span className="pd-client-detail__empty">-</span>
                             )}
                           </dd>
                         </div>
@@ -672,7 +672,7 @@ export default function SubAgentDetailPage() {
                           <FieldLabel icon={MapPin}>Branch</FieldLabel>
                           <dd>
                             {displayBranch || (
-                              <span className="pd-client-detail__empty">—</span>
+                              <span className="pd-client-detail__empty">-</span>
                             )}
                           </dd>
                         </div>
@@ -894,7 +894,7 @@ export default function SubAgentDetailPage() {
                                               {serviceStatus}
                                             </Badge>
                                           ) : (
-                                            '—'
+                                            '-'
                                           )}
                                         </TableCell>
                                       </TableRow>
@@ -1277,11 +1277,11 @@ export default function SubAgentDetailPage() {
                                 </div>
                                 <div className="pd-clients__card-row">
                                   <dt>Passport</dt>
-                                  <dd>{client.passport || '—'}</dd>
+                                  <dd>{client.passport || '-'}</dd>
                                 </div>
                                 <div className="pd-clients__card-row">
                                   <dt>Country</dt>
-                                  <dd>{client.preferredCountry || '—'}</dd>
+                                  <dd>{client.preferredCountry || '-'}</dd>
                                 </div>
                                 <div className="pd-clients__card-row">
                                   <dt>Balance due</dt>
@@ -1333,9 +1333,9 @@ export default function SubAgentDetailPage() {
                                 <TableCell>
                                   {normalizePhone(client.phone) || client.phone}
                                 </TableCell>
-                                <TableCell>{client.passport || '—'}</TableCell>
+                                <TableCell>{client.passport || '-'}</TableCell>
                                 <TableCell>
-                                  {client.preferredCountry || '—'}
+                                  {client.preferredCountry || '-'}
                                 </TableCell>
                                 <TableCell className="pd-clients__balance">
                                   {formatBalance(client.balance)}
@@ -1350,7 +1350,7 @@ export default function SubAgentDetailPage() {
                                       {serviceStatus}
                                     </Badge>
                                   ) : (
-                                    '—'
+                                    '-'
                                   )}
                                 </TableCell>
                               </TableRow>

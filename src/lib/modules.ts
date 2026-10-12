@@ -25,7 +25,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
     id: 'services',
     label: 'Services',
     description:
-      'Templates this agency sells. They filter Services — they are not extra sidebar pages.',
+      'Templates this agency sells. They filter Services. They are not extra sidebar pages.',
     modules: [
       {
         id: 'services.touristVisa',
@@ -223,6 +223,7 @@ export function signedInHomePath(role: UserRole): string {
 const SUB_AGENT_ALLOWED_PREFIXES = [
   '/',
   '/clients',
+  /** Legacy alias → `/services?view=board` (keep so the redirect can run). */
   '/service-board',
   '/services',
   '/documents',

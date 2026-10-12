@@ -13,7 +13,7 @@ export function MonthBars({ buckets }: MonthBarsProps) {
         return (
           <li key={bucket.key} className="pd-dash-months__col">
             <span className="pd-dash-months__amount">
-              {bucket.amount ? formatCompactBdt(bucket.amount) : '—'}
+              {bucket.amount ? formatCompactBdt(bucket.amount) : '-'}
             </span>
             <span className="pd-dash-months__track">
               <span

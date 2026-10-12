@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Badge, Button, EmptyState, FilterChip, FilterChips, FilterPopover, SearchField, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type BadgeVariant } from '@/components/ui'
+import { Badge, Button, EmptyState, FilterChip, FilterChips, FilterPopover, PageHeader, SearchField, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type BadgeVariant } from '@/components/ui'
 import {
   CheckCircle2,
   CircleDot,
@@ -123,6 +123,8 @@ export type CasesListProps = {
   selectedId?: string
   /** Bump this to flash the Service fee column for a few seconds. */
   serviceFeeHighlightToken?: number
+  /** List / Board control when this list is the Services page. */
+  viewToggle?: ReactNode
 }
 
 export const SERVICE_FEE_HIGHLIGHT_MS = 3000
@@ -144,6 +146,7 @@ export function CasesList({
   emptyAction,
   selectedId,
   serviceFeeHighlightToken = 0,
+  viewToggle,
 }: CasesListProps) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -398,7 +401,7 @@ export function CasesList({
                 <TableCell>
                   <span className="pd-cases__step">{getCurrentStepLabel(item)}</span>
                 </TableCell>
-                <TableCell>{item.destination || '—'}</TableCell>
+                <TableCell>{item.destination || '-'}</TableCell>
                 <TableCell>{formatCaseDate(item.departureDate)}</TableCell>
                 <TableCell className={feeCellClass}>
                   {formatBalance(caseServiceFee(item))}
@@ -423,6 +426,9 @@ export function CasesList({
       className={embedded ? 'pd-cases pd-cases--embedded' : 'pd-page pd-cases'}
       aria-label={label}
     >
+      {viewToggle && !embedded ? (
+        <PageHeader title={label} titleAside={viewToggle} />
+      ) : null}
       {!embedded ? (
         <StatCards
           label="Service stats"

@@ -1,383 +1,392 @@
-import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { PageHeader, type BadgeVariant } from '@/components/ui'
+import { useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
+  Activity,
   AlertTriangle,
   CircleDollarSign,
+  Files,
   FolderOpen,
   HandCoins,
-  Percent,
-  Receipt,
-  Users,
+  History,
+  Layers,
+  PieChart,
+  TrendingUp,
 } from 'lucide-react'
-import { AgingChart } from '@/components/dashboard/AgingChart'
-import { BarList } from '@/components/dashboard/BarList'
-import { DashboardPanel } from '@/components/dashboard/DashboardPanel'
-import { FunnelChart } from '@/components/dashboard/FunnelChart'
-import { InsightList } from '@/components/dashboard/InsightList'
-import { PulseStrip } from '@/components/dashboard/PulseStrip'
+import { FilterChip, FilterChips, PageHeader } from '@/components/ui'
+import { BentoTile } from '@/components/dashboard/BentoTile'
+import { DonutChart, type DonutSlice } from '@/components/dashboard/DonutChart'
 import { TrendChart } from '@/components/dashboard/TrendChart'
 import { StatCards } from '@/components/StatCards'
+import type { SegmentTone } from '@/components/dashboard/StackedBar'
 import { useCases } from '@/lib/casesStore'
-import { useClients } from '@/lib/clientsStore'
 import {
-  buildExecutivePulse,
-  clientsBySubAgent,
-  collectionsByMonth,
-  computeOwnerKpis,
+  balancesToCollect,
+  casesByStatus,
+  casesCreatedBetween,
+  collectionsTrendForPeriod,
+  DASH_PERIODS,
   formatBdt,
-  formatCollectionRate,
   formatCompactBdt,
-  formatDeltaPercent,
-  needsAttention,
-  pipelineFunnel,
-  recentPayments,
+  openCasesAsOf,
   receivablesAging,
-  revenueByService,
-  topOutstanding,
-  upcomingDepartures,
-  workloadByAssignee,
-  type AttentionReason,
+  resolveDashPeriod,
+  serviceMix,
+  sumPaymentsBetween,
+  type DashPeriod,
 } from '@/lib/dashboardInsights'
-import { useEmployees } from '@/lib/employeesStore'
-import { formatDisplayDate } from '@/lib/formatDate'
 import { usePayments } from '@/lib/paymentsStore'
-import { useSubAgents } from '@/lib/subAgentsStore'
-import { useRequests } from '@/lib/requestsStore'
-import '@/styles/layout-ops.css'
 import '@/styles/layout-dashboard.css'
 
-const ATTENTION_BADGE: Record<
-  AttentionReason,
-  { label: string; variant: BadgeVariant }
-> = {
-  'pending-request': { label: 'Request', variant: 'pending' },
-  'on-hold': { label: 'On hold', variant: 'on-hold' },
-  'missing-docs': { label: 'Docs', variant: 'danger' },
-  stale: { label: 'Stale', variant: 'neutral' },
+const SERVICE_TONES: SegmentTone[] = [
+  'brand',
+  'info',
+  'success',
+  'warning',
+  'brand-soft',
+]
+
+type SideKind = 'aging' | 'services' | 'status'
+
+const STATUS_TONE: Record<string, SegmentTone> = {
+  Pending: 'info',
+  'In-Progress': 'brand',
+  'On-Hold': 'warning',
+  Completed: 'success',
+  Cancelled: 'muted',
+}
+type BentoPlace = 'wide' | 'cell' | 'full'
+
+const PLACE_CLASS: Record<BentoPlace, string> = {
+  wide: 'pd-dash-bento__wide',
+  cell: 'pd-dash-bento__cell',
+  full: 'pd-dash-bento__full',
 }
 
-function deltaTone(change: number | null): 'up' | 'down' | 'flat' {
-  if (change == null || Math.abs(change) < 0.005) return 'flat'
-  return change > 0 ? 'up' : 'down'
+const AGING_TONE: Record<string, SegmentTone> = {
+  current: 'success',
+  '30': 'info',
+  '60': 'warning',
+  '90': 'danger',
+}
+
+function figureAmount(amount: number): string {
+  if (Math.abs(amount) >= 100_000) return formatCompactBdt(amount)
+  return formatBdt(amount)
+}
+
+function fileCount(count: number): string {
+  return `${count} file${count === 1 ? '' : 's'}`
+}
+
+function localIsoDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
 }
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const clients = useClients()
   const cases = useCases()
   const payments = usePayments()
-  const subAgents = useSubAgents()
-  const requests = useRequests()
-  const employees = useEmployees()
+  const [period, setPeriod] = useState<DashPeriod>('this-month')
 
-  const kpis = useMemo(
-    () => computeOwnerKpis(clients, cases, payments, requests),
-    [clients, cases, payments, requests],
+  const window = useMemo(() => resolveDashPeriod(period), [period])
+
+  const collected = useMemo(
+    () => sumPaymentsBetween(payments, window.startDay, window.endDay),
+    [payments, window.endDay, window.startDay],
   )
-  const months = useMemo(() => collectionsByMonth(payments, 12), [payments])
-  const funnel = useMemo(() => pipelineFunnel(cases), [cases])
-  const revenueMix = useMemo(() => revenueByService(cases).slice(0, 6), [cases])
-  const aging = useMemo(() => receivablesAging(cases), [cases])
-  const attention = useMemo(
-    () => needsAttention(cases, requests, clients, 6),
-    [cases, requests, clients],
+  const priorCollected = useMemo(
+    () =>
+      sumPaymentsBetween(payments, window.priorStartDay, window.priorEndDay),
+    [payments, window.priorEndDay, window.priorStartDay],
   )
-  const collections = useMemo(
-    () => recentPayments(payments, clients, cases, 6),
-    [payments, clients, cases],
+  const trend = useMemo(
+    () => collectionsTrendForPeriod(payments, window),
+    [payments, window],
   )
-  const outstanding = useMemo(() => topOutstanding(cases, 6), [cases])
-  const departures = useMemo(() => upcomingDepartures(cases, 6), [cases])
-  const subAgentMix = useMemo(
-    () => clientsBySubAgent(clients, subAgents),
-    [clients, subAgents],
+  const stockCases = useMemo(
+    () => openCasesAsOf(cases, window.endDay),
+    [cases, window.endDay],
   )
-  const workload = useMemo(
-    () => workloadByAssignee(cases, employees, 6),
-    [cases, employees],
+  const periodCases = useMemo(
+    () => casesCreatedBetween(cases, window.startDay, window.endDay),
+    [cases, window.endDay, window.startDay],
   )
-  const pulse = useMemo(
-    () => buildExecutivePulse(kpis, aging, months),
-    [kpis, aging, months],
+  const aging = useMemo(
+    () => receivablesAging(stockCases, window.asOf),
+    [stockCases, window.asOf],
+  )
+  const services = useMemo(() => serviceMix(periodCases), [periodCases])
+  const statuses = useMemo(() => casesByStatus(periodCases), [periodCases])
+  const collect = useMemo(
+    () => balancesToCollect(stockCases, 6, window.asOf),
+    [stockCases, window.asOf],
   )
 
-  const monthTotal = months.reduce((sum, bucket) => sum + bucket.amount, 0)
-  const agingTotal = aging.reduce((sum, bucket) => sum + bucket.amount, 0)
-  const sparkValues = months.map((bucket) => bucket.amount)
-  const momDelta = formatDeltaPercent(kpis.collectedMomChange)
-  const asOfLabel = new Date().toLocaleDateString('en-GB', {
+  const trendTotal = trend.reduce((sum, bucket) => sum + bucket.amount, 0)
+  const outstanding = aging.reduce((sum, bucket) => sum + bucket.amount, 0)
+  const outstandingFiles = aging.reduce((sum, bucket) => sum + bucket.count, 0)
+  const pastDue = aging.filter((bucket) => bucket.key !== 'current')
+  const pastDueAmount = pastDue.reduce((sum, bucket) => sum + bucket.amount, 0)
+  const pastDueFiles = pastDue.reduce((sum, bucket) => sum + bucket.count, 0)
+  const serviceTotal = services.reduce((sum, row) => sum + row.count, 0)
+  const statusTotal = statuses.reduce((sum, row) => sum + row.count, 0)
+
+  const agingSlices: DonutSlice[] = aging.map((bucket) => ({
+    key: bucket.key,
+    label: bucket.label,
+    value: bucket.amount,
+    display: figureAmount(bucket.amount),
+    tone: AGING_TONE[bucket.key] ?? 'muted',
+  }))
+
+  const topServices = services.slice(0, 5)
+  const otherServices = services
+    .slice(5)
+    .reduce((sum, row) => sum + row.count, 0)
+  const serviceSlices: DonutSlice[] = [
+    ...topServices.map((row, index) => ({
+      key: row.key,
+      label: row.label,
+      value: row.count,
+      display: fileCount(row.count),
+      tone: SERVICE_TONES[index] ?? 'muted',
+    })),
+    ...(otherServices > 0
+      ? [
+          {
+            key: 'other',
+            label: 'Other',
+            value: otherServices,
+            display: fileCount(otherServices),
+            tone: 'muted' as const,
+          },
+        ]
+      : []),
+  ]
+  const statusSlices: DonutSlice[] = statuses.map((row) => ({
+    key: row.key,
+    label: row.label,
+    value: row.count,
+    display: fileCount(row.count),
+    tone: STATUS_TONE[row.key] ?? 'muted',
+  }))
+
+  const asOfLabel = window.asOf.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   })
+  const collectMax = Math.max(...collect.map((row) => row.amount), 1)
+  const sides: SideKind[] = []
+  if (outstanding > 0) sides.push('aging')
+  if (serviceSlices.length > 0) sides.push('services')
+  if (statusSlices.length > 0) sides.push('status')
+  const showTrend = trendTotal > 0
+  const leadSide = showTrend ? (sides[0] ?? null) : null
+  const bottomSides = showTrend ? sides.slice(1) : sides
+  const collectBeside = bottomSides.length === 0 ? 0 : bottomSides.length
+  const collectPlace: BentoPlace | null =
+    collect.length === 0
+      ? null
+      : collectBeside >= 2
+        ? 'cell'
+        : collectBeside === 1
+          ? 'wide'
+          : 'full'
+  const sidesBeforeCollect = collectBeside === 0 ? bottomSides : []
+  const sidesAfterCollect = collectBeside === 0 ? [] : bottomSides
 
   return (
     <div className="pd-page pd-dash" aria-label="Dashboard">
       <PageHeader
-        title="Executive dashboard"
-        description="Cash, pipeline health, and the decisions that protect the book."
+        title="Dashboard"
+        titleAside={
+          <FilterChips label="Dashboard period" className="pd-dash__periods">
+            {DASH_PERIODS.map((option) => (
+              <FilterChip
+                key={option.id}
+                active={period === option.id}
+                onClick={() => setPeriod(option.id)}
+              >
+                {option.label}
+              </FilterChip>
+            ))}
+          </FilterChips>
+        }
         actions={
-          <span className="pd-dash__asof">As of {asOfLabel}</span>
+          <time className="pd-dash__asof" dateTime={localIsoDate(window.asOf)}>
+            As of {asOfLabel}
+          </time>
         }
       />
 
-      <PulseStrip insights={pulse} />
-
-      <div className="pd-dash__kpis">
-        <StatCards
-          label="Owner snapshot"
-          onSelect={(id) => {
-            if (id === 'clients') navigate('/clients')
-            else if (id === 'open' || id === 'risk') navigate('/services')
-            else navigate('/payments')
-          }}
-          cards={[
-            {
-              id: 'collected',
-              label: 'Collected',
-              value: formatCompactBdt(kpis.collected),
-              hint: `${formatCompactBdt(kpis.collectedLast30Days)} in last 30 days`,
-              icon: HandCoins,
-              tone: 'success',
-              delta: momDelta,
-              deltaTone: deltaTone(kpis.collectedMomChange),
-              sparkline: sparkValues,
-            },
-            {
-              id: 'outstanding',
-              label: 'Outstanding',
-              value: formatCompactBdt(kpis.outstanding),
-              hint:
-                agingTotal > 0
-                  ? `${formatCompactBdt(
-                      aging
-                        .filter((bucket) => bucket.key !== 'current')
-                        .reduce((sum, bucket) => sum + bucket.amount, 0),
-                    )} aged 30d+`
-                  : 'No open balances',
-              icon: CircleDollarSign,
-              tone: 'warning',
-            },
-            {
-              id: 'rate',
-              label: 'Collection rate',
-              value: formatCollectionRate(kpis.collectionRate),
-              hint: `${formatCollectionRate(kpis.completionRate)} completion`,
-              icon: Percent,
-              tone: 'brand',
-            },
-            {
-              id: 'booked',
-              label: 'Booked fees',
-              value: formatCompactBdt(kpis.bookedRevenue),
-              hint:
-                kpis.averageTicket > 0
-                  ? `Avg ticket ${formatCompactBdt(kpis.averageTicket)}`
-                  : 'No billable services yet',
-              icon: Receipt,
-              tone: 'info',
-            },
-            {
-              id: 'open',
-              label: 'Open services',
-              value: String(kpis.openCases),
-              hint: `${kpis.completedCases} completed · ${formatCollectionRate(kpis.holdRate)} on hold`,
-              icon: FolderOpen,
-              tone: 'info',
-            },
-            {
-              id: 'risk',
-              label: 'At risk',
-              value: String(kpis.atRiskCount),
-              hint: `${kpis.pendingRequests} pending · ${kpis.staleOpenCases} stale`,
-              icon: AlertTriangle,
-              tone: kpis.atRiskCount > 0 ? 'warning' : 'muted',
-            },
-            {
-              id: 'clients',
-              label: 'Active clients',
-              value: String(kpis.activeClients),
-              hint: `${clients.length} total on file`,
-              icon: Users,
-              tone: 'muted',
-            },
-          ]}
-        />
-      </div>
-
-      <div className="pd-dash__hero-charts">
-        <DashboardPanel
-          className="pd-dash-panel--wide"
-          title="Collections trend"
-          description="Cash received by month — the operating rhythm of the agency."
-          meta="Last 12 months"
-          isEmpty={monthTotal === 0}
-          empty={{
-            title: 'No collections yet',
-            description: 'Payments will appear here as they are recorded.',
-          }}
-        >
-          <TrendChart buckets={months} />
-        </DashboardPanel>
-      </div>
-
-      <div className="pd-dash__charts">
-        <DashboardPanel
-          title="Pipeline funnel"
-          description="Where active work sits today."
-          meta={`${cases.length} services`}
-          isEmpty={funnel.length === 0}
-          empty={{
-            title: 'No services yet',
-            description: 'Open a client file to start seeing pipeline volume.',
-          }}
-        >
-          <FunnelChart items={funnel} />
-        </DashboardPanel>
-        <DashboardPanel
-          title="Revenue by service"
-          description="Booked fees — not just file counts."
-          meta={`${revenueMix.length} lines`}
-          isEmpty={revenueMix.length === 0}
-          empty={{
-            title: 'No revenue mix',
-            description: 'Service fees appear once files are created.',
-          }}
-        >
-          <BarList
-            items={revenueMix.map((row) => ({
-              key: row.key,
-              label: row.label,
-              value: row.amount,
-              display: formatCompactBdt(row.amount),
-            }))}
+      <div className="pd-dash-bento">
+        <div className="pd-dash-bento__kpis">
+          <StatCards
+            label="Cash position"
+            onSelect={(id) => {
+              if (id === 'collected' || id === 'prior') navigate('/payments')
+              else navigate('/services')
+            }}
+            cards={[
+              {
+                id: 'collected',
+                label: 'Collected',
+                value: figureAmount(collected),
+                icon: HandCoins,
+                tone: 'brand',
+              },
+              {
+                id: 'prior',
+                label: window.priorLabel,
+                value: figureAmount(priorCollected),
+                icon: History,
+                tone: 'brand',
+              },
+              {
+                id: 'outstanding',
+                label: 'Due',
+                value: figureAmount(outstanding),
+                icon: CircleDollarSign,
+                tone: 'brand',
+              },
+              {
+                id: 'open-files',
+                label: 'Due files',
+                value: String(outstandingFiles),
+                icon: FolderOpen,
+                tone: 'brand',
+              },
+              {
+                id: 'past-due',
+                label: 'Overdue',
+                value: figureAmount(pastDueAmount),
+                icon: AlertTriangle,
+                tone: 'brand',
+              },
+              {
+                id: 'past-due-files',
+                label: 'Overdue files',
+                value: String(pastDueFiles),
+                icon: Files,
+                tone: 'brand',
+              },
+            ]}
           />
-        </DashboardPanel>
-        <DashboardPanel
-          title="Receivables aging"
-          description="Outstanding balances by file age."
-          meta={formatCompactBdt(agingTotal)}
-          isEmpty={agingTotal === 0}
-          empty={{
-            title: 'Nothing due',
-            description: 'Open balances will age here as they accrue.',
-          }}
-        >
-          <AgingChart buckets={aging} />
-        </DashboardPanel>
-      </div>
-
-      <div className="pd-dash__actions">
-        <DashboardPanel
-          title="Needs attention"
-          meta={`${attention.length} items`}
-          isEmpty={attention.length === 0}
-          empty={{
-            title: 'Nothing waiting',
-            description: 'No holds, missing documents, stale files, or pending requests.',
-          }}
-        >
-          <InsightList
-            items={attention.map((item) => ({
-              id: item.id,
-              title: item.title,
-              detail: item.detail,
-              href: item.href,
-              badge: ATTENTION_BADGE[item.reason],
-            }))}
-          />
-        </DashboardPanel>
-        <DashboardPanel
-          title="Recent collections"
-          isEmpty={collections.length === 0}
-          empty={{
-            title: 'No payments',
-            description: 'Latest receipts will show up here.',
-          }}
-        >
-          <InsightList
-            items={collections.map((item) => ({
-              id: item.id,
-              title: item.name,
-              detail: `${item.detail} · ${formatDisplayDate(item.date)}`,
-              href: item.href,
-              value: formatBdt(item.amount),
-            }))}
-          />
-        </DashboardPanel>
-        <DashboardPanel
-          title="Top outstanding"
-          isEmpty={outstanding.length === 0}
-          empty={{
-            title: 'Nothing due',
-            description: 'Open balances will rank here.',
-          }}
-        >
-          <InsightList
-            items={outstanding.map((item) => ({
-              id: item.id,
-              title: item.name,
-              detail: item.detail,
-              href: item.href,
-              value: formatBdt(item.amount),
-            }))}
-          />
-        </DashboardPanel>
-        <DashboardPanel
-          title="Upcoming departures"
-          isEmpty={departures.length === 0}
-          empty={{
-            title: 'No travel dates',
-            description: 'Open services with a departure date appear here.',
-          }}
-        >
-          <InsightList
-            items={departures.map((item) => ({
-              id: item.id,
-              title: item.name,
-              detail: item.detail,
-              href: item.href,
-              value: formatDisplayDate(item.departureDate),
-            }))}
-          />
-        </DashboardPanel>
-      </div>
-
-      {workload.length > 0 || subAgentMix.length > 0 ? (
-        <div className="pd-dash__secondary">
-          {workload.length > 0 ? (
-            <DashboardPanel
-              title="Workload by owner"
-              description="Open files on each assignee."
-              meta={`${workload.length} owners`}
-            >
-              <BarList
-                items={workload.map((row) => ({
-                  key: row.key,
-                  label: row.label,
-                  value: row.openCases,
-                  display: `${row.openCases} · ${formatCompactBdt(row.outstanding)}`,
-                }))}
-              />
-            </DashboardPanel>
-          ) : null}
-          {subAgentMix.length > 0 ? (
-            <DashboardPanel
-              title="Sub-agent referrals"
-              meta="Clients referred"
-            >
-              <BarList
-                items={subAgentMix.map((row) => ({
-                  key: row.subAgentId,
-                  label: row.name,
-                  value: row.clientCount,
-                }))}
-              />
-            </DashboardPanel>
-          ) : null}
         </div>
-      ) : null}
+
+        {showTrend ? (
+          <BentoTile
+            className="pd-dash-bento__wide pd-dash-bento__trend"
+            title="Trend"
+            icon={TrendingUp}
+            meta={window.trendMeta}
+            to="/payments"
+          >
+            <TrendChart buckets={trend} />
+          </BentoTile>
+        ) : null}
+
+        {leadSide ? renderSide(leadSide) : null}
+        {sidesBeforeCollect.map((kind) => renderSide(kind))}
+
+        {collectPlace ? (
+          <BentoTile
+            className={PLACE_CLASS[collectPlace]}
+            title="Collect"
+            icon={HandCoins}
+            to="/services"
+          >
+            <ul className="pd-dash-bars">
+              {collect.map((row) => {
+                const width = Math.max(
+                  4,
+                  Math.round((row.amount / collectMax) * 100),
+                )
+                return (
+                  <li key={row.id}>
+                    <Link
+                      to={row.href}
+                      className={
+                        row.ageDays > 30
+                          ? 'pd-dash-bars__row is-late'
+                          : 'pd-dash-bars__row'
+                      }
+                    >
+                      <span className="pd-dash-bars__label">{row.name}</span>
+                      <span className="pd-dash-bars__track">
+                        <span
+                          className="pd-dash-bars__fill"
+                          style={{ width: `${width}%` }}
+                        />
+                      </span>
+                      <span className="pd-dash-bars__value">
+                        {figureAmount(row.amount)}
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </BentoTile>
+        ) : null}
+
+        {sidesAfterCollect.map((kind) => renderSide(kind))}
+      </div>
     </div>
   )
+
+  function renderSide(kind: SideKind) {
+    if (kind === 'aging') {
+      return (
+        <BentoTile
+          key="aging"
+          className="pd-dash-bento__cell"
+          title="Aging"
+          icon={PieChart}
+          to="/services"
+        >
+          <DonutChart
+            slices={agingSlices}
+            centerValue={figureAmount(outstanding)}
+            centerLabel="Due"
+          />
+        </BentoTile>
+      )
+    }
+    if (kind === 'services') {
+      return (
+        <BentoTile
+          key="services"
+          className="pd-dash-bento__cell"
+          title="Services"
+          icon={Layers}
+          to="/services"
+        >
+          <DonutChart
+            slices={serviceSlices}
+            centerValue={String(serviceTotal)}
+            centerLabel={serviceTotal === 1 ? 'File' : 'Files'}
+          />
+        </BentoTile>
+      )
+    }
+    return (
+      <BentoTile
+        key="status"
+        className="pd-dash-bento__cell"
+        title="Status"
+        icon={Activity}
+        to="/services"
+      >
+        <DonutChart
+          slices={statusSlices}
+          centerValue={String(statusTotal)}
+          centerLabel={statusTotal === 1 ? 'File' : 'Files'}
+        />
+      </BentoTile>
+    )
+  }
 }

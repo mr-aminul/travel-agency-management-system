@@ -343,7 +343,7 @@ export async function domainEntriesForAuth(auth) {
 export async function writeDomainKey(key, value, auth) {
   const isAdmin = auth?.user?.role === 'platform_admin'
   if (isAdmin) {
-    // Platform admin may write multi-tenant arrays — group by tenantId.
+    // Platform admin may write multi-tenant arrays. Group by tenantId.
     const list = asArray(value)
     const byTenant = new Map()
     for (const item of list) {
@@ -382,7 +382,7 @@ function sameText(left, right) {
       .toLowerCase()
 }
 
-/** Strip uploads/fields — public track only needs progress labels. */
+/** Strip uploads/fields. Public track only needs progress labels. */
 function publicCaseSteps(steps) {
   if (!steps || typeof steps !== 'object' || Array.isArray(steps)) return {}
   const out = {}

@@ -25,7 +25,7 @@ const invoice: CaseInvoice = {
   clientEmail: 'rahim.uddin@email.com',
   clientAddress: 'Mirpur, Dhaka',
   clientPassport: 'A12345678',
-  lineDescription: 'Work Permit Visa package — Riyadh, Saudi Arabia',
+  lineDescription: 'Work Permit Visa package for Riyadh, Saudi Arabia',
   packageTotal: 50000,
   paidTotal: 15000,
   balanceDue: 35000,

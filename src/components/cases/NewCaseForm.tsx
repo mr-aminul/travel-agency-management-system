@@ -176,7 +176,7 @@ export function NewCaseForm({
             />
             <Select
               label="Country"
-              hint="Optional — helps pick the right checklist"
+              hint="Optional. Helps pick the right checklist"
               searchable
               searchPlaceholder="Search countries…"
               placeholder="Select country"
@@ -194,7 +194,7 @@ export function NewCaseForm({
             />
             <Select
               label="Assigned to"
-              hint="Optional — who owns this file"
+              hint="Optional. Who owns this file"
               searchable
               searchPlaceholder="Search employees…"
               placeholder="Select employee"
@@ -212,7 +212,7 @@ export function NewCaseForm({
             />
             <Input
               label="Service fee (৳)"
-              hint="Optional — can set when quoting"
+              hint="Optional. You can set this when quoting"
               inputMode="numeric"
               value={serviceFee}
               onChange={(event) => setServiceFee(event.target.value)}

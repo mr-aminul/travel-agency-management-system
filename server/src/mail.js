@@ -82,7 +82,7 @@ export async function sendPasswordResetEmail(input) {
     `Reset link: ${input.resetUrl}`,
     '',
     `This link expires in ${input.expiresMinutes} minutes.`,
-    'If you did not request this, ignore this email — your password stays the same.',
+    'If you did not request this, ignore this email. Your password stays the same.',
   ].join('\n')
 
   const html = renderPasswordResetEmailHtml({

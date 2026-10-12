@@ -486,7 +486,7 @@ export default function ClientsPage() {
                   <dl className="pd-clients__card-meta">
                     <div className="pd-clients__card-row">
                       <dt>Sub Agent</dt>
-                      <dd>{subAgentName || '—'}</dd>
+                      <dd>{subAgentName || '-'}</dd>
                     </div>
                     <div className="pd-clients__card-row">
                       <dt>Mobile</dt>
@@ -494,7 +494,7 @@ export default function ClientsPage() {
                     </div>
                     <div className="pd-clients__card-row">
                       <dt>Passport</dt>
-                      <dd>{client.passport || '—'}</dd>
+                      <dd>{client.passport || '-'}</dd>
                     </div>
                     <div className="pd-clients__card-row">
                       <dt>Open services</dt>
@@ -546,9 +546,9 @@ export default function ClientsPage() {
                       <p className="pd-clients__name">{client.name}</p>
                     </div>
                   </TableCell>
-                  <TableCell>{subAgentNameFor(client) || '—'}</TableCell>
+                  <TableCell>{subAgentNameFor(client) || '-'}</TableCell>
                   <TableCell>{formatMobile(client.phone)}</TableCell>
-                  <TableCell>{client.passport || '—'}</TableCell>
+                  <TableCell>{client.passport || '-'}</TableCell>
                   <TableCell>{client.activeCases}</TableCell>
                   <TableCell className="pd-clients__balance">
                     {formatBalance(client.balance)}
@@ -561,7 +561,7 @@ export default function ClientsPage() {
                         {serviceStatus}
                       </Badge>
                     ) : (
-                      '—'
+                      '-'
                     )}
                   </TableCell>
                   <TableCell
@@ -586,7 +586,7 @@ export default function ClientsPage() {
         open={newClientOpen}
         onClose={closeNewClientModal}
         title="New client"
-        description="Register the person once — then add the service they need."
+        description="Register the person once, then add the service they need."
         className="pd-clients-drawer"
       >
         <NewClientForm

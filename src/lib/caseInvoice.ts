@@ -91,7 +91,7 @@ export function buildCaseInvoice(input: {
 
   const destination = caseItem.destination?.trim()
   const lineDescription = destination
-    ? `${caseItem.service} package — ${destination}`
+    ? `${caseItem.service} package for ${destination}`
     : `${caseItem.service} package`
 
   const sortedPayments = [...payments].sort((left, right) =>

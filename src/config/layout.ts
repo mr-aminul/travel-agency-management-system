@@ -12,7 +12,6 @@ import {
   Home,
   IdCard,
   Inbox,
-  Kanban,
   LayoutDashboard,
   ListChecks,
   Settings,
@@ -54,7 +53,6 @@ export const layoutConfig: AppLayoutConfig = {
       icon: LayoutDashboard,
       agencyOnly: true,
     },
-    { path: '/service-board', label: 'Service Board', icon: Kanban },
     { path: '/clients', label: 'Clients', icon: Users },
     {
       path: '/sub-agents',

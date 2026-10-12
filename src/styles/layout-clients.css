@@ -1,4 +1,4 @@
-/* Clients — list + detail (OneTrack theme) */
+/* Clients: list + detail (OneTrack theme) */
 
 .pd-clients {
   display: flex;
@@ -525,7 +525,7 @@
 
 .pd-client-detail {
   /* Top bar lives outside `.pd-app-scroll`, so sticky chrome pins to the
-     scrollport top — not the old in-scroll 3.5rem topbar offset. */
+     scrollport top, not the old in-scroll 3.5rem topbar offset. */
   --pd-sticky-topbar: 0;
   --pd-client-sticky-top: 0;
   display: flex;
@@ -1794,7 +1794,7 @@
   margin: 0;
 }
 
-/* Flush table into the Services accordion — no nested cutout. */
+/* Flush table into the Services accordion, no nested cutout. */
 .pd-client-detail__services-accordion .pd-table-wrap {
   border: 0;
   border-radius: 0;
@@ -2190,7 +2190,7 @@
   }
 }
 
-/* Mobile drill-down Filters button — hidden on desktop */
+/* Mobile drill-down Filters button, hidden on desktop */
 .pd-clients__mobile-filters {
   display: none;
 }

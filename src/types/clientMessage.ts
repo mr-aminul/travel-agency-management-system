@@ -20,7 +20,7 @@ export type ClientThreadMessage = {
   createdAt: string
 }
 
-/** @deprecated Prefer ClientThreadMessage — kept for older SMS call sites. */
+/** @deprecated Prefer ClientThreadMessage. Kept for older SMS call sites. */
 export type ClientSmsMessage = ClientThreadMessage & {
   toPhone: string
 }

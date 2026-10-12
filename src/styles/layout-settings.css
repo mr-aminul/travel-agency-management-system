@@ -1,4 +1,4 @@
-/* Settings page — loaded only with SettingsPage
+/* Settings page, loaded only with SettingsPage
    Frame: sticky section topbar | content fill */
 .pd-settings {
   display: flex;
@@ -1531,7 +1531,7 @@
   margin-right: auto;
 }
 
-/* Access Management — rounded table card like Payments */
+/* Access Management: rounded table card like Payments */
 .pd-user-access {
   min-width: 0;
   max-width: 100%;
@@ -1691,7 +1691,7 @@
     opacity: 1;
   }
 
-  /* Sticky frozen columns eat too much width on phones — allow natural scroll. */
+  /* Sticky frozen columns eat too much width on phones. Allow natural scroll. */
   .pd-user-access .pd-table__th:nth-child(-n + 2),
   .pd-user-access .pd-table__td:nth-child(-n + 2) {
     position: static;
@@ -1714,7 +1714,7 @@
     white-space: normal;
   }
 }
-/* Service catalog v2 — flowchart canvas */
+/* Service catalog v2: flowchart canvas */
 .pd-settings-panel--flow {
   overflow: hidden;
   padding: 0;

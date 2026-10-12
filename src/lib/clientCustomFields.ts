@@ -42,7 +42,7 @@ export function countrySelectOptions(current = '') {
       ? [{ value: current, label: formatCountryLabel(current) }]
       : []
   return [
-    { value: '', label: '—' },
+    { value: '', label: '-' },
     ...extra,
     ...listed.map((country) => ({
       value: country,

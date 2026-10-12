@@ -1,4 +1,4 @@
-/* Home — theme-filled quick-link tiles (portal style) */
+/* Home: theme-filled quick-link tiles (portal style) */
 
 .pd-home {
   display: flex;
@@ -43,7 +43,7 @@
   line-height: 1.45;
 }
 
-/* Same GlobalSearchPalette as the top bar — sized for the home hero. */
+/* Same GlobalSearchPalette as the top bar, sized for the home hero. */
 .pd-home-search {
   position: relative;
   z-index: 2;
@@ -55,7 +55,7 @@
   width: 100%;
 }
 
-/* Sits on the light content plane — not the dark top bar — so use surface inks. */
+/* Sits on the light content plane, not the dark top bar, so use surface inks. */
 .pd-home-search .pd-topbar__search {
   width: 100%;
   height: 2.75rem;

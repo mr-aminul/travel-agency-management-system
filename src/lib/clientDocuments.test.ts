@@ -129,7 +129,7 @@ describe('client documents inventory', () => {
       service: 'Tourist Visa',
     })
 
-    // Number alone must not clear the passport alert — scan is still missing.
+    // Number alone must not clear the passport alert. Scan is still missing.
     expect(countClientDocumentAlerts(client, [visa])).toBeGreaterThanOrEqual(2)
 
     recordIdentityDocument(client.id, 'passport', {

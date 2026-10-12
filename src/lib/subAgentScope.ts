@@ -93,7 +93,7 @@ export function canApproveSubAgentChanges(
   if (!memberId) return false
   const settings = readSubAgentAccessSettings(tenantId)
   if (settings.approverMemberIds.length === 0) {
-    // No explicit list yet — owners/managers can approve (checked by caller).
+    // No explicit list yet. Owners/managers can approve (checked by caller).
     return true
   }
   return settings.approverMemberIds.includes(memberId)

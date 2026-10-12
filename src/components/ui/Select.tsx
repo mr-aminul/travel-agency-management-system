@@ -70,7 +70,7 @@ const VIEWPORT_PAD_PX = 8
 
 /**
  * Native `<dialog showModal()>` uses the top layer. A panel portaled to
- * `document.body` paints underneath it — portal into the open dialog instead.
+ * `document.body` paints underneath it. Portal into the open dialog instead.
  * Side drawers use a normal stacking context (z-index 200); the panel clears
  * that via CSS (`z-index: 220`) while staying on `document.body` so
  * `position: fixed` + viewport coords stay aligned.

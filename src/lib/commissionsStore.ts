@@ -17,7 +17,7 @@ type Listener = () => void
 
 const ENTRIES_KEY = DATA_KEYS.commissionsCreated
 const SETTLEMENTS_KEY = DATA_KEYS.commissionSettlements
-/** Default when no rule matches — 5% of fee. */
+/** Default when no rule matches: 5% of fee. */
 const DEFAULT_PERCENT = 5
 
 const listeners = new Set<Listener>()

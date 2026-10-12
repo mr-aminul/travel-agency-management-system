@@ -238,7 +238,7 @@ export default function EmployeeDetailPage() {
                               {record.kind}
                             </Badge>
                           </TableCell>
-                          <TableCell>{record.note ?? '—'}</TableCell>
+                          <TableCell>{record.note ?? '-'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -294,7 +294,7 @@ export default function EmployeeDetailPage() {
                           </TableCell>
                           <TableCell>{formatDisplayDate(record.startDate)}</TableCell>
                           <TableCell>{formatDisplayDate(record.endDate)}</TableCell>
-                          <TableCell>{record.note ?? '—'}</TableCell>
+                          <TableCell>{record.note ?? '-'}</TableCell>
                           <TableCell>
                             <Button
                               variant="ghost"
@@ -335,13 +335,13 @@ export default function EmployeeDetailPage() {
                     <TableRow>
                       <TableCell>Unpaid days</TableCell>
                       <TableCell>
-                        {line.unpaidDays === 0 ? '—' : line.unpaidDays}
+                        {line.unpaidDays === 0 ? '-' : line.unpaidDays}
                       </TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Deduction</TableCell>
                       <TableCell>
-                        {line.deduction ? formatSalary(line.deduction) : '—'}
+                        {line.deduction ? formatSalary(line.deduction) : '-'}
                       </TableCell>
                     </TableRow>
                     <TableRow>

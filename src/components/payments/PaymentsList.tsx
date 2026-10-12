@@ -231,7 +231,7 @@ export function PaymentsList({
                     </TableCell>
                   ) : null}
                   <TableCell>{payment.method}</TableCell>
-                  <TableCell>{payment.note || '—'}</TableCell>
+                  <TableCell>{payment.note || '-'}</TableCell>
                   <TableCell className="pd-cases__balance">
                     {formatPaymentAmount(payment.amount)}
                   </TableCell>

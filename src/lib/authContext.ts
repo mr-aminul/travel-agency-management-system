@@ -5,7 +5,7 @@ export type AuthStatus = 'authenticated' | 'anonymous'
 
 export type AuthContextValue = {
   status: AuthStatus
-  /** Effective user — the View-as target while impersonating. */
+  /** Effective user: the View-as target while impersonating. */
   user: AuthUser | null
   /** Real signed-in user (platform admin when viewing as someone else). */
   actor: AuthUser | null

@@ -25,7 +25,7 @@ export function DocumentPaper({
   rows,
 }: DocumentPaperProps) {
   const license = template.licenseNo || '864'
-  const agency = agencyName || '—'
+  const agency = agencyName || '-'
   const count = rows.length
 
   switch (template.format) {

@@ -80,7 +80,7 @@ describe('case invoice', () => {
     expect(invoice.packageTotal).toBe(40000)
     expect(invoice.status).toBe('partial')
     expect(invoice.lineDescription).toBe(
-      'Work Permit Visa package — Riyadh, Saudi Arabia',
+      'Work Permit Visa package for Riyadh, Saudi Arabia',
     )
     expect(invoice.payments.map((item) => item.id)).toEqual(['pay-b', 'pay-a'])
     expect(invoice.issuedOn).toBe('2026-01-15')

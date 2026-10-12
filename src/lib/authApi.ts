@@ -474,7 +474,7 @@ export async function provisionSubAgentUser(
   const existing =
     findProvisionedAccountByEmail(email) ?? findSeededAccountByEmail(email)
   if (existing) {
-    // Same email already has a login — attach sub-agent access; keep their password.
+    // Same email already has a login. Attach sub-agent access; keep their password.
     // Do not overwrite the agency password from the sub-agent form.
     return {
       id: existing.user.id,
@@ -562,7 +562,7 @@ async function assertSessionAllowed(session: AuthSession): Promise<void> {
 }
 
 export type SignInOptions = {
-  /** Agency vs sub-agent login — chosen on the login form. */
+  /** Agency vs sub-agent login, chosen on the login form. */
   intent?: import('@/lib/authWorkspaces').LoginIntent
 }
 

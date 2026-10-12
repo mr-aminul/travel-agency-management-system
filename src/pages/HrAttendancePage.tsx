@@ -199,7 +199,7 @@ export default function HrAttendancePage() {
                   </TableCell>
                   <TableCell>{formatDisplayDate(record.startDate)}</TableCell>
                   <TableCell>{formatDisplayDate(record.endDate)}</TableCell>
-                  <TableCell>{record.note ?? '—'}</TableCell>
+                  <TableCell>{record.note ?? '-'}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"

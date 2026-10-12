@@ -23,7 +23,7 @@ export type SearchPlaceholderHint = {
 }
 
 /**
- * Pull unique Recent + Jump To items for the idle placeholder — so each
+ * Pull unique Recent + Jump To items for the idle placeholder so each
  * agency sees their own recents and actions (with icons).
  */
 export function placeholderHintsFromGroups(

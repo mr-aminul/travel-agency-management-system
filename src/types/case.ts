@@ -34,7 +34,7 @@ export function isBuiltinService(
   return (BUILTIN_SERVICE_TYPES as readonly string[]).includes(service)
 }
 
-/** Operational health — not the same as journey progress. */
+/** Operational health, not the same as journey progress. */
 export type CaseStatus =
   | 'Pending'
   | 'In-Progress'
@@ -61,7 +61,7 @@ export type CaseStepUpload = {
   mimeType?: string
 }
 
-/** Data captured to complete a step — required before the step can advance. */
+/** Data captured to complete a step. Required before the step can advance. */
 export type CaseStepRecord = {
   completedAt: string | null
   detail?: string
@@ -121,7 +121,7 @@ export type ServiceRequest = {
   clientName: string
   service: ServiceType
   status: CaseStatus
-  /** Derived from currentStepId — kept for filters/compat. */
+  /** Derived from currentStepId. Kept for filters/compat. */
   stage: CaseStage
   /** Source of truth for journey position. */
   currentStepId: string
@@ -147,7 +147,7 @@ export type ServiceRequest = {
 export type Case = ServiceRequest
 
 /**
- * Create rules (locked) — see `caseServiceRules.ts`:
+ * Create rules (locked). See `caseServiceRules.ts`:
  * required: clientId + service; everything else optional.
  */
 export type CreateCaseInput = {

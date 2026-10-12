@@ -1,6 +1,6 @@
 /**
  * Storage keys for core records.
- * Keep stable — renaming breaks existing browser/API data.
+ * Keep stable. Renaming breaks existing browser/API data.
  * Every key listed here is synced to the platform API when enabled.
  */
 export const DATA_KEYS = {

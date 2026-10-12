@@ -81,7 +81,7 @@ export async function verifyPasswordHash(
   return timingSafeEqual(derived, expected)
 }
 
-/** Test/helper only — prefer server-side hashing in production. */
+/** Test/helper only. Prefer server-side hashing in production. */
 export async function hashPasswordForTests(
   password: string,
   iterations = 120_000,

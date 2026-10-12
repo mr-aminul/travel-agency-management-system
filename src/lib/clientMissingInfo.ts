@@ -7,7 +7,7 @@ import type { Client } from '@/types/client'
  * - When passport number is set, also blocks until issue + expiry dates are set
  * - Place of issue stays optional
  * - Recommended (badge / highlight only): NID, address, email
- * - Sub Agent is optional — never required, never blocks progress
+ * - Sub Agent is optional. Never required, never blocks progress.
  */
 
 export type ClientInfoGapId =

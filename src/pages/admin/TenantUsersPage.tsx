@@ -363,7 +363,7 @@ export default function TenantUsersPage() {
             onChange={(event) => setPassword(event.target.value)}
             onBlur={blur('password')}
             error={showError('password') ? errors.password : undefined}
-            hint="They sign in with this password. Share it securely — it is only shown once."
+            hint="They sign in with this password. Share it securely. It is only shown once."
           />
         )}
         {formError ? (

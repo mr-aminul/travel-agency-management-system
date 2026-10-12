@@ -67,7 +67,7 @@ async function deleteEntry(key: string): Promise<void> {
 
 /**
  * Sync backend: memory for store reads/writes, API for durability.
- * Only platform DATA_KEYS are synced — never touches other apps' storage.
+ * Only platform DATA_KEYS are synced. Never touches other apps' storage.
  */
 export function createApiSyncBackend(
   seed: Record<string, string> = {},

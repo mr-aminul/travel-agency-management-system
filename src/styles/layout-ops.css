@@ -79,22 +79,22 @@
   cursor: pointer;
 }
 
-/* Solid KPI fills — categorical SaaS set (indigo / blue / green / orange).
+/* Solid KPI fills: categorical SaaS set (indigo / blue / green / orange).
    Deep enough for white ink (WCAG), hues kept distinct for colorblind safety. */
 .pd-ops-metric-link--brand {
-  --metric-fill: #3730a3; /* indigo-800 — primary / total */
+  --metric-fill: #3730a3; /* indigo-800: primary / total */
 }
 
 .pd-ops-metric-link--info {
-  --metric-fill: #1d4ed8; /* blue-700 — open / in-progress */
+  --metric-fill: #1d4ed8; /* blue-700: open / in-progress */
 }
 
 .pd-ops-metric-link--success {
-  --metric-fill: #15803d; /* green-700 — completed */
+  --metric-fill: #15803d; /* green-700: completed */
 }
 
 .pd-ops-metric-link--warning {
-  --metric-fill: #c2410c; /* orange-700 — outstanding / attention */
+  --metric-fill: #c2410c; /* orange-700: outstanding / attention */
 }
 
 .pd-ops-metric-link--muted {

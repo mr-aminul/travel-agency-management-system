@@ -25,8 +25,8 @@ export type ServiceIconPickerProps = {
   onChange: (iconId: ServiceIconId | null) => void
   disabled?: boolean
   /**
-   * `field` — labeled inline grid (e.g. add-service drawer).
-   * `popover` — trigger opens a floating picker (e.g. catalog title icon).
+   * `field`: labeled inline grid (e.g. add-service drawer).
+   * `popover`: trigger opens a floating picker (e.g. catalog title icon).
    */
   variant?: 'field' | 'popover'
   /** Custom trigger content for `popover`. Defaults to a preview chip. */

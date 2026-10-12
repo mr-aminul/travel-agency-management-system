@@ -1,5 +1,5 @@
 # Isolated OneTrack / travel-agency stack.
-# Own network + volumes — does not join n8n/cloudreve/minio networks.
+# Own network + volumes. Does not join n8n/cloudreve/minio networks.
 name: onetrack-platform
 
 services:
@@ -13,7 +13,7 @@ services:
       POSTGRES_PASSWORD: ${PLATFORM_DB_PASSWORD:?set PLATFORM_DB_PASSWORD}
     volumes:
       - onetrack_platform_pgdata:/var/lib/postgresql/data
-    # Bind localhost only — unreachable from other containers' public nets.
+    # Bind localhost only; unreachable from other containers' public nets.
     ports:
       - "127.0.0.1:5433:5432"
     networks:

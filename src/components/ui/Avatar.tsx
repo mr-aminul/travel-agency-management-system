@@ -12,7 +12,7 @@ import type { TenantMemberRole } from '@/types/tenant'
 
 export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl'
 
-/** Placeholder glyph when no photo is set — one icon per entity type. */
+/** Placeholder glyph when no photo is set. One icon per entity type. */
 export type AvatarKind =
   | 'business'
   | 'owner'

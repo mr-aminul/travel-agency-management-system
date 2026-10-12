@@ -201,7 +201,7 @@ export async function handleSmsqWebhook(req) {
 
   const parsed = parseSmsqPayload(req)
 
-  // Console Test posts unsubstituted ##Who## tokens — acknowledge without storing.
+  // Console Test posts unsubstituted ##Who## tokens. Acknowledge without storing.
   if (isSmsqConsoleTest(parsed)) {
     return {
       ok: true,

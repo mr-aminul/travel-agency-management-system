@@ -94,7 +94,7 @@ export default function AdminOverviewPage() {
     <div className="pd-page pd-admin" aria-label="Platform overview">
       <PageHeader
         title="Overview"
-        description="Platform pulse — agencies that need attention and shortcuts into daily ops."
+        description="Platform pulse: agencies that need attention and shortcuts into daily ops."
         actions={
           <>
             <Button

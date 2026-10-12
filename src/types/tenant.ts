@@ -17,7 +17,7 @@ export type ModuleId =
   | 'services.tourPackage'
 
 /**
- * Agency rules — see `agencyUserRules.ts`:
+ * Agency rules. See `agencyUserRules.ts`:
  * required at create: name (+ first owner credentials in the admin UI);
  * modules/status optional.
  * `name` is the single org / business display name (Settings → Business name).
@@ -45,7 +45,7 @@ export type TenantMemberRole = 'owner' | 'manager' | 'staff'
 export type TenantMemberStatus = 'active' | 'invited' | 'disabled'
 
 /**
- * Staff user rules — see `agencyUserRules.ts`:
+ * Staff user rules. See `agencyUserRules.ts`:
  * required at create: name, email, tenantId, password;
  * role defaults to staff; status defaults to active once provisioned.
  */

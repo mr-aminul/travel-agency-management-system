@@ -12,7 +12,7 @@ export type SettingsSectionParam =
   | 'services'
   | 'servicesV2'
   | 'userAccess'
-  /** @deprecated Use `userAccess` — sub-agent controls live there now. */
+  /** @deprecated Use `userAccess`. Sub-agent controls live there now. */
   | 'subAgentAccess'
   | 'appearance'
 
@@ -35,9 +35,21 @@ export function hrEmployeePath(employeeId: string, tab?: string): string {
   return `${path}?tab=${encodeURIComponent(tab)}`
 }
 
+export type ServicesView = 'list' | 'board'
+
 export function workListPath(service?: ServiceType): string {
   if (!service) return '/services'
   return `/services?service=${serviceToSlug(service)}`
+}
+
+/** Kanban view of open service files (same page as the list). */
+export function workBoardPath(service?: ServiceType): string {
+  if (!service) return '/services?view=board'
+  return `/services?view=board&service=${serviceToSlug(service)}`
+}
+
+export function parseServicesView(value: string | null): ServicesView {
+  return value === 'board' ? 'board' : 'list'
 }
 
 export function settingsSectionPath(

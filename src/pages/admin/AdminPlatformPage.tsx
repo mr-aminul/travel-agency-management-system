@@ -210,8 +210,8 @@ export default function AdminPlatformPage() {
                 </div>
               </header>
               <p className="pd-admin__quiet">
-                Use ops tooling for <code>GET /api/platform/admin/kv-dump</code>{' '}
-                — never expose a raw dump in casual UI.
+                Use ops tooling for <code>GET /api/platform/admin/kv-dump</code>.
+                Never expose a raw dump in casual UI.
               </p>
             </section>
           ) : null}

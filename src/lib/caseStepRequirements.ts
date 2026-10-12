@@ -217,7 +217,7 @@ const HAJJ: StepRequirement[] = [
     stepId: 'registered',
     help: 'Register the pilgrim for this season.',
     fields: [
-      { key: 'packageInterest', label: 'Package interest', type: 'text', required: true, placeholder: 'e.g. Package B — 21 days' },
+      { key: 'packageInterest', label: 'Package interest', type: 'text', required: true, placeholder: 'e.g. Package B (21 days)' },
       { key: 'season', label: 'Season / year', type: 'text', required: true, placeholder: '2026' },
     ],
     uploads: [

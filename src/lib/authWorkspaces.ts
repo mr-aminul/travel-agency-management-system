@@ -55,7 +55,7 @@ function subAgentWorkspace(
     subAgentId,
     title: `Sub agent of ${agency}`,
     description: subAgent?.name
-      ? `Work as ${subAgent.name} — manage referred clients for ${agency}.`
+      ? `Work as ${subAgent.name}. Manage referred clients for ${agency}.`
       : `Manage referred clients for ${agency}.`,
   }
 }
@@ -104,7 +104,7 @@ export function listWorkspacesForUser(
       kind: 'agency',
       tenantId,
       title: name,
-      description: `Run ${name} — clients, services, and team.`,
+      description: `Run ${name}: clients, services, and team.`,
     })
   }
 
@@ -187,7 +187,7 @@ export function applyWorkspaceToSession(
   }
 }
 
-/** Login page choice — filters which workspace to enter. */
+/** Login page choice. Filters which workspace to enter. */
 export type LoginIntent = 'agency' | 'sub_agent'
 
 export function matchesLoginIntent(

@@ -39,7 +39,7 @@ function parseDateOnlyLocal(value: string): Date | null {
 /** Display dates as DD-MMM-YYYY, e.g. 05-Oct-2026. */
 export function formatDisplayDate(
   value?: string | null,
-  empty = '—',
+  empty = '-',
 ): string {
   if (value == null) return empty
   const trimmed = value.trim()
@@ -63,7 +63,7 @@ export function formatDisplayDate(
 /** Display timestamps as DD-MMM-YYYY h:mm AM/PM, e.g. 05-Oct-2026 2:30 PM. */
 export function formatDisplayDateTime(
   value?: string | null,
-  empty = '—',
+  empty = '-',
 ): string {
   if (value == null) return empty
   const trimmed = value.trim()
@@ -84,7 +84,7 @@ export function formatDisplayDateTime(
   return `${day} ${formatClock(date)}`
 }
 
-export function formatDisplayDateFromDate(date: Date, empty = '—'): string {
+export function formatDisplayDateFromDate(date: Date, empty = '-'): string {
   if (Number.isNaN(date.getTime())) return empty
   return (
     formatParts(date.getFullYear(), date.getMonth() + 1, date.getDate()) ??

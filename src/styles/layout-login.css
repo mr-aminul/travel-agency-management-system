@@ -1,6 +1,6 @@
 @import './layout-shared.css';
 
-/* Login — fixed light panel on deep brand field (ignores app dark mode) */
+/* Login: fixed light panel on deep brand field (ignores app dark mode) */
 .pd-login {
   --login-ink: #0a0a0a;
   --login-ink-muted: #64748b;

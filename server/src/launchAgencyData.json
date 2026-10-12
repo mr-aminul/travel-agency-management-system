@@ -407,7 +407,7 @@
       "balance": 85000,
       "assignedTo": "EMP-7005",
       "departureDate": "2026-05-20",
-      "description": "Package B — 21 days. Passport submitted; visa quota pending.",
+      "description": "Package B (21 days). Passport submitted; visa quota pending.",
       "createdAt": "2026-02-14",
       "updatedAt": "2026-07-15",
       "stage": "Processing",

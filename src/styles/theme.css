@@ -20,7 +20,7 @@
   --color-sidebar: var(--color-theme-darkest);
   --color-sidebar-alt: var(--color-theme-darker);
   /*
-   * Active on sidebar — never collapse into sidebar for near-black seeds.
+   * Active on sidebar. Never collapse into sidebar for near-black seeds.
    * Floor OKLCH lightness at 0.42; keep seed hue/chroma. Bright seeds unchanged.
    */
   --color-active-nav: oklch(from var(--color-theme) max(0.42, l) c h);
@@ -44,12 +44,12 @@
    */
   --color-theme-ink: var(--color-theme);
 
-  /* Body text — fixed neutrals */
+  /* Body text: fixed neutrals */
   --color-text-primary: #0a0a0a;
   --color-text-sec: #64748b;
   --color-text-muted: #94a3b8;
 
-  /* Status — fixed, never from --color-theme */
+  /* Status: fixed, never from --color-theme */
   --color-blue: #4f6fd9;
   --color-blue-light: color-mix(in srgb, var(--color-blue) 12%, white);
   --color-amber: #c2882c;
@@ -73,10 +73,10 @@
   --color-white: #ffffff;
   --color-divider: #e5e7eb;
 
-  /* Neutrals for menus / confirm UI — fixed, never from --color-theme */
+  /* Neutrals for menus / confirm UI: fixed, never from --color-theme */
   --color-neutral-hover: #f3f4f6;
 
-  /* Surfaces — flipped in .dark; brand seed stays the same */
+  /* Surfaces: flipped in .dark; brand seed stays the same */
   --color-cream: #e4e7e9;
   --color-surface: #ffffff;
   --color-surface-raised: #ffffff;
@@ -89,7 +89,7 @@
       color-mix(in srgb, var(--color-theme) 8%, #02040a) 100%);
 
   /*
-   * Shell glow inks — separate from UI mid/bright (those flip in .dark
+   * Shell glow inks, separate from UI mid/bright (those flip in .dark
    * for chips/avatars and would collapse the haze to smoke).
    */
   --app-shell-glow-core: var(--color-theme);
@@ -97,7 +97,7 @@
   --app-shell-glow-highlight: color-mix(in srgb, var(--color-theme) 75%, white);
   --app-shell-glow-depth: var(--color-theme-darker);
 
-  /* Theme-shade glow blobs — painted on a 150% overlay (see layout-shell.css)
+  /* Theme-shade glow blobs, painted on a 150% overlay (see layout-shell.css)
      so the drift animation never reveals hard edges. Positions keep the
      blobs over the top-left chrome for the whole loop. */
   --app-shell-glow:
@@ -116,7 +116,7 @@
 }
 
 /**
- * Dark mode — same --color-theme seed for filled chrome.
+ * Dark mode: same --color-theme seed for filled chrome.
  * Surfaces, text, soft tints, status surfaces, and --color-theme-ink flip
  * so navy accents stay readable on dark canvases.
  */
@@ -134,7 +134,7 @@
   --color-brand: var(--color-theme-bright);
   --color-brand-light: var(--color-theme-subtle);
 
-  /* Lift seed for text/icons — filled buttons still use --color-theme. */
+  /* Lift seed for text/icons. Filled buttons still use --color-theme. */
   --color-theme-ink: oklch(from var(--color-theme) clamp(0.72, l + 0.36, 0.86) c h);
 
   --color-text-primary: #f1f3f5;
@@ -157,7 +157,7 @@
   --color-status-pending: color-mix(in srgb, var(--color-amber) 38%, white);
   --color-status-pending-surface: var(--color-amber-light);
 
-  /* Cool slate ladder — sits with violet chrome; cards lift above body */
+  /* Cool slate ladder. Sits with violet chrome; cards lift above body. */
   --color-cream: #181c20;
   --color-surface: #1e2429;
   --color-surface-raised: #2a3138;
@@ -167,7 +167,7 @@
   --color-neutral-hover: #3a424a;
 
   /*
-   * Dark glow boost — more theme chroma (not white tint) + larger soft
+   * Dark glow boost: more theme chroma (not white tint) + larger soft
    * falloff so the haze still reads against the deeper canvas.
    */
   --app-shell-glow-soft: color-mix(in srgb, var(--color-theme) 88%, white);

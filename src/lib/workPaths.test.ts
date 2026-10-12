@@ -4,11 +4,13 @@ import {
   hrEmployeePath,
   hrEmployeesPath,
   hrPayrollPath,
+  parseServicesView,
   serviceCatalogEditorPath,
   serviceCatalogEditorPathV2,
   serviceCatalogPath,
   serviceCatalogPathV2,
   settingsSectionPath,
+  workBoardPath,
   workListPath,
 } from '@/lib/workPaths'
 
@@ -34,6 +36,13 @@ describe('settings and catalog paths', () => {
   it('keeps the file queue on /services', () => {
     expect(workListPath()).toBe('/services')
     expect(workListPath('Tourist Visa')).toBe('/services?service=tourist-visa')
+    expect(workBoardPath()).toBe('/services?view=board')
+    expect(workBoardPath('Tourist Visa')).toBe(
+      '/services?view=board&service=tourist-visa',
+    )
+    expect(parseServicesView(null)).toBe('list')
+    expect(parseServicesView('board')).toBe('board')
+    expect(parseServicesView('list')).toBe('list')
   })
 
   it('puts the catalog under settings, not the queue', () => {

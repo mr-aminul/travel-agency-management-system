@@ -534,7 +534,7 @@ function isStepUnlocked(item: Case, unlockStepId?: string): boolean {
 
 /**
  * Recompute document status from progress steps (uploads) + unlock position.
- * Documents are not independently editable — Progress is the source of truth.
+ * Documents are not independently editable. Progress is the source of truth.
  */
 function findProgressUploadForDocument(item: Case, documentId: string) {
   const catalogKey = `doc:${documentId}`

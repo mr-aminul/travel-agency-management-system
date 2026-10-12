@@ -461,11 +461,11 @@ export default function SubAgentsPage() {
                   </div>
                   <div className="pd-clients__card-row">
                     <dt>Branch</dt>
-                    <dd>{subAgent.branch || '—'}</dd>
+                    <dd>{subAgent.branch || '-'}</dd>
                   </div>
                   <div className="pd-clients__card-row">
                     <dt>License</dt>
-                    <dd>{subAgent.licenseNumber || '—'}</dd>
+                    <dd>{subAgent.licenseNumber || '-'}</dd>
                   </div>
                   <div className="pd-clients__card-row">
                     <dt>Customers</dt>
@@ -514,8 +514,8 @@ export default function SubAgentsPage() {
                   <TableCell>
                     {normalizePhone(subAgent.phone) || subAgent.phone}
                   </TableCell>
-                  <TableCell>{subAgent.branch || '—'}</TableCell>
-                  <TableCell>{subAgent.licenseNumber || '—'}</TableCell>
+                  <TableCell>{subAgent.branch || '-'}</TableCell>
+                  <TableCell>{subAgent.licenseNumber || '-'}</TableCell>
                   <TableCell>
                     {customerCountBySubAgent.get(subAgent.id) ?? 0}
                   </TableCell>
@@ -535,7 +535,7 @@ export default function SubAgentsPage() {
         open={newSubAgentOpen}
         onClose={closeNewSubAgentModal}
         title="New sub agent"
-        description="Register the sub agent once — then attach the clients they send."
+        description="Register the sub agent once, then attach the clients they send."
         className="pd-clients-drawer"
       >
         <NewSubAgentForm

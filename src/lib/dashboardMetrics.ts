@@ -95,7 +95,7 @@ export function formatBdt(amount: number): string {
 }
 
 function formatAmount(amount: number): string {
-  if (!amount) return '—'
+  if (!amount) return '-'
   return formatBdt(amount)
 }
 
@@ -125,8 +125,8 @@ export function buildDashboardRows(
     name: client.name,
     detail: [client.phone, client.services.join(', ')].filter(Boolean).join(' · '),
     status:
-      deriveClientServiceStatus(casesByClientId.get(client.id) ?? []) ?? '—',
-    checklist: '—',
+      deriveClientServiceStatus(casesByClientId.get(client.id) ?? []) ?? '-',
+    checklist: '-',
     amount: formatAmount(client.balance),
     date: client.createdAt,
     href: `/clients/${client.id}`,
@@ -166,7 +166,7 @@ export function buildDashboardRows(
         .filter(Boolean)
         .join(' · '),
       status: 'Collected',
-      checklist: '—',
+      checklist: '-',
       amount: formatBdt(payment.amount),
       date: payment.createdAt,
       href: workInvoicePath({
@@ -185,7 +185,7 @@ export function buildDashboardRows(
       .filter(Boolean)
       .join(' · '),
     status: employee.status,
-    checklist: '—',
+    checklist: '-',
     amount: formatBdt(employee.salary),
     date: employee.joined,
     href: hrEmployeePath(employee.id),
@@ -205,8 +205,8 @@ export function buildDashboardRows(
         caseItem ? ` · ${caseItem.service}` : ''
       }`,
       status: request.reviewStatus,
-      checklist: '—',
-      amount: '—',
+      checklist: '-',
+      amount: '-',
       date: request.requestedAt.slice(0, 10),
       href: workDetailPath({
         id: request.caseId,

@@ -39,7 +39,7 @@ export function scrollWithinContainer(
   const container = nearestScrollContainer(element)
 
   if (!container) {
-    // No nested scroller — leave the shell alone.
+    // No nested scroller. Leave the shell alone.
     return
   }
 

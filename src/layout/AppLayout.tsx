@@ -71,7 +71,7 @@ export function AppLayout({
     if (!isMobile) setIsMobileOpen(false)
   }, [isMobile])
 
-  // Pause shell glow while the tab is hidden — keeps compositor idle in background
+  // Pause shell glow while the tab is hidden. Keeps compositor idle in background.
   useEffect(() => {
     const syncMotionPause = () => {
       document.documentElement.classList.toggle(
@@ -122,7 +122,7 @@ export function AppLayout({
         {isViewingAs ? (
           <div className="pd-impersonation-banner" role="status">
             <span>
-              Support Mode — viewing as{' '}
+              Support Mode: viewing as{' '}
               <strong>{user?.name ?? 'user'}</strong>
               {actor?.name ? ` · signed in as ${actor.name}` : null}
             </span>

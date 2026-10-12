@@ -204,7 +204,7 @@ const SEED_CASES: Case[] = [
     balance: 85000,
     assignedTo: 'EMP-7005',
     departureDate: '2026-05-20',
-    description: 'Package B — 21 days. Passport submitted; visa quota pending.',
+    description: 'Package B (21 days). Passport submitted; visa quota pending.',
     createdAt: '2026-02-14',
     updatedAt: '2026-07-15',
     stepDetails: {
@@ -893,7 +893,7 @@ export function updateCaseStep(
 
 /**
  * Save required fields/uploads for the current step, then advance.
- * Steps cannot be skipped — each stage needs its data first.
+ * Steps cannot be skipped. Each stage needs its data first.
  */
 export function completeCurrentStep(
   id: string,
@@ -1324,7 +1324,7 @@ export function recordIdentityDocument(
   projectClientIdentityOntoCases(clientId)
 }
 
-/** @deprecated Use recordCaseDocument — kept for older call sites/tests. */
+/** @deprecated Use recordCaseDocument. Kept for older call sites/tests. */
 export function uploadCaseDocument(
   caseId: string,
   documentId: string,

@@ -33,7 +33,7 @@ export const TENANT_ARRAY_KEYS = new Set([
   'pd-local-invites',
 ])
 
-/** Object maps keyed by tenantId — agency gets only own entry */
+/** Object maps keyed by tenantId. Agency gets only own entry. */
 export const TENANT_MAP_KEYS = new Set([
   'pd-agency-profiles',
   'pd-onboarding-state',
@@ -93,7 +93,7 @@ export function filterValueForTenant(key, value, tenantId) {
   if (TENANT_ARRAY_KEYS.has(key)) {
     if (!Array.isArray(value)) return []
     if (key === 'pd-clients-removed') {
-      // removed ids are global strings — leave as-is for owner; admin sees all
+      // removed ids are global strings. Leave as-is for owner; admin sees all.
       return value
     }
     return value.filter((item) => itemTenantId(item) === tenantId)
@@ -142,7 +142,7 @@ export function mergeValueForTenant(key, existing, incoming, tenantId) {
     const prior = Array.isArray(existing) ? existing : []
     const nextIncoming = Array.isArray(incoming) ? incoming : []
     if (key === 'pd-clients-removed') {
-      // Agency-owned id list — replace wholesale for simplicity (ids are opaque)
+      // Agency-owned id list: replace wholesale for simplicity (ids are opaque)
       return nextIncoming
     }
     const others = prior.filter((item) => itemTenantId(item) !== tenantId)

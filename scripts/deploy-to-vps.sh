@@ -245,7 +245,7 @@ REMOTE
 echo "[platform] Public checks …"
 API_HEADERS="$(curl -fsSI "$PUBLIC_API_URL/api/platform/health")"
 echo "$API_HEADERS" | tr -d '\r' | grep -qi '^x-app: onetrack-platform-api' || {
-  echo "API check failed — expected X-App: onetrack-platform-api from Caddy" >&2
+  echo "API check failed: expected X-App: onetrack-platform-api from Caddy" >&2
   echo "$API_HEADERS" >&2
   exit 1
 }
@@ -259,7 +259,7 @@ if echo "$UI_HEADERS" | tr -d '\r' | grep -qi '^server: vercel'; then
   exit 1
 fi
 echo "$UI_HEADERS" | tr -d '\r' | grep -qi '^x-app: onetrack-platform-ui' || {
-  echo "UI check failed — expected X-App: onetrack-platform-ui from Caddy" >&2
+  echo "UI check failed: expected X-App: onetrack-platform-ui from Caddy" >&2
   echo "$UI_HEADERS" >&2
   exit 1
 }

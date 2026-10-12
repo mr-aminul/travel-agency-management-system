@@ -125,7 +125,7 @@ export function SideDrawer({
     setIsEntering(true)
   }, [open])
 
-  // Only when `open` flips — not when parents recreate `onClose` on each keystroke.
+  // Only when `open` flips, not when parents recreate `onClose` on each keystroke.
   // Re-running would steal focus from inputs inside the drawer.
   useEffect(() => {
     if (!open) return

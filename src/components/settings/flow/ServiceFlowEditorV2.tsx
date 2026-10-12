@@ -711,7 +711,7 @@ export function ServiceFlowEditorV2({
                   ) {
                     setSelection({ kind: 'step', stepId: owner.id })
                     setStatus(
-                      'Dropdown choices are listed under Branch — wire each next step.',
+                      'Dropdown choices are listed under Branch. Wire each next step.',
                     )
                   }
                   markDirty()

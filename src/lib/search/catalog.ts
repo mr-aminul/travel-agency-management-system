@@ -23,7 +23,12 @@ import type { Client } from '@/types/client'
 import type { Employee } from '@/types/employee'
 import type { SubAgent } from '@/types/subAgent'
 import type { ModuleId, UserRole } from '@/types/tenant'
-import { clientPath, hrEmployeePath, workDetailPath } from '@/lib/workPaths'
+import {
+  clientPath,
+  hrEmployeePath,
+  workBoardPath,
+  workDetailPath,
+} from '@/lib/workPaths'
 import type { SearchItem } from './types'
 
 export type SearchCatalogUser = Pick<AuthUser, 'name' | 'role'>
@@ -116,7 +121,7 @@ function actionItems(user: SearchCatalogUser | null): SearchItem[] {
       id: 'action:service-board',
       kind: 'action',
       scope: 'actions',
-      label: 'Open Service Board',
+      label: 'Open Services Board',
       keywords: uniqueKeywords([
         'medical',
         'visa',
@@ -127,7 +132,7 @@ function actionItems(user: SearchCatalogUser | null): SearchItem[] {
         'board',
         'service board',
       ]),
-      path: '/service-board',
+      path: workBoardPath(),
       icon: Kanban,
     },
     {

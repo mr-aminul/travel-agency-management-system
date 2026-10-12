@@ -53,7 +53,7 @@ export function ClientActionItems({ clientId }: { clientId: string }) {
 
       {items.length === 0 ? (
         <p className="pd-client-action-items__empty">
-          Track follow-ups for this client — passport copies, calls, payments.
+          Track follow-ups for this client: passport copies, calls, payments.
         </p>
       ) : (
         <ul className="pd-client-action-items__list">

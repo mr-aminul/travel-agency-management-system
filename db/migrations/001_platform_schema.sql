@@ -1,4 +1,4 @@
--- Isolated platform schema — never touch other apps' databases/tables.
+-- Isolated platform schema. Never touch other apps' databases/tables.
 CREATE SCHEMA IF NOT EXISTS platform;
 
 CREATE TABLE IF NOT EXISTS platform.kv_store (

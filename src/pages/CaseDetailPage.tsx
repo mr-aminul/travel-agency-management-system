@@ -100,7 +100,7 @@ function Fact({
 }: {
   label?: string
   value?: string
-  /** Recommended gap — highlight only, never blocks progress. */
+  /** Recommended gap: highlight only, never blocks progress. */
   attention?: boolean
   className?: string
   id?: string
@@ -394,7 +394,7 @@ export default function CaseDetailPage() {
               ) : (
                 <Input
                   label="Destination"
-                  value={item.destination || '—'}
+                  value={item.destination || '-'}
                   readOnly
                   tabIndex={-1}
                 />
@@ -445,7 +445,7 @@ export default function CaseDetailPage() {
               ) : (
                 <Input
                   label="Assigned to"
-                  value={assignedName || '—'}
+                  value={assignedName || '-'}
                   readOnly
                   tabIndex={-1}
                 />
@@ -526,7 +526,7 @@ export default function CaseDetailPage() {
               ) : (
                 <Input
                   label="Notes"
-                  value={item.description?.trim() || '—'}
+                  value={item.description?.trim() || '-'}
                   readOnly
                   tabIndex={-1}
                 />

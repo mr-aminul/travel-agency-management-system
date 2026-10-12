@@ -35,7 +35,7 @@ const NAMES_KEY = DATA_KEYS.tenantNames
 const STATUSES_KEY = DATA_KEYS.tenantStatuses
 const CREATED_TENANTS_KEY = DATA_KEYS.tenantsCreated
 
-/** New agencies start with nothing enabled — platform admin turns product on. */
+/** New agencies start with nothing enabled. Platform admin turns product on. */
 export const DEFAULT_STARTER_MODULES: ModuleId[] = []
 
 const SEED_TENANTS: Tenant[] = [
@@ -221,7 +221,7 @@ let createdTenants: Tenant[] = readCreatedTenants()
 let snapshot: Tenant[] = []
 
 function rebuildSnapshot() {
-  // Launch agencies also live in pd-tenants-created (like Ismail) — dedupe by id.
+  // Launch agencies also live in pd-tenants-created (like Ismail). Dedupe by id.
   const byId = new Map<string, Tenant>()
   for (const tenant of tenants) byId.set(tenant.id, tenant)
   for (const tenant of createdTenants) {
@@ -347,7 +347,7 @@ export function updateTenantName(
   return getTenantById(tenantId)
 }
 
-/** Resolve a public link segment — prefers slug, falls back to internal id. */
+/** Resolve a public link segment. Prefers slug, falls back to internal id. */
 export function resolveTenantRef(ref: string): Tenant | undefined {
   return getTenantBySlug(ref) ?? getTenantById(ref)
 }

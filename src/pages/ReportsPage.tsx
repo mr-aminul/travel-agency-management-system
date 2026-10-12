@@ -202,7 +202,7 @@ export default function ReportsPage() {
                   <TableRow key={payment.id}>
                     <TableCell>{formatDisplayDate(payment.createdAt)}</TableCell>
                     <TableCell>{client?.name ?? payment.clientId}</TableCell>
-                    <TableCell>{caseItem?.service ?? '—'}</TableCell>
+                    <TableCell>{caseItem?.service ?? '-'}</TableCell>
                     <TableCell>{payment.method}</TableCell>
                     <TableCell>{formatPaymentAmount(payment.amount)}</TableCell>
                   </TableRow>

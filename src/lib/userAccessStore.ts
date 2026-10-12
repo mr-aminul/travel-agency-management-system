@@ -20,7 +20,7 @@ type Listener = () => void
 
 const STORAGE_KEY = DATA_KEYS.userPageAccess
 
-/** Admin-ish pages — staff get view by default. */
+/** Admin-ish pages. Staff get view by default. */
 const STAFF_VIEW_PATHS = new Set([
   '/settings',
   '/hr/payroll',

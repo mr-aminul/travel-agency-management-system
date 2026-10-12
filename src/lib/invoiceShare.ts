@@ -171,7 +171,7 @@ export async function createPublicInvoiceShare(input: {
   return publicInvoiceUrl(input.invoice)
 }
 
-/** Resolve a public share token — server lookup first, then legacy decode. */
+/** Resolve a public share token: server lookup first, then legacy decode. */
 export async function resolvePublicInvoice(
   token: string | undefined,
 ): Promise<CaseInvoice | null> {
@@ -187,7 +187,7 @@ export async function resolvePublicInvoice(
       const parsed = parseInvoice(body.invoice)
       if (parsed) return parsed
     } catch {
-      // Not a server token — try legacy base64 below.
+      // Not a server token. Try legacy base64 below.
     }
   }
 

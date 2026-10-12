@@ -155,7 +155,7 @@ describe('settings service catalog', () => {
     fireEvent.click(medicalFields)
     expect(screen.getByText('Fields to fill in')).toBeInTheDocument()
 
-    // Medical Result is already a Fit/Unfit dropdown — slots appear on Medical.
+    // Medical Result is already a Fit/Unfit dropdown. Slots appear on Medical.
     fireEvent.click(screen.getByRole('button', { name: 'Medical' }))
     expect(screen.getByText('Branch')).toBeInTheDocument()
     fireEvent.click(

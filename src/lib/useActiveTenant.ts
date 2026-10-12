@@ -20,7 +20,7 @@ export function useActiveTenant(): Tenant {
   const matched =
     tenants.find((tenant) => tenant.id === id) ?? getTenantById(id)
   if (matched) return matched
-  // Never fall back to a different agency — that breaks member/access checks.
+  // Never fall back to a different agency. That breaks member/access checks.
   if (session?.tenantId) return stubTenant(session.tenantId)
   return getTenantById(DEFAULT_TENANT_ID) ?? stubTenant(DEFAULT_TENANT_ID)
 }

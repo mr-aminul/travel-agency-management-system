@@ -119,7 +119,7 @@ export default function AdminActivityPage({
                 <TableCell>
                   {row.createdAt
                     ? formatDisplayDateTime(row.createdAt)
-                    : '—'}
+                    : '-'}
                 </TableCell>
                 {lockedTenantId ? null : (
                   <TableCell>{tenantName(row.tenantId)}</TableCell>

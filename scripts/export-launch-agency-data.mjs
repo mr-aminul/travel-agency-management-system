@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
 
 // Use vitest/vite to resolve @/ aliases by spawning a tiny inline module via dynamic import
-// of the compiled store seeds — we inline the data here to avoid React/DOM deps.
+// of the compiled store seeds. We inline the data here to avoid React/DOM deps.
 
 const TENANT_IDS = {
   leisure: 'tenant-leisure',
@@ -642,7 +642,7 @@ const members = [
   },
 ]
 
-/** Case partials — server will store these; SPA rebuilds steps/docs if empty. */
+/** Case partials: server will store these; SPA rebuilds steps/docs if empty. */
 const casePartials = [
   {
     id: 'case-101',
@@ -738,7 +738,7 @@ const casePartials = [
     balance: 85000,
     assignedTo: 'EMP-7005',
     departureDate: '2026-05-20',
-    description: 'Package B — 21 days. Passport submitted; visa quota pending.',
+    description: 'Package B (21 days). Passport submitted; visa quota pending.',
     createdAt: '2026-02-14',
     updatedAt: '2026-07-15',
     stage: 'Processing',

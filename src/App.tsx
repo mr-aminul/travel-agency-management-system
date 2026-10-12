@@ -107,7 +107,7 @@ function App() {
             <Route path="service-board" element={<ServiceBoardPage />} />
             <Route
               path="readiness"
-              element={<Navigate to="/service-board" replace />}
+              element={<Navigate to="/services?view=board" replace />}
             />
             <Route path="clients" element={<ClientsPage />} />
             <Route path="clients/:id" element={<ClientDetailPage />}>

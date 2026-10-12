@@ -1,5 +1,5 @@
 /**
- * Transactional email HTML — layout mirrored from OneSign auth templates
+ * Transactional email HTML. Layout mirrored from OneSign auth templates
  * (480px card, brand header, CTA, fallback link, footer).
  */
 
@@ -165,7 +165,7 @@ export function renderBrandedEmail(input) {
                     padding-top: 16px;
                   "
                 >
-                  If you weren't expecting this email, you can safely ignore it — your account stays
+                  If you weren't expecting this email, you can safely ignore it. Your account stays
                   unchanged.
                 </p>
               </td>

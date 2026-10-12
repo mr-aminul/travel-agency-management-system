@@ -141,7 +141,7 @@ const GENDER_OPTIONS = [
 const MARITAL_VALUES = ['Single', 'Married', 'Divorced', 'Widowed'] as const
 
 const MARITAL_OPTIONS = [
-  { value: '', label: '—' },
+  { value: '', label: '-' },
   ...MARITAL_VALUES.map((value) => ({ value, label: value })),
 ]
 
@@ -152,7 +152,7 @@ function parseMaritalStatus(value: string): ClientMaritalStatus | undefined {
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const
 
 const BLOOD_GROUP_OPTIONS = [
-  { value: '', label: '—' },
+  { value: '', label: '-' },
   ...BLOOD_GROUPS.map((value) => ({ value, label: value })),
 ]
 
@@ -660,7 +660,7 @@ export default function ClientDetailPage() {
     setDraft(toProfileDraft(client, customFieldDefs))
   }, [client?.id, customFieldDefs])
 
-  // Identity is owned by Documents — keep Profile fields mirrored from the client.
+  // Identity is owned by Documents. Keep Profile fields mirrored from the client.
   useEffect(() => {
     if (!client) return
     setDraft((current) => {
@@ -795,7 +795,7 @@ export default function ClientDetailPage() {
     )
     if (hasProfileError || hasCustomError) return
     const phone = normalizePhone(profileDraft.phone)
-    // Identity (passport/NID) is owned by Documents — do not overwrite from Profile.
+    // Identity (passport/NID) is owned by Documents. Do not overwrite from Profile.
     try {
       const updated = updateClient(client.id, {
         name: profileDraft.name.trim(),
@@ -958,7 +958,7 @@ export default function ClientDetailPage() {
                     {displayStatus}
                   </Badge>
                 ) : (
-                  <span className="pd-client-detail__empty">—</span>
+                  <span className="pd-client-detail__empty">-</span>
                 )}
               </dd>
             </div>
@@ -980,7 +980,7 @@ export default function ClientDetailPage() {
                     label="email address"
                   />
                 ) : (
-                  <span className="pd-client-detail__empty">—</span>
+                  <span className="pd-client-detail__empty">-</span>
                 )}
               </dd>
             </div>
@@ -990,7 +990,7 @@ export default function ClientDetailPage() {
                 {displayNid ? (
                   <ContactChip value={displayNid} label="NID number" />
                 ) : (
-                  <span className="pd-client-detail__empty">—</span>
+                  <span className="pd-client-detail__empty">-</span>
                 )}
               </dd>
             </div>
@@ -1003,7 +1003,7 @@ export default function ClientDetailPage() {
                     label="passport number"
                   />
                 ) : (
-                  <span className="pd-client-detail__empty">—</span>
+                  <span className="pd-client-detail__empty">-</span>
                 )}
               </dd>
             </div>
@@ -1020,7 +1020,7 @@ export default function ClientDetailPage() {
                     label="address"
                   />
                 ) : (
-                  <span className="pd-client-detail__empty">—</span>
+                  <span className="pd-client-detail__empty">-</span>
                 )}
               </dd>
             </div>
@@ -1034,7 +1034,7 @@ export default function ClientDetailPage() {
                     label="sub agent"
                   />
                 ) : (
-                  <span className="pd-client-detail__empty">—</span>
+                  <span className="pd-client-detail__empty">-</span>
                 )}
               </dd>
             </div>
@@ -1108,7 +1108,7 @@ export default function ClientDetailPage() {
                             {displayEmail ? (
                               displayEmail
                             ) : (
-                              <span className="pd-client-detail__empty">—</span>
+                              <span className="pd-client-detail__empty">-</span>
                             )}
                           </dd>
                         </div>
@@ -1116,7 +1116,7 @@ export default function ClientDetailPage() {
                           <FieldLabel icon={MapPin}>Address</FieldLabel>
                           <dd>
                             {client.address || (
-                              <span className="pd-client-detail__empty">—</span>
+                              <span className="pd-client-detail__empty">-</span>
                             )}
                           </dd>
                         </div>
@@ -1124,7 +1124,7 @@ export default function ClientDetailPage() {
                           <FieldLabel icon={IdCard}>NID</FieldLabel>
                           <dd>
                             {client.nid || (
-                              <span className="pd-client-detail__empty">—</span>
+                              <span className="pd-client-detail__empty">-</span>
                             )}
                           </dd>
                         </div>
@@ -1132,7 +1132,7 @@ export default function ClientDetailPage() {
                           <FieldLabel icon={BookUser}>Passport</FieldLabel>
                           <dd>
                             {client.passport || (
-                              <span className="pd-client-detail__empty">—</span>
+                              <span className="pd-client-detail__empty">-</span>
                             )}
                           </dd>
                         </div>
@@ -1151,7 +1151,7 @@ export default function ClientDetailPage() {
                                 {subAgent.name}
                               </Link>
                             ) : (
-                              <span className="pd-client-detail__empty">—</span>
+                              <span className="pd-client-detail__empty">-</span>
                             )}
                           </dd>
                         </div>
@@ -1273,9 +1273,7 @@ export default function ClientDetailPage() {
                                       {display ? (
                                         display
                                       ) : (
-                                        <span className="pd-client-detail__empty">
-                                          —
-                                        </span>
+                                        <span className="pd-client-detail__empty">-</span>
                                       )}
                                     </dd>
                                   </div>

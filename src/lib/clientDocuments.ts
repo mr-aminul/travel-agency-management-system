@@ -134,7 +134,7 @@ function pickCaseIdentityDocument(
   cases: Case[],
   kind: IdentityKind,
 ): CaseDocument | undefined {
-  // Prefer a service file that already has a number or scan (raw docs — not
+  // Prefer a service file that already has a number or scan (raw docs, not
   // overlayed), so we never show case-only values that the profile cannot see.
   const matches = cases.flatMap((item) =>
     item.documents.filter((doc) => identityKindForDocumentId(doc.id) === kind),
@@ -221,7 +221,7 @@ function identityHasFile(
 
 /**
  * Documents tab alert count: unlocked required papers / identity scans
- * still missing an uploaded file (status alone is not enough — a number
+ * still missing an uploaded file (status alone is not enough; a number
  * without a scan still needs attention).
  */
 export function countClientDocumentAlerts(

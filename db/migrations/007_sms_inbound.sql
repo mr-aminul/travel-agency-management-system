@@ -1,4 +1,4 @@
--- Inbound SMS from provider webhooks (SMSQ MO). Receive-only — no outbound send.
+-- Inbound SMS from provider webhooks (SMSQ MO). Receive-only; no outbound send.
 
 create table if not exists platform.sms_inbound (
   id text primary key,

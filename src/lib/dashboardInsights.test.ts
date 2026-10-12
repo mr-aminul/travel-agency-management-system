@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
+  balancesToCollect,
   buildExecutivePulse,
   casesByStatus,
+  casesCreatedBetween,
   clientsBySubAgent,
   collectionsByMonth,
+  collectionsTrendForPeriod,
   computeOwnerKpis,
+  openCasesAsOf,
+  resolveDashPeriod,
+  sumPaymentsBetween,
   formatCollectionRate,
   formatCompactBdt,
   formatDeltaPercent,
@@ -365,6 +371,87 @@ describe('owner dashboard insights', () => {
     expect(pulse.some((item) => item.id === 'aging' || item.id === 'risk')).toBe(
       true,
     )
+  })
+
+  it('ranks past-due balances ahead of newer ones and flags a near departure', () => {
+    const rows = balancesToCollect(cases, 8, asOf)
+    expect(rows.map((row) => row.id)).toEqual(['case-hold', 'case-open'])
+    expect(rows.every((row) => row.ageDays > 90)).toBe(true)
+    expect(rows.every((row) => row.departsOn == null)).toBe(true)
+
+    const openCase = cases[0]
+    expect(openCase).toBeDefined()
+    if (!openCase) return
+
+    const mixed = balancesToCollect(
+      [
+        {
+          ...openCase,
+          id: 'late-small',
+          balance: 1000,
+          createdAt: '2026-01-02',
+          departureDate: undefined,
+        },
+        {
+          ...openCase,
+          id: 'new-large',
+          balance: 90000,
+          createdAt: '2026-10-01',
+          departureDate: undefined,
+        },
+      ],
+      8,
+      asOf,
+    )
+    expect(mixed.map((row) => row.id)).toEqual(['late-small', 'new-large'])
+
+    expect(
+      balancesToCollect(
+        [{ ...openCase, departureDate: '2026-10-19' }],
+        8,
+        asOf,
+      )[0]?.departsOn,
+    ).toBe('2026-10-19')
+    expect(
+      balancesToCollect(
+        [{ ...openCase, departureDate: '2026-10-20' }],
+        8,
+        asOf,
+      )[0]?.departsOn,
+    ).toBeNull()
+    expect(
+      balancesToCollect(
+        [{ ...openCase, departureDate: '2026-10-04' }],
+        8,
+        asOf,
+      )[0]?.departsOn,
+    ).toBeNull()
+    expect(
+      balancesToCollect([{ ...cases[2]!, balance: 5000 }], 8, asOf),
+    ).toEqual([])
+    expect(balancesToCollect([], 8, asOf)).toEqual([])
+  })
+
+  it('resolves period windows and filters collections to that range', () => {
+    const month = resolveDashPeriod('this-month', asOf)
+    expect(month.startDay).toBe(2026_10_01)
+    expect(month.endDay).toBe(2026_10_05)
+    expect(month.priorLabel).toBe('Last month')
+    expect(sumPaymentsBetween(payments, month.startDay, month.endDay)).toBe(0)
+    expect(
+      sumPaymentsBetween(payments, month.priorStartDay, month.priorEndDay),
+    ).toBe(5000)
+
+    const week = resolveDashPeriod('this-week', asOf)
+    expect(week.trendGrain).toBe('day')
+    expect(
+      collectionsTrendForPeriod(payments, week).some((bucket) => bucket.amount > 0),
+    ).toBe(false)
+
+    const year = resolveDashPeriod('this-year', asOf)
+    expect(sumPaymentsBetween(payments, year.startDay, year.endDay)).toBe(55000)
+    expect(casesCreatedBetween(cases, year.startDay, year.endDay)).toHaveLength(3)
+    expect(openCasesAsOf(cases, year.endDay)).toHaveLength(2)
   })
 
   it('returns empty lists when there is nothing to show', () => {

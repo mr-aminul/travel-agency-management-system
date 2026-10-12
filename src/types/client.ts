@@ -57,7 +57,7 @@ export type Client = {
   avatarUrl?: string
   /** Sub agent who referred this client. */
   subAgentId?: string
-  /** Services this client has engaged — derived from requests + intake. */
+  /** Services this client has engaged. Derived from requests + intake. */
   services: ServiceType[]
   /** Sum of open service-request balances. */
   balance: number

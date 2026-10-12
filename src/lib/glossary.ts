@@ -3,7 +3,7 @@ export type GlossaryTerm = {
   meaning: string
 }
 
-/** Shared product language — Client → Service → Documents. */
+/** Shared product language: Client → Service → Documents. */
 export const PRODUCT_GLOSSARY: GlossaryTerm[] = [
   {
     term: 'Client',
@@ -13,7 +13,7 @@ export const PRODUCT_GLOSSARY: GlossaryTerm[] = [
   {
     term: 'Service',
     meaning:
-      'What the client needs — Tourist Visa, Student Visa, Work Permit Visa, Hajj/Umrah Visa, Medical Visa, Air Ticket, Hotel Booking, Tour Package, or a line you add in Settings → Service catalog. Each file lives on that client. The Services sidebar is the agency-wide queue of the same files.',
+      'What the client needs: Tourist Visa, Student Visa, Work Permit Visa, Hajj/Umrah Visa, Medical Visa, Air Ticket, Hotel Booking, Tour Package, or a line you add in Settings → Service catalog. Each file lives on that client. The Services sidebar is the agency-wide queue — switch List / Board on that page to work the same files as a table or kanban.',
   },
   {
     term: 'Service template',
@@ -28,7 +28,7 @@ export const PRODUCT_GLOSSARY: GlossaryTerm[] = [
   {
     term: 'Documents',
     meaning:
-      'Edit identity papers (passport, NID) here — Profile only mirrors them. Papers for a service (medical, visa, tickets) sit on that service and unlock as steps advance.',
+      'Edit identity papers (passport, NID) here. Profile only mirrors them. Papers for a service (medical, visa, tickets) sit on that service and unlock as steps advance.',
   },
   {
     term: 'Sub Agent',

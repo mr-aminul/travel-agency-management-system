@@ -116,7 +116,7 @@ export function InvoiceDocument({ invoice }: InvoiceDocumentProps) {
                 <TableRow key={payment.id} className="pd-invoice__row">
                   <TableCell>{formatInvoiceDate(payment.date)}</TableCell>
                   <TableCell>{payment.method}</TableCell>
-                  <TableCell>{payment.note || '—'}</TableCell>
+                  <TableCell>{payment.note || '-'}</TableCell>
                   <TableCell className="pd-invoice__amount">
                     {formatInvoiceAmount(payment.amount)}
                   </TableCell>

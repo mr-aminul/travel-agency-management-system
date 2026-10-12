@@ -86,13 +86,13 @@ export default function HrPayrollPage() {
                   <TableCell>{formatSalary(line.salary)}</TableCell>
                   <TableCell>
                     {line.unpaidDays === 0 ? (
-                      '—'
+                      '-'
                     ) : (
                       <Link to={hrAttendancePath()}>{line.unpaidDays}</Link>
                     )}
                   </TableCell>
                   <TableCell>
-                    {line.deduction ? formatSalary(line.deduction) : '—'}
+                    {line.deduction ? formatSalary(line.deduction) : '-'}
                   </TableCell>
                   <TableCell>{formatSalary(line.net)}</TableCell>
                   <TableCell>

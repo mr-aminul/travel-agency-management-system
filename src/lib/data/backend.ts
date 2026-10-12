@@ -57,7 +57,7 @@ export function getDataBackend(): DataBackend {
   return activeBackend
 }
 
-/** Test helper — swap the backend (e.g. memory) without touching stores. */
+/** Test helper. Swap the backend (e.g. memory) without touching stores. */
 export function setDataBackend(backend: DataBackend): void {
   activeBackend = backend
 }

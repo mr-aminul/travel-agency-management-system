@@ -14,7 +14,7 @@ import type {
  * Agency (tenant) field rules:
  * - Required at create: name, plus first owner (name, email, initial password)
  * - Optional at create: enabled modules (tuned in settings later), status
- * - Slug is derived from name — not a separate required field for staff
+ * - Slug is derived from name, not a separate required field for staff
  *
  * Staff user (tenant member) field rules:
  * - Required at create: name, email, which agency (tenantId), initial password

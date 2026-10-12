@@ -346,7 +346,7 @@ app.patch(
   },
 )
 
-/** Authenticated KV list — tenant-filtered; domain keys served from tables. */
+/** Authenticated KV list: tenant-filtered; domain keys served from tables. */
 app.get('/api/platform/kv', requireAuth, async (req, res) => {
   try {
     const result = await query(
@@ -503,7 +503,7 @@ app.delete('/api/platform/kv/:key', requireAuth, async (req, res) => {
   }
 })
 
-/** Durable file upload (base64 JSON — no shared MinIO). */
+/** Durable file upload (base64 JSON, no shared MinIO). */
 app.post('/api/platform/files', requireAuth, async (req, res) => {
   try {
     const tenantId =
@@ -636,7 +636,7 @@ app.post(
   },
 )
 
-/** —— Invites —— */
+/** Invites */
 app.post('/api/platform/invites', requireAuth, async (req, res) => {
   try {
     const tenantId =
@@ -735,7 +735,7 @@ app.post('/api/platform/public/invites/:token/accept', async (req, res) => {
   }
 })
 
-/** —— Password reset —— */
+/** Password reset */
 app.post('/api/platform/auth/password-reset/request', async (req, res) => {
   try {
     const result = await requestPasswordReset(req.body?.email, {
@@ -789,7 +789,7 @@ app.post(
   },
 )
 
-/** Public invoice — token lookup only, no auth. */
+/** Public invoice: token lookup only, no auth. */
 app.get('/api/platform/public/invoices/:token', async (req, res) => {
   try {
     const row = await getInvoiceByToken(req.params.token)
@@ -805,7 +805,7 @@ app.get('/api/platform/public/invoices/:token', async (req, res) => {
   }
 })
 
-/** Public passport track — domain tables first, KV fallback. */
+/** Public passport track: domain tables first, KV fallback. */
 app.get('/api/platform/public/track', async (req, res) => {
   try {
     const result = await trackByPassport(
@@ -825,7 +825,7 @@ app.get('/api/platform/public/track', async (req, res) => {
 })
 
 /**
- * SMSQ MO webhook (inbound only — no SendSMS API required).
+ * SMSQ MO webhook (inbound only; no SendSMS API required).
  * Configure Endpoint Base URI as:
  *   https://api.onetrack.inventivelab.bd/api/platform/webhooks/smsq?token=<SMSQ_WEBHOOK_SECRET>
  * Method GET (or POST). Params: What, Who, Sender, Circle, Operator.
@@ -1031,7 +1031,7 @@ async function start() {
     console.log('[platform-api] seeded auth users (insert-if-missing)')
   } catch (error) {
     console.error(
-      '[platform-api] auth seed failed — run migrations first:',
+      '[platform-api] auth seed failed: run migrations first:',
       error instanceof Error ? error.message : error,
     )
   }

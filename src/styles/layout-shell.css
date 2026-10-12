@@ -74,7 +74,7 @@
   animation-play-state: paused;
 }
 
-/* Soft grain — static layer (no animation) over the moving glow */
+/* Soft grain: static layer (no animation) over the moving glow */
 .pd-app-shell::after,
 .pd-app-sidebar--mobile::after {
   content: '';
@@ -96,7 +96,7 @@
 /*
  * Slow counterclockwise drift. Eight waypoints on a circle (radius 12%
  * of the layer, ≈18% of the viewport) with equal chord lengths, so
- * linear timing gives constant speed and each turn is a gentle 45° —
+ * linear timing gives constant speed and each turn is a gentle 45°.
  * no visible corners, no stop-start pulsing. The glow never fully
  * leaves the top-left chrome.
  */
@@ -104,7 +104,7 @@
 
   0%,
   100% {
-    /* West — must match --shell-glow-pose */
+    /* West: must match --shell-glow-pose */
     transform: var(--shell-glow-pose);
   }
 
@@ -318,7 +318,7 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   --sidebar-duration: 0.32s;
   /* Centers the 2.125rem logo/icon column in the 4rem collapsed rail */
   --rail-pad: 0.9375rem;
-  /* Active/hover pill inset from sidebar edges — same collapsed + expanded */
+  /* Active/hover pill inset from sidebar edges, same collapsed + expanded */
   --rail-pill-inset: 0.5rem;
   --rail-pill-grow: calc(var(--rail-pad) - var(--rail-pill-inset));
 
@@ -469,7 +469,7 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
 
 .pd-sidebar-nav {
   flex: 1;
-  /* Same horizontal inset as brand — icon column stays put on expand */
+  /* Same horizontal inset as brand. Icon column stays put on expand. */
   padding: 0.5rem var(--rail-pad) 0;
   display: flex;
   flex-direction: column;
@@ -519,7 +519,7 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   white-space: nowrap;
 }
 
-/* Logo-sized column — stays under the brand mark in collapsed + expanded */
+/* Logo-sized column. Stays under the brand mark in collapsed + expanded. */
 .pd-sidebar-nav__icon {
   width: 2.125rem;
   height: 100%;
@@ -1377,7 +1377,7 @@ html[data-theme-transition='circle']::view-transition-new(root) {
   stroke: var(--color-white);
 }
 
-/* Incomplete business profile — home nudge + invoice gate */
+/* Incomplete business profile: home nudge + invoice gate */
 .pd-profile-setup-notice {
   display: flex;
   align-items: flex-start;
@@ -1469,7 +1469,7 @@ html[data-theme-transition='circle']::view-transition-new(root) {
  * On each navigation, AppLayout remounts the route. Direct children of
  * `.pd-page` (and Settings’ fill layout) slide up + fade in with a short
  * stagger so the page feels alive without wrapping every component.
- * `backwards` only covers the delay — after the animation, transform is
+ * `backwards` only covers the delay. After the animation, transform is
  * cleared so sticky headers keep working.
  */
 .pd-page>*,

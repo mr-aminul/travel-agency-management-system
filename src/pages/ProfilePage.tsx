@@ -26,20 +26,20 @@ export default function ProfilePage() {
       <div className="pd-profile-hero">
         <Avatar name={user?.name ?? 'Staff'} size="xl" kind={avatarKind} />
         <div>
-          <strong>{user?.name ?? '—'}</strong>
+          <strong>{user?.name ?? '-'}</strong>
           <p className="pd-ops__meta">
-            {user?.email ? <CopyableText value={user.email} /> : '—'}
+            {user?.email ? <CopyableText value={user.email} /> : '-'}
           </p>
         </div>
       </div>
       <dl className="pd-profile-kv">
         <div>
           <dt>Name</dt>
-          <dd>{user?.name ?? '—'}</dd>
+          <dd>{user?.name ?? '-'}</dd>
         </div>
         <div>
           <dt>Email</dt>
-          <dd>{user?.email ? <CopyableText value={user.email} /> : '—'}</dd>
+          <dd>{user?.email ? <CopyableText value={user.email} /> : '-'}</dd>
         </div>
         <div>
           <dt>Role</dt>

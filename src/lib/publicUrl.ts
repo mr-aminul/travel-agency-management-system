@@ -28,7 +28,7 @@ function agencyPublicSlug(tenantIdOrSlug: string): string {
   return tenant?.slug ?? tenantIdOrSlug
 }
 
-/** Public intake with no sub agent — client belongs to the agency tenant. */
+/** Public intake with no sub agent. Client belongs to the agency tenant. */
 export function agencyClientFormPath(tenantIdOrSlug: string): string {
   return `client-registration/${encodeURIComponent(agencyPublicSlug(tenantIdOrSlug))}`
 }
