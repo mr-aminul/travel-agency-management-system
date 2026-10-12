@@ -65,6 +65,18 @@ import {
 } from './smsqWebhook.js'
 import { sendSmsToClient } from './smsqSend.js'
 import { sendEmailToClient } from './clientEmailSend.js'
+import { registerBillingRoutes } from './billing/routes.js'
+import {
+  bootstrapDemoTenantBilling,
+  ensureTenantBilling,
+} from './billing/tenantBilling.js'
+import {
+  assertCanAddSubAgent,
+  assertCanAddUser,
+  assertCanSendSms,
+  assertCanUpload,
+  incrementSmsUsage,
+} from './billing/quotas.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -204,6 +216,8 @@ app.post('/api/platform/auth/logout', async (req, res) => {
   }
 })
 
+registerBillingRoutes(app, { requireAuth, requirePlatformAdmin })
+
 app.post('/api/platform/auth/users', requireAuth, async (req, res) => {
   try {
     const tenantId = String(req.body?.tenantId ?? '').trim()
@@ -219,6 +233,16 @@ app.post('/api/platform/auth/users', requireAuth, async (req, res) => {
     }
     const requestedRole =
       req.body?.role === 'sub_agent' ? 'sub_agent' : 'agency_user'
+    if (!isAdmin && requestedRole === 'agency_user') {
+      const seats = await assertCanAddUser(tenantId)
+      if (!seats.ok) {
+        res.status(seats.status).json({
+          error: seats.error,
+          code: seats.code,
+        })
+        return
+      }
+    }
     const result = await createAgencyUser({
       email: req.body?.email,
       name: req.body?.name,
@@ -429,6 +453,39 @@ app.put('/api/platform/kv/:key', requireAuth, async (req, res) => {
       [key],
     )
     const prior = existing.rows[0]?.value
+
+    if (
+      key === 'pd-sub-agents-created' &&
+      req.auth.user.role !== 'platform_admin' &&
+      Array.isArray(value)
+    ) {
+      const priorList = Array.isArray(prior) ? prior : []
+      const priorIds = new Set(
+        priorList
+          .filter((item) => item && typeof item === 'object')
+          .map((item) => item.id)
+          .filter(Boolean),
+      )
+      const added = value.filter(
+        (item) =>
+          item &&
+          typeof item === 'object' &&
+          item.tenantId === req.auth.tenantId &&
+          item.id &&
+          !priorIds.has(item.id),
+      )
+      if (added.length > 0) {
+        const subGate = await assertCanAddSubAgent(req.auth.tenantId)
+        if (!subGate.ok) {
+          res.status(subGate.status).json({
+            error: subGate.error,
+            code: subGate.code,
+          })
+          return
+        }
+      }
+    }
+
     const merged = mergeForWrite(key, prior, value, req.auth)
     await query(
       `insert into platform.kv_store (key, value, updated_at)
@@ -438,6 +495,23 @@ app.put('/api/platform/kv/:key', requireAuth, async (req, res) => {
              updated_at = now()`,
       [key, JSON.stringify(merged)],
     )
+
+    if (key === 'pd-tenants-created' && Array.isArray(merged)) {
+      for (const tenant of merged) {
+        if (!tenant?.id) continue
+        try {
+          // Only provisions when missing — never resets an existing plan.
+          await ensureTenantBilling(String(tenant.id))
+        } catch (error) {
+          console.error(
+            '[billing-trial]',
+            tenant.id,
+            error instanceof Error ? error.message : error,
+          )
+        }
+      }
+    }
+
     // Keep users.member_role in sync when the members roster is saved.
     if (key === 'pd-tenant-members-created' && Array.isArray(merged)) {
       for (const member of merged) {
@@ -510,6 +584,18 @@ app.post('/api/platform/files', requireAuth, async (req, res) => {
       req.auth.user.role === 'platform_admin' && req.body?.tenantId
         ? String(req.body.tenantId).trim()
         : req.auth.tenantId
+    if (req.auth.user.role !== 'platform_admin' && tenantId) {
+      const raw = String(req.body?.base64Data ?? req.body?.data ?? '')
+      const approxBytes = Math.floor((raw.length * 3) / 4)
+      const storage = await assertCanUpload(tenantId, approxBytes)
+      if (!storage.ok) {
+        res.status(storage.status).json({
+          error: storage.error,
+          code: storage.code,
+        })
+        return
+      }
+    }
     const result = await saveUploadedFile({
       tenantId,
       userId: req.auth.user.id,
@@ -647,6 +733,18 @@ app.post('/api/platform/invites', requireAuth, async (req, res) => {
     if (!gate.ok) {
       res.status(gate.status).json({ error: gate.error })
       return
+    }
+    const isSubAgentInvite =
+      req.body?.role === 'sub_agent' || Boolean(req.body?.subAgentId)
+    if (req.auth.user.role !== 'platform_admin' && !isSubAgentInvite) {
+      const seats = await assertCanAddUser(tenantId)
+      if (!seats.ok) {
+        res.status(seats.status).json({
+          error: seats.error,
+          code: seats.code,
+        })
+        return
+      }
     }
     const result = await createInvite({
       tenantId,
@@ -887,6 +985,16 @@ app.post('/api/platform/sms/send', requireAuth, async (req, res) => {
       res.status(400).json({ error: 'clientId required.' })
       return
     }
+    if (req.auth.user.role !== 'platform_admin') {
+      const smsGate = await assertCanSendSms(tenantId)
+      if (!smsGate.ok) {
+        res.status(smsGate.status).json({
+          error: smsGate.error,
+          code: smsGate.code,
+        })
+        return
+      }
+    }
     const result = await sendSmsToClient({
       tenantId,
       clientId,
@@ -898,6 +1006,14 @@ app.post('/api/platform/sms/send', requireAuth, async (req, res) => {
         provider: result.provider ?? undefined,
       })
       return
+    }
+    try {
+      await incrementSmsUsage(tenantId, 1)
+    } catch (error) {
+      console.error(
+        '[sms-usage]',
+        error instanceof Error ? error.message : error,
+      )
     }
     res.status(200).json(result.body)
   } catch (error) {
@@ -1054,6 +1170,16 @@ async function start() {
   } catch (error) {
     console.error(
       '[platform-api] launch agencies bootstrap failed:',
+      error instanceof Error ? error.message : error,
+    )
+  }
+
+  try {
+    await bootstrapDemoTenantBilling()
+    console.log('[platform-api] tenant billing bootstrap ready')
+  } catch (error) {
+    console.error(
+      '[platform-api] billing bootstrap skipped (run migrations?):',
       error instanceof Error ? error.message : error,
     )
   }

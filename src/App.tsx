@@ -47,6 +47,7 @@ const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'))
 const AcceptInvitePage = lazy(() => import('@/pages/auth/AcceptInvitePage'))
 const ChooseWorkspacePage = lazy(() => import('@/pages/auth/ChooseWorkspacePage'))
+const BillingPage = lazy(() => import('@/pages/BillingPage'))
 
 function RouteFallback() {
   return <div className="pd-route-fallback" aria-busy="true" aria-live="polite" />
@@ -88,6 +89,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/choose-workspace" element={<ChooseWorkspacePage />} />
+          <Route path="/billing" element={<BillingPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset/:token" element={<ResetPasswordPage />} />
           <Route path="/invite/:token" element={<AcceptInvitePage />} />

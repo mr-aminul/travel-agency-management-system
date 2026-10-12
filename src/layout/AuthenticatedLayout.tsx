@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { AppLayout } from './AppLayout'
@@ -22,6 +22,10 @@ import {
 } from '@/lib/modules'
 import { queryClient } from '@/lib/queryClient'
 import { useActiveTenant } from '@/lib/useActiveTenant'
+import { fetchBillingMe } from '@/lib/billing/billingApi'
+import { authApiConfigured } from '@/lib/billing/platformFlag'
+import { BillingAccessWall } from '@/components/billing/BillingAccessWall'
+import type { BillingAccess } from '@/types/billing'
 import '@/styles/layout-shell.css'
 import '@/styles/layout-search.css'
 
@@ -41,12 +45,42 @@ export default function AuthenticatedLayout() {
   const { status, user, session, signOut } = useAuth()
   const agencyProfile = useAgencyProfile()
   const tenant = useActiveTenant()
+  const [billingAccess, setBillingAccess] = useState<BillingAccess | null>(
+    null,
+  )
 
   const member =
     user && user.role === 'agency_user'
       ? findTenantMemberForUser(tenant.id, user.id, user.email)
       : undefined
   const pendingApprovals = useOpenPendingChangeCount(tenant.id)
+
+  useEffect(() => {
+    if (
+      !authApiConfigured() ||
+      !user ||
+      user.role === 'platform_admin' ||
+      status !== 'authenticated'
+    ) {
+      setBillingAccess(null)
+      return
+    }
+    let cancelled = false
+    void fetchBillingMe()
+      .then((snap) => {
+        if (!cancelled) {
+          setBillingAccess(
+            snap.access ?? { allowed: true, reason: 'ok', wall: null },
+          )
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setBillingAccess(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [status, user, tenant.id])
 
   const navItems = useMemo(() => {
     const role = user?.role ?? 'agency_user'
@@ -152,16 +186,28 @@ export default function AuthenticatedLayout() {
     return <Navigate to="/choose-workspace" replace />
   }
 
-  if (user.role !== 'platform_admin' && tenant.status === 'suspended') {
+  const wall =
+    billingAccess?.wall ??
+    (user.role !== 'platform_admin' && tenant.status === 'suspended'
+      ? 'suspended'
+      : null)
+
+  if (wall === 'suspended') {
     return (
-      <div className="pd-page" aria-label="Suspended">
-        <p role="alert">
-          This agency is suspended. Contact support, then sign in again.
-        </p>
-        <button type="button" onClick={() => void handleSignOut()}>
-          Sign out
-        </button>
-      </div>
+      <BillingAccessWall
+        kind="suspended"
+        onSignOut={() => void handleSignOut()}
+      />
+    )
+  }
+
+  if (wall === 'expired' && user.role !== 'platform_admin') {
+    return (
+      <BillingAccessWall
+        kind="expired"
+        onBilling={() => navigate('/billing', { replace: true })}
+        onSignOut={() => void handleSignOut()}
+      />
     )
   }
 

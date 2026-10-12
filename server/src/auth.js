@@ -420,7 +420,8 @@ export async function requireAuth(req, res, next) {
     }
     req.auth = session
     req.accessToken = token
-    next()
+    const { requireBillingAccess } = await import('./billing/access.js')
+    return requireBillingAccess()(req, res, next)
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'auth failed',

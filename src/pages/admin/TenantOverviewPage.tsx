@@ -3,7 +3,6 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import {
   Building2,
   CircleDot,
-  NotebookPen,
   type LucideIcon,
 } from 'lucide-react'
 import { ADMIN_AGENCIES, adminAgencyPath } from '@/lib/adminPaths'
@@ -14,6 +13,7 @@ import {
   useTenantById,
 } from '@/lib/tenantsStore'
 import type { TenantStatus } from '@/types/tenant'
+import { AdminTenantBillingPanel } from '@/components/admin/AdminTenantBillingPanel'
 import { Button, Input, Select } from '@/components/ui'
 
 const STATUS_OPTIONS: { value: TenantStatus; label: string }[] = [
@@ -62,7 +62,6 @@ export default function TenantOverviewPage() {
   const members = useTenantMembersByTenantId(tenantId)
   const [nameDraft, setNameDraft] = useState<string | null>(null)
   const [nameError, setNameError] = useState<string | undefined>()
-  const [billingNotes, setBillingNotes] = useState('')
 
   if (!tenant) {
     return <Navigate to={ADMIN_AGENCIES} replace />
@@ -135,17 +134,6 @@ export default function TenantOverviewPage() {
               ) : null}
             </dd>
           </div>
-          <div className="pd-client-detail__field">
-            <FieldLabel icon={NotebookPen}>Billing notes</FieldLabel>
-            <dd>
-              <Input
-                aria-label="Billing notes"
-                value={billingNotes}
-                onChange={(event) => setBillingNotes(event.target.value)}
-                placeholder="Trial end · plan"
-              />
-            </dd>
-          </div>
         </dl>
         {!owner ? (
           <p className="pd-admin__quiet">
@@ -154,6 +142,8 @@ export default function TenantOverviewPage() {
           </p>
         ) : null}
       </section>
+
+      <AdminTenantBillingPanel tenantId={tenant.id} />
     </div>
   )
 }

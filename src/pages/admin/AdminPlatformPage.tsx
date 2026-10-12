@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 import {
   AlertTriangle,
+  CreditCard,
   HeartPulse,
   Megaphone,
   Package,
@@ -11,11 +12,13 @@ import { PLATFORM_ADMIN_EMAIL } from '@/lib/authApi'
 import { DEFAULT_STARTER_MODULES } from '@/lib/tenantsStore'
 import { MODULE_CATALOG } from '@/lib/modules'
 import { cx } from '@/lib/cx'
+import { AdminPlansPanel } from '@/components/admin/AdminPlansPanel'
 import { Badge, PageHeader } from '@/components/ui'
 import '@/styles/layout-admin.css'
 
 type SectionId =
   | 'admins'
+  | 'plans'
   | 'defaults'
   | 'announcements'
   | 'ops'
@@ -27,6 +30,7 @@ const SECTIONS: {
   icon: typeof Shield
 }[] = [
   { id: 'admins', label: 'Admins', icon: Shield },
+  { id: 'plans', label: 'Plans', icon: CreditCard },
   { id: 'defaults', label: 'Defaults', icon: Package },
   { id: 'announcements', label: 'Announcements', icon: Megaphone },
   { id: 'ops', label: 'Ops', icon: HeartPulse },
@@ -36,6 +40,7 @@ const SECTIONS: {
 function isSectionId(value: string | null): value is SectionId {
   return (
     value === 'admins' ||
+    value === 'plans' ||
     value === 'defaults' ||
     value === 'announcements' ||
     value === 'ops' ||
@@ -119,6 +124,8 @@ export default function AdminPlatformPage() {
               </p>
             </section>
           ) : null}
+
+          {section === 'plans' ? <AdminPlansPanel /> : null}
 
           {section === 'defaults' ? (
             <section className="pd-admin__panel" aria-label="Defaults">

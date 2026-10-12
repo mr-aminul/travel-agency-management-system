@@ -15,6 +15,7 @@ export type SettingsSectionParam =
   /** @deprecated Use `userAccess`. Sub-agent controls live there now. */
   | 'subAgentAccess'
   | 'appearance'
+  | 'billing'
 
 export function hrEmployeesPath(): string {
   return '/hr/employees'

@@ -16,12 +16,14 @@ import {
   Monitor,
   Moon,
   MousePointerClick,
+  CreditCard,
   Palette,
   PanelLeftOpen,
   ShieldCheck,
   Sun,
   type LucideIcon,
 } from 'lucide-react'
+import { BillingSettingsSection } from '@/components/billing/BillingSettingsSection'
 import '@/styles/layout-clients.css'
 import '@/styles/layout-settings.css'
 import { ProfilePhotoField } from '@/components/ProfilePhotoField'
@@ -120,6 +122,12 @@ const SETTINGS_SECTIONS: {
       icon: ShieldCheck,
     },
     {
+      id: 'billing',
+      label: 'Billing',
+      info: 'Your plan controls modules and monthly limits for users, sub agents, storage, and SMS. Pay by bKash, Nagad, or bank, then we verify.',
+      icon: CreditCard,
+    },
+    {
       id: 'appearance',
       label: 'Appearance',
       info: 'Choose light, dark, or match the system. Theme color tints the app. Auto expands the sidebar on hover; Click uses the button at the bottom of the sidebar.',
@@ -170,6 +178,7 @@ function isSettingsSectionId(value: string | null): value is SettingsSectionId {
     value === 'services' ||
     value === 'servicesV2' ||
     value === 'userAccess' ||
+    value === 'billing' ||
     value === 'appearance'
   )
 }
@@ -348,7 +357,8 @@ export default function SettingsPage() {
         activeSection === 'services' ||
         activeSection === 'servicesV2' ||
         activeSection === 'clientFields' ||
-        activeSection === 'userAccess' ? null : (
+        activeSection === 'userAccess' ||
+        activeSection === 'billing' ? null : (
           <header className="pd-settings-panel__header">
             <h2 id="settings-panel-title" className="pd-settings-panel__title">
               {currentSection.label}
@@ -520,6 +530,13 @@ export default function SettingsPage() {
 
           {activeSection === 'userAccess' ? (
             <UserAccessSection
+              title={currentSection.label}
+              info={currentSection.info ?? ''}
+            />
+          ) : null}
+
+          {activeSection === 'billing' ? (
+            <BillingSettingsSection
               title={currentSection.label}
               info={currentSection.info ?? ''}
             />
