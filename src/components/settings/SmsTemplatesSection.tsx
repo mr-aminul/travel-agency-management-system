@@ -53,7 +53,7 @@ export function SmsTemplatesSection({
   const [composerOpen, setComposerOpen] = useState(false)
   const [editing, setEditing] = useState<SmsTemplate | null>(null)
   const [channel, setChannel] = useState<MessageTemplateChannel>('sms')
-  const [folderChoice, setFolderChoice] = useState(
+  const [folderChoice, setFolderChoice] = useState<string>(
     SMS_TEMPLATE_FOLDER_SUGGESTIONS[0],
   )
   const [customFolder, setCustomFolder] = useState('')
