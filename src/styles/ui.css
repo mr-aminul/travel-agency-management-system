@@ -373,8 +373,9 @@ a.pd-btn {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-theme) 16%, transparent);
 }
 
+/* Above side drawers (200); below full-screen file viewer (300). */
 .pd-select__panel {
-  z-index: 80;
+  z-index: 220;
   display: flex;
   flex-direction: column;
   max-height: 18rem;
