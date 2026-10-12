@@ -6,6 +6,16 @@ export type ServiceStepBranchRule = {
   nextStepId: string
 }
 
+/** Auto SMS/email when a client file enters this status. */
+export type ServiceStepAutoNotify = {
+  sms?: boolean
+  email?: boolean
+  /** Optional SMS template id (`pd-sms-templates`). */
+  smsTemplateId?: string
+  /** Optional email template id (`pd-sms-templates`, channel email). */
+  emailTemplateId?: string
+}
+
 export type ServiceStepConfig = {
   id: string
   label: string
@@ -16,6 +26,8 @@ export type ServiceStepConfig = {
    * If none match, the journey continues to the next step in the list.
    */
   branchRules?: ServiceStepBranchRule[]
+  /** When the file reaches this status, optionally auto-send SMS and/or email. */
+  autoNotify?: ServiceStepAutoNotify
 }
 
 export type ServiceDocumentConfig = {

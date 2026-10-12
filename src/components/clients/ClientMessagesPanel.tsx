@@ -6,10 +6,17 @@ import {
   useRef,
   useState,
   type ChangeEvent,
-  type FormEvent,
   type KeyboardEvent,
 } from 'react'
 import { ImagePlus, X } from 'lucide-react'
+import { SmsTemplatePicker } from '@/components/clients/SmsTemplatePicker'
+import { readAgencyProfile } from '@/lib/agencyProfile'
+import { getActiveTenantId } from '@/lib/authApi'
+import {
+  buildBrandedEmailHtml,
+  isBrandedEmailHtml,
+} from '@/lib/brandedEmailHtml'
+import { sendClientEmailViaApi } from '@/lib/clientEmailApi'
 import {
   sendClientMessage,
   useClientMessages,
@@ -49,12 +56,24 @@ function readImageAsDataUrl(file: File): Promise<string> {
 function channelCopy(channel: ClientMessageChannel, address: string) {
   if (channel === 'email') {
     return address
-      ? `Logged email note · ${address}`
-      : 'Email note · no address on this profile'
+      ? `Email · ${address}`
+      : 'Email · no address on this profile'
   }
   return address
     ? `SMS · ${address}`
     : 'SMS · no phone on this profile'
+}
+
+function emailSubjectForAgency(agencyName: string, plainBody: string): string {
+  const brand = agencyName.trim() || 'your agency'
+  const firstLine = plainBody
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean)
+  if (firstLine && firstLine.length <= 80 && !/^dear\b/i.test(firstLine)) {
+    return firstLine
+  }
+  return `Update from ${brand}`
 }
 
 export function ClientMessagesPanel({
@@ -70,25 +89,36 @@ export function ClientMessagesPanel({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fileInputId = useId()
   const [body, setBody] = useState('')
+  const [useBrandedEmail, setUseBrandedEmail] = useState(false)
   const [attachment, setAttachment] = useState<
     ClientMessageAttachment | undefined
   >()
   const [error, setError] = useState<string | undefined>()
   const [isSendingSms, setIsSendingSms] = useState(false)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [showSmsConfirm, setShowSmsConfirm] = useState(false)
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false)
 
   const isEmail = channel === 'email'
   const address = isEmail ? client.email?.trim() ?? '' : client.phone.trim()
+  const agency = readAgencyProfile(getActiveTenantId())
+  const brandedPreviewHtml = useMemo(() => {
+    if (!isEmail || !useBrandedEmail || !body.trim()) return ''
+    return buildBrandedEmailHtml({
+      body,
+      agency,
+      recipientName: client.name,
+    })
+  }, [agency, body, client.name, isEmail, useBrandedEmail])
+  const isBusy = isSendingSms || isSendingEmail
   const canCompose =
     Boolean(address) &&
-    !isSendingSms &&
+    !isBusy &&
     (isEmail
       ? Boolean(body.trim()) || Boolean(attachment)
       : Boolean(body.trim()))
-  const historyLabel = isEmail ? 'Email note history' : 'SMS history'
-  const emptyLabel = isEmail
-    ? 'No email notes yet — drafts are logged here, not delivered'
-    : 'No SMS sent yet'
+  const historyLabel = isEmail ? 'Email history' : 'SMS history'
+  const emptyLabel = isEmail ? 'No email sent yet' : 'No SMS sent yet'
 
   useEffect(() => {
     const el = threadRef.current
@@ -166,8 +196,7 @@ export function ClientMessagesPanel({
     }
   }
 
-  const handleEmailSubmit = (event: FormEvent) => {
-    event.preventDefault()
+  const openEmailConfirm = () => {
     const validation = validateClientMessage(
       channel,
       body,
@@ -178,22 +207,48 @@ export function ClientMessagesPanel({
       setError(validation)
       return
     }
+    setError(undefined)
+    setShowEmailConfirm(true)
+  }
+
+  const sendEmail = async () => {
+    setShowEmailConfirm(false)
+    setIsSendingEmail(true)
+    setError(undefined)
+    const plain = body.trim()
+    const textForSend = plain || (attachment ? 'See attached image.' : '')
+    const html =
+      useBrandedEmail && plain
+        ? buildBrandedEmailHtml({
+            body: plain,
+            agency,
+            recipientName: client.name,
+          })
+        : undefined
+    const subject = emailSubjectForAgency(agency.businessName, plain)
     try {
+      await sendClientEmailViaApi({
+        clientId: client.id,
+        subject,
+        text: textForSend,
+        html,
+        attachment,
+      })
       sendClientMessage({
         clientId: client.id,
-        channel,
-        body,
+        channel: 'email',
+        body: html || textForSend,
         attachment,
       })
       setBody('')
+      setUseBrandedEmail(false)
       clearAttachment()
-      setError(undefined)
     } catch (caught) {
       setError(
-        caught instanceof Error
-          ? caught.message
-          : 'Could not save this note.',
+        caught instanceof Error ? caught.message : 'Could not send this email.',
       )
+    } finally {
+      setIsSendingEmail(false)
     }
   }
 
@@ -225,8 +280,28 @@ export function ClientMessagesPanel({
                   key={item.id}
                   className="pd-client-messages__item pd-client-messages__item--out"
                 >
-                  <div className="pd-client-messages__bubble">
-                    {item.body ? <p>{item.body}</p> : null}
+                  <div
+                    className={[
+                      'pd-client-messages__bubble',
+                      isBrandedEmailHtml(item.body)
+                        ? 'pd-client-messages__bubble--email-html'
+                        : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    {item.body ? (
+                      isBrandedEmailHtml(item.body) ? (
+                        <iframe
+                          title={`Email ${item.id}`}
+                          className="pd-client-messages__email-frame"
+                          sandbox=""
+                          srcDoc={item.body}
+                        />
+                      ) : (
+                        <p>{item.body}</p>
+                      )
+                    ) : null}
                     {item.attachment ? (
                       <img
                         className="pd-client-messages__image"
@@ -236,8 +311,7 @@ export function ClientMessagesPanel({
                     ) : null}
                   </div>
                   <p className="pd-client-messages__meta">
-                    {item.channel === 'sms' ? 'Sent · ' : 'Note · '}
-                    {formatMessageStamp(item.createdAt)}
+                    Sent · {formatMessageStamp(item.createdAt)}
                   </p>
                 </li>
               ))}
@@ -248,9 +322,21 @@ export function ClientMessagesPanel({
         {isEmail ? (
           <form
             className="pd-client-messages__composer pd-client-messages__composer--email"
-            onSubmit={handleEmailSubmit}
+            onSubmit={(event) => event.preventDefault()}
             noValidate
           >
+            <div className="pd-client-messages__template-bar">
+              <SmsTemplatePicker
+                client={client}
+                channel="email"
+                disabled={!address || isBusy}
+                onPick={(next) => {
+                  setBody(next)
+                  setUseBrandedEmail(true)
+                  if (error) setError(undefined)
+                }}
+              />
+            </div>
             <Textarea
               className="pd-client-messages__editor"
               value={body}
@@ -269,10 +355,28 @@ export function ClientMessagesPanel({
               }}
               placeholder="Write your email…"
               aria-label="Email"
-              disabled={!address}
-              rows={8}
+              disabled={!address || isBusy}
+              rows={useBrandedEmail ? 5 : 8}
               error={error}
+              hint={
+                useBrandedEmail
+                  ? 'Branded email layout — edit the text; preview updates below.'
+                  : undefined
+              }
             />
+            {brandedPreviewHtml ? (
+              <div className="pd-client-messages__email-preview">
+                <p className="pd-client-messages__email-preview-label">
+                  Email preview
+                </p>
+                <iframe
+                  title="Branded email preview"
+                  className="pd-client-messages__email-frame pd-client-messages__email-frame--preview"
+                  sandbox=""
+                  srcDoc={brandedPreviewHtml}
+                />
+              </div>
+            ) : null}
             {attachment ? (
               <div className="pd-client-messages__attach-preview">
                 <img
@@ -302,13 +406,13 @@ export function ClientMessagesPanel({
                 accept="image/jpeg,image/png,image/webp,image/*"
                 className="pd-client-messages__file"
                 onChange={handleImage}
-                disabled={!address}
+                disabled={!address || isBusy}
               />
               <Button
                 type="button"
                 size="sm"
                 variant="secondary"
-                disabled={!address}
+                disabled={!address || isBusy}
                 onClick={() => fileInputRef.current?.click()}
                 aria-label="Attach image"
                 title="Attach image"
@@ -316,8 +420,12 @@ export function ClientMessagesPanel({
                 <ImagePlus size={14} strokeWidth={2.25} aria-hidden />
                 Attach image
               </Button>
-              <Button type="submit" disabled={!canCompose}>
-                Save note
+              <Button
+                type="button"
+                disabled={!canCompose}
+                onClick={openEmailConfirm}
+              >
+                {isSendingEmail ? 'Sending…' : 'Send email'}
               </Button>
             </div>
           </form>
@@ -327,35 +435,49 @@ export function ClientMessagesPanel({
             onSubmit={(event) => event.preventDefault()}
             noValidate
           >
-            <Input
-              className="pd-client-messages__input"
-              value={body}
-              onChange={(event) => {
-                setBody(event.target.value)
-                if (error) setError(undefined)
-              }}
-              onKeyDown={blockSmsEnter}
-              onBlur={() => {
-                const validation = validateClientMessage(
-                  channel,
-                  body,
-                  address,
-                )
-                if (validation) setError(validation)
-              }}
-              placeholder="Message"
-              aria-label="Message"
-              disabled={!address || isSendingSms}
-              autoComplete="off"
-              error={error}
-            />
-            <Button
-              type="button"
-              disabled={!canCompose}
-              onClick={openSmsConfirm}
-            >
-              {isSendingSms ? 'Sending…' : 'Send SMS'}
-            </Button>
+            <div className="pd-client-messages__template-bar">
+              <SmsTemplatePicker
+                client={client}
+                channel="sms"
+                disabled={!address || isSendingSms}
+                onPick={(next) => {
+                  setBody(next)
+                  setUseBrandedEmail(false)
+                  if (error) setError(undefined)
+                }}
+              />
+            </div>
+            <div className="pd-client-messages__sms-row">
+              <Input
+                className="pd-client-messages__input"
+                value={body}
+                onChange={(event) => {
+                  setBody(event.target.value)
+                  if (error) setError(undefined)
+                }}
+                onKeyDown={blockSmsEnter}
+                onBlur={() => {
+                  const validation = validateClientMessage(
+                    channel,
+                    body,
+                    address,
+                  )
+                  if (validation) setError(validation)
+                }}
+                placeholder="Message"
+                aria-label="Message"
+                disabled={!address || isSendingSms}
+                autoComplete="off"
+                error={error}
+              />
+              <Button
+                type="button"
+                disabled={!canCompose}
+                onClick={openSmsConfirm}
+              >
+                {isSendingSms ? 'Sending…' : 'Send SMS'}
+              </Button>
+            </div>
           </form>
         )}
       </div>
@@ -367,6 +489,16 @@ export function ClientMessagesPanel({
           void sendSms()
         }}
         title={`Confirm sending to ${address}?`}
+        confirmLabel="Send"
+        cancelLabel="Cancel"
+      />
+      <ConfirmDialog
+        open={showEmailConfirm}
+        onClose={() => setShowEmailConfirm(false)}
+        onConfirm={() => {
+          void sendEmail()
+        }}
+        title={`Send email to ${address}?`}
         confirmLabel="Send"
         cancelLabel="Cancel"
       />

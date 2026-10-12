@@ -1,6 +1,6 @@
 import { memo, useState } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { FileText, GitBranch, Plus } from 'lucide-react'
+import { FileText, GitBranch, Mail, MessageSquare, Plus } from 'lucide-react'
 import { useServiceFlowInteraction } from '@/components/settings/flow/ServiceFlowInteraction'
 import { cx } from '@/lib/cx'
 import type {
@@ -34,6 +34,19 @@ export const StepFlowNode = memo(function StepFlowNode({
             <span className="pd-service-flow-node__badge" title="Branch rules">
               <GitBranch size={12} strokeWidth={2.25} aria-hidden />
               {data.branchCount}
+            </span>
+          ) : null}
+          {data.autoNotifySms || data.autoNotifyEmail ? (
+            <span
+              className="pd-service-flow-node__notify"
+              title="Auto send on this status"
+            >
+              {data.autoNotifySms ? (
+                <MessageSquare size={12} strokeWidth={2.25} aria-label="SMS" />
+              ) : null}
+              {data.autoNotifyEmail ? (
+                <Mail size={12} strokeWidth={2.25} aria-label="Email" />
+              ) : null}
             </span>
           ) : null}
         </div>

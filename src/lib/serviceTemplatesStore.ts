@@ -16,6 +16,7 @@ import {
 import { syncDocumentUnlockSteps } from '@/lib/stepDocumentLinks'
 import type {
   ServiceDocumentConfig,
+  ServiceStepAutoNotify,
   ServiceStepConfig,
   ServiceTemplateOverride,
 } from '@/types/serviceTemplate'
@@ -46,6 +47,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function normalizeAutoNotify(value: unknown): ServiceStepAutoNotify | undefined {
+  if (!isRecord(value)) return undefined
+  const sms = value.sms === true
+  const email = value.email === true
+  const smsTemplateId =
+    typeof value.smsTemplateId === 'string' && value.smsTemplateId.trim()
+      ? value.smsTemplateId.trim()
+      : undefined
+  const emailTemplateId =
+    typeof value.emailTemplateId === 'string' && value.emailTemplateId.trim()
+      ? value.emailTemplateId.trim()
+      : undefined
+  if (!sms && !email && !smsTemplateId && !emailTemplateId) return undefined
+  return {
+    ...(sms ? { sms: true } : {}),
+    ...(email ? { email: true } : {}),
+    ...(smsTemplateId ? { smsTemplateId } : {}),
+    ...(emailTemplateId ? { emailTemplateId } : {}),
+  }
+}
+
 function normalizeStep(value: unknown): ServiceStepConfig | undefined {
   if (!isRecord(value)) return undefined
   const id = typeof value.id === 'string' ? value.id.trim() : ''
@@ -58,11 +80,13 @@ function normalizeStep(value: unknown): ServiceStepConfig | undefined {
         .filter(Boolean)
     : undefined
   const branchRules = normalizeBranchRules(value.branchRules)
+  const autoNotify = normalizeAutoNotify(value.autoNotify)
   return {
     id,
     label,
     ...(requiredDocumentIds?.length ? { requiredDocumentIds } : {}),
     ...(branchRules?.length ? { branchRules } : {}),
+    ...(autoNotify ? { autoNotify } : {}),
   }
 }
 
@@ -237,12 +261,16 @@ export function saveServiceTemplate(input: {
   const serviceName = input.serviceName.trim()
   const country = normalizeCountryName(input.country ?? '')
   const rawSteps = input.steps
-    .map((step) => ({
-      id: step.id.trim() || nextTemplateItemId(step.label, []),
-      label: step.label.trim(),
-      requiredDocumentIds: step.requiredDocumentIds,
-      branchRules: normalizeBranchRules(step.branchRules),
-    }))
+    .map((step) => {
+      const autoNotify = normalizeAutoNotify(step.autoNotify)
+      return {
+        id: step.id.trim() || nextTemplateItemId(step.label, []),
+        label: step.label.trim(),
+        requiredDocumentIds: step.requiredDocumentIds,
+        branchRules: normalizeBranchRules(step.branchRules),
+        ...(autoNotify ? { autoNotify } : {}),
+      }
+    })
     .filter((step) => step.label.length > 0)
   const rawDocuments = input.documents
     .map((doc) => ({

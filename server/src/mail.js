@@ -42,7 +42,13 @@ export function publicUiBaseUrl() {
 }
 
 /**
- * @param {{ to: string, subject: string, text: string, html?: string }} message
+ * @param {{
+ *   to: string,
+ *   subject: string,
+ *   text: string,
+ *   html?: string,
+ *   attachments?: Array<{ filename: string, content: Buffer, contentType?: string }>
+ * }} message
  */
 export async function sendMail(message) {
   const config = smtpConfig()
@@ -61,6 +67,7 @@ export async function sendMail(message) {
     subject: message.subject,
     text: message.text,
     html: message.html,
+    attachments: message.attachments,
   })
 }
 

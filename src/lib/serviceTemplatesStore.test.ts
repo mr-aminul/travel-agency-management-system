@@ -63,6 +63,29 @@ describe('service template overrides', () => {
     ).toBe('permit')
   })
 
+  it('persists per-status SMS and email auto-notify flags', () => {
+    asLeisure()
+    saveServiceTemplate({
+      serviceName: 'Tour Package',
+      steps: [
+        {
+          id: 'enquiry',
+          label: 'Enquiry',
+          autoNotify: { sms: true, email: true, smsTemplateId: 'tpl-1' },
+        },
+        { id: 'gone', label: 'Travelled' },
+      ],
+      documents: [],
+    })
+    const saved = getServiceTemplateOverride('Tour Package')
+    expect(saved?.steps[0]?.autoNotify).toEqual({
+      sms: true,
+      email: true,
+      smsTemplateId: 'tpl-1',
+    })
+    expect(saved?.steps[1]?.autoNotify).toBeUndefined()
+  })
+
   it('renames a saved template with the service', () => {
     asLeisure()
     saveServiceTemplate({

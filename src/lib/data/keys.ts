@@ -16,6 +16,8 @@ export const DATA_KEYS = {
   attendanceCreated: 'pd-attendance-created',
   requestsCreated: 'pd-requests-created',
   clientMessages: 'pd-client-messages',
+  /** Per-tenant SMS compose templates with {{client}} attributes. */
+  smsTemplates: 'pd-sms-templates',
   /** Per-client staff action items / todos on the profile overview. */
   clientActionItems: 'pd-client-action-items',
   serviceTemplates: 'pd-service-templates',

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Plus, Trash2, X } from 'lucide-react'
 import { DocumentFieldsEditor } from '@/components/settings/DocumentFieldsEditor'
+import { StepAutoNotifyEditor } from '@/components/settings/StepAutoNotifyEditor'
 import { StepBranchRulesEditor } from '@/components/settings/StepBranchRulesEditor'
 import {
   BranchConditionDialog,
@@ -50,7 +51,10 @@ import {
 } from '@/lib/stepDocumentLinks'
 import type { ServiceType } from '@/types/case'
 import type { DocumentFormFieldDraft } from '@/types/documentFormField'
-import type { ServiceStepBranchRule } from '@/types/serviceTemplate'
+import type {
+  ServiceStepAutoNotify,
+  ServiceStepBranchRule,
+} from '@/types/serviceTemplate'
 
 const ALL_COUNTRIES = ''
 
@@ -517,6 +521,22 @@ export function ServiceFlowEditorV2({
                   markDirty()
                 }}
               />
+              <div className="pd-service-flow__inspector-section">
+                <StepAutoNotifyEditor
+                  stepLabel={selectedStep.label}
+                  value={selectedStep.autoNotify}
+                  onChange={(autoNotify: ServiceStepAutoNotify | undefined) => {
+                    setSteps((current) =>
+                      current.map((item) =>
+                        item.id === selectedStep.id
+                          ? { ...item, autoNotify }
+                          : item,
+                      ),
+                    )
+                    markDirty()
+                  }}
+                />
+              </div>
               <div className="pd-service-flow__inspector-section">
                 <span className="pd-settings-template__needs-label">
                   Needs documents

@@ -12,6 +12,7 @@ import {
   Check,
   Contact,
   Layers,
+  MessageSquareText,
   Monitor,
   Moon,
   MousePointerClick,
@@ -28,6 +29,7 @@ import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { ServiceCatalogEditor } from '@/components/settings/ServiceCatalogEditor'
 import { ServiceCatalogEditorV2 } from '@/components/settings/ServiceCatalogEditorV2'
 import { ClientProfileFieldsSection } from '@/components/settings/ClientProfileFieldsSection'
+import { SmsTemplatesSection } from '@/components/settings/SmsTemplatesSection'
 import { getActiveTenantId } from '@/lib/authApi'
 import {
   applyAppearance,
@@ -94,6 +96,12 @@ const SETTINGS_SECTIONS: {
       icon: Contact,
     },
     {
+      id: 'smsTemplates',
+      label: 'SMS/Email templates',
+      info: 'Organize SMS and email templates in folders. Staff open SMS/Email template on Messages, then pick SMS template or Email template.',
+      icon: MessageSquareText,
+    },
+    {
       id: 'services',
       label: 'Service catalog',
       info: 'These are the lines you sell. Open one to set the status journey, documents, and the fields staff fill in on upload. New files pick up the checklist you save. Add a country when that destination needs a different journey or documents.',
@@ -158,6 +166,7 @@ function isSettingsSectionId(value: string | null): value is SettingsSectionId {
   return (
     value === 'business' ||
     value === 'clientFields' ||
+    value === 'smsTemplates' ||
     value === 'services' ||
     value === 'servicesV2' ||
     value === 'userAccess' ||
@@ -467,6 +476,13 @@ export default function SettingsPage() {
 
           {activeSection === 'clientFields' ? (
             <ClientProfileFieldsSection
+              title={currentSection.label}
+              info={currentSection.info ?? ''}
+            />
+          ) : null}
+
+          {activeSection === 'smsTemplates' ? (
+            <SmsTemplatesSection
               title={currentSection.label}
               info={currentSection.info ?? ''}
             />

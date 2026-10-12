@@ -18,7 +18,18 @@ type Listener = () => void
 
 const STORAGE_KEY = DATA_KEYS.clientMessages
 const LEGACY_STORAGE_KEY = 'pd-client-sms'
-const MAX_BODY_LENGTH = 1000
+const MAX_SMS_BODY_LENGTH = 1000
+/** Plain email draft before branded HTML wrap. */
+const MAX_EMAIL_PLAIN_LENGTH = 2000
+/** Stored branded HTML email (table layout). */
+const MAX_EMAIL_HTML_LENGTH = 60000
+
+function maxBodyLength(channel: ClientMessageChannel, body: string): number {
+  if (channel !== 'email') return MAX_SMS_BODY_LENGTH
+  return body.includes('data-pd-branded-email="1"')
+    ? MAX_EMAIL_HTML_LENGTH
+    : MAX_EMAIL_PLAIN_LENGTH
+}
 
 const listeners = new Set<Listener>()
 let messages: ClientThreadMessage[] = loadAll()
@@ -155,17 +166,18 @@ export function validateClientMessage(
 ): string | undefined {
   if (!toAddress?.trim()) {
     return channel === 'email'
-      ? 'Add an email address on this profile to log a note.'
-      : 'Add a phone number on this profile to log a note.'
+      ? 'Add an email address on this profile to send email.'
+      : 'Add a phone number on this profile to send SMS.'
   }
   const trimmed = body.trim()
   if (!trimmed && !attachment) {
     return channel === 'email'
-      ? 'Write a note or attach an image to save this draft.'
-      : 'Write a note or attach an image to save this draft.'
+      ? 'Write a message or attach an image to send.'
+      : 'Write a message to send.'
   }
-  if (trimmed.length > MAX_BODY_LENGTH) {
-    return `Keep the note under ${MAX_BODY_LENGTH} characters.`
+  const limit = maxBodyLength(channel, trimmed)
+  if (trimmed.length > limit) {
+    return `Keep the note under ${limit} characters.`
   }
   return undefined
 }

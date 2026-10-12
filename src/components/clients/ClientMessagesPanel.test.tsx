@@ -10,6 +10,7 @@ import { AuthProvider } from '@/lib/AuthProvider'
 import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import { getClientById } from '@/lib/clientsStore'
 import { resetClientMessages } from '@/lib/clientMessagesStore'
+import { resetSmsTemplates } from '@/lib/smsTemplatesStore'
 import { TENANT_IDS } from '@/types/tenant'
 import { ClientMessagesPanel } from '@/components/clients/ClientMessagesPanel'
 
@@ -26,16 +27,28 @@ vi.mock('@/lib/smsInboundApi', async (importOriginal) => {
   }
 })
 
+vi.mock('@/lib/clientEmailApi', () => ({
+  sendClientEmailViaApi: vi.fn(async () => ({
+    ok: true,
+    to: 'rahim.uddin@email.com',
+    subject: 'Update from OneTrack',
+  })),
+}))
+
 import { sendClientSmsViaApi } from '@/lib/smsInboundApi'
+import { sendClientEmailViaApi } from '@/lib/clientEmailApi'
 
 afterEach(() => {
   cleanup()
   clearSession()
   resetClientMessages()
+  resetSmsTemplates()
 })
 
 beforeEach(() => {
   vi.mocked(sendClientSmsViaApi).mockClear()
+  vi.mocked(sendClientEmailViaApi).mockClear()
+  resetSmsTemplates()
 })
 
 function renderMessages(channel: 'sms' | 'email' = 'sms') {
@@ -91,25 +104,56 @@ describe('client messages panel', () => {
     expect(input).toHaveValue('')
   })
 
-  it('uses a multi-line editor for email notes, not the short SMS input', () => {
+  it('fills an SMS template from the Messages SMS template button', async () => {
+    renderMessages('sms')
+
+    expect(
+      screen.queryByRole('button', { name: 'Email template' }),
+    ).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'SMS template' }))
+    expect(
+      await screen.findByRole('heading', { name: 'SMS template' }),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^Client ID/i }))
+    expect(screen.getByRole('textbox', { name: 'Message' })).toHaveValue(
+      'Dear Md. Rahim Uddin, your Client ID is c-284. Please quote this ID when you contact us. — OneTrack',
+    )
+  })
+
+  it('sends branded email via API after confirmation', async () => {
     renderMessages('email')
 
     expect(
-      screen.getByText(/Logged email note · rahim\.uddin@email\.com/i),
-    ).toBeInTheDocument()
-    const editor = screen.getByRole('textbox', { name: 'Email' })
-    expect(editor.tagName).toBe('TEXTAREA')
-    expect(screen.queryByRole('button', { name: 'Send' })).not.toBeInTheDocument()
+      screen.queryByRole('button', { name: 'SMS template' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText(/Email · rahim\.uddin@email\.com/i)).toBeInTheDocument()
 
-    const save = screen.getByRole('button', { name: 'Save note' })
-    fireEvent.change(editor, {
-      target: { value: 'Your documents are ready for pickup.' },
-    })
-    fireEvent.click(save)
-
+    fireEvent.click(screen.getByRole('button', { name: 'Email template' }))
     expect(
-      screen.getByText('Your documents are ready for pickup.'),
+      await screen.findByRole('heading', { name: 'Email template' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Attach image' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^Welcome email/i }))
+
+    expect(screen.getByTitle('Branded email preview')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Send email' }))
+    expect(
+      screen.getByRole('heading', {
+        name: /Send email to rahim\.uddin@email\.com\?/i,
+      }),
+    ).toBeInTheDocument()
+    expect(sendClientEmailViaApi).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+    await waitFor(() => {
+      expect(sendClientEmailViaApi).toHaveBeenCalled()
+    })
+    const payload = vi.mocked(sendClientEmailViaApi).mock.calls[0]?.[0]
+    expect(payload?.clientId).toBe('c-284')
+    expect(payload?.html).toContain('data-pd-branded-email="1"')
+    expect(payload?.text).toContain('Md. Rahim Uddin')
+
+    const frame = await screen.findByTitle(/Email email-/i)
+    expect(frame.getAttribute('srcdoc') ?? '').toContain('data-pd-branded-email="1"')
   })
 })

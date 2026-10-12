@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Mail, MessageSquare, Plus, Trash2 } from 'lucide-react'
 import { DocumentFieldsEditor } from '@/components/settings/DocumentFieldsEditor'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
+import {
+  compactStepAutoNotify,
+  StepAutoNotifyEditor,
+} from '@/components/settings/StepAutoNotifyEditor'
 import { StepBranchRulesEditor } from '@/components/settings/StepBranchRulesEditor'
 import { cx } from '@/lib/cx'
 import {
@@ -38,7 +42,10 @@ import { pruneBranchRulesForFields } from '@/lib/serviceBranchFields'
 import { toggleStepRequiredDocument } from '@/lib/stepDocumentLinks'
 import type { ServiceType } from '@/types/case'
 import type { DocumentFormFieldDraft } from '@/types/documentFormField'
-import type { ServiceStepBranchRule } from '@/types/serviceTemplate'
+import type {
+  ServiceStepAutoNotify,
+  ServiceStepBranchRule,
+} from '@/types/serviceTemplate'
 
 const ALL_COUNTRIES = ''
 
@@ -453,6 +460,30 @@ export function ServiceTemplateEditor({
               >
                 {steps.map((step, index) => {
                   const selected = selectedStep?.id === step.id
+                  const smsOn = step.autoNotify?.sms === true
+                  const emailOn = step.autoNotify?.email === true
+                  const toggleNotify = (
+                    channel: 'sms' | 'email',
+                    nextOn: boolean,
+                  ) => {
+                    setSelectedStepId(step.id)
+                    setSteps((current) =>
+                      current.map((item) => {
+                        if (item.id !== step.id) return item
+                        return {
+                          ...item,
+                          autoNotify: compactStepAutoNotify({
+                            sms: item.autoNotify?.sms,
+                            email: item.autoNotify?.email,
+                            smsTemplateId: item.autoNotify?.smsTemplateId,
+                            emailTemplateId: item.autoNotify?.emailTemplateId,
+                            [channel]: nextOn,
+                          }),
+                        }
+                      }),
+                    )
+                    markDirty()
+                  }
                   return (
                     <li key={step.id}>
                       <div
@@ -461,22 +492,56 @@ export function ServiceTemplateEditor({
                           selected && 'is-selected',
                         )}
                       >
-                        <button
-                          type="button"
-                          className="pd-settings-template__step-rail-select"
-                          aria-current={selected ? 'step' : undefined}
-                          onClick={() => setSelectedStepId(step.id)}
-                        >
-                          <span
-                            className="pd-settings-template__step-rail-num"
-                            aria-hidden
+                        <div className="pd-settings-template__step-rail-main">
+                          <button
+                            type="button"
+                            className="pd-settings-template__step-rail-select"
+                            aria-current={selected ? 'step' : undefined}
+                            onClick={() => setSelectedStepId(step.id)}
                           >
-                            {index + 1}
+                            <span
+                              className="pd-settings-template__step-rail-num"
+                              aria-hidden
+                            >
+                              {index + 1}
+                            </span>
+                            <span className="pd-settings-template__step-rail-name">
+                              {step.label || 'Untitled'}
+                            </span>
+                          </button>
+                          <span
+                            className="pd-settings-template__step-rail-notify"
+                            role="group"
+                            aria-label={`Auto send for ${step.label || 'status'}`}
+                          >
+                            <button
+                              type="button"
+                              className={cx(
+                                'pd-settings-template__step-rail-notify-btn',
+                                smsOn && 'is-on',
+                              )}
+                              aria-pressed={smsOn}
+                              title="Auto SMS when file reaches this status"
+                              onClick={() => toggleNotify('sms', !smsOn)}
+                            >
+                              <MessageSquare size={11} strokeWidth={2.25} />
+                              SMS
+                            </button>
+                            <button
+                              type="button"
+                              className={cx(
+                                'pd-settings-template__step-rail-notify-btn',
+                                emailOn && 'is-on',
+                              )}
+                              aria-pressed={emailOn}
+                              title="Auto email when file reaches this status"
+                              onClick={() => toggleNotify('email', !emailOn)}
+                            >
+                              <Mail size={11} strokeWidth={2.25} />
+                              Email
+                            </button>
                           </span>
-                          <span className="pd-settings-template__step-rail-name">
-                            {step.label || 'Untitled'}
-                          </span>
-                        </button>
+                        </div>
                         <span className="pd-settings-template__step-rail-actions">
                           <Button
                             type="button"
@@ -527,6 +592,25 @@ export function ServiceTemplateEditor({
                       setSteps((current) =>
                         current.map((item) =>
                           item.id === id ? { ...item, label } : item,
+                        ),
+                      )
+                      markDirty()
+                    }}
+                  />
+
+                  <StepAutoNotifyEditor
+                    stepLabel={selectedStep.label}
+                    value={selectedStep.autoNotify}
+                    onChange={(autoNotify: ServiceStepAutoNotify | undefined) => {
+                      const id = selectedStep.id
+                      setSteps((current) =>
+                        current.map((item) =>
+                          item.id === id
+                            ? {
+                                ...item,
+                                autoNotify,
+                              }
+                            : item,
                         ),
                       )
                       markDirty()

@@ -18,6 +18,7 @@ import {
   type StepCompletionInput,
   type StepUploadDef,
 } from '@/lib/caseStepRequirements'
+import { scheduleCaseStepAutoNotify } from '@/lib/caseStepAutoNotify'
 import {
   findCaseStepForDocument,
   getCaseStepRequirement,
@@ -713,6 +714,7 @@ export function createCase(input: CreateCaseInput): Case {
   syncClientFromCases(client.id)
   markCaseDirty(created.id)
   emit()
+  scheduleCaseStepAutoNotify(created, created.currentStepId)
   return created
 }
 
@@ -783,6 +785,9 @@ export function updateCase(
     markCaseDirty(updated.id)
     syncClientFromCases(updated.clientId)
     emit()
+    if (updated.currentStepId !== existing.currentStepId) {
+      scheduleCaseStepAutoNotify(updated, updated.currentStepId)
+    }
   }
   return updated
 }
@@ -982,9 +987,10 @@ export function completeCurrentStep(
     departureDate: departureFromFields || item.departureDate,
   })
 
-  return updated
-    ? { ok: true, case: updated }
-    : { ok: false, errors: { form: 'Could not complete step.' } }
+  if (!updated) {
+    return { ok: false, errors: { form: 'Could not complete step.' } }
+  }
+  return { ok: true, case: updated }
 }
 
 export type RecordCaseDocumentInput = {

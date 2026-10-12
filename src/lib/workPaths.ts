@@ -8,6 +8,7 @@ type ServiceRecordRef = {
 export type SettingsSectionParam =
   | 'business'
   | 'clientFields'
+  | 'smsTemplates'
   | 'services'
   | 'servicesV2'
   | 'userAccess'

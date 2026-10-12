@@ -1089,6 +1089,8 @@ export default function ClientDetailPage() {
                 label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
                 content: (
                   <div className="pd-client-detail__overview">
+                    <ClientActionItems clientId={client.id} />
+
                     <section className="pd-client-detail__section pd-client-detail__section--compact">
                       <div className="pd-client-detail__section-head">
                         <SectionTitle icon={Contact}>Profile Information</SectionTitle>
@@ -1155,8 +1157,6 @@ export default function ClientDetailPage() {
                         </div>
                       </dl>
                     </section>
-
-                    <ClientActionItems clientId={client.id} />
 
                     <Accordion
                       className="pd-accordion--cards pd-client-detail__services-accordion"

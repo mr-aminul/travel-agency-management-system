@@ -30,6 +30,8 @@ export type StepFlowNodeData = {
   documents: StepNestedDocument[]
   branchCount: number
   branchExits: StepBranchExit[]
+  autoNotifySms?: boolean
+  autoNotifyEmail?: boolean
 }
 
 export type BranchTipFlowNodeData = {
@@ -199,6 +201,8 @@ export function buildServiceFlowGraph({
         })),
         branchCount: branchSlots.length,
         branchExits,
+        ...(step.autoNotify?.sms ? { autoNotifySms: true } : {}),
+        ...(step.autoNotify?.email ? { autoNotifyEmail: true } : {}),
       },
     })
 

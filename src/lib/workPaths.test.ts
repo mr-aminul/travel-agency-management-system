@@ -39,6 +39,9 @@ describe('settings and catalog paths', () => {
   it('puts the catalog under settings, not the queue', () => {
     expect(settingsSectionPath()).toBe('/settings')
     expect(settingsSectionPath('business')).toBe('/settings')
+    expect(settingsSectionPath('smsTemplates')).toBe(
+      '/settings?section=smsTemplates',
+    )
     expect(serviceCatalogPath()).toBe('/settings?section=services')
     expect(serviceCatalogPathV2()).toBe('/settings?section=servicesV2')
     expect(settingsSectionPath('userAccess')).toBe(
