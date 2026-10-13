@@ -39,7 +39,7 @@ const asOf = new Date(2026, 9, 5)
 const clients: Client[] = [
   {
     id: 'c-1',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Nadia',
     phone: '01711111111',
     subAgentId: 'p-1',
@@ -51,7 +51,7 @@ const clients: Client[] = [
   },
   {
     id: 'c-2',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Rafi',
     phone: '01722222222',
     subAgentId: 'p-1',
@@ -63,7 +63,7 @@ const clients: Client[] = [
   },
   {
     id: 'c-3',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Lina',
     phone: '01733333333',
     subAgentId: 'p-2',
@@ -78,7 +78,7 @@ const clients: Client[] = [
 const cases: Case[] = [
   {
     id: 'case-open',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-1',
     clientId: 'c-1',
     clientName: 'Nadia',
@@ -117,7 +117,7 @@ const cases: Case[] = [
   },
   {
     id: 'case-hold',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-3',
     clientId: 'c-2',
     clientName: 'Rafi',
@@ -146,7 +146,7 @@ const cases: Case[] = [
   },
   {
     id: 'case-done',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-2',
     clientId: 'c-3',
     clientName: 'Lina',
@@ -167,7 +167,7 @@ const cases: Case[] = [
 const payments: Payment[] = [
   {
     id: 'pay-old',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     clientId: 'c-3',
     caseId: 'case-done',
     amount: 50000,
@@ -176,7 +176,7 @@ const payments: Payment[] = [
   },
   {
     id: 'pay-recent',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     clientId: 'c-1',
     caseId: 'case-open',
     amount: 5000,
@@ -188,7 +188,7 @@ const payments: Payment[] = [
 const requests: StatusUpdateRequest[] = [
   {
     id: 'req-1',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     subAgentId: 'p-1',
     clientId: 'c-1',
     caseId: 'case-open',
@@ -199,7 +199,7 @@ const requests: StatusUpdateRequest[] = [
   },
   {
     id: 'req-old',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     subAgentId: 'p-1',
     clientId: 'c-1',
     caseId: 'case-open',
@@ -213,7 +213,7 @@ const requests: StatusUpdateRequest[] = [
 const subAgents: SubAgent[] = [
   {
     id: 'p-1',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Gulf Link',
     phone: '01800000000',
     status: 'Active',
@@ -221,7 +221,7 @@ const subAgents: SubAgent[] = [
   },
   {
     id: 'p-2',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'City Desk',
     phone: '01811111111',
     status: 'Active',
@@ -232,7 +232,7 @@ const subAgents: SubAgent[] = [
 const employees: Employee[] = [
   {
     id: 'emp-1',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Ayesha',
     phone: '01900000000',
     department: 'Ops',

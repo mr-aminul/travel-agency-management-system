@@ -62,6 +62,202 @@
   margin-top: 0.25rem;
 }
 
+.pd-admin__plan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.pd-admin__plan-now {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.pd-admin__plan-now-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-theme) 12%, transparent);
+  color: var(--color-theme-ink, var(--color-theme));
+}
+
+.pd-admin__plan-now-name {
+  margin: 0;
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.pd-admin__plan-choose-label {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-sec);
+}
+
+.pd-admin__plan-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+
+.pd-admin__plan-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--color-text) 3%, var(--color-surface, #fff));
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pd-admin__plan-tile-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.pd-admin__plan-tile:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-theme) 45%, var(--color-border));
+}
+
+.pd-admin__plan-tile.is-selected {
+  border-color: var(--color-theme);
+  background: color-mix(in srgb, var(--color-theme) 12%, var(--color-surface, #fff));
+}
+
+.pd-admin__plan-tile.is-live:not(.is-selected) {
+  box-shadow: inset 2px 0 0 var(--color-theme);
+}
+
+.pd-admin__plan-tile:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pd-admin__plan-tile-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.pd-admin__plan-tile-price {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-sec);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-admin__plan-tile.is-selected .pd-admin__plan-tile-price {
+  color: color-mix(in srgb, var(--color-theme-ink, var(--color-theme)) 70%, var(--color-text-sec));
+}
+
+.pd-admin__plan-bill {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.pd-admin__plan-ops {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.pd-admin__plan-ops-btn.pd-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.pd-admin__plan-ops-btn .pd-btn__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pd-admin__plan-ops-btn--bill.pd-btn {
+  background: #0f6e56;
+  border-color: #0f6e56;
+  color: #fff;
+}
+
+.pd-admin__plan-ops-btn--bill.pd-btn:hover:not(:disabled) {
+  background: #0b5a46;
+  border-color: #0b5a46;
+  color: #fff;
+}
+
+.pd-admin__plan-ops-btn--trial.pd-btn {
+  background: #185fa5;
+  border-color: #185fa5;
+  color: #fff;
+}
+
+.pd-admin__plan-ops-btn--trial.pd-btn:hover:not(:disabled) {
+  background: #0f4d8a;
+  border-color: #0f4d8a;
+  color: #fff;
+}
+
+.pd-admin__plan-ops-btn--activate.pd-btn {
+  background: var(--color-theme);
+  border-color: var(--color-theme);
+  color: var(--color-on-theme, #fff);
+}
+
+.pd-admin__plan-ops-btn--activate.pd-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-theme) 88%, black);
+  border-color: color-mix(in srgb, var(--color-theme) 88%, black);
+  color: var(--color-on-theme, #fff);
+}
+
+.pd-admin__billing-card-pending {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pd-admin__billing-card-pending li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--color-text-sec);
+}
+
+.pd-admin__billing-card-pending li > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .pd-admin__detail-tabs {
   position: sticky;
   top: var(--pd-sticky-topbar, 0);

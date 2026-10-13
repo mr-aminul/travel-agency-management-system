@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import {
-  DEMO_USER,
-  LEISURE_USER,
-  clearSession,
-  writeSession,
-} from '@/lib/authApi'
+import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import {
   createDocumentTemplate,
   deleteDocumentTemplate,
@@ -16,31 +11,32 @@ import {
 } from '@/lib/documentTemplatesStore'
 import { embassyHeaderRows } from '@/types/documentTemplate'
 import { TENANT_IDS } from '@/types/tenant'
+import {
+  createTenant,
+  resetTenantEntitlements,
+} from '@/lib/tenantsStore'
 
 afterEach(() => {
   clearSession()
   resetDocumentTemplates()
+  resetTenantEntitlements()
 })
 
-function asLeisure() {
+function asTenant(tenantId: string) {
   writeSession({
-    user: LEISURE_USER,
-    tenantId: TENANT_IDS.leisure,
+    user: DEMO_USER,
+    tenantId,
     signedInAt: '2026-01-01T00:00:00.000Z',
   })
 }
 
-function asFull() {
-  writeSession({
-    user: DEMO_USER,
-    tenantId: TENANT_IDS.full,
-    signedInAt: '2026-01-01T00:00:00.000Z',
-  })
+function asDemo() {
+  asTenant(TENANT_IDS.demo)
 }
 
 describe('document print templates', () => {
   it('seeds embassy and manpower print formats', () => {
-    asFull()
+    asDemo()
     const names = listDocumentTemplates().map((item) => item.name)
     expect(names).toEqual(
       expect.arrayContaining([
@@ -58,13 +54,13 @@ describe('document print templates', () => {
   })
 
   it('rejects duplicate names in the same agency', () => {
-    asFull()
+    asDemo()
     expect(validateDocumentTemplateName('Embassy List')).toMatch(/already have/)
     expect(validateDocumentTemplateName('  ')).toMatch(/name/)
   })
 
   it('creates, updates, and deletes a print template', () => {
-    asFull()
+    asDemo()
     const created = createDocumentTemplate({
       name: 'Mofa list',
       group: 'Embassy',
@@ -94,7 +90,7 @@ describe('document print templates', () => {
   })
 
   it('keeps templates isolated between agencies', () => {
-    asFull()
+    asDemo()
     createDocumentTemplate({
       name: 'Custom forwarding letter',
       group: 'Manpower',
@@ -106,7 +102,8 @@ describe('document print templates', () => {
       letterIntro: 'Please find attached.',
     })
 
-    asLeisure()
+    const other = createTenant({ name: 'Other Print Agency' })
+    asTenant(other.id)
     expect(
       listDocumentTemplates().some(
         (item) => item.name === 'Custom forwarding letter',

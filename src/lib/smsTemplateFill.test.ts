@@ -5,7 +5,7 @@ import { TENANT_IDS } from '@/types/tenant'
 
 const client: Client = {
   id: 'c-1001',
-  tenantId: TENANT_IDS.full,
+  tenantId: TENANT_IDS.demo,
   name: 'Rahim Uddin',
   phone: '01712345678',
   passport: 'A12345678',

@@ -28,7 +28,7 @@ describe('persisted public client intake', () => {
         idChecked: true,
         subAgentId: 'AGT-T0001',
       },
-      { tenantId: TENANT_IDS.full },
+      { tenantId: TENANT_IDS.demo },
     )
 
     const persisted = localStorage.getItem('pd-clients-created')
@@ -41,7 +41,7 @@ describe('persisted public client intake', () => {
 
     writeSession({
       user: DEMO_USER,
-      tenantId: TENANT_IDS.full,
+      tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
 
@@ -54,7 +54,7 @@ describe('persisted public client intake', () => {
   it('keeps tenant custom field values after a reload', () => {
     writeSession({
       user: DEMO_USER,
-      tenantId: TENANT_IDS.full,
+      tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     const created = createClient({

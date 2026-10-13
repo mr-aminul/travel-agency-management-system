@@ -316,7 +316,7 @@ export async function listTenantBillingSummaries() {
 }
 
 export async function bootstrapDemoTenantBilling() {
-  const seedIds = ['tenant-leisure', 'tenant-manpower', 'tenant-full']
+  const seedIds = ['tenant-full']
   // Prefer known TENANT_IDS from SPA; also accept slug-based launch ids.
   const candidates = new Set(seedIds)
   try {

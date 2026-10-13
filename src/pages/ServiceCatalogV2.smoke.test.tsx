@@ -25,7 +25,7 @@ describe('service catalog v2 smoke', () => {
   it('renders the v2 catalog list', async () => {
     writeSession({
       user: DEMO_USER,
-      tenantId: TENANT_IDS.full,
+      tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     render(
@@ -46,7 +46,7 @@ describe('service catalog v2 smoke', () => {
   it('opens the flow editor without crashing', async () => {
     writeSession({
       user: DEMO_USER,
-      tenantId: TENANT_IDS.full,
+      tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     render(

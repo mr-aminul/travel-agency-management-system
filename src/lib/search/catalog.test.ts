@@ -7,7 +7,7 @@ import { buildSearchCatalog } from './catalog'
 
 const rahim: Client = {
   id: 'c-284',
-  tenantId: TENANT_IDS.full,
+  tenantId: TENANT_IDS.demo,
   name: 'Md. Rahim Uddin',
   phone: '01712345678',
   passport: 'A12345678',
@@ -20,7 +20,7 @@ const rahim: Client = {
 
 const workFile = {
   id: 'case-101',
-  tenantId: TENANT_IDS.full,
+  tenantId: TENANT_IDS.demo,
   caseId: 'SR-00101',
   clientId: 'c-284',
   clientName: 'Md. Rahim Uddin',

@@ -337,9 +337,7 @@ function sheet(
 
 function buildSeeds(): DocumentTemplate[] {
   return [
-    ...seedForTenant(TENANT_IDS.full, 'T'),
-    ...seedForTenant(TENANT_IDS.manpower, 'M'),
-    ...seedForTenant(TENANT_IDS.leisure, 'L'),
+    ...seedForTenant(TENANT_IDS.demo, 'T'),
   ]
 }
 

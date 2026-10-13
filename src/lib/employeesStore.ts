@@ -17,7 +17,7 @@ const STORAGE_KEY = DATA_KEYS.employeesCreated
 const SEED_EMPLOYEES: Employee[] = [
   {
     id: 'EMP-7001',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Md. Karim Ahmed',
     phone: '01711234567',
     department: 'Recruitment',
@@ -28,7 +28,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-7002',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Lima Chowdhury',
     phone: '01713445566',
     department: 'Accounts',
@@ -39,7 +39,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-7003',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Sajid Hasan',
     phone: '01819667788',
     department: 'HR',
@@ -50,7 +50,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-7004',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Tahmina Akter',
     phone: '01611882233',
     department: 'Student Services',
@@ -61,7 +61,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-7005',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Rashidul Islam',
     phone: '01913556677',
     department: 'Hajj & Umrah',
@@ -72,7 +72,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-7006',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Mehnaz Sultana',
     phone: '01552339876',
     department: 'Leisure',
@@ -83,7 +83,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-7007',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Farzana Islam',
     phone: '01722990011',
     department: 'Ticketing',
@@ -94,7 +94,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-7008',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Mahmudul Hasan',
     phone: '01817004455',
     department: 'Recruitment',
@@ -105,7 +105,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-7009',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Anwar Hossain',
     phone: '01798881234',
     department: 'Operations',
@@ -116,7 +116,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-M001',
-    tenantId: TENANT_IDS.manpower,
+    tenantId: TENANT_IDS.demo,
     name: 'Rafiqul Islam',
     phone: '01715443322',
     department: 'Recruitment',
@@ -127,7 +127,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-M002',
-    tenantId: TENANT_IDS.manpower,
+    tenantId: TENANT_IDS.demo,
     name: 'Sharmin Akter',
     phone: '01819227744',
     department: 'Recruitment',
@@ -138,7 +138,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-M003',
-    tenantId: TENANT_IDS.manpower,
+    tenantId: TENANT_IDS.demo,
     name: 'Kamrul Hasan',
     phone: '01614778899',
     department: 'Accounts',
@@ -149,7 +149,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-L001',
-    tenantId: TENANT_IDS.leisure,
+    tenantId: TENANT_IDS.demo,
     name: 'Farzana Rahman',
     phone: '01718889900',
     department: 'Leisure',
@@ -160,7 +160,7 @@ const SEED_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP-L002',
-    tenantId: TENANT_IDS.leisure,
+    tenantId: TENANT_IDS.demo,
     name: 'Imran Chowdhury',
     phone: '01911223344',
     department: 'Ticketing',

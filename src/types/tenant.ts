@@ -79,10 +79,9 @@ export type UpdateTenantMemberInput = {
   status?: TenantMemberStatus
 }
 
+/** Single fully furnished demo / launch agency (ABC Travel Agency). */
 export const TENANT_IDS = {
-  leisure: 'tenant-leisure',
-  manpower: 'tenant-manpower',
-  full: 'tenant-full',
+  demo: 'tenant-full',
 } as const
 
-export const DEFAULT_TENANT_ID = TENANT_IDS.full
+export const DEFAULT_TENANT_ID = TENANT_IDS.demo

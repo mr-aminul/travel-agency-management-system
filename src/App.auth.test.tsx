@@ -100,7 +100,7 @@ describe('auth route guards', () => {
 
     fireEvent.change(
       await screen.findByRole('textbox', { name: /email/i }, { timeout: 5000 }),
-      { target: { value: 'ops@onetrack.bd' } },
+      { target: { value: 'demo@abctravel.com' } },
     )
     fireEvent.change(screen.getByLabelText(/^password$/i), {
       target: { value: SEED_AGENCY_PASSWORD },

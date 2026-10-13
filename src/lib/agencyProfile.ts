@@ -27,25 +27,11 @@ export const DEFAULT_AGENCY_PROFILE: AgencyProfile = {
 }
 
 export const TENANT_DEFAULT_PROFILES: Record<string, AgencyProfile> = {
-  [TENANT_IDS.leisure]: {
-    businessName: 'Coastal Leisure',
-    address: 'House 24, Road 11, Block E, Banani, Dhaka 1213',
-    mobile: '01713 882 190',
-    website: 'https://www.coastalleisure.com',
-    profilePicture: null,
-  },
-  [TENANT_IDS.manpower]: {
-    businessName: 'Horizon Manpower',
-    address: 'Suite 5B, 88 Motijheel Commercial Area, Dhaka 1000',
-    mobile: '01816 445 773',
-    website: 'https://www.horizonmanpower.com',
-    profilePicture: null,
-  },
-  [TENANT_IDS.full]: {
-    businessName: 'OneTrack',
+  [TENANT_IDS.demo]: {
+    businessName: 'ABC Travel Agency',
     address: 'Level 4, Plot 11, Road 17, Gulshan 1, Dhaka 1212',
     mobile: '01670 221 884',
-    website: 'https://www.onetrack.app',
+    website: 'https://www.abctravel.demo',
     profilePicture: null,
   },
 }

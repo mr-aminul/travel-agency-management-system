@@ -1,9 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import {
-  COASTAL_OWNER_USER,
-  HORIZON_OWNER_USER,
-  ONETRACK_OWNER_USER,
-} from '@/lib/authApi'
+import { ABC_OWNER_USER } from '@/lib/authApi'
 import { staffMemberCreateErrors } from '@/lib/agencyUserRules'
 import {
   DATA_KEYS,
@@ -26,74 +22,26 @@ type Listener = () => void
 
 const SEED_MEMBERS: TenantMember[] = [
   {
-    id: 'member-leisure-owner',
-    tenantId: TENANT_IDS.leisure,
-    name: COASTAL_OWNER_USER.name,
-    email: COASTAL_OWNER_USER.email,
+    id: 'member-abc-owner',
+    tenantId: TENANT_IDS.demo,
+    name: ABC_OWNER_USER.name,
+    email: ABC_OWNER_USER.email,
     role: 'owner',
     status: 'active',
   },
   {
-    id: 'member-leisure-manager',
-    tenantId: TENANT_IDS.leisure,
-    name: 'Farzana Rahman',
-    email: 'farzana@coastalleisure.com',
-    role: 'manager',
-    status: 'active',
-  },
-  {
-    id: 'member-leisure-staff',
-    tenantId: TENANT_IDS.leisure,
-    name: 'Imran Chowdhury',
-    email: 'imran@coastalleisure.com',
-    role: 'staff',
-    status: 'invited',
-  },
-  {
-    id: 'member-manpower-owner',
-    tenantId: TENANT_IDS.manpower,
-    name: HORIZON_OWNER_USER.name,
-    email: HORIZON_OWNER_USER.email,
-    role: 'owner',
-    status: 'active',
-  },
-  {
-    id: 'member-manpower-manager',
-    tenantId: TENANT_IDS.manpower,
-    name: 'Nadia Sultana',
-    email: 'nadia@horizonmanpower.com',
-    role: 'manager',
-    status: 'active',
-  },
-  {
-    id: 'member-manpower-staff',
-    tenantId: TENANT_IDS.manpower,
-    name: 'Rafiq Hasan',
-    email: 'rafiq@horizonmanpower.com',
-    role: 'staff',
-    status: 'disabled',
-  },
-  {
-    id: 'member-full-owner',
-    tenantId: TENANT_IDS.full,
-    name: ONETRACK_OWNER_USER.name,
-    email: ONETRACK_OWNER_USER.email,
-    role: 'owner',
-    status: 'active',
-  },
-  {
-    id: 'member-full-manager',
-    tenantId: TENANT_IDS.full,
+    id: 'member-abc-manager',
+    tenantId: TENANT_IDS.demo,
     name: 'Shila Akter',
-    email: 'shila@onetrack.bd',
+    email: 'shila@abctravel.com',
     role: 'manager',
     status: 'active',
   },
   {
-    id: 'member-full-staff',
-    tenantId: TENANT_IDS.full,
+    id: 'member-abc-staff',
+    tenantId: TENANT_IDS.demo,
     name: 'Tanvir Ahmed',
-    email: 'tanvir@onetrack.bd',
+    email: 'tanvir@abctravel.com',
     role: 'staff',
     status: 'active',
   },

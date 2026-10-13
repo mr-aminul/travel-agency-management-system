@@ -23,7 +23,7 @@ const STORAGE_KEY = DATA_KEYS.paymentsCreated
 const SEED_PAYMENTS: Payment[] = [
   {
     id: 'pay-1',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     clientId: 'c-284',
     caseId: 'case-101',
     amount: 15000,
@@ -33,7 +33,7 @@ const SEED_PAYMENTS: Payment[] = [
   },
   {
     id: 'pay-2',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     clientId: 'c-291',
     caseId: 'case-103',
     amount: 50000,
@@ -43,7 +43,7 @@ const SEED_PAYMENTS: Payment[] = [
   },
   {
     id: 'pay-3',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     clientId: 'c-315',
     caseId: 'case-104',
     amount: 25000,
@@ -53,23 +53,13 @@ const SEED_PAYMENTS: Payment[] = [
   },
   {
     id: 'pay-l-1',
-    tenantId: TENANT_IDS.leisure,
-    clientId: 'c-l-328',
+    tenantId: TENANT_IDS.demo,
+    clientId: 'c-328',
     caseId: 'case-l-105',
     amount: 5000,
     method: 'bKash',
     note: 'Leisure package deposit',
     createdAt: '2026-03-06',
-  },
-  {
-    id: 'pay-m-1',
-    tenantId: TENANT_IDS.manpower,
-    clientId: 'c-m-284',
-    caseId: 'case-m-101',
-    amount: 15000,
-    method: 'Bank transfer',
-    note: 'Partial package deposit',
-    createdAt: '2026-07-10',
   },
 ]
 

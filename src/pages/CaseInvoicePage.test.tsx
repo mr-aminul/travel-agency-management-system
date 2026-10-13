@@ -16,7 +16,7 @@ afterEach(() => {
 function renderInvoice(path: string) {
   writeSession({
     user: DEMO_USER,
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     signedInAt: '2026-01-01T00:00:00.000Z',
   })
   return render(
@@ -48,8 +48,8 @@ describe('case invoice page', () => {
       screen.getByText('Level 4, Plot 11, Road 17, Gulshan 1, Dhaka 1212'),
     ).toBeInTheDocument()
     expect(screen.getByText('01670 221 884')).toBeInTheDocument()
-    expect(screen.getByText('www.onetrack.app')).toBeInTheDocument()
-    expect(screen.queryByText('https://www.onetrack.app')).not.toBeInTheDocument()
+    expect(screen.getByText('www.abctravel.demo')).toBeInTheDocument()
+    expect(screen.queryByText('https://www.abctravel.demo')).not.toBeInTheDocument()
     expect(screen.getByText('Md. Rahim Uddin')).toBeInTheDocument()
     expect(screen.queryByText('Service')).not.toBeInTheDocument()
     expect(screen.getByText('Partial package deposit')).toBeInTheDocument()
@@ -69,7 +69,7 @@ describe('case invoice page', () => {
 
     const logo = document.querySelector('.pd-invoice__logo')
     expect(logo).toHaveAttribute('src', expect.stringContaining('images/logo.svg'))
-    expect(screen.getByText('OneTrack')).toBeInTheDocument()
+    expect(screen.getByText('ABC Travel Agency')).toBeInTheDocument()
   })
 
   it('blocks share when business profile contact details are missing', () => {

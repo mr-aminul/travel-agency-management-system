@@ -65,7 +65,7 @@ describe('public client intake', () => {
 
     writeSession({
       user: DEMO_USER,
-      tenantId: TENANT_IDS.full,
+      tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     const created = getClientByPhone('01822223333')
@@ -74,7 +74,7 @@ describe('public client intake', () => {
   })
 
   it('lets anyone submit a profile that lands as an agency client', () => {
-    renderAgencyIntake('onetrack')
+    renderAgencyIntake('abc-travel')
 
     expect(
       screen.getByRole('heading', { name: 'Create your profile' }),
@@ -94,20 +94,20 @@ describe('public client intake', () => {
 
     writeSession({
       user: DEMO_USER,
-      tenantId: TENANT_IDS.full,
+      tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     const created = getClientByPhone('01844445555')
     expect(created?.name).toBe('Direct Client')
     expect(created?.subAgentId).toBeUndefined()
-    expect(created?.tenantId).toBe(TENANT_IDS.full)
+    expect(created?.tenantId).toBe(TENANT_IDS.demo)
   })
 
   it('still accepts legacy agency links that used the internal tenant id', () => {
     clearSession()
     render(
       <AuthProvider>
-        <MemoryRouter initialEntries={[`/join/direct/${TENANT_IDS.full}`]}>
+        <MemoryRouter initialEntries={[`/join/direct/${TENANT_IDS.demo}`]}>
           <Routes>
             <Route
               path="/join/direct/:tenantSlug"

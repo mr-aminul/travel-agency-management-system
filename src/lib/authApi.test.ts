@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
-  COASTAL_OWNER_USER,
+  ABC_OWNER_USER,
   DEMO_USER,
   PLATFORM_ADMIN_USER,
   SEED_AGENCY_PASSWORD,
@@ -64,11 +64,11 @@ describe('authApi session', () => {
 
   it('signs in a seeded agency owner', async () => {
     const session = await signInWithPassword(
-      'ops@coastalleisure.com',
+      'demo@abctravel.com',
       SEED_AGENCY_PASSWORD,
     )
-    expect(session.tenantId).toBe(TENANT_IDS.leisure)
-    expect(session.user.email).toBe('ops@coastalleisure.com')
+    expect(session.tenantId).toBe(TENANT_IDS.demo)
+    expect(session.user.email).toBe('demo@abctravel.com')
     expect(session.user.role).toBe('agency_user')
   })
 
@@ -85,7 +85,7 @@ describe('authApi session', () => {
   })
 
   it('clears session on sign out', async () => {
-    await signInWithPassword('ops@onetrack.bd', SEED_AGENCY_PASSWORD)
+    await signInWithPassword('demo@abctravel.com', SEED_AGENCY_PASSWORD)
     await signOut()
     expect(isSignedIn()).toBe(false)
     expect(readSession()).toBeNull()
@@ -127,16 +127,16 @@ describe('authApi session', () => {
       SEED_PLATFORM_ADMIN_PASSWORD,
     )
     const viewing = await startViewAsUser({
-      userId: COASTAL_OWNER_USER.id,
-      email: COASTAL_OWNER_USER.email,
-      name: COASTAL_OWNER_USER.name,
+      userId: ABC_OWNER_USER.id,
+      email: ABC_OWNER_USER.email,
+      name: ABC_OWNER_USER.name,
       role: 'agency_user',
-      tenantId: TENANT_IDS.leisure,
+      tenantId: TENANT_IDS.demo,
     })
     expect(isViewingAsSession(viewing)).toBe(true)
-    expect(viewing.user.email).toBe(COASTAL_OWNER_USER.email)
+    expect(viewing.user.email).toBe(ABC_OWNER_USER.email)
     expect(viewing.user.role).toBe('agency_user')
-    expect(viewing.tenantId).toBe(TENANT_IDS.leisure)
+    expect(viewing.tenantId).toBe(TENANT_IDS.demo)
     expect(sessionActor(viewing)?.email).toBe(PLATFORM_ADMIN_USER.email)
 
     const restored = await stopViewAsUser()
@@ -146,14 +146,14 @@ describe('authApi session', () => {
   })
 
   it('rejects View as user for non-admin sessions', async () => {
-    await signInWithPassword('ops@coastalleisure.com', SEED_AGENCY_PASSWORD)
+    await signInWithPassword('demo@abctravel.com', SEED_AGENCY_PASSWORD)
     await expect(
       startViewAsUser({
         userId: DEMO_USER.id,
         email: DEMO_USER.email,
         name: DEMO_USER.name,
         role: 'agency_user',
-        tenantId: TENANT_IDS.full,
+        tenantId: TENANT_IDS.demo,
       }),
     ).rejects.toThrow(/platform admin/i)
   })

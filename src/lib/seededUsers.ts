@@ -1,4 +1,4 @@
-import { DEFAULT_TENANT_ID, TENANT_IDS, type UserRole } from '@/types/tenant'
+import { DEFAULT_TENANT_ID, type UserRole } from '@/types/tenant'
 
 export type SeededAuthUser = {
   id: string
@@ -25,24 +25,11 @@ export const PLATFORM_ADMIN_USER: SeededAuthUser = {
   role: 'platform_admin',
 }
 
-export const COASTAL_OWNER_USER: SeededAuthUser = {
-  id: 'user-coastal-owner',
-  email: 'ops@coastalleisure.com',
-  name: 'Coastal Leisure',
-  role: 'agency_user',
-}
-
-export const HORIZON_OWNER_USER: SeededAuthUser = {
-  id: 'user-horizon-owner',
-  email: 'ops@horizonmanpower.com',
-  name: 'Horizon Manpower',
-  role: 'agency_user',
-}
-
-export const ONETRACK_OWNER_USER: SeededAuthUser = {
-  id: 'user-onetrack-owner',
-  email: 'ops@onetrack.bd',
-  name: 'OneTrack Agency',
+/** Demo agency owner — fully furnished ABC Travel Agency workspace. */
+export const ABC_OWNER_USER: SeededAuthUser = {
+  id: 'user-abc-owner',
+  email: 'demo@abctravel.com',
+  name: 'ABC Travel Agency',
   role: 'agency_user',
 }
 
@@ -69,18 +56,8 @@ export const SEEDED_LOGIN_ACCOUNTS: SeededLoginAccount[] = [
     passwordHash: PLATFORM_ADMIN_PASSWORD_HASH,
   },
   {
-    user: COASTAL_OWNER_USER,
-    tenantId: TENANT_IDS.leisure,
-    passwordHash: AGENCY_PASSWORD_HASH,
-  },
-  {
-    user: HORIZON_OWNER_USER,
-    tenantId: TENANT_IDS.manpower,
-    passwordHash: AGENCY_PASSWORD_HASH,
-  },
-  {
-    user: ONETRACK_OWNER_USER,
-    tenantId: TENANT_IDS.full,
+    user: ABC_OWNER_USER,
+    tenantId: DEFAULT_TENANT_ID,
     passwordHash: AGENCY_PASSWORD_HASH,
   },
 ]

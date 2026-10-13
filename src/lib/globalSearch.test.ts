@@ -6,7 +6,7 @@ import { TENANT_IDS } from '@/types/tenant'
 
 const rahim: Client = {
   id: 'c-284',
-  tenantId: TENANT_IDS.full,
+  tenantId: TENANT_IDS.demo,
   name: 'Md. Rahim Uddin',
   phone: '01712345678',
   nid: '1990123456789',
@@ -20,7 +20,7 @@ const rahim: Client = {
 
 const farhana: Client = {
   id: 'c-291',
-  tenantId: TENANT_IDS.full,
+  tenantId: TENANT_IDS.demo,
   name: 'Farhana Akter',
   phone: '01819221100',
   passport: 'B98765432',
@@ -33,7 +33,7 @@ const farhana: Client = {
 
 const rakib: SubAgent = {
   id: 'AGT-T0001',
-  tenantId: TENANT_IDS.full,
+  tenantId: TENANT_IDS.demo,
   name: 'Rakib Travels',
   phone: '01700001111',
   licenseNumber: 'RL-1001',

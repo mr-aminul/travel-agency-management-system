@@ -6,7 +6,7 @@ import {
   verifyProvisionedLogin,
 } from '@/lib/provisionedUsers'
 import {
-  ONETRACK_OWNER_USER,
+  ABC_OWNER_USER,
   asUserRole,
   findSeededAccountByEmail,
   type SeededAuthUser,
@@ -19,31 +19,13 @@ export type AuthUser = SeededAuthUser
 export {
   PLATFORM_ADMIN_EMAIL,
   PLATFORM_ADMIN_USER,
-  COASTAL_OWNER_USER,
-  HORIZON_OWNER_USER,
-  ONETRACK_OWNER_USER,
+  ABC_OWNER_USER,
   SEED_AGENCY_PASSWORD,
   SEED_PLATFORM_ADMIN_PASSWORD,
 } from '@/lib/seededUsers'
 
-/** Primary agency user used by tests and seed stores. */
-export const DEMO_USER: AuthUser = ONETRACK_OWNER_USER
-
-/** @deprecated Use COASTAL_OWNER_USER */
-export const LEISURE_USER: AuthUser = {
-  id: 'user-coastal-owner',
-  email: 'ops@coastalleisure.com',
-  name: 'Coastal Leisure',
-  role: 'agency_user',
-}
-
-/** @deprecated Use HORIZON_OWNER_USER */
-export const MANPOWER_USER: AuthUser = {
-  id: 'user-horizon-owner',
-  email: 'ops@horizonmanpower.com',
-  name: 'Horizon Manpower',
-  role: 'agency_user',
-}
+/** Primary agency user used by tests and seed stores (ABC Travel Agency demo). */
+export const DEMO_USER: AuthUser = ABC_OWNER_USER
 
 const AUTH_SESSION_KEY = 'pd-auth-session'
 const LEGACY_AUTH_KEY = 'pd-demo-auth'

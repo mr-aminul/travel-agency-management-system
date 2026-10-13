@@ -40,35 +40,9 @@ export const DEFAULT_STARTER_MODULES: ModuleId[] = []
 
 const SEED_TENANTS: Tenant[] = [
   {
-    id: TENANT_IDS.leisure,
-    slug: 'coastal-leisure',
-    name: 'Coastal Leisure',
-    status: 'active',
-    enabledModules: [
-      'services.tourPackage',
-      'services.airTicket',
-      'services.hotelBooking',
-      'services.touristVisa',
-      'finance',
-    ],
-  },
-  {
-    id: TENANT_IDS.manpower,
-    slug: 'horizon-manpower',
-    name: 'Horizon Manpower',
-    status: 'active',
-    enabledModules: [
-      'services.workPermitVisa',
-      'services.medicalVisa',
-      'finance',
-      'hr',
-      'subAgents',
-    ],
-  },
-  {
-    id: TENANT_IDS.full,
-    slug: 'onetrack',
-    name: 'OneTrack',
+    id: TENANT_IDS.demo,
+    slug: 'abc-travel',
+    name: 'ABC Travel Agency',
     status: 'active',
     enabledModules: [...ALL_MODULE_IDS],
   },

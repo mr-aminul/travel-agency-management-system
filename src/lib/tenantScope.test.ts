@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import {
-  LEISURE_USER,
-  MANPOWER_USER,
-  clearSession,
-  writeSession,
-} from '@/lib/authApi'
+import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import {
   createClient,
   getClientById,
@@ -13,7 +8,11 @@ import {
 } from '@/lib/clientsStore'
 import { createCase, getCaseById } from '@/lib/casesStore'
 import { TENANT_IDS } from '@/types/tenant'
-import { resetTenantEntitlements } from '@/lib/tenantsStore'
+import {
+  createTenant,
+  resetTenantEntitlements,
+  setTenantModuleEnabled,
+} from '@/lib/tenantsStore'
 import { resetCustomServices } from '@/lib/customServicesStore'
 import { resetClientProfileFields } from '@/lib/clientProfileFieldsStore'
 
@@ -25,40 +24,49 @@ afterEach(() => {
   resetClients()
 })
 
-function asLeisure() {
+function asTenant(tenantId: string) {
   writeSession({
-    user: LEISURE_USER,
-    tenantId: TENANT_IDS.leisure,
-    signedInAt: '2026-01-01T00:00:00.000Z',
-  })
-}
-
-function asManpower() {
-  writeSession({
-    user: MANPOWER_USER,
-    tenantId: TENANT_IDS.manpower,
+    user: DEMO_USER,
+    tenantId,
     signedInAt: '2026-01-01T00:00:00.000Z',
   })
 }
 
 describe('tenant-scoped stores', () => {
   it('does not leak clients across tenants', () => {
-    asLeisure()
+    const agencyA = createTenant({
+      name: 'Agency A',
+      enabledModules: ['services.tourPackage', 'finance'],
+    })
+    const agencyB = createTenant({
+      name: 'Agency B',
+      enabledModules: ['services.workPermitVisa', 'finance'],
+    })
+
+    asTenant(agencyA.id)
     const created = createClient({
-      name: 'Only Leisure Client',
+      name: 'Only Agency A Client',
       phone: '01700001111',
       primaryService: 'Tour Package',
       idChecked: true,
     })
-    expect(getClientById(created.id)?.name).toBe('Only Leisure Client')
+    expect(getClientById(created.id)?.name).toBe('Only Agency A Client')
 
-    asManpower()
+    asTenant(agencyB.id)
     expect(getClientById(created.id)).toBeUndefined()
     expect(getClientByPhone('01700001111')).toBeUndefined()
   })
 
   it('rejects a service that the tenant does not have', () => {
-    asLeisure()
+    const leisureOnly = createTenant({
+      name: 'Leisure Only Co',
+      enabledModules: [
+        'services.tourPackage',
+        'services.airTicket',
+        'finance',
+      ],
+    })
+    asTenant(leisureOnly.id)
     const client = createClient({
       name: 'No Manpower',
       phone: '01700002222',
@@ -71,18 +79,21 @@ describe('tenant-scoped stores', () => {
         service: 'Work Permit Visa',
       }),
     ).toThrow(/not enabled/)
-    expect(getCaseById('case-m-101')).toBeUndefined()
   })
 
-  it('shows manpower seed cases only in the manpower tenant', () => {
-    asManpower()
-    expect(getCaseById('case-m-101')?.service).toBe('Work Permit Visa')
-    asLeisure()
-    expect(getCaseById('case-m-101')).toBeUndefined()
+  it('shows demo seed cases in the demo tenant', () => {
+    asTenant(TENANT_IDS.demo)
+    expect(getCaseById('case-101')?.service).toBe('Work Permit Visa')
     expect(getCaseById('case-l-105')?.service).toBe('Tour Package')
   })
 
   it('creates a client under a subAgent tenant from a public intake', () => {
+    const agency = createTenant({
+      name: 'Intake Agency',
+      enabledModules: ['services.workPermitVisa', 'subAgents', 'finance'],
+    })
+    setTenantModuleEnabled(agency.id, 'services.workPermitVisa', true)
+
     clearSession()
     const created = createClient(
       {
@@ -90,16 +101,16 @@ describe('tenant-scoped stores', () => {
         phone: '01811119999',
         primaryService: 'Work Permit Visa',
         idChecked: true,
-        subAgentId: 'AGT-M0001',
+        subAgentId: 'AGT-T0001',
       },
-      { tenantId: TENANT_IDS.manpower },
+      { tenantId: agency.id },
     )
 
-    asManpower()
-    expect(getClientById(created.id)?.subAgentId).toBe('AGT-M0001')
+    asTenant(agency.id)
+    expect(getClientById(created.id)?.subAgentId).toBe('AGT-T0001')
     expect(getClientByPhone('01811119999')?.name).toBe('Public Intake Client')
 
-    asLeisure()
+    asTenant(TENANT_IDS.demo)
     expect(getClientById(created.id)).toBeUndefined()
   })
 })

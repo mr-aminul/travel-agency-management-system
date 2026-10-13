@@ -10,7 +10,7 @@ import { TENANT_IDS } from '@/types/tenant'
 function stubCase(status: Case['status'], id = status): Case {
   return {
     id,
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: `SR-${id}`,
     clientId: 'c-1',
     clientName: 'Test',

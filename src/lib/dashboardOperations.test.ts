@@ -24,7 +24,7 @@ function buildDocument(
 
 function buildCase(overrides: Partial<Case> & Pick<Case, 'id'>): Case {
   return {
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: overrides.id,
     clientId: 'c-1',
     clientName: 'Nadia',
@@ -44,7 +44,7 @@ function buildCase(overrides: Partial<Case> & Pick<Case, 'id'>): Case {
 
 function buildClient(overrides: Partial<Client> & Pick<Client, 'id'>): Client {
   return {
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: overrides.id,
     phone: '01700000000',
     services: [],
@@ -150,7 +150,7 @@ describe('cashFlowByMonth', () => {
     const payments: Payment[] = [
       {
         id: 'p',
-        tenantId: TENANT_IDS.full,
+        tenantId: TENANT_IDS.demo,
         clientId: 'c-1',
         caseId: 'a',
         amount: 15000,

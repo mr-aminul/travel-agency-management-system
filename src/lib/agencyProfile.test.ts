@@ -37,27 +37,20 @@ Object.defineProperty(globalThis, 'window', {
 })
 
 describe('agencyProfile', () => {
-  it('seeds launch workspaces with invoice contact details', () => {
+  it('seeds the demo workspace with invoice contact details', () => {
     store.clear()
-    expect(readAgencyProfile(TENANT_IDS.leisure)).toEqual({
-      businessName: 'Coastal Leisure',
-      address: 'House 24, Road 11, Block E, Banani, Dhaka 1213',
-      mobile: '01713 882 190',
-      website: 'https://www.coastalleisure.com',
-      profilePicture: null,
-    })
-    expect(readAgencyProfile(TENANT_IDS.manpower)).toEqual({
-      businessName: 'Horizon Manpower',
-      address: 'Suite 5B, 88 Motijheel Commercial Area, Dhaka 1000',
-      mobile: '01816 445 773',
-      website: 'https://www.horizonmanpower.com',
+    expect(readAgencyProfile(TENANT_IDS.demo)).toEqual({
+      businessName: 'ABC Travel Agency',
+      address: 'Level 4, Plot 11, Road 17, Gulshan 1, Dhaka 1212',
+      mobile: '01670 221 884',
+      website: 'https://www.abctravel.demo',
       profilePicture: null,
     })
     expect(readAgencyProfile()).toEqual({
-      businessName: 'OneTrack',
+      businessName: 'ABC Travel Agency',
       address: 'Level 4, Plot 11, Road 17, Gulshan 1, Dhaka 1212',
       mobile: '01670 221 884',
-      website: 'https://www.onetrack.app',
+      website: 'https://www.abctravel.demo',
       profilePicture: null,
     })
   })
@@ -66,19 +59,19 @@ describe('agencyProfile', () => {
     store.clear()
     saveAgencyProfile(
       {
-        businessName: 'Coastal Leisure',
+        businessName: 'ABC Travel Agency',
         address: '',
         mobile: '',
         website: '',
         profilePicture: null,
       },
-      TENANT_IDS.leisure,
+      TENANT_IDS.demo,
     )
-    expect(readAgencyProfile(TENANT_IDS.leisure)).toEqual({
-      businessName: 'Coastal Leisure',
-      address: 'House 24, Road 11, Block E, Banani, Dhaka 1213',
-      mobile: '01713 882 190',
-      website: 'https://www.coastalleisure.com',
+    expect(readAgencyProfile(TENANT_IDS.demo)).toEqual({
+      businessName: 'ABC Travel Agency',
+      address: 'Level 4, Plot 11, Road 17, Gulshan 1, Dhaka 1212',
+      mobile: '01670 221 884',
+      website: 'https://www.abctravel.demo',
       profilePicture: null,
     })
   })

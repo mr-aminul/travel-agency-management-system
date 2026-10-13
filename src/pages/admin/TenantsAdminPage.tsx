@@ -381,7 +381,7 @@ export default function TenantsAdminPage() {
             onChange={(event) => setName(event.target.value)}
             onBlur={blur('name')}
             error={showError('name') ? errors.name : undefined}
-            placeholder="e.g. Coastal Leisure"
+            placeholder="e.g. ABC Travel Agency"
           />
           <Input
             label="Owner name"

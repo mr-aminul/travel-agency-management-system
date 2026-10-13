@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import {
-  DEMO_USER,
-  LEISURE_USER,
-  clearSession,
-  writeSession,
-} from '@/lib/authApi'
+import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import {
   addClientActionItem,
   countOpenClientActionItems,
@@ -14,16 +9,21 @@ import {
   setClientActionItemDone,
 } from '@/lib/clientActionItemsStore'
 import { TENANT_IDS } from '@/types/tenant'
+import {
+  createTenant,
+  resetTenantEntitlements,
+} from '@/lib/tenantsStore'
 
 afterEach(() => {
   clearSession()
   resetClientActionItems()
+  resetTenantEntitlements()
 })
 
 function asFull() {
   writeSession({
     user: DEMO_USER,
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     signedInAt: '2026-01-01T00:00:00.000Z',
   })
 }
@@ -84,9 +84,10 @@ describe('client action items', () => {
     asFull()
     addClientActionItem({ clientId: 'c-284', text: 'Follow up tomorrow' })
 
+    const other = createTenant({ name: 'Other Action Agency' })
     writeSession({
-      user: LEISURE_USER,
-      tenantId: TENANT_IDS.leisure,
+      user: DEMO_USER,
+      tenantId: other.id,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     expect(listClientActionItems('c-284')).toEqual([])

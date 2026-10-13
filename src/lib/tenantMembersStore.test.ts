@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { LEISURE_USER } from '@/lib/authApi'
+import { ABC_OWNER_USER } from '@/lib/authApi'
 import {
   createTenantMember,
   getTenantMembers,
@@ -17,18 +17,19 @@ afterEach(() => {
 })
 
 describe('tenant members', () => {
-  it('lists users under a single business and not others', () => {
-    const leisure = getTenantMembers(TENANT_IDS.leisure)
-    expect(leisure.some((member) => member.email === LEISURE_USER.email)).toBe(
+  it('lists users under the demo agency', () => {
+    const demo = getTenantMembers(TENANT_IDS.demo)
+    expect(demo.some((member) => member.email === ABC_OWNER_USER.email)).toBe(
       true,
     )
-    expect(leisure.every((member) => member.tenantId === TENANT_IDS.leisure)).toBe(
+    expect(demo.every((member) => member.tenantId === TENANT_IDS.demo)).toBe(
       true,
     )
-    expect(memberCountByTenantId(TENANT_IDS.leisure)).toBe(leisure.length)
+    expect(memberCountByTenantId(TENANT_IDS.demo)).toBe(demo.length)
+    const other = createTenant({ name: 'Other Agency' })
     expect(
-      getTenantMembers(TENANT_IDS.manpower).some(
-        (member) => member.email === LEISURE_USER.email,
+      getTenantMembers(other.id).some(
+        (member) => member.email === ABC_OWNER_USER.email,
       ),
     ).toBe(false)
   })
@@ -53,9 +54,9 @@ describe('tenant members', () => {
   it('rejects a duplicate email in the same agency', () => {
     expect(() =>
       createTenantMember({
-        tenantId: TENANT_IDS.leisure,
+        tenantId: TENANT_IDS.demo,
         name: 'Copy',
-        email: LEISURE_USER.email,
+        email: ABC_OWNER_USER.email,
         password: 'secret12',
       }),
     ).toThrow(/already exists/i)

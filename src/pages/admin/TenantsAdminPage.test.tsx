@@ -27,7 +27,7 @@ afterEach(() => {
 function asAdmin() {
   writeSession({
     user: PLATFORM_ADMIN_USER,
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     signedInAt: '2026-01-01T00:00:00.000Z',
   })
 }
@@ -65,8 +65,7 @@ describe('platform admin agencies', () => {
     expect(
       await screen.findByRole('heading', { name: 'Agencies' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('Coastal Leisure')).toBeInTheDocument()
-    expect(screen.getByText('Horizon Manpower')).toBeInTheDocument()
+    expect(screen.getByText('ABC Travel Agency')).toBeInTheDocument()
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
   })
 
@@ -97,10 +96,10 @@ describe('platform admin agencies', () => {
   it('opens agency overview and exposes product modules', async () => {
     renderAdmin('/admin/agencies')
 
-    fireEvent.click(await screen.findByText('Coastal Leisure'))
+    fireEvent.click(await screen.findByText('ABC Travel Agency'))
 
     expect(
-      await screen.findByRole('heading', { name: 'Coastal Leisure' }),
+      await screen.findByRole('heading', { name: 'ABC Travel Agency' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'All' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'People' })).toBeInTheDocument()
@@ -111,9 +110,9 @@ describe('platform admin agencies', () => {
 
     fireEvent.click(screen.getByRole('link', { name: 'People' }))
     expect(
-      await screen.findByText('ops@coastalleisure.com'),
+      await screen.findByText('demo@abctravel.com'),
     ).toBeInTheDocument()
-    expect(screen.getByText('Farzana Rahman')).toBeInTheDocument()
+    expect(screen.getByText('Shila Akter')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('link', { name: 'Product' }))
     expect(
@@ -122,23 +121,23 @@ describe('platform admin agencies', () => {
   })
 
   it('keeps a confirmed product toggle after leaving and returning', async () => {
-    renderAdmin(`/admin/agencies/${TENANT_IDS.leisure}/product`)
+    renderAdmin(`/admin/agencies/${TENANT_IDS.demo}/product`)
 
     const hrSwitch = await screen.findByRole('switch', { name: 'HR' })
-    expect(hrSwitch).not.toBeChecked()
+    expect(hrSwitch).toBeChecked()
 
     fireEvent.click(hrSwitch)
-    fireEvent.click(await screen.findByRole('button', { name: 'Enable' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Disable' }))
 
-    expect(await screen.findByRole('switch', { name: 'HR' })).toBeChecked()
-    expect(getTenantById(TENANT_IDS.leisure)!.enabledModules).toContain('hr')
+    expect(await screen.findByRole('switch', { name: 'HR' })).not.toBeChecked()
+    expect(getTenantById(TENANT_IDS.demo)!.enabledModules).not.toContain('hr')
 
     fireEvent.click(screen.getByRole('link', { name: 'People' }))
     expect(
-      await screen.findByText('ops@coastalleisure.com'),
+      await screen.findByText('demo@abctravel.com'),
     ).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('link', { name: 'Product' }))
-    expect(await screen.findByRole('switch', { name: 'HR' })).toBeChecked()
+    expect(await screen.findByRole('switch', { name: 'HR' })).not.toBeChecked()
   })
 })

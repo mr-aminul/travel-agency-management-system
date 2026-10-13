@@ -13,7 +13,6 @@ import {
   useTenantById,
 } from '@/lib/tenantsStore'
 import type { TenantStatus } from '@/types/tenant'
-import { AdminTenantBillingPanel } from '@/components/admin/AdminTenantBillingPanel'
 import { Button, Input, Select } from '@/components/ui'
 
 const STATUS_OPTIONS: { value: TenantStatus; label: string }[] = [
@@ -142,8 +141,6 @@ export default function TenantOverviewPage() {
           </p>
         ) : null}
       </section>
-
-      <AdminTenantBillingPanel tenantId={tenant.id} />
     </div>
   )
 }

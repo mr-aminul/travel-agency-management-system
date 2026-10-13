@@ -28,18 +28,26 @@ import {
   countPaymentsForTenant,
   latestPaymentActivityForTenant,
 } from '@/lib/paymentsStore'
+import { adminPatchBilling } from '@/lib/billing/billingApi'
+import { authApiConfigured } from '@/lib/billing/platformFlag'
 import { useTenantMembersByTenantId } from '@/lib/tenantMembersStore'
-import { useTenantById } from '@/lib/tenantsStore'
+import { setTenantStatus, useTenantById } from '@/lib/tenantsStore'
 import { cx } from '@/lib/cx'
 import type { TenantStatus } from '@/types/tenant'
 import '@/styles/layout-admin.css'
 import '@/styles/layout-clients.css'
+import { AdminTenantBillingPanel } from '@/components/admin/AdminTenantBillingPanel'
 import {
   Avatar,
-  Badge,
   Button,
-  type BadgeVariant,
+  Select,
 } from '@/components/ui'
+
+const STATUS_OPTIONS: { value: TenantStatus; label: string }[] = [
+  { value: 'trial', label: 'Trial' },
+  { value: 'active', label: 'Active' },
+  { value: 'suspended', label: 'Suspended' },
+]
 
 const SECTIONS = [
   { to: 'all', label: 'All', icon: LayoutGrid },
@@ -48,18 +56,6 @@ const SECTIONS = [
   { to: 'product', label: 'Product', icon: Boxes },
   { to: 'activity', label: 'Activity', icon: ScrollText },
 ] as const
-
-function statusBadgeVariant(status: TenantStatus): BadgeVariant {
-  if (status === 'active') return 'completed'
-  if (status === 'trial') return 'pending'
-  return 'danger'
-}
-
-function statusLabel(status: TenantStatus): string {
-  if (status === 'active') return 'Active'
-  if (status === 'suspended') return 'Suspended'
-  return 'Trial'
-}
 
 function latestActivity(tenantId: string): string | undefined {
   const caseStamp = latestCaseActivityForTenant(tenantId)
@@ -131,7 +127,7 @@ export default function TenantAdminLayout() {
       aria-label={tenant.name}
     >
       <div className="pd-client-detail__layout">
-        <aside className="pd-client-detail__card" aria-label="Agency profile">
+        <aside className="pd-client-detail__card" aria-label="Agency">
           <div className="pd-client-detail__card-identity">
             <Avatar name={tenant.name} size="xl" kind="business" />
             <div className="pd-client-detail__title-row">
@@ -159,9 +155,23 @@ export default function TenantAdminLayout() {
             <div className="pd-client-detail__card-field">
               <dt>Status</dt>
               <dd>
-                <Badge variant={statusBadgeVariant(tenant.status)}>
-                  {statusLabel(tenant.status)}
-                </Badge>
+                <Select
+                  aria-label="Status"
+                  size="sm"
+                  value={tenant.status}
+                  options={STATUS_OPTIONS}
+                  onChange={(event) => {
+                    const next = event.target.value as TenantStatus
+                    setTenantStatus(tenant.id, next)
+                    if (authApiConfigured()) {
+                      void adminPatchBilling(tenant.id, {
+                        billingStatus: next,
+                      }).catch(() => {
+                        /* local status already updated */
+                      })
+                    }
+                  }}
+                />
               </dd>
             </div>
             <div className="pd-client-detail__card-field">
@@ -197,6 +207,8 @@ export default function TenantAdminLayout() {
               </span>
             </NavLink>
           </div>
+
+          <AdminTenantBillingPanel tenantId={tenant.id} />
 
           <p className="pd-client-detail__card-footer">
             <Calendar size={12} strokeWidth={2.25} aria-hidden />

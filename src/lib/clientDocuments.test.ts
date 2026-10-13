@@ -31,7 +31,7 @@ describe('client documents inventory', () => {
   it('lists identity once and keeps service papers on each file', () => {
     writeSession({
       user: DEMO_USER,
-      tenantId: TENANT_IDS.full,
+      tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     const client = createClient({
@@ -73,7 +73,7 @@ describe('client documents inventory', () => {
   it('files identity onto the client and every service that uses it', () => {
     writeSession({
       user: DEMO_USER,
-      tenantId: TENANT_IDS.full,
+      tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     const client = createClient({
@@ -114,7 +114,7 @@ describe('client documents inventory', () => {
   it('counts identity and unlocked service docs that still need a file upload', () => {
     writeSession({
       user: DEMO_USER,
-      tenantId: TENANT_IDS.full,
+      tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     const client = createClient({
@@ -148,7 +148,7 @@ describe('client documents inventory', () => {
   it('pulls identity that only exists on a service file onto the client profile', () => {
     writeSession({
       user: DEMO_USER,
-      tenantId: TENANT_IDS.full,
+      tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     const client = createClient({
@@ -201,7 +201,7 @@ describe('client documents inventory', () => {
   it('mirrors client identity onto service files so they cannot drift', () => {
     writeSession({
       user: DEMO_USER,
-      tenantId: TENANT_IDS.full,
+      tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     const client = createClient({

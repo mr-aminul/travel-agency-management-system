@@ -1,8 +1,15 @@
 /**
- * Promote the three launch agencies (OneTrack, Coastal Leisure, Horizon Manpower)
- * into real platform tenants + domain rows, same path as agencies created via signup.
- * Idempotent: upserts by id; never deletes Ismail or other created tenants.
+ * Promote the demo launch agency (ABC Travel Agency) into a real platform tenant
+ * + domain rows, same path as agencies created via signup.
+ * Idempotent: upserts by id; strips retired launch agencies; never deletes
+ * other created tenants (e.g. customer signups).
  */
+
+/** Retired multi-agency launch seeds — removed from pd-tenants-created on boot. */
+const RETIRED_LAUNCH_TENANT_IDS = new Set([
+  'tenant-leisure',
+  'tenant-manpower',
+])
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -65,16 +72,21 @@ export async function ensureLaunchAgencies() {
   const data = loadData()
   const launchIds = new Set(data.tenants.map((t) => t.id))
 
-  // 1) Tenants: same store as Ismail (pd-tenants-created)
+  // 1) Tenants: same store as customer signups (pd-tenants-created)
   const existingTenants = asArray(await readKv('pd-tenants-created'))
   const others = existingTenants.filter(
-    (t) => t && typeof t === 'object' && !launchIds.has(t.id),
+    (t) =>
+      t &&
+      typeof t === 'object' &&
+      !launchIds.has(t.id) &&
+      !RETIRED_LAUNCH_TENANT_IDS.has(t.id),
   )
   const nextTenants = [...data.tenants, ...others]
   await writeKv('pd-tenants-created', nextTenants)
 
-  // 2) Agency profiles (contact / branding)
+  // 2) Agency profiles (contact / branding) — drop retired launch profiles
   const profiles = asObject(await readKv('pd-agency-profiles'))
+  for (const id of RETIRED_LAUNCH_TENANT_IDS) delete profiles[id]
   await writeKv('pd-agency-profiles', { ...profiles, ...data.profiles })
 
   // 3) Domain tables: clients / cases / payments

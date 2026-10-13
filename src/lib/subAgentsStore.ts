@@ -18,7 +18,7 @@ type Listener = () => void
 const SEED_SUB_AGENTS: SubAgent[] = [
   {
     id: 'AGT-T0001',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Rakib Travels',
     phone: '01700001111',
     email: 'rakib@example.com',
@@ -30,7 +30,7 @@ const SEED_SUB_AGENTS: SubAgent[] = [
   },
   {
     id: 'AGT-T0002',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Sadia Enterprise',
     phone: '01700002222',
     email: 'sadia@example.com',
@@ -39,18 +39,6 @@ const SEED_SUB_AGENTS: SubAgent[] = [
     branch: 'Chattogram',
     status: 'Active',
     createdAt: '2024-02-14T08:00:00.000Z',
-  },
-  {
-    id: 'AGT-M0001',
-    tenantId: TENANT_IDS.manpower,
-    name: 'Rakib Travels',
-    phone: '01700001111',
-    email: 'rakib@example.com',
-    address: 'Motijheel, Dhaka',
-    licenseNumber: 'RL-1001',
-    branch: 'Dhaka',
-    status: 'Active',
-    createdAt: '2024-01-10T08:00:00.000Z',
   },
 ]
 

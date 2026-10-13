@@ -18,7 +18,7 @@ afterEach(() => {
 function renderClient(path: string) {
   writeSession({
     user: DEMO_USER,
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     signedInAt: '2026-01-01T00:00:00.000Z',
   })
   return render(

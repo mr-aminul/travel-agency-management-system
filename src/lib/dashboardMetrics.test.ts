@@ -16,7 +16,7 @@ import { TENANT_IDS } from '@/types/tenant'
 const clients: Client[] = [
   {
     id: 'c-1',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Nadia',
     phone: '01711111111',
     services: ['Work Permit Visa'],
@@ -30,7 +30,7 @@ const clients: Client[] = [
 const cases: Case[] = [
   {
     id: 'case-open',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-1',
     clientId: 'c-1',
     clientName: 'Nadia',
@@ -67,7 +67,7 @@ const cases: Case[] = [
   },
   {
     id: 'case-done',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-2',
     clientId: 'c-1',
     clientName: 'Nadia',
@@ -87,7 +87,7 @@ const cases: Case[] = [
 const payments: Payment[] = [
   {
     id: 'pay-1',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     clientId: 'c-1',
     caseId: 'case-open',
     amount: 5000,
@@ -99,7 +99,7 @@ const payments: Payment[] = [
 const employees: Employee[] = [
   {
     id: 'EMP-1',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     name: 'Karim',
     phone: '01700000000',
     department: 'HR',
@@ -113,7 +113,7 @@ const employees: Employee[] = [
 const requests: StatusUpdateRequest[] = [
   {
     id: 'req-1',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     subAgentId: 'p-1',
     clientId: 'c-1',
     caseId: 'case-open',

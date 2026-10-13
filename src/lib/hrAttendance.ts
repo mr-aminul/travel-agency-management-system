@@ -17,7 +17,7 @@ const STORAGE_KEY = DATA_KEYS.attendanceCreated
 const SEED_ATTENDANCE: AttendanceRecord[] = [
   {
     id: 'ATT-0001',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     employeeId: 'EMP-7001',
     kind: 'Present',
     startDate: '2026-10-01',
@@ -25,7 +25,7 @@ const SEED_ATTENDANCE: AttendanceRecord[] = [
   },
   {
     id: 'ATT-0002',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     employeeId: 'EMP-7001',
     kind: 'Late',
     startDate: '2026-10-02',
@@ -33,7 +33,7 @@ const SEED_ATTENDANCE: AttendanceRecord[] = [
   },
   {
     id: 'ATT-0003',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     employeeId: 'EMP-7003',
     kind: 'Absent',
     startDate: '2026-10-04',
@@ -41,7 +41,7 @@ const SEED_ATTENDANCE: AttendanceRecord[] = [
   },
   {
     id: 'ATT-0004',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     employeeId: 'EMP-7002',
     kind: 'Leave',
     startDate: '2026-10-03',
@@ -50,7 +50,7 @@ const SEED_ATTENDANCE: AttendanceRecord[] = [
   },
   {
     id: 'ATT-0005',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     employeeId: 'EMP-7006',
     kind: 'Leave',
     startDate: '2026-10-06',
@@ -59,7 +59,7 @@ const SEED_ATTENDANCE: AttendanceRecord[] = [
   },
   {
     id: 'ATT-M001',
-    tenantId: TENANT_IDS.manpower,
+    tenantId: TENANT_IDS.demo,
     employeeId: 'EMP-M001',
     kind: 'Present',
     startDate: '2026-10-01',

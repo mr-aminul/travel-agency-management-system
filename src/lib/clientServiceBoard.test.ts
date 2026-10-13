@@ -20,7 +20,7 @@ function buildDocument(
 
 function buildCase(overrides: Partial<Case> & Pick<Case, 'id'>): Case {
   return {
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: overrides.id,
     clientId: 'c-1',
     clientName: 'Md. Rahim Uddin',

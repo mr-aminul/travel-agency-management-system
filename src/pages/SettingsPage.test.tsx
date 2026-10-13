@@ -30,7 +30,7 @@ afterEach(() => {
   resetUserPageAccess()
 })
 
-function renderSettings(path: string, tenantId = TENANT_IDS.full) {
+function renderSettings(path: string, tenantId = TENANT_IDS.demo) {
   writeSession({
     user: DEMO_USER,
     tenantId,
@@ -276,11 +276,11 @@ describe('settings service catalog', () => {
     expect(table).toHaveTextContent('HR - Attendance & Leave')
     expect(table).toHaveTextContent('HR - Payroll')
     expect(table).toHaveTextContent('User')
-    expect(table).toHaveTextContent('OneTrack Agency')
-    expect(table).toHaveTextContent('Owner · ops@onetrack.bd')
+    expect(table).toHaveTextContent('ABC Travel Agency')
+    expect(table).toHaveTextContent('Owner · demo@abctravel.com')
     expect(
       screen.getByRole('button', {
-        name: 'HR - Payroll access for OneTrack Agency',
+        name: 'HR - Payroll access for ABC Travel Agency',
       }),
     ).toBeInTheDocument()
   }, 15000)

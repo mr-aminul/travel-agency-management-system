@@ -12,7 +12,7 @@ import { TENANT_IDS } from '@/types/tenant'
 
 const caseItem: Case = {
   id: 'case-test',
-  tenantId: TENANT_IDS.full,
+  tenantId: TENANT_IDS.demo,
   caseId: 'SR-00999',
   clientId: 'c-test',
   clientName: 'Test Client',
@@ -30,7 +30,7 @@ const caseItem: Case = {
 
 const client: Client = {
   id: 'c-test',
-  tenantId: TENANT_IDS.full,
+  tenantId: TENANT_IDS.demo,
   name: 'Test Client',
   phone: '01700000000',
   email: 'test@example.com',
@@ -46,7 +46,7 @@ const client: Client = {
 const payments: Payment[] = [
   {
     id: 'pay-a',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     clientId: 'c-test',
     caseId: 'case-test',
     amount: 15000,
@@ -56,7 +56,7 @@ const payments: Payment[] = [
   },
   {
     id: 'pay-b',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     clientId: 'c-test',
     caseId: 'case-test',
     amount: 5000,

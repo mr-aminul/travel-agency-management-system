@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import {
-  DEMO_USER,
-  LEISURE_USER,
-  clearSession,
-  writeSession,
-} from '@/lib/authApi'
+import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import {
   listClientMessages,
   listClientSms,
@@ -13,16 +8,21 @@ import {
   sendClientSms,
 } from '@/lib/clientMessagesStore'
 import { TENANT_IDS } from '@/types/tenant'
+import {
+  createTenant,
+  resetTenantEntitlements,
+} from '@/lib/tenantsStore'
 
 afterEach(() => {
   clearSession()
   resetClientMessages()
+  resetTenantEntitlements()
 })
 
 function asFull() {
   writeSession({
     user: DEMO_USER,
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     signedInAt: '2026-01-01T00:00:00.000Z',
   })
 }
@@ -52,9 +52,10 @@ describe('client SMS', () => {
     asFull()
     sendClientSms({ clientId: 'c-284', body: 'Please call the office.' })
 
+    const other = createTenant({ name: 'Other Messages Agency' })
     writeSession({
-      user: LEISURE_USER,
-      tenantId: TENANT_IDS.leisure,
+      user: DEMO_USER,
+      tenantId: other.id,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
     expect(listClientSms('c-284')).toEqual([])

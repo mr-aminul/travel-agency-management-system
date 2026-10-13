@@ -112,7 +112,7 @@ function seedCase(
 const SEED_CASES: Case[] = [
   seedCase({
     id: 'case-101',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-00101',
     clientId: 'c-284',
     clientName: 'Md. Rahim Uddin',
@@ -142,7 +142,7 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-102',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-00102',
     clientId: 'c-284',
     clientName: 'Md. Rahim Uddin',
@@ -161,7 +161,7 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-103',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-00103',
     clientId: 'c-291',
     clientName: 'Farhana Akter',
@@ -192,7 +192,7 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-104',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-00104',
     clientId: 'c-315',
     clientName: 'Nusrat Jahan',
@@ -214,7 +214,7 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-105',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-00105',
     clientId: 'c-328',
     clientName: 'Imran Hossain',
@@ -232,7 +232,7 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-106',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-00106',
     clientId: 'c-302',
     clientName: 'Jamal Haque',
@@ -265,7 +265,7 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-107',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-00107',
     clientId: 'c-328',
     clientName: 'Imran Hossain',
@@ -283,7 +283,7 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-108',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-00108',
     clientId: 'c-340',
     clientName: 'Ayesha Rahman',
@@ -308,7 +308,7 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-109',
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-00109',
     clientId: 'c-351',
     clientName: 'Dr. Kamal Uddin',
@@ -333,9 +333,9 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-l-105',
-    tenantId: TENANT_IDS.leisure,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-20105',
-    clientId: 'c-l-328',
+    clientId: 'c-328',
     clientName: 'Imran Hossain',
     service: 'Tour Package',
     status: 'Pending',
@@ -352,7 +352,7 @@ const SEED_CASES: Case[] = [
   }),
   seedCase({
     id: 'case-l-110',
-    tenantId: TENANT_IDS.leisure,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-20110',
     clientId: 'c-l-401',
     clientName: 'Sadia Karim',
@@ -368,40 +368,10 @@ const SEED_CASES: Case[] = [
     updatedAt: '2026-04-04',
   }),
   seedCase({
-    id: 'case-m-101',
-    tenantId: TENANT_IDS.manpower,
-    caseId: 'SR-30101',
-    clientId: 'c-m-284',
-    clientName: 'Md. Rahim Uddin',
-    service: 'Work Permit Visa',
-    status: 'In-Progress',
-    currentStepId: 'medical',
-    destination: 'Riyadh, Saudi Arabia',
-    serviceFee: 50000,
-    balance: 35000,
-    assignedTo: 'EMP-M001',
-    departureDate: '2026-09-15',
-    description:
-      'Nurse recruitment for Al Rajhi Hospital. Medical + police clearance in progress.',
-    createdAt: '2025-11-20',
-    updatedAt: '2026-08-01',
-    stepDetails: {
-      registered: 'Candidate profile verified',
-      shortlisted: 'Shortlisted for employer',
-      interview: 'Interview completed',
-      selected: 'Selected after employer interview',
-      medical: 'GAMCA medical in progress',
-    },
-    documentOverrides: {
-      medical: { status: 'under_review', detail: 'GAMCA / approved clinic' },
-      demand: { status: 'missing', detail: 'Employer authorization required' },
-    },
-  }),
-  seedCase({
     id: 'case-m-106',
-    tenantId: TENANT_IDS.manpower,
+    tenantId: TENANT_IDS.demo,
     caseId: 'SR-30106',
-    clientId: 'c-m-302',
+    clientId: 'c-302',
     clientName: 'Jamal Haque',
     service: 'Work Permit Visa',
     status: 'Completed',

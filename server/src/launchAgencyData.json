@@ -1,35 +1,9 @@
 {
   "tenants": [
     {
-      "id": "tenant-leisure",
-      "slug": "coastal-leisure",
-      "name": "Coastal Leisure",
-      "status": "active",
-      "enabledModules": [
-        "services.tourPackage",
-        "services.airTicket",
-        "services.hotelBooking",
-        "services.touristVisa",
-        "finance"
-      ]
-    },
-    {
-      "id": "tenant-manpower",
-      "slug": "horizon-manpower",
-      "name": "Horizon Manpower",
-      "status": "active",
-      "enabledModules": [
-        "services.workPermitVisa",
-        "services.medicalVisa",
-        "finance",
-        "hr",
-        "subAgents"
-      ]
-    },
-    {
       "id": "tenant-full",
-      "slug": "onetrack",
-      "name": "OneTrack",
+      "slug": "abc-travel",
+      "name": "ABC Travel Agency",
       "status": "active",
       "enabledModules": [
         "services.touristVisa",
@@ -48,25 +22,11 @@
     }
   ],
   "profiles": {
-    "tenant-leisure": {
-      "businessName": "Coastal Leisure",
-      "address": "House 24, Road 11, Block E, Banani, Dhaka 1213",
-      "mobile": "01713 882 190",
-      "website": "https://www.coastalleisure.com",
-      "profilePicture": null
-    },
-    "tenant-manpower": {
-      "businessName": "Horizon Manpower",
-      "address": "Suite 5B, 88 Motijheel Commercial Area, Dhaka 1000",
-      "mobile": "01816 445 773",
-      "website": "https://www.horizonmanpower.com",
-      "profilePicture": null
-    },
     "tenant-full": {
-      "businessName": "OneTrack",
+      "businessName": "ABC Travel Agency",
       "address": "Level 4, Plot 11, Road 17, Gulshan 1, Dhaka 1212",
       "mobile": "01670 221 884",
-      "website": "https://www.onetrack.app",
+      "website": "https://www.abctravel.demo",
       "profilePicture": null
     }
   },
@@ -222,22 +182,8 @@
       "createdAt": "2026-07-01"
     },
     {
-      "id": "c-l-328",
-      "tenantId": "tenant-leisure",
-      "name": "Imran Hossain",
-      "phone": "01988776655",
-      "banglaName": "ইমরান হোসেন",
-      "services": [
-        "Tour Package"
-      ],
-      "balance": 0,
-      "activeCases": 0,
-      "idChecked": false,
-      "createdAt": "2026-03-01"
-    },
-    {
       "id": "c-l-401",
-      "tenantId": "tenant-leisure",
+      "tenantId": "tenant-full",
       "name": "Sadia Karim",
       "phone": "01755551212",
       "email": "sadia.karim@email.com",
@@ -250,69 +196,6 @@
       "activeCases": 0,
       "idChecked": true,
       "createdAt": "2026-04-02"
-    },
-    {
-      "id": "c-m-284",
-      "tenantId": "tenant-manpower",
-      "name": "Md. Rahim Uddin",
-      "phone": "01712345678",
-      "email": "rahim.uddin@email.com",
-      "banglaName": "মোঃ রহিম উদ্দিন",
-      "fatherName": "Abdul Karim",
-      "motherName": "Rokeya Begum",
-      "dateOfBirth": "1995-04-12",
-      "gender": "Male",
-      "maritalStatus": "Married",
-      "nationality": "Bangladeshi",
-      "placeOfBirth": "Kishoreganj",
-      "spouseName": "Ayesha Akter",
-      "bloodGroup": "B+",
-      "whatsapp": "01712345678",
-      "presentAddress": "Mirpur, Dhaka",
-      "permanentAddress": "Kishoreganj",
-      "district": "Kishoreganj",
-      "upazila": "Bhairab",
-      "education": "HSC",
-      "profession": "Construction",
-      "skillTrade": "Mason",
-      "experience": "5 years",
-      "previousOverseasExp": "None",
-      "preferredCountry": "Saudi Arabia",
-      "preferredJob": "Mason",
-      "expectedSalary": "35000",
-      "contractAmount": 180000,
-      "branch": "Dhaka",
-      "address": "Mirpur, Dhaka",
-      "nid": "1990123456789",
-      "passport": "A12345678",
-      "passportExpiry": "2030-06-15",
-      "passportIssuedOn": "2020-06-16",
-      "passportPlaceOfIssue": "Dhaka",
-      "subAgentId": "AGT-M0001",
-      "services": [
-        "Work Permit Visa"
-      ],
-      "balance": 35000,
-      "activeCases": 1,
-      "idChecked": true,
-      "createdAt": "2025-11-12"
-    },
-    {
-      "id": "c-m-302",
-      "tenantId": "tenant-manpower",
-      "name": "Jamal Haque",
-      "phone": "01611889900",
-      "banglaName": "জামাল হক",
-      "address": "Sylhet",
-      "nid": "1988123456789",
-      "subAgentId": "AGT-M0001",
-      "services": [
-        "Work Permit Visa"
-      ],
-      "balance": 0,
-      "activeCases": 0,
-      "idChecked": true,
-      "createdAt": "2025-08-20"
     }
   ],
   "cases": [
@@ -544,9 +427,9 @@
     },
     {
       "id": "case-l-105",
-      "tenantId": "tenant-leisure",
+      "tenantId": "tenant-full",
       "caseId": "SR-20105",
-      "clientId": "c-l-328",
+      "clientId": "c-328",
       "clientName": "Imran Hossain",
       "service": "Tour Package",
       "status": "Pending",
@@ -565,7 +448,7 @@
     },
     {
       "id": "case-l-110",
-      "tenantId": "tenant-leisure",
+      "tenantId": "tenant-full",
       "caseId": "SR-20110",
       "clientId": "c-l-401",
       "clientName": "Sadia Karim",
@@ -585,38 +468,10 @@
       "documents": []
     },
     {
-      "id": "case-m-101",
-      "tenantId": "tenant-manpower",
-      "caseId": "SR-30101",
-      "clientId": "c-m-284",
-      "clientName": "Md. Rahim Uddin",
-      "service": "Work Permit Visa",
-      "status": "In-Progress",
-      "currentStepId": "medical",
-      "destination": "Riyadh, Saudi Arabia",
-      "serviceFee": 50000,
-      "balance": 35000,
-      "assignedTo": "EMP-M001",
-      "departureDate": "2026-09-15",
-      "description": "Nurse recruitment for Al Rajhi Hospital. Medical + police clearance in progress.",
-      "createdAt": "2025-11-20",
-      "updatedAt": "2026-08-01",
-      "stage": "Processing",
-      "steps": {},
-      "documents": [],
-      "stepDetails": {
-        "registered": "Candidate profile verified",
-        "shortlisted": "Shortlisted for employer",
-        "interview": "Interview completed",
-        "selected": "Selected after employer interview",
-        "medical": "GAMCA medical in progress"
-      }
-    },
-    {
       "id": "case-m-106",
-      "tenantId": "tenant-manpower",
+      "tenantId": "tenant-full",
       "caseId": "SR-30106",
-      "clientId": "c-m-302",
+      "clientId": "c-302",
       "clientName": "Jamal Haque",
       "service": "Work Permit Visa",
       "status": "Completed",
@@ -678,23 +533,13 @@
     },
     {
       "id": "pay-l-1",
-      "tenantId": "tenant-leisure",
-      "clientId": "c-l-328",
+      "tenantId": "tenant-full",
+      "clientId": "c-328",
       "caseId": "case-l-105",
       "amount": 5000,
       "method": "bKash",
       "note": "Leisure package deposit",
       "createdAt": "2026-03-06"
-    },
-    {
-      "id": "pay-m-1",
-      "tenantId": "tenant-manpower",
-      "clientId": "c-m-284",
-      "caseId": "case-m-101",
-      "amount": 15000,
-      "method": "Bank transfer",
-      "note": "Partial package deposit",
-      "createdAt": "2026-07-10"
     }
   ],
   "employees": [
@@ -799,7 +644,7 @@
     },
     {
       "id": "EMP-M001",
-      "tenantId": "tenant-manpower",
+      "tenantId": "tenant-full",
       "name": "Rafiqul Islam",
       "phone": "01715443322",
       "department": "Recruitment",
@@ -810,7 +655,7 @@
     },
     {
       "id": "EMP-M002",
-      "tenantId": "tenant-manpower",
+      "tenantId": "tenant-full",
       "name": "Sharmin Akter",
       "phone": "01819227744",
       "department": "Recruitment",
@@ -821,7 +666,7 @@
     },
     {
       "id": "EMP-M003",
-      "tenantId": "tenant-manpower",
+      "tenantId": "tenant-full",
       "name": "Kamrul Hasan",
       "phone": "01614778899",
       "department": "Accounts",
@@ -832,7 +677,7 @@
     },
     {
       "id": "EMP-L001",
-      "tenantId": "tenant-leisure",
+      "tenantId": "tenant-full",
       "name": "Farzana Rahman",
       "phone": "01718889900",
       "department": "Leisure",
@@ -843,7 +688,7 @@
     },
     {
       "id": "EMP-L002",
-      "tenantId": "tenant-leisure",
+      "tenantId": "tenant-full",
       "name": "Imran Chowdhury",
       "phone": "01911223344",
       "department": "Ticketing",
@@ -877,90 +722,30 @@
       "branch": "Chattogram",
       "status": "Active",
       "createdAt": "2024-02-14T08:00:00.000Z"
-    },
-    {
-      "id": "AGT-M0001",
-      "tenantId": "tenant-manpower",
-      "name": "Rakib Travels",
-      "phone": "01700001111",
-      "email": "rakib@example.com",
-      "address": "Motijheel, Dhaka",
-      "licenseNumber": "RL-1001",
-      "branch": "Dhaka",
-      "status": "Active",
-      "createdAt": "2024-01-10T08:00:00.000Z"
     }
   ],
   "members": [
     {
-      "id": "member-leisure-owner",
-      "tenantId": "tenant-leisure",
-      "name": "Coastal Leisure",
-      "email": "ops@coastalleisure.com",
-      "role": "owner",
-      "status": "active"
-    },
-    {
-      "id": "member-leisure-manager",
-      "tenantId": "tenant-leisure",
-      "name": "Farzana Rahman",
-      "email": "farzana@coastalleisure.com",
-      "role": "manager",
-      "status": "active"
-    },
-    {
-      "id": "member-leisure-staff",
-      "tenantId": "tenant-leisure",
-      "name": "Imran Chowdhury",
-      "email": "imran@coastalleisure.com",
-      "role": "staff",
-      "status": "invited"
-    },
-    {
-      "id": "member-manpower-owner",
-      "tenantId": "tenant-manpower",
-      "name": "Horizon Manpower",
-      "email": "ops@horizonmanpower.com",
-      "role": "owner",
-      "status": "active"
-    },
-    {
-      "id": "member-manpower-manager",
-      "tenantId": "tenant-manpower",
-      "name": "Nadia Sultana",
-      "email": "nadia@horizonmanpower.com",
-      "role": "manager",
-      "status": "active"
-    },
-    {
-      "id": "member-manpower-staff",
-      "tenantId": "tenant-manpower",
-      "name": "Rafiq Hasan",
-      "email": "rafiq@horizonmanpower.com",
-      "role": "staff",
-      "status": "disabled"
-    },
-    {
-      "id": "member-full-owner",
+      "id": "member-abc-owner",
       "tenantId": "tenant-full",
-      "name": "OneTrack Agency",
-      "email": "ops@onetrack.bd",
+      "name": "ABC Travel Agency",
+      "email": "demo@abctravel.com",
       "role": "owner",
       "status": "active"
     },
     {
-      "id": "member-full-manager",
+      "id": "member-abc-manager",
       "tenantId": "tenant-full",
       "name": "Shila Akter",
-      "email": "shila@onetrack.bd",
+      "email": "shila@abctravel.com",
       "role": "manager",
       "status": "active"
     },
     {
-      "id": "member-full-staff",
+      "id": "member-abc-staff",
       "tenantId": "tenant-full",
       "name": "Tanvir Ahmed",
-      "email": "tanvir@onetrack.bd",
+      "email": "tanvir@abctravel.com",
       "role": "staff",
       "status": "active"
     }

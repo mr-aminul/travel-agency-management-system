@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
-  LEISURE_USER,
+  DEMO_USER,
   clearSession,
   writeSession,
 } from '@/lib/authApi'
@@ -24,8 +24,8 @@ afterEach(() => {
 
 function asLeisure() {
   writeSession({
-    user: LEISURE_USER,
-    tenantId: TENANT_IDS.leisure,
+    user: DEMO_USER,
+    tenantId: TENANT_IDS.demo,
     signedInAt: '2026-01-01T00:00:00.000Z',
   })
 }

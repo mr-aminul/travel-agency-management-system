@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import {
-  DEMO_USER,
-  LEISURE_USER,
-  clearSession,
-  writeSession,
-} from '@/lib/authApi'
+import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import { getFirstStepId, getStepDefs } from '@/lib/caseChecklist'
 import {
   createCase,
@@ -38,7 +33,10 @@ import {
 } from '@/lib/serviceTemplatesStore'
 import { getEnabledServiceOptions } from '@/lib/serviceCatalog'
 import { TENANT_IDS } from '@/types/tenant'
-import { resetTenantEntitlements } from '@/lib/tenantsStore'
+import {
+  createTenant,
+  resetTenantEntitlements,
+} from '@/lib/tenantsStore'
 
 afterEach(() => {
   clearSession()
@@ -49,31 +47,27 @@ afterEach(() => {
   resetTenantEntitlements()
 })
 
-function asLeisure() {
+function asTenant(tenantId: string) {
   writeSession({
-    user: LEISURE_USER,
-    tenantId: TENANT_IDS.leisure,
+    user: DEMO_USER,
+    tenantId,
     signedInAt: '2026-01-01T00:00:00.000Z',
   })
 }
 
-function asFull() {
-  writeSession({
-    user: DEMO_USER,
-    tenantId: TENANT_IDS.full,
-    signedInAt: '2026-01-01T00:00:00.000Z',
-  })
+function asDemo() {
+  asTenant(TENANT_IDS.demo)
 }
 
 describe('custom services', () => {
   it('rejects names that collide with built-in templates', () => {
-    asLeisure()
+    asDemo()
     expect(validateCustomServiceName('Air Ticket')).toMatch(/already used/)
     expect(validateCustomServiceName('hajj umrah')).toMatch(/too close/)
   })
 
   it('lets an agency create a service and open a file on it', () => {
-    asLeisure()
+    asDemo()
     const created = createCustomService({
       name: 'Visa processing',
       description: 'Embassy files',
@@ -104,7 +98,7 @@ describe('custom services', () => {
   })
 
   it('lets an agency rename a custom service and keep files attached', () => {
-    asLeisure()
+    asDemo()
     const created = createCustomService({
       name: 'Courier desk',
       description: 'Document runs',
@@ -140,7 +134,7 @@ describe('custom services', () => {
   })
 
   it('lets an agency delete a custom service from the catalog', () => {
-    asLeisure()
+    asDemo()
     const created = createCustomService({ name: 'Umrah add-on' })
     expect(
       getEnabledServiceOptions().some((option) => option.value === 'Umrah add-on'),
@@ -152,7 +146,7 @@ describe('custom services', () => {
   })
 
   it('hides a built-in service from new files and restores it', () => {
-    asFull()
+    asDemo()
     expect(
       getEnabledServiceOptions().some((option) => option.value === 'Work Permit Visa'),
     ).toBe(true)
@@ -166,8 +160,16 @@ describe('custom services', () => {
     ).toBe(true)
   })
 
-  it('does not let leisure open manpower after adding a custom service', () => {
-    asLeisure()
+  it('does not let a limited agency open work-permit after adding a custom service', () => {
+    const limited = createTenant({
+      name: 'Leisure Catalog Co',
+      enabledModules: [
+        'services.tourPackage',
+        'services.airTicket',
+        'finance',
+      ],
+    })
+    asTenant(limited.id)
     createCustomService({ name: 'Airport transfer' })
     const client = createClient({
       name: 'Transfer Client',

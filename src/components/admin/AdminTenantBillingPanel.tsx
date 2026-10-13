@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
-  CreditCard,
-  NotebookPen,
-  type LucideIcon,
+  ArrowRightLeft,
+  CalendarPlus,
+  CheckCircle2,
+  PauseCircle,
+  Receipt,
 } from 'lucide-react'
 import {
   adminApplyPlan,
@@ -17,42 +19,23 @@ import {
   formatBdt,
   formatDate,
   formatStorageUsage,
-  statusLabel,
 } from '@/lib/billing/format'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
-import { Badge, Button, Input, Select } from '@/components/ui'
+import { Button, Input, Select } from '@/components/ui'
 import type { BillingSnapshot, PlanTemplate } from '@/types/billing'
-import '@/styles/layout-billing.css'
-
-function SectionTitle({
-  icon: Icon,
-  children,
-}: {
-  icon: LucideIcon
-  children: ReactNode
-}) {
-  return (
-    <h2 className="pd-client-detail__section-title">
-      <span className="pd-client-detail__section-icon" aria-hidden>
-        <Icon size={15} strokeWidth={2.25} />
-      </span>
-      {children}
-    </h2>
-  )
-}
 
 type Props = {
   tenantId: string
 }
 
+/** Compact subscription block for the agency admin profile card. */
 export function AdminTenantBillingPanel({ tenantId }: Props) {
   const [snapshot, setSnapshot] = useState<BillingSnapshot | null>(null)
   const [plans, setPlans] = useState<PlanTemplate[]>([])
   const [planId, setPlanId] = useState('growth')
   const [invoiceAmount, setInvoiceAmount] = useState('')
-  const [notes, setNotes] = useState('')
+  const [billingOpen, setBillingOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [status, setStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const reload = useCallback(async () => {
@@ -64,14 +47,13 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
         fetchBillingPlans(),
       ])
       setSnapshot(me)
-      setPlans(catalog.plans)
+      setPlans([...catalog.plans].sort((a, b) => a.sortOrder - b.sortOrder))
       const nextPlanId = me.billing?.planId || 'growth'
       setPlanId(nextPlanId)
       const matched = catalog.plans.find((p) => p.id === nextPlanId)
       setInvoiceAmount(
         matched ? String(matched.priceBdt) : String(me.plan?.priceBdt ?? 0),
       )
-      setNotes(me.billing?.billingNotes || '')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load billing.')
     }
@@ -81,21 +63,12 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
     void reload()
   }, [reload])
 
-  if (!authApiConfigured()) {
-    return (
-      <p className="pd-admin__quiet">
-        Connect the platform API to manage live billing for this agency.
-      </p>
-    )
-  }
-
-  const run = async (label: string, fn: () => Promise<unknown>) => {
+  const run = async (fn: () => Promise<unknown>) => {
     setBusy(true)
     setError(null)
-    setStatus(null)
     try {
       await fn()
-      setStatus(label)
+      setBillingOpen(false)
       await reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Action failed.')
@@ -104,227 +77,217 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
     }
   }
 
+  if (!authApiConfigured()) {
+    return <p className="pd-admin__quiet">Billing needs the platform API.</p>
+  }
+
+  if (!snapshot) {
+    return <p className="pd-admin__quiet">Loading billing…</p>
+  }
+
+  const livePlanId = snapshot.billing?.planId || null
+  const livePlan =
+    plans.find((p) => p.id === livePlanId) ?? snapshot.plan ?? null
+  const draftPlan = plans.find((p) => p.id === planId) ?? livePlan
+  const billingStatus = snapshot.billing?.billingStatus ?? 'trial'
+  const isDirty = Boolean(planId && livePlanId && planId !== livePlanId)
+  const periodValue =
+    billingStatus === 'trial'
+      ? formatDate(snapshot.billing?.trialEndsAt)
+      : formatDate(snapshot.billing?.currentPeriodEnd)
+  const periodLabel = billingStatus === 'trial' ? 'Trial ends' : 'Renews'
+  const pending = (snapshot.invoices ?? []).filter(
+    (inv) => inv.status === 'pending_review' || inv.status === 'open',
+  )
+
   return (
-    <section className="pd-client-detail__section pd-client-detail__section--compact">
-      <div className="pd-client-detail__section-head">
-        <SectionTitle icon={CreditCard}>Subscription</SectionTitle>
-      </div>
-
-      {error ? (
-        <p className="pd-settings-form__status pd-settings-form__status--error" role="alert">
-          {error}
-        </p>
-      ) : null}
-      {status ? (
-        <p className="pd-settings-form__status" role="status">
-          {status}
-        </p>
-      ) : null}
-
-      {snapshot ? (
-        <div className="pd-billing-admin">
-          <dl className="pd-client-detail__fields">
-            <div className="pd-client-detail__field">
-              <dt>Plan</dt>
-              <dd>
-                {snapshot.plan?.name ?? '—'}{' '}
-                <Badge variant="neutral">
-                  {statusLabel(snapshot.billing?.billingStatus ?? 'trial')}
-                </Badge>
-              </dd>
-            </div>
-            <div className="pd-client-detail__field">
-              <dt>Trial / period</dt>
-              <dd>
-                {snapshot.billing?.billingStatus === 'trial'
-                  ? `Ends ${formatDate(snapshot.billing.trialEndsAt)}`
-                  : `Renews ${formatDate(snapshot.billing?.currentPeriodEnd)}`}
-              </dd>
-            </div>
-            <div className="pd-client-detail__field">
-              <dt>Usage</dt>
-              <dd>
-                {snapshot.usage.seatCommit}/{snapshot.limits.userLimit} users ·{' '}
-                {snapshot.usage.subAgents}/{snapshot.limits.subAgentLimit} sub
-                agents ·{' '}
-                {formatStorageUsage(
-                  snapshot.usage.storageBytes,
-                  snapshot.limits.storageLimitBytes,
-                )}{' '}
-                · {snapshot.usage.smsSent}/{snapshot.limits.smsLimit} SMS
-              </dd>
-            </div>
-          </dl>
-
-          <div className="pd-billing-admin__row">
+    <div className="pd-admin__plan" aria-label="Subscription">
+      <dl className="pd-client-detail__card-fields">
+        <div className="pd-client-detail__card-field">
+          <dt>Plan</dt>
+          <dd>
             <Select
               aria-label="Plan"
+              size="sm"
               value={planId}
-              options={plans.map((p) => ({
-                value: p.id,
-                label: `${p.name} · ${formatBdt(p.priceBdt)}`,
+              disabled={busy}
+              options={plans.map((plan) => ({
+                value: plan.id,
+                label: `${plan.name} · ${formatBdt(plan.priceBdt)}`,
               }))}
               onChange={(e) => {
                 const next = e.target.value
                 setPlanId(next)
                 const matched = plans.find((p) => p.id === next)
                 if (matched) setInvoiceAmount(String(matched.priceBdt))
+                setBillingOpen(false)
               }}
             />
-            <Input
-              aria-label="Invoice amount BDT"
-              type="number"
-              min={0}
-              step={1}
-              value={invoiceAmount}
-              onChange={(e) => setInvoiceAmount(e.target.value)}
-              placeholder="Amount ৳"
-              style={{ width: '7.5rem' }}
-            />
-            <Button
-              size="sm"
-              disabled={busy}
-              onClick={() =>
-                void run('Plan applied.', () =>
-                  adminApplyPlan(tenantId, {
-                    planId,
-                    billingStatus: 'active',
-                    planKind: 'comp',
-                  }),
-                )
-              }
-            >
-              Apply plan
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() => {
-                const amount = Number(invoiceAmount)
-                if (!Number.isFinite(amount) || amount < 0) {
-                  setError('Amount must be 0 or more.')
-                  return
-                }
-                void run('Invoice created.', () =>
-                  adminCreateInvoice({
-                    tenantId,
-                    planId,
-                    amountBdt: Math.round(amount),
-                  }),
-                )
-              }}
-            >
-              Create invoice
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() =>
-                void run('Trial extended 14 days.', () =>
-                  adminExtendTrial(tenantId, 14),
-                )
-              }
-            >
-              Extend trial 14d
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() =>
-                void run('Marked suspended.', () =>
-                  adminPatchBilling(tenantId, {
-                    billingStatus: 'suspended',
-                  }),
-                )
-              }
-            >
-              Suspend
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() =>
-                void run('Marked active.', () =>
-                  adminPatchBilling(tenantId, { billingStatus: 'active' }),
-                )
-              }
-            >
-              Activate
-            </Button>
-          </div>
+          </dd>
+        </div>
+        <div className="pd-client-detail__card-field">
+          <dt>Price</dt>
+          <dd>{formatBdt(livePlan?.priceBdt ?? 0)}/mo</dd>
+        </div>
+        <div className="pd-client-detail__card-field">
+          <dt>{periodLabel}</dt>
+          <dd>{periodValue}</dd>
+        </div>
+        <div className="pd-client-detail__card-field">
+          <dt>Users</dt>
+          <dd>
+            {snapshot.usage.seatCommit} / {snapshot.limits.userLimit}
+          </dd>
+        </div>
+        <div className="pd-client-detail__card-field">
+          <dt>SMS</dt>
+          <dd>
+            {snapshot.usage.smsSent} / {snapshot.limits.smsLimit}
+          </dd>
+        </div>
+        <div className="pd-client-detail__card-field">
+          <dt>Storage</dt>
+          <dd>
+            {formatStorageUsage(
+              snapshot.usage.storageBytes,
+              snapshot.limits.storageLimitBytes,
+            )}
+          </dd>
+        </div>
+      </dl>
 
-          <div className="pd-client-detail__field">
-            <dt>
-              <span className="pd-client-detail__field-icon" aria-hidden>
-                <NotebookPen size={13} strokeWidth={2.25} />
-              </span>
-              Billing notes
-            </dt>
-            <dd>
-              <Input
-                aria-label="Billing notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Internal notes"
-              />
-              <div className="pd-admin__row-actions">
-                <Button
-                  size="sm"
-                  disabled={busy}
-                  onClick={() =>
-                    void run('Notes saved.', () =>
-                      adminPatchBilling(tenantId, { billingNotes: notes }),
-                    )
-                  }
-                >
-                  Save notes
-                </Button>
-              </div>
-            </dd>
-          </div>
+      {error ? (
+        <p className="pd-field__error" role="alert">
+          {error}
+        </p>
+      ) : null}
 
-          {snapshot.invoices && snapshot.invoices.length > 0 ? (
-            <div className="pd-billing__invoices">
-              {snapshot.invoices.slice(0, 8).map((inv) => (
-                <div key={inv.id} className="pd-billing__invoice">
-                  <div>
-                    <p className="pd-billing__invoice-title">
-                      {inv.description} · {formatBdt(inv.amountBdt)}
-                    </p>
-                    <p className="pd-billing__invoice-meta">
-                      {statusLabel(inv.status)}
-                      {inv.paymentReference
-                        ? ` · ${inv.paymentReference}`
-                        : ''}
-                    </p>
-                  </div>
-                  {inv.status === 'pending_review' || inv.status === 'open' ? (
-                    <Button
-                      size="sm"
-                      disabled={busy}
-                      onClick={() =>
-                        void run('Invoice marked paid.', () =>
-                          adminMarkInvoicePaid(inv.id),
-                        )
-                      }
-                    >
-                      Mark paid
-                    </Button>
-                  ) : (
-                    <Badge variant="neutral">{statusLabel(inv.status)}</Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : null}
+      {isDirty ? (
+        <Button
+          size="sm"
+          disabled={busy}
+          onClick={() =>
+            void run(() =>
+              adminApplyPlan(tenantId, {
+                planId,
+                billingStatus: 'active',
+                planKind: 'comp',
+              }),
+            )
+          }
+        >
+          <ArrowRightLeft size={14} strokeWidth={2.25} aria-hidden />
+          Switch to {draftPlan?.name}
+        </Button>
+      ) : billingOpen ? (
+        <div className="pd-admin__plan-bill">
+          <Input
+            aria-label="Invoice amount BDT"
+            type="number"
+            min={0}
+            step={1}
+            value={invoiceAmount}
+            onChange={(e) => setInvoiceAmount(e.target.value)}
+          />
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={() => {
+              const amount = Number(invoiceAmount)
+              if (!Number.isFinite(amount) || amount < 0) {
+                setError('Amount must be 0 or more.')
+                return
+              }
+              void run(() =>
+                adminCreateInvoice({
+                  tenantId,
+                  planId,
+                  amountBdt: Math.round(amount),
+                }),
+              )
+            }}
+          >
+            Create
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => setBillingOpen(false)}
+          >
+            Cancel
+          </Button>
         </div>
       ) : (
-        <p className="pd-admin__quiet">Loading billing…</p>
+        <div className="pd-admin__plan-ops" role="group" aria-label="Billing ops">
+          <Button
+            size="sm"
+            className="pd-admin__plan-ops-btn pd-admin__plan-ops-btn--bill"
+            disabled={busy}
+            onClick={() => setBillingOpen(true)}
+          >
+            <Receipt size={13} strokeWidth={2.25} aria-hidden />
+            Bill
+          </Button>
+          <Button
+            size="sm"
+            className="pd-admin__plan-ops-btn pd-admin__plan-ops-btn--trial"
+            disabled={busy}
+            onClick={() => void run(() => adminExtendTrial(tenantId, 14))}
+          >
+            <CalendarPlus size={13} strokeWidth={2.25} aria-hidden />
+            +14d
+          </Button>
+          <Button
+            size="sm"
+            variant="danger"
+            className="pd-admin__plan-ops-btn"
+            disabled={busy || billingStatus === 'suspended'}
+            onClick={() =>
+              void run(() =>
+                adminPatchBilling(tenantId, { billingStatus: 'suspended' }),
+              )
+            }
+          >
+            <PauseCircle size={13} strokeWidth={2.25} aria-hidden />
+            Suspend
+          </Button>
+          <Button
+            size="sm"
+            className="pd-admin__plan-ops-btn pd-admin__plan-ops-btn--activate"
+            disabled={busy || billingStatus !== 'suspended'}
+            onClick={() =>
+              void run(() =>
+                adminPatchBilling(tenantId, { billingStatus: 'active' }),
+              )
+            }
+          >
+            <CheckCircle2 size={13} strokeWidth={2.25} aria-hidden />
+            Activate
+          </Button>
+        </div>
       )}
-    </section>
+
+      {pending.length > 0 ? (
+        <ul className="pd-admin__billing-card-pending">
+          {pending.slice(0, 2).map((inv) => (
+            <li key={inv.id}>
+              <span>
+                <Receipt size={12} strokeWidth={2.25} aria-hidden />
+                {formatBdt(inv.amountBdt)} awaiting
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => void run(() => adminMarkInvoicePaid(inv.id))}
+              >
+                Mark paid
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   )
 }

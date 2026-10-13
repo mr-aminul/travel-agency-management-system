@@ -16,7 +16,7 @@ afterEach(() => {
 function signInFullTenant() {
   writeSession({
     user: DEMO_USER,
-    tenantId: TENANT_IDS.full,
+    tenantId: TENANT_IDS.demo,
     signedInAt: '2026-01-01T00:00:00.000Z',
   })
 }
@@ -24,7 +24,7 @@ function signInFullTenant() {
 describe('userAccessStore', () => {
   it('defaults missing overrides to edit for owners', () => {
     signInFullTenant()
-    expect(getPageAccessLevel('member-full-owner', '/clients')).toBe('edit')
+    expect(getPageAccessLevel('member-abc-owner', '/clients')).toBe('edit')
   })
 
   it('gives staff view on settings and edit on clients', () => {
@@ -40,15 +40,15 @@ describe('userAccessStore', () => {
 
   it('persists a page access override for the active tenant', () => {
     signInFullTenant()
-    setPageAccessLevel('member-full-owner', '/hr/payroll', 'view')
-    expect(getPageAccessLevel('member-full-owner', '/hr/payroll')).toBe('view')
-    expect(getPageAccessLevel('member-full-owner', '/clients')).toBe('edit')
+    setPageAccessLevel('member-abc-owner', '/hr/payroll', 'view')
+    expect(getPageAccessLevel('member-abc-owner', '/hr/payroll')).toBe('view')
+    expect(getPageAccessLevel('member-abc-owner', '/clients')).toBe('edit')
   })
 
   it('drops the stored row when restoring the default level', () => {
     signInFullTenant()
-    setPageAccessLevel('member-full-owner', '/dashboard', 'none')
-    setPageAccessLevel('member-full-owner', '/dashboard', 'edit')
-    expect(getPageAccessLevel('member-full-owner', '/dashboard')).toBe('edit')
+    setPageAccessLevel('member-abc-owner', '/dashboard', 'none')
+    setPageAccessLevel('member-abc-owner', '/dashboard', 'edit')
+    expect(getPageAccessLevel('member-abc-owner', '/dashboard')).toBe('edit')
   })
 })

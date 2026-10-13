@@ -41,36 +41,45 @@ describe('module entitlements', () => {
     expect(normalizeModuleId('agents')).toBe('subAgents')
     expect(pathAccess('/admin')).toBe('admin')
     expect(pathAccess('/admin/agencies')).toBe('admin')
-    expect(pathAccess('/admin/agencies/tenant-leisure/people')).toBe('admin')
+    expect(pathAccess('/admin/agencies/tenant-full/people')).toBe('admin')
     expect(pathAccess('/admin/tenants')).toBe('admin')
     expect(pathAccess('/payments')).toBe('finance')
     expect(pathAccess('/finance')).toBe('finance')
   })
 
   it('allows core paths and blocks disabled modules', () => {
-    const leisure = getTenantById(TENANT_IDS.leisure)!
-    expect(isPathAllowed('/clients', leisure.enabledModules, 'agency_user')).toBe(
+    const limited = createTenant({
+      name: 'Limited Modules Co',
+      enabledModules: [
+        'services.tourPackage',
+        'services.airTicket',
+        'services.hotelBooking',
+        'services.touristVisa',
+        'finance',
+      ],
+    })
+    expect(isPathAllowed('/clients', limited.enabledModules, 'agency_user')).toBe(
       true,
     )
-    expect(isPathAllowed('/services', leisure.enabledModules, 'agency_user')).toBe(
+    expect(isPathAllowed('/services', limited.enabledModules, 'agency_user')).toBe(
       true,
     )
-    expect(isPathAllowed('/hr', leisure.enabledModules, 'agency_user')).toBe(
+    expect(isPathAllowed('/hr', limited.enabledModules, 'agency_user')).toBe(
       false,
     )
     expect(
-      isPathAllowed('/sub-agents', leisure.enabledModules, 'agency_user'),
+      isPathAllowed('/sub-agents', limited.enabledModules, 'agency_user'),
     ).toBe(false)
     expect(
-      isPathAllowed('/admin/agencies', leisure.enabledModules, 'agency_user'),
+      isPathAllowed('/admin/agencies', limited.enabledModules, 'agency_user'),
     ).toBe(false)
     expect(
-      isPathAllowed('/admin/agencies', leisure.enabledModules, 'platform_admin'),
+      isPathAllowed('/admin/agencies', limited.enabledModules, 'platform_admin'),
     ).toBe(true)
     expect(
-      isPathAllowed('/clients', leisure.enabledModules, 'platform_admin'),
+      isPathAllowed('/clients', limited.enabledModules, 'platform_admin'),
     ).toBe(false)
-    expect(isPathAllowed('/', leisure.enabledModules, 'platform_admin')).toBe(
+    expect(isPathAllowed('/', limited.enabledModules, 'platform_admin')).toBe(
       false,
     )
   })
@@ -92,22 +101,29 @@ describe('module entitlements', () => {
   })
 
   it('scopes sub-agent paths and nav', () => {
-    const leisure = getTenantById(TENANT_IDS.leisure)!
-    expect(isPathAllowed('/clients', leisure.enabledModules, 'sub_agent')).toBe(
+    const limited = createTenant({
+      name: 'Sub-agent Scope Co',
+      enabledModules: [
+        'services.tourPackage',
+        'services.airTicket',
+        'finance',
+      ],
+    })
+    expect(isPathAllowed('/clients', limited.enabledModules, 'sub_agent')).toBe(
       true,
     )
     expect(
-      isPathAllowed('/my-submissions', leisure.enabledModules, 'sub_agent'),
+      isPathAllowed('/my-submissions', limited.enabledModules, 'sub_agent'),
     ).toBe(true)
     expect(
-      isPathAllowed('/sub-agents', leisure.enabledModules, 'sub_agent'),
+      isPathAllowed('/sub-agents', limited.enabledModules, 'sub_agent'),
     ).toBe(false)
     expect(
-      isPathAllowed('/settings', leisure.enabledModules, 'sub_agent'),
+      isPathAllowed('/settings', limited.enabledModules, 'sub_agent'),
     ).toBe(false)
     const nav = filterNavItems(
       layoutConfig.navItems,
-      leisure.enabledModules,
+      limited.enabledModules,
       'sub_agent',
     )
     expect(nav.some((item) => item.path === '/my-submissions')).toBe(true)
@@ -115,11 +131,20 @@ describe('module entitlements', () => {
     expect(nav.some((item) => item.path === '/settings')).toBe(false)
   })
 
-  it('hides HR and subAgents from leisure nav and does not list service types', () => {
-    const leisure = getTenantById(TENANT_IDS.leisure)!
+  it('hides HR and subAgents from a limited catalog nav', () => {
+    const limited = createTenant({
+      name: 'Catalog Limited Co',
+      enabledModules: [
+        'services.tourPackage',
+        'services.airTicket',
+        'services.hotelBooking',
+        'services.touristVisa',
+        'finance',
+      ],
+    })
     const nav = filterNavItems(
       layoutConfig.navItems,
-      leisure.enabledModules,
+      limited.enabledModules,
       'agency_user',
     )
     const labels = nav.flatMap((item) => [
@@ -158,14 +183,18 @@ describe('module entitlements', () => {
   })
 
   it('restores a module when the platform admin enables it', () => {
-    setTenantModuleEnabled(TENANT_IDS.leisure, 'hr', true)
-    const leisure = getTenantById(TENANT_IDS.leisure)!
-    expect(isPathAllowed('/hr', leisure.enabledModules, 'agency_user')).toBe(
+    const agency = createTenant({
+      name: 'Enable HR Co',
+      enabledModules: ['finance'],
+    })
+    setTenantModuleEnabled(agency.id, 'hr', true)
+    const updated = getTenantById(agency.id)!
+    expect(isPathAllowed('/hr', updated.enabledModules, 'agency_user')).toBe(
       true,
     )
     const nav = filterNavItems(
       layoutConfig.navItems,
-      leisure.enabledModules,
+      updated.enabledModules,
       'agency_user',
     )
     expect(nav.some((item) => item.path === '/hr')).toBe(true)
@@ -183,7 +212,7 @@ describe('module entitlements', () => {
   })
 
   it('keeps toggles when the agency also exists in created tenants', () => {
-    const leisure = getTenantById(TENANT_IDS.leisure)!
+    const leisure = getTenantById(TENANT_IDS.demo)!
     saveJson(DATA_KEYS.tenantsCreated, [
       {
         ...leisure,
@@ -192,11 +221,11 @@ describe('module entitlements', () => {
     ])
     window.dispatchEvent(new Event('pd-data-rehydrated'))
 
-    setTenantModuleEnabled(TENANT_IDS.leisure, 'hr', true)
-    expect(getTenantById(TENANT_IDS.leisure)!.enabledModules).toContain('hr')
+    setTenantModuleEnabled(TENANT_IDS.demo, 'hr', true)
+    expect(getTenantById(TENANT_IDS.demo)!.enabledModules).toContain('hr')
 
-    setTenantModuleEnabled(TENANT_IDS.leisure, 'finance', false)
-    expect(getTenantById(TENANT_IDS.leisure)!.enabledModules).not.toContain(
+    setTenantModuleEnabled(TENANT_IDS.demo, 'finance', false)
+    expect(getTenantById(TENANT_IDS.demo)!.enabledModules).not.toContain(
       'finance',
     )
   })
