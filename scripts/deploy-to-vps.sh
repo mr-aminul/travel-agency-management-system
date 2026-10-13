@@ -34,11 +34,19 @@ USER_NAME="$(env_or_file VPS_USER)"
 PASS="$(env_or_file VPS_PASSWORD)"
 PUBLIC_UI_URL="$(env_or_file PLATFORM_PUBLIC_UI_URL)"
 PUBLIC_UI_URL="${PUBLIC_UI_URL:-https://app.inventivelab.bd}"
+PUBLIC_UI_URL="${PUBLIC_UI_URL%/}"
 PUBLIC_API_URL="$(env_or_file PLATFORM_PUBLIC_API_URL)"
 # Same-origin /api on the app host is preferred for webhooks + browser return.
 PUBLIC_API_URL="${PUBLIC_API_URL:-$PUBLIC_UI_URL}"
+PUBLIC_API_URL="${PUBLIC_API_URL%/}"
 MARKETING_UI_URL="$(env_or_file PLATFORM_MARKETING_URL)"
 MARKETING_UI_URL="${MARKETING_UI_URL:-https://onetrack.inventivelab.bd}"
+MARKETING_UI_URL="${MARKETING_UI_URL%/}"
+# Health checks must hit the app host (marketing /api permanently redirects).
+if [[ "$PUBLIC_UI_URL" == "$MARKETING_UI_URL" ]] || [[ "$PUBLIC_UI_URL" == *"onetrack.inventivelab.bd"* ]]; then
+  echo "[platform] PLATFORM_PUBLIC_UI_URL is marketing; using https://app.inventivelab.bd for same-origin checks" >&2
+  PUBLIC_UI_URL="https://app.inventivelab.bd"
+fi
 # Include marketing + app + local Vite origins.
 CORS_ORIGIN="${PLATFORM_CORS_ORIGIN:-https://app.inventivelab.bd,https://onetrack.inventivelab.bd,http://localhost:8003,http://127.0.0.1:8003}"
 REMOTE_ROOT="${PLATFORM_REMOTE_ROOT:-/opt/onetrack-platform}"
@@ -278,36 +286,37 @@ echo "$API_HEADERS" | tr -d '\r' | grep -qi '^x-app: onetrack-platform-api' || {
 }
 echo "  API 200 (Caddy api.onetrack host)"
 
-# App host may need a moment for DNS/ACME on first cutover.
+# App host may need a moment after Caddy reload / container recreate.
+# Retries until the command succeeds AND (optional) body matches a pattern.
 wait_for_curl() {
   local label="$1"
-  shift
+  local expect_regex="${2-}"
+  shift 2
   local attempt=1
   local out=""
   while [[ "$attempt" -le 12 ]]; do
     if out="$("$@" 2>/dev/null)"; then
-      printf '%s' "$out"
-      return 0
+      if [[ -z "$expect_regex" ]] || printf '%s' "$out" | grep -Eq "$expect_regex"; then
+        printf '%s' "$out"
+        return 0
+      fi
     fi
     echo "  waiting for $label (attempt $attempt/12)…"
     sleep 5
     attempt=$((attempt + 1))
   done
+  printf '%s' "$out" >&2
   return 1
 }
 
-SAME_ORIGIN_HEALTH="$(wait_for_curl "app API" curl -fsS "$PUBLIC_UI_URL/api/platform/health")" || {
+SAME_ORIGIN_HEALTH="$(wait_for_curl "app API" '"ok"[[:space:]]*:[[:space:]]*true' \
+  curl -fsSL --compressed "$PUBLIC_UI_URL/api/platform/health")" || {
   echo "Same-origin API proxy check failed: $PUBLIC_UI_URL/api/platform/health" >&2
-  exit 1
-}
-echo "$SAME_ORIGIN_HEALTH" | grep -q '"ok":true' || {
-  echo "Same-origin API proxy check failed: $PUBLIC_UI_URL/api/platform/health" >&2
-  echo "$SAME_ORIGIN_HEALTH" >&2
   exit 1
 }
 echo "  API 200 (same-origin via app host)"
 
-UI_HEADERS="$(wait_for_curl "app UI" curl -fsSI "$PUBLIC_UI_URL/")" || {
+UI_HEADERS="$(wait_for_curl "app UI" '' curl -fsSI "$PUBLIC_UI_URL/")" || {
   echo "App UI check failed: could not reach $PUBLIC_UI_URL/" >&2
   exit 1
 }
