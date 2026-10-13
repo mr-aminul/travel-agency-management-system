@@ -60,6 +60,9 @@ jobs:
           SMSQ_API_KEY: ${{ secrets.SMSQ_API_KEY }}
           SMSQ_CLIENT_ID: ${{ secrets.SMSQ_CLIENT_ID }}
           SMSQ_SENDER_ID: ${{ secrets.SMSQ_SENDER_ID }}
+          BILLING_GATEWAY: ${{ secrets.BILLING_GATEWAY }}
+          UDDOKTAPAY_API_URL: ${{ secrets.UDDOKTAPAY_API_URL }}
+          UDDOKTAPAY_API_KEY: ${{ secrets.UDDOKTAPAY_API_KEY }}
           GITHUB_SHA: ${{ github.sha }}
         run: bash scripts/deploy-to-vps.sh
 
