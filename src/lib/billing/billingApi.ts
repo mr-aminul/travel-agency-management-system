@@ -64,18 +64,31 @@ export async function fetchBillingMe(
   return apiFetch<BillingSnapshot>(`/api/platform/billing/me${qs}`)
 }
 
-export async function startCheckout(planId: string, tenantId?: string) {
+export async function startCheckout(
+  planId: string,
+  tenantId?: string,
+  returnUrl?: string,
+) {
   try {
     return await apiFetch<{
       ok: boolean
-      mode: 'manual' | 'external'
+      mode: 'manual' | 'external' | 'uddoktapay'
       invoice: BillingInvoice
       plan: PlanTemplate
       redirectUrl: string | null
+      activated?: boolean
       instructions?: PaymentInstructions
     }>('/api/platform/billing/checkout', {
       method: 'POST',
-      body: { planId, tenantId },
+      body: {
+        planId,
+        tenantId,
+        returnUrl:
+          returnUrl ||
+          (typeof window !== 'undefined'
+            ? `${window.location.origin}/billing`
+            : undefined),
+      },
     })
   } catch (error) {
     throw new Error(errorMessage(error, 'Could not start checkout.'))
@@ -186,15 +199,45 @@ export async function adminListBilling() {
   }>('/api/platform/admin/billing/tenants')
 }
 
+export type AdminPlanInput = {
+  id?: string
+  name: string
+  description?: string
+  priceBdt: number
+  currency?: string
+  interval?: 'month' | 'year'
+  userLimit: number
+  subAgentLimit: number
+  storageLimitBytes: number
+  smsLimit: number
+  smsOverageBdt: number
+  sortOrder?: number
+  isPublic?: boolean
+  isActive?: boolean
+  modules?: string[]
+  features?: Record<string, unknown>
+}
+
 export async function adminListPlans() {
   return apiFetch<{ plans: PlanTemplate[] }>(
     '/api/platform/admin/billing/plans',
   )
 }
 
+export async function adminCreatePlan(body: AdminPlanInput) {
+  try {
+    return await apiFetch<{ ok: boolean; plan: PlanTemplate }>(
+      '/api/platform/admin/billing/plans',
+      { method: 'POST', body },
+    )
+  } catch (error) {
+    throw new Error(errorMessage(error, 'Could not create plan.'))
+  }
+}
+
 export async function adminUpdatePlan(
   planId: string,
-  body: Record<string, unknown>,
+  body: Partial<AdminPlanInput>,
 ) {
   try {
     return await apiFetch<{ ok: boolean; plan: PlanTemplate }>(
@@ -203,6 +246,24 @@ export async function adminUpdatePlan(
     )
   } catch (error) {
     throw new Error(errorMessage(error, 'Could not update plan.'))
+  }
+}
+
+export async function adminDeletePlan(planId: string, hard = false) {
+  try {
+    const qs = hard ? '?hard=1' : ''
+    return await apiFetch<{
+      ok: boolean
+      deleted: boolean
+      hard: boolean
+      plan?: PlanTemplate
+      tenantCount?: number
+    }>(
+      `/api/platform/admin/billing/plans/${encodeURIComponent(planId)}${qs}`,
+      { method: 'DELETE' },
+    )
+  } catch (error) {
+    throw new Error(errorMessage(error, 'Could not delete plan.'))
   }
 }
 

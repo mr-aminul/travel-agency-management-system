@@ -1,26 +1,61 @@
 /**
  * Payment gateway adapter.
  *
- * Default: manual (bKash / Nagad / bank) via billing invoices.
- * When you provide a gateway API, set BILLING_GATEWAY=external and implement
- * createCheckout / handleWebhook below (or point env at the provider).
+ * Modes:
+ * - manual (default): bKash / Nagad / bank + admin verify
+ * - uddoktapay | paymently: hosted checkout via Paymently/UddoktaPay
+ * - external: legacy stub redirect URL
  */
 
 import crypto from 'node:crypto'
 import { query } from '../db.js'
-import { createPlanInvoice, markInvoicePaid } from './invoices.js'
+import {
+  attachGatewayPayment,
+  createPlanInvoice,
+  getInvoice,
+  markInvoicePaid,
+} from './invoices.js'
 import { applyPlanToTenant, setBillingStatus } from './tenantBilling.js'
+import {
+  createUddoktaPayCharge,
+  headerMatchesUddoktaPayApiKey,
+  uddoktapayConfigured,
+  verifyUddoktaPayPayment,
+} from './uddoktapay.js'
+
+const UDDOKTAPAY_MODES = new Set(['uddoktapay', 'paymently'])
 
 export function gatewayMode() {
   const mode = String(process.env.BILLING_GATEWAY || 'manual')
     .trim()
     .toLowerCase()
-  return mode === 'external' ? 'external' : 'manual'
+  if (UDDOKTAPAY_MODES.has(mode)) return 'uddoktapay'
+  if (mode === 'external') return 'external'
+  return 'manual'
+}
+
+function publicUiBase() {
+  return (
+    String(process.env.PLATFORM_PUBLIC_UI_URL || '').trim().replace(/\/+$/, '') ||
+    'https://onetrack.inventivelab.bd'
+  )
+}
+
+function publicApiBase() {
+  const explicit = String(process.env.PLATFORM_PUBLIC_API_URL || '')
+    .trim()
+    .replace(/\/+$/, '')
+  if (explicit) return explicit
+  // Same-origin /api via Caddy on the UI host.
+  return publicUiBase()
 }
 
 export function paymentInstructions() {
+  const mode = gatewayMode()
+  const online = mode === 'uddoktapay'
   return {
-    mode: gatewayMode(),
+    mode: online ? 'uddoktapay' : mode === 'external' ? 'external' : 'manual',
+    online,
     bkash: String(process.env.BILLING_BKASH_NUMBER || '').trim() || null,
     nagad: String(process.env.BILLING_NAGAD_NUMBER || '').trim() || null,
     bankName: String(process.env.BILLING_BANK_NAME || '').trim() || null,
@@ -31,9 +66,78 @@ export function paymentInstructions() {
     supportEmail:
       String(process.env.BILLING_SUPPORT_EMAIL || '').trim() ||
       'support@inventivelab.bd',
-    note:
-      String(process.env.BILLING_PAY_NOTE || '').trim() ||
-      'Pay the invoice amount, then submit your transaction ID for verification.',
+    note: online
+      ? String(process.env.BILLING_PAY_NOTE || '').trim() ||
+        'You will be redirected to Paymently to pay with bKash, Nagad, or other methods. Access activates automatically after payment.'
+      : String(process.env.BILLING_PAY_NOTE || '').trim() ||
+        'Pay the invoice amount, then submit your transaction ID for verification.',
+  }
+}
+
+async function createUddoktaPayCheckout({
+  tenantId,
+  planId,
+  returnUrl,
+  invoice,
+  plan,
+  customer,
+}) {
+  if (!uddoktapayConfigured()) {
+    return {
+      ok: false,
+      status: 503,
+      error:
+        'Paymently/UddoktaPay is not configured. Set UDDOKTAPAY_API_KEY and UDDOKTAPAY_API_URL.',
+    }
+  }
+
+  const apiBase = publicApiBase()
+  const uiBase = publicUiBase()
+  const successReturn =
+    String(returnUrl || '').trim() || `${uiBase}/billing`
+  const redirectUrl = `${apiBase}/api/platform/billing/uddoktapay/return`
+  const cancelUrl = `${uiBase}/billing?payment=canceled`
+  const webhookUrl = `${apiBase}/api/platform/webhooks/billing/uddoktapay`
+
+  try {
+    const { paymentUrl } = await createUddoktaPayCharge({
+      fullName: customer?.fullName,
+      email: customer?.email,
+      amount: invoice.amountBdt,
+      metadata: {
+        billing_invoice_id: invoice.id,
+        tenant_id: tenantId,
+        plan_id: planId,
+        return_url: successReturn,
+      },
+      redirectUrl,
+      cancelUrl,
+      webhookUrl,
+      returnType: 'GET',
+    })
+
+    await attachGatewayPayment({
+      invoiceId: invoice.id,
+      paymentMethod: 'gateway',
+    })
+
+    return {
+      ok: true,
+      mode: 'uddoktapay',
+      invoice: await getInvoice(invoice.id),
+      plan,
+      redirectUrl: paymentUrl,
+      instructions: paymentInstructions(),
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      status: error?.status && error.status < 500 ? error.status : 502,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Could not start Paymently checkout.',
+    }
   }
 }
 
@@ -42,6 +146,7 @@ export async function createCheckout({
   planId,
   returnUrl,
   amountBdt,
+  customer,
 }) {
   const invoiceResult = await createPlanInvoice({
     tenantId,
@@ -50,22 +155,57 @@ export async function createCheckout({
   })
   if (!invoiceResult.ok) return invoiceResult
 
-  if (gatewayMode() === 'external') {
-    // Hook for the real provider: create a session, return redirectUrl.
+  const { invoice, plan } = invoiceResult
+
+  // Free / zero-taka invoices activate immediately (e.g. test plan).
+  if (Number(invoice.amountBdt) <= 0) {
+    const paid = await markInvoicePaid({
+      invoiceId: invoice.id,
+      verifiedBy: 'gateway-zero',
+      activatePlan: true,
+      paymentMethod: 'gateway',
+      paymentReference: 'zero-amount',
+    })
+    return {
+      ok: true,
+      mode: gatewayMode(),
+      invoice: paid.invoice,
+      plan,
+      redirectUrl: null,
+      activated: true,
+      instructions: paymentInstructions(),
+    }
+  }
+
+  const mode = gatewayMode()
+
+  if (mode === 'uddoktapay') {
+    return createUddoktaPayCheckout({
+      tenantId,
+      planId,
+      returnUrl,
+      invoice,
+      plan,
+      customer,
+    })
+  }
+
+  if (mode === 'external') {
     const base =
       String(process.env.BILLING_GATEWAY_CHECKOUT_URL || '').trim() || null
     if (base) {
       const url = new URL(base)
-      url.searchParams.set('invoice_id', invoiceResult.invoice.id)
+      url.searchParams.set('invoice_id', invoice.id)
       url.searchParams.set('tenant_id', tenantId)
       url.searchParams.set('plan_id', planId)
       if (returnUrl) url.searchParams.set('return_url', returnUrl)
       return {
         ok: true,
         mode: 'external',
-        invoice: invoiceResult.invoice,
-        plan: invoiceResult.plan,
+        invoice,
+        plan,
         redirectUrl: url.toString(),
+        instructions: paymentInstructions(),
       }
     }
   }
@@ -73,8 +213,8 @@ export async function createCheckout({
   return {
     ok: true,
     mode: 'manual',
-    invoice: invoiceResult.invoice,
-    plan: invoiceResult.plan,
+    invoice,
+    plan,
     redirectUrl: null,
     instructions: paymentInstructions(),
   }
@@ -115,6 +255,232 @@ async function releaseWebhookClaim(eventId) {
   ])
 }
 
+function metadataObject(raw) {
+  if (!raw) return {}
+  if (typeof raw === 'object') return raw
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return parsed && typeof parsed === 'object' ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return {}
+}
+
+async function resolveBillingInvoiceIdFromPayment(data) {
+  const meta = metadataObject(data?.metadata)
+  const fromMeta = String(meta.billing_invoice_id || meta.invoice_id || '').trim()
+  if (fromMeta.startsWith('binv-')) return fromMeta
+
+  const providerId = String(data?.invoice_id || '').trim()
+  if (providerId) {
+    const byGateway = await query(
+      `select id from platform.billing_invoices
+       where gateway_payment_id = $1
+       order by created_at desc
+       limit 1`,
+      [providerId],
+    )
+    if (byGateway.rows[0]?.id) return byGateway.rows[0].id
+  }
+  return null
+}
+
+/**
+ * Apply a verified UddoktaPay/Paymently payment payload to our invoice.
+ */
+export async function applyUddoktaPayPayment(data, { verifiedBy = 'uddoktapay' } = {}) {
+  const status = String(data?.status || '').trim().toUpperCase()
+  if (status !== 'COMPLETED') {
+    return {
+      ok: false,
+      status: 409,
+      error: `Payment status is ${status || 'unknown'}, not COMPLETED.`,
+      paymentStatus: status,
+    }
+  }
+
+  const billingInvoiceId = await resolveBillingInvoiceIdFromPayment(data)
+  if (!billingInvoiceId) {
+    return {
+      ok: false,
+      status: 404,
+      error: 'No matching billing invoice for this payment.',
+    }
+  }
+
+  const amountPaid = Number(data?.amount ?? data?.charged_amount)
+  const invoice = await getInvoice(billingInvoiceId)
+  if (invoice && Number.isFinite(amountPaid) && amountPaid > 0) {
+    const expected = Number(invoice.amountBdt)
+    // Allow small float noise; amounts are whole BDT in practice.
+    if (Math.abs(amountPaid - expected) > 0.5) {
+      return {
+        ok: false,
+        status: 409,
+        error: `Paid amount ${amountPaid} does not match invoice ${expected}.`,
+      }
+    }
+  }
+
+  const method = String(data?.payment_method || 'gateway')
+    .trim()
+    .toLowerCase()
+    .slice(0, 40)
+  const result = await markInvoicePaid({
+    invoiceId: billingInvoiceId,
+    verifiedBy,
+    activatePlan: true,
+    paymentMethod: method || 'gateway',
+    paymentReference: String(data?.transaction_id || '').trim() || null,
+    gatewayPaymentId: String(data?.invoice_id || '').trim() || null,
+    paymentNote: data?.sender_number
+      ? `Sender ${data.sender_number}`
+      : null,
+  })
+  return { ...result, billingInvoiceId }
+}
+
+/**
+ * Browser return from Paymently: verify invoice_id then redirect to UI.
+ */
+export async function handleUddoktaPayReturn({ providerInvoiceId, returnUrl }) {
+  const id = String(providerInvoiceId || '').trim()
+  if (!id) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Missing invoice_id.',
+      redirectUrl: `${publicUiBase()}/billing?payment=error`,
+    }
+  }
+
+  try {
+    const verified = await verifyUddoktaPayPayment(id)
+    const meta = metadataObject(verified.data?.metadata)
+    const destBase =
+      String(returnUrl || meta.return_url || '').trim() ||
+      `${publicUiBase()}/billing`
+
+    if (verified.completed) {
+      const applied = await applyUddoktaPayPayment(verified.data, {
+        verifiedBy: 'uddoktapay-return',
+      })
+      if (!applied.ok && !applied.alreadyPaid) {
+        const url = new URL(destBase, publicUiBase())
+        url.searchParams.set('payment', 'error')
+        url.searchParams.set(
+          'reason',
+          applied.error || 'Could not activate subscription.',
+        )
+        return {
+          ok: false,
+          status: applied.status || 400,
+          error: applied.error,
+          redirectUrl: url.toString(),
+        }
+      }
+      const url = new URL(destBase, publicUiBase())
+      url.searchParams.set('payment', 'success')
+      return { ok: true, redirectUrl: url.toString(), applied }
+    }
+
+    if (verified.pending) {
+      const url = new URL(destBase, publicUiBase())
+      url.searchParams.set('payment', 'pending')
+      return { ok: true, pending: true, redirectUrl: url.toString() }
+    }
+
+    const url = new URL(destBase, publicUiBase())
+    url.searchParams.set('payment', 'failed')
+    return {
+      ok: false,
+      status: 409,
+      error: `Payment ${verified.status}`,
+      redirectUrl: url.toString(),
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      status: 502,
+      error: error instanceof Error ? error.message : 'Verify failed.',
+      redirectUrl: `${publicUiBase()}/billing?payment=error`,
+    }
+  }
+}
+
+/**
+ * IPN / webhook from Paymently admin or automatic notify.
+ * Authenticates via RT-UDDOKTAPAY-API-KEY header.
+ */
+export async function handleUddoktaPayWebhook(rawBody, headers = {}) {
+  if (!headerMatchesUddoktaPayApiKey(headers)) {
+    return { ok: false, status: 401, error: 'Invalid Paymently API key.' }
+  }
+
+  const body =
+    typeof rawBody === 'string' ? JSON.parse(rawBody || '{}') : rawBody || {}
+  const providerInvoiceId = String(body.invoice_id || '').trim()
+  const txn = String(body.transaction_id || '').trim()
+  const eventId =
+    providerInvoiceId && txn
+      ? `uddoktapay:${providerInvoiceId}:${txn}`
+      : providerInvoiceId
+        ? `uddoktapay:${providerInvoiceId}`
+        : `uddoktapay:${crypto.randomBytes(8).toString('hex')}`
+
+  const claim = await claimWebhookEvent('uddoktapay', eventId, body)
+  if (!claim.ok) return claim
+  if (claim.duplicate) {
+    return { ok: true, duplicate: true }
+  }
+
+  try {
+    // Prefer live verify over trusting webhook body alone.
+    let paymentData = body
+    if (providerInvoiceId) {
+      try {
+        const verified = await verifyUddoktaPayPayment(providerInvoiceId)
+        if (verified.ok && verified.data) paymentData = verified.data
+      } catch {
+        // Fall back to webhook payload if verify is temporarily unavailable.
+      }
+    }
+
+    const status = String(paymentData.status || '').trim().toUpperCase()
+    if (status === 'COMPLETED') {
+      const applied = await applyUddoktaPayPayment(paymentData, {
+        verifiedBy: 'uddoktapay-webhook',
+      })
+      if (!applied.ok && !applied.alreadyPaid) {
+        await releaseWebhookClaim(eventId)
+        return applied
+      }
+      await markWebhookProcessed(eventId)
+      return { ok: true, eventId, applied }
+    }
+
+    if (status === 'ERROR' || status === 'FAILED') {
+      const meta = metadataObject(paymentData.metadata)
+      if (meta.tenant_id) {
+        await setBillingStatus(String(meta.tenant_id), 'past_due')
+      }
+    }
+
+    await markWebhookProcessed(eventId)
+    return { ok: true, eventId, status }
+  } catch (error) {
+    await releaseWebhookClaim(eventId)
+    return {
+      ok: false,
+      status: 500,
+      error: error instanceof Error ? error.message : 'Webhook failed.',
+    }
+  }
+}
+
 /**
  * Generic webhook shape (provider-agnostic):
  * {
@@ -123,6 +489,11 @@ async function releaseWebhookClaim(eventId) {
  * }
  */
 export async function handleGatewayWebhook(rawBody, headers = {}) {
+  // Paymently sends RT-UDDOKTAPAY-API-KEY — route to the dedicated handler.
+  if (headerMatchesUddoktaPayApiKey(headers) || headers['rt-uddoktapay-api-key']) {
+    return handleUddoktaPayWebhook(rawBody, headers)
+  }
+
   const secret = String(process.env.BILLING_WEBHOOK_SECRET || '').trim()
   if (secret) {
     const token = String(

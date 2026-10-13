@@ -16,7 +16,6 @@ const ServiceBoardPage = lazy(() => import('@/pages/ServiceBoardPage'))
 const DocumentsPage = lazy(() => import('@/pages/DocumentsPage'))
 const PaymentsPage = lazy(() => import('@/pages/PaymentsPage'))
 const ReportsPage = lazy(() => import('@/pages/ReportsPage'))
-const HelpPage = lazy(() => import('@/pages/HelpPage'))
 const HomePage = lazy(() => import('@/pages/HomePage'))
 const HrPage = lazy(() => import('@/pages/HrPage'))
 const HrAttendancePage = lazy(() => import('@/pages/HrAttendancePage'))
@@ -41,7 +40,8 @@ const TenantModulesPage = lazy(() => import('@/pages/admin/TenantModulesPage'))
 const TenantActivityPage = lazy(() => import('@/pages/admin/TenantActivityPage'))
 const AdminPeoplePage = lazy(() => import('@/pages/admin/AdminPeoplePage'))
 const AdminActivityPage = lazy(() => import('@/pages/admin/AdminActivityPage'))
-const AdminPlatformPage = lazy(() => import('@/pages/admin/AdminPlatformPage'))
+const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'))
+const AdminAdminsPage = lazy(() => import('@/pages/admin/AdminAdminsPage'))
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'))
@@ -149,7 +149,7 @@ function App() {
             <Route path="hr/employees/:id" element={<EmployeeDetailPage />} />
             <Route path="hr/attendance" element={<HrAttendancePage />} />
             <Route path="hr/payroll" element={<HrPayrollPage />} />
-            <Route path="help" element={<HelpPage />} />
+            <Route path="help" element={<Navigate to="/" replace />} />
             <Route path="admin" element={<AdminOverviewPage />} />
             <Route path="admin/agencies" element={<TenantsAdminPage />} />
             <Route
@@ -171,7 +171,16 @@ function App() {
             </Route>
             <Route path="admin/people" element={<AdminPeoplePage />} />
             <Route path="admin/activity" element={<AdminActivityPage />} />
-            <Route path="admin/platform" element={<AdminPlatformPage />} />
+            <Route path="admin/plans" element={<AdminPlansPage />} />
+            <Route path="admin/admins" element={<AdminAdminsPage />} />
+            <Route
+              path="admin/platform"
+              element={<Navigate to="/admin/plans" replace />}
+            />
+            <Route
+              path="admin/platform/*"
+              element={<Navigate to="/admin/plans" replace />}
+            />
             {/* Legacy Businesses URLs */}
             <Route
               path="admin/tenants"

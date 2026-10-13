@@ -662,6 +662,142 @@ export async function setAgencyUserStatus({ userId, email, status }) {
   }
 }
 
+function mapPlatformAdminRow(row) {
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    role: 'platform_admin',
+    status: row.status === 'disabled' ? 'disabled' : 'active',
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+    isBootstrap: row.id === 'user-platform-admin',
+  }
+}
+
+export async function listPlatformAdmins() {
+  const result = await query(
+    `select id, email, name, role, status, created_at
+     from platform.users
+     where role = 'platform_admin'
+     order by
+       case when id = 'user-platform-admin' then 0 else 1 end,
+       lower(name) asc,
+       lower(email) asc`,
+  )
+  return result.rows.map(mapPlatformAdminRow)
+}
+
+export async function createPlatformAdmin({ email, name, password, id }) {
+  const normalizedEmail = normalizeEmail(email)
+  const trimmedName = String(name ?? '').trim()
+  const rawPassword = String(password ?? '')
+  const userId =
+    String(id ?? '').trim() || `user-${crypto.randomBytes(8).toString('hex')}`
+
+  if (!normalizedEmail) {
+    return { ok: false, status: 400, error: 'Email is required.' }
+  }
+  if (!trimmedName) {
+    return { ok: false, status: 400, error: 'Name is required.' }
+  }
+  if (!rawPassword || rawPassword.length < 8) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Password must be at least 8 characters.',
+    }
+  }
+
+  const existing = await query(
+    `select id from platform.users where lower(email) = $1 limit 1`,
+    [normalizedEmail],
+  )
+  if (existing.rows[0]) {
+    return { ok: false, status: 409, error: 'That email is already in use.' }
+  }
+
+  const passwordHash = hashPassword(rawPassword)
+  try {
+    const result = await query(
+      `insert into platform.users
+         (id, email, name, role, tenant_id, password_hash, status, member_role, updated_at)
+       values ($1, $2, $3, 'platform_admin', null, $4, 'active', null, now())
+       returning id, email, name, role, status, created_at`,
+      [userId, normalizedEmail, trimmedName, passwordHash],
+    )
+    return {
+      ok: true,
+      status: 201,
+      body: { admin: mapPlatformAdminRow(result.rows[0]) },
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      status: 500,
+      error: error instanceof Error ? error.message : 'Could not create admin.',
+    }
+  }
+}
+
+export async function setPlatformAdminStatus({
+  userId,
+  status,
+  actorUserId,
+}) {
+  const id = String(userId ?? '').trim()
+  const next = status === 'disabled' ? 'disabled' : 'active'
+  if (!id) {
+    return { ok: false, status: 400, error: 'Admin id required.' }
+  }
+
+  const existing = await query(
+    `select id, email, name, role, status, created_at
+     from platform.users
+     where id = $1 and role = 'platform_admin'
+     limit 1`,
+    [id],
+  )
+  const row = existing.rows[0]
+  if (!row) {
+    return { ok: false, status: 404, error: 'Admin not found.' }
+  }
+
+  if (next === 'disabled') {
+    if (actorUserId && id === actorUserId) {
+      return { ok: false, status: 400, error: 'You cannot disable your own admin login.' }
+    }
+    const activeCount = await query(
+      `select count(*)::int as count
+       from platform.users
+       where role = 'platform_admin' and status = 'active'`,
+    )
+    if (Number(activeCount.rows[0]?.count ?? 0) <= 1) {
+      return {
+        ok: false,
+        status: 400,
+        error: 'Keep at least one active platform admin.',
+      }
+    }
+  }
+
+  const result = await query(
+    `update platform.users
+     set status = $2, updated_at = now()
+     where id = $1
+     returning id, email, name, role, status, created_at`,
+    [id, next],
+  )
+  const updated = result.rows[0]
+  if (next === 'disabled') {
+    await query(`delete from platform.sessions where user_id = $1`, [id])
+  }
+  return {
+    ok: true,
+    status: 200,
+    body: { admin: mapPlatformAdminRow(updated) },
+  }
+}
+
 export async function setAgencyUserPassword({
   userId,
   email,

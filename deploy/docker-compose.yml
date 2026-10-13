@@ -59,6 +59,19 @@ services:
       SMSQ_API_KEY: ${SMSQ_API_KEY:-}
       SMSQ_CLIENT_ID: ${SMSQ_CLIENT_ID:-}
       SMSQ_SENDER_ID: ${SMSQ_SENDER_ID:-8809617602051}
+      # Subscription billing — Paymently / UddoktaPay
+      BILLING_GATEWAY: ${BILLING_GATEWAY:-uddoktapay}
+      UDDOKTAPAY_API_URL: ${UDDOKTAPAY_API_URL:-https://onetrack.paymently.io/api}
+      UDDOKTAPAY_API_KEY: ${UDDOKTAPAY_API_KEY:-}
+      PLATFORM_PUBLIC_API_URL: ${PLATFORM_PUBLIC_API_URL:-https://onetrack.inventivelab.bd}
+      BILLING_BKASH_NUMBER: ${BILLING_BKASH_NUMBER:-}
+      BILLING_NAGAD_NUMBER: ${BILLING_NAGAD_NUMBER:-}
+      BILLING_BANK_NAME: ${BILLING_BANK_NAME:-}
+      BILLING_BANK_ACCOUNT: ${BILLING_BANK_ACCOUNT:-}
+      BILLING_BANK_ROUTING: ${BILLING_BANK_ROUTING:-}
+      BILLING_SUPPORT_EMAIL: ${BILLING_SUPPORT_EMAIL:-support@inventivelab.bd}
+      BILLING_PAY_NOTE: ${BILLING_PAY_NOTE:-}
+      BILLING_WEBHOOK_SECRET: ${BILLING_WEBHOOK_SECRET:-}
       UPLOAD_DIR: /data/uploads
     volumes:
       - onetrack_platform_uploads:/data/uploads

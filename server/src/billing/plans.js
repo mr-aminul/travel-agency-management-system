@@ -67,7 +67,12 @@ export const FALLBACK_PLANS = [
     smsLimit: 2000,
     smsOverageBdt: 0.4,
     modules: ['finance', 'documents', 'subAgents', ...ALL_SERVICE_MODULES],
-    features: { label: 'Growth', includesSubAgents: true },
+    features: {
+      label: 'Growth',
+      includesSubAgents: true,
+      isHighlighted: true,
+      badge: 'Popular',
+    },
     isPublic: true,
     isActive: true,
   },
@@ -124,20 +129,186 @@ function mapPlanRow(row) {
   }
 }
 
-export async function listPlanTemplates({ publicOnly = false } = {}) {
+export async function listPlanTemplates({
+  publicOnly = false,
+  includeInactive = false,
+} = {}) {
   try {
     const result = await query(
       `select * from platform.plan_templates
        where ($1::boolean = false or is_public = true)
-         and is_active = true
+         and ($2::boolean = true or is_active = true)
        order by sort_order asc, name asc`,
-      [publicOnly],
+      [publicOnly, includeInactive],
     )
     if (result.rows.length) return result.rows.map(mapPlanRow)
   } catch {
     /* table may not exist yet */
   }
-  return FALLBACK_PLANS.filter((plan) => (publicOnly ? plan.isPublic : true))
+  return FALLBACK_PLANS.filter((plan) => {
+    if (publicOnly && !plan.isPublic) return false
+    if (!includeInactive && !plan.isActive) return false
+    return true
+  })
+}
+
+function normalizePlanId(raw) {
+  return String(raw ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function parseNonNegInt(value, label) {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n < 0) {
+    return { ok: false, error: `${label} must be 0 or more.` }
+  }
+  return { ok: true, value: Math.round(n) }
+}
+
+function parseNonNegNumber(value, label) {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n < 0) {
+    return { ok: false, error: `${label} must be 0 or more.` }
+  }
+  return { ok: true, value: n }
+}
+
+function normalizeModules(raw) {
+  if (!Array.isArray(raw)) return null
+  const cleaned = [
+    ...new Set(
+      raw
+        .map((item) => String(item ?? '').trim())
+        .filter(Boolean),
+    ),
+  ]
+  return cleaned
+}
+
+function buildFeatures(patchFeatures, name, modules, existingFeatures = {}) {
+  const base =
+    existingFeatures && typeof existingFeatures === 'object'
+      ? { ...existingFeatures }
+      : {}
+  const incoming =
+    patchFeatures && typeof patchFeatures === 'object' ? patchFeatures : {}
+  const next = { ...base, ...incoming }
+  next.label = String(next.label ?? name ?? '').trim() || name
+  if (Object.prototype.hasOwnProperty.call(incoming, 'isTest')) {
+    next.isTest = Boolean(incoming.isTest)
+  }
+  if (Object.prototype.hasOwnProperty.call(incoming, 'isHighlighted')) {
+    next.isHighlighted = Boolean(incoming.isHighlighted)
+  }
+  if (Object.prototype.hasOwnProperty.call(incoming, 'badge')) {
+    const badge = String(incoming.badge ?? '').trim()
+    if (badge) next.badge = badge
+    else delete next.badge
+  }
+  if (Object.prototype.hasOwnProperty.call(incoming, 'ctaLabel')) {
+    const cta = String(incoming.ctaLabel ?? '').trim()
+    if (cta) next.ctaLabel = cta
+    else delete next.ctaLabel
+  }
+  if (Object.prototype.hasOwnProperty.call(incoming, 'marketingBullets')) {
+    const bullets = Array.isArray(incoming.marketingBullets)
+      ? incoming.marketingBullets
+          .map((line) => String(line ?? '').trim())
+          .filter(Boolean)
+      : []
+    if (bullets.length) next.marketingBullets = bullets
+    else delete next.marketingBullets
+  }
+  const moduleSet = new Set(Array.isArray(modules) ? modules : [])
+  next.includesSubAgents = moduleSet.has('subAgents')
+  next.includesHr = moduleSet.has('hr')
+  if (!next.isTest) delete next.isTest
+  return next
+}
+
+function validatePlanFields(input, { partial = false } = {}) {
+  const next = {}
+
+  if (!partial || input.name != null) {
+    const name = String(input.name ?? '').trim()
+    if (!name) return { ok: false, status: 400, error: 'Name is required.' }
+    next.name = name
+  }
+  if (!partial || input.description != null) {
+    next.description = String(input.description ?? '')
+  }
+  if (!partial || input.priceBdt != null) {
+    const parsed = parseNonNegInt(input.priceBdt, 'Amount')
+    if (!parsed.ok) return { ok: false, status: 400, error: parsed.error }
+    next.priceBdt = parsed.value
+  }
+  if (!partial || input.currency != null) {
+    const currency = String(input.currency ?? 'BDT').trim().toUpperCase() || 'BDT'
+    next.currency = currency
+  }
+  if (!partial || input.interval != null) {
+    const interval = String(input.interval ?? 'month').trim()
+    if (interval !== 'month' && interval !== 'year') {
+      return { ok: false, status: 400, error: 'Interval must be month or year.' }
+    }
+    next.interval = interval
+  }
+  if (!partial || input.userLimit != null) {
+    const parsed = parseNonNegInt(input.userLimit, 'User limit')
+    if (!parsed.ok) return { ok: false, status: 400, error: parsed.error }
+    next.userLimit = parsed.value
+  }
+  if (!partial || input.subAgentLimit != null) {
+    const parsed = parseNonNegInt(input.subAgentLimit, 'Sub agent limit')
+    if (!parsed.ok) return { ok: false, status: 400, error: parsed.error }
+    next.subAgentLimit = parsed.value
+  }
+  if (!partial || input.smsLimit != null) {
+    const parsed = parseNonNegInt(input.smsLimit, 'SMS limit')
+    if (!parsed.ok) return { ok: false, status: 400, error: parsed.error }
+    next.smsLimit = parsed.value
+  }
+  if (!partial || input.smsOverageBdt != null) {
+    const parsed = parseNonNegNumber(input.smsOverageBdt, 'SMS overage')
+    if (!parsed.ok) return { ok: false, status: 400, error: parsed.error }
+    next.smsOverageBdt = parsed.value
+  }
+  if (!partial || input.storageLimitBytes != null) {
+    const parsed = parseNonNegInt(input.storageLimitBytes, 'Storage limit')
+    if (!parsed.ok) return { ok: false, status: 400, error: parsed.error }
+    next.storageLimitBytes = parsed.value
+  }
+  if (!partial || input.sortOrder != null) {
+    const n = Number(input.sortOrder ?? 0)
+    if (!Number.isFinite(n)) {
+      return { ok: false, status: 400, error: 'Sort order invalid.' }
+    }
+    next.sortOrder = Math.round(n)
+  }
+  if (!partial || input.isPublic != null) {
+    next.isPublic = input.isPublic == null ? true : Boolean(input.isPublic)
+  }
+  if (!partial || input.isActive != null) {
+    next.isActive = input.isActive == null ? true : Boolean(input.isActive)
+  }
+  if (!partial || input.modules != null) {
+    const modules = normalizeModules(input.modules)
+    if (!modules) {
+      return { ok: false, status: 400, error: 'Modules must be an array.' }
+    }
+    next.modules = modules
+  }
+  if (!partial || input.features != null) {
+    next.features =
+      input.features && typeof input.features === 'object'
+        ? input.features
+        : {}
+  }
+
+  return { ok: true, fields: next }
 }
 
 export async function getPlanTemplate(planId) {
@@ -156,10 +327,92 @@ export async function getPlanTemplate(planId) {
   return FALLBACK_PLANS.find((plan) => plan.id === id) ?? null
 }
 
-/**
- * Admin update for catalog amounts / visibility.
- * Only whitelisted fields — modules stay on the Product / apply-plan flows.
- */
+export async function createPlanTemplate(input = {}) {
+  const id = normalizePlanId(input.id)
+  if (!id || !/^[a-z][a-z0-9_-]{1,63}$/.test(id)) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Plan id must start with a letter and use a-z, 0-9, _ or -.',
+    }
+  }
+  const existing = await getPlanTemplate(id)
+  if (existing) {
+    return { ok: false, status: 409, error: 'A plan with that id already exists.' }
+  }
+
+  const validated = validatePlanFields(
+    {
+      name: input.name,
+      description: input.description ?? '',
+      priceBdt: input.priceBdt ?? 0,
+      currency: input.currency ?? 'BDT',
+      interval: input.interval ?? 'month',
+      userLimit: input.userLimit ?? 0,
+      subAgentLimit: input.subAgentLimit ?? 0,
+      storageLimitBytes: input.storageLimitBytes ?? 0,
+      smsLimit: input.smsLimit ?? 0,
+      smsOverageBdt: input.smsOverageBdt ?? 0,
+      sortOrder: input.sortOrder ?? 100,
+      isPublic: input.isPublic ?? true,
+      isActive: input.isActive ?? true,
+      modules: input.modules ?? ['finance', 'documents', ...ALL_SERVICE_MODULES],
+      features: input.features ?? {},
+    },
+    { partial: false },
+  )
+  if (!validated.ok) return validated
+
+  const fields = validated.fields
+  fields.features = buildFeatures(
+    fields.features,
+    fields.name,
+    fields.modules,
+    {},
+  )
+
+  try {
+    await query(
+      `insert into platform.plan_templates (
+         id, name, description, sort_order, price_bdt, currency, interval,
+         user_limit, sub_agent_limit, storage_limit_bytes, sms_limit,
+         sms_overage_bdt, modules, features, is_public, is_active
+       ) values (
+         $1, $2, $3, $4, $5, $6, $7,
+         $8, $9, $10, $11,
+         $12, $13::jsonb, $14::jsonb, $15, $16
+       )`,
+      [
+        id,
+        fields.name,
+        fields.description,
+        fields.sortOrder,
+        fields.priceBdt,
+        fields.currency,
+        fields.interval,
+        fields.userLimit,
+        fields.subAgentLimit,
+        fields.storageLimitBytes,
+        fields.smsLimit,
+        fields.smsOverageBdt,
+        JSON.stringify(fields.modules),
+        JSON.stringify(fields.features),
+        fields.isPublic,
+        fields.isActive,
+      ],
+    )
+  } catch (error) {
+    return {
+      ok: false,
+      status: 500,
+      error: error instanceof Error ? error.message : 'Could not create plan.',
+    }
+  }
+
+  return { ok: true, plan: await getPlanTemplate(id) }
+}
+
+/** Admin update for every catalog field including modules and features. */
 export async function updatePlanTemplate(planId, patch = {}) {
   const id = String(planId ?? '').trim()
   if (!id) {
@@ -170,10 +423,15 @@ export async function updatePlanTemplate(planId, patch = {}) {
     return { ok: false, status: 404, error: 'Plan not found.' }
   }
 
+  const validated = validatePlanFields(patch, { partial: true })
+  if (!validated.ok) return validated
+
   const next = {
     name: existing.name,
     description: existing.description,
     priceBdt: existing.priceBdt,
+    currency: existing.currency,
+    interval: existing.interval,
     userLimit: existing.userLimit,
     subAgentLimit: existing.subAgentLimit,
     storageLimitBytes: existing.storageLimitBytes,
@@ -182,60 +440,17 @@ export async function updatePlanTemplate(planId, patch = {}) {
     isPublic: existing.isPublic,
     isActive: existing.isActive,
     sortOrder: existing.sortOrder,
+    modules: existing.modules,
+    features: existing.features,
+    ...validated.fields,
   }
 
-  if (patch.name != null) next.name = String(patch.name).trim() || existing.name
-  if (patch.description != null) {
-    next.description = String(patch.description)
-  }
-  if (patch.priceBdt != null) {
-    const n = Number(patch.priceBdt)
-    if (!Number.isFinite(n) || n < 0) {
-      return { ok: false, status: 400, error: 'Amount must be 0 or more.' }
-    }
-    next.priceBdt = Math.round(n)
-  }
-  if (patch.userLimit != null) {
-    const n = Number(patch.userLimit)
-    if (!Number.isFinite(n) || n < 0) {
-      return { ok: false, status: 400, error: 'User limit invalid.' }
-    }
-    next.userLimit = Math.round(n)
-  }
-  if (patch.subAgentLimit != null) {
-    const n = Number(patch.subAgentLimit)
-    if (!Number.isFinite(n) || n < 0) {
-      return { ok: false, status: 400, error: 'Sub agent limit invalid.' }
-    }
-    next.subAgentLimit = Math.round(n)
-  }
-  if (patch.smsLimit != null) {
-    const n = Number(patch.smsLimit)
-    if (!Number.isFinite(n) || n < 0) {
-      return { ok: false, status: 400, error: 'SMS limit invalid.' }
-    }
-    next.smsLimit = Math.round(n)
-  }
-  if (patch.smsOverageBdt != null) {
-    const n = Number(patch.smsOverageBdt)
-    if (!Number.isFinite(n) || n < 0) {
-      return { ok: false, status: 400, error: 'SMS overage invalid.' }
-    }
-    next.smsOverageBdt = n
-  }
-  if (patch.storageLimitBytes != null) {
-    const n = Number(patch.storageLimitBytes)
-    if (!Number.isFinite(n) || n < 0) {
-      return { ok: false, status: 400, error: 'Storage limit invalid.' }
-    }
-    next.storageLimitBytes = Math.round(n)
-  }
-  if (patch.isPublic != null) next.isPublic = Boolean(patch.isPublic)
-  if (patch.isActive != null) next.isActive = Boolean(patch.isActive)
-  if (patch.sortOrder != null) {
-    const n = Number(patch.sortOrder)
-    if (Number.isFinite(n)) next.sortOrder = Math.round(n)
-  }
+  next.features = buildFeatures(
+    validated.fields.features ?? existing.features,
+    next.name,
+    next.modules,
+    existing.features,
+  )
 
   try {
     await query(
@@ -243,14 +458,18 @@ export async function updatePlanTemplate(planId, patch = {}) {
          name = $2,
          description = $3,
          price_bdt = $4,
-         user_limit = $5,
-         sub_agent_limit = $6,
-         storage_limit_bytes = $7,
-         sms_limit = $8,
-         sms_overage_bdt = $9,
-         is_public = $10,
-         is_active = $11,
-         sort_order = $12,
+         currency = $5,
+         interval = $6,
+         user_limit = $7,
+         sub_agent_limit = $8,
+         storage_limit_bytes = $9,
+         sms_limit = $10,
+         sms_overage_bdt = $11,
+         modules = $12::jsonb,
+         features = $13::jsonb,
+         is_public = $14,
+         is_active = $15,
+         sort_order = $16,
          updated_at = now()
        where id = $1`,
       [
@@ -258,11 +477,15 @@ export async function updatePlanTemplate(planId, patch = {}) {
         next.name,
         next.description,
         next.priceBdt,
+        next.currency,
+        next.interval,
         next.userLimit,
         next.subAgentLimit,
         next.storageLimitBytes,
         next.smsLimit,
         next.smsOverageBdt,
+        JSON.stringify(next.modules),
+        JSON.stringify(next.features),
         next.isPublic,
         next.isActive,
         next.sortOrder,
@@ -277,6 +500,68 @@ export async function updatePlanTemplate(planId, patch = {}) {
   }
 
   return { ok: true, plan: await getPlanTemplate(id) }
+}
+
+export async function deletePlanTemplate(planId, { hard = false } = {}) {
+  const id = String(planId ?? '').trim()
+  if (!id) {
+    return { ok: false, status: 400, error: 'Plan id required.' }
+  }
+  const existing = await getPlanTemplate(id)
+  if (!existing) {
+    return { ok: false, status: 404, error: 'Plan not found.' }
+  }
+
+  if (id === TRIAL_PLAN_ID) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'The trial plan cannot be deleted. Deactivate it instead.',
+    }
+  }
+
+  let tenantCount = 0
+  try {
+    const usage = await query(
+      `select count(*)::int as count
+       from platform.tenant_billing
+       where plan_id = $1`,
+      [id],
+    )
+    tenantCount = Number(usage.rows[0]?.count ?? 0)
+  } catch {
+    tenantCount = 0
+  }
+
+  if (hard) {
+    if (tenantCount > 0) {
+      return {
+        ok: false,
+        status: 409,
+        error: `Cannot delete: ${tenantCount} agenc${tenantCount === 1 ? 'y' : 'ies'} still use this plan.`,
+      }
+    }
+    try {
+      await query(`delete from platform.plan_templates where id = $1`, [id])
+    } catch (error) {
+      return {
+        ok: false,
+        status: 500,
+        error: error instanceof Error ? error.message : 'Could not delete plan.',
+      }
+    }
+    return { ok: true, deleted: true, hard: true }
+  }
+
+  const deactivated = await updatePlanTemplate(id, { isActive: false })
+  if (!deactivated.ok) return deactivated
+  return {
+    ok: true,
+    deleted: false,
+    hard: false,
+    plan: deactivated.plan,
+    tenantCount,
+  }
 }
 
 export function trialEndsAtFromNow(days = TRIAL_DAYS) {

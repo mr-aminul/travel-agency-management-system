@@ -11,7 +11,12 @@ import {
   formatStorageUsage,
   statusLabel,
 } from '@/lib/billing/format'
-import { planHighlights } from '@/lib/billing/planCatalog'
+import {
+  planBadge,
+  planCtaLabel,
+  planHighlights,
+  planIsHighlighted,
+} from '@/lib/billing/planCatalog'
 import { useBilling } from '@/lib/billing/useBilling'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { Badge, Button, Input, Progress, Select } from '@/components/ui'
@@ -70,6 +75,10 @@ export function BillingSettingsSection({ title, info }: Props) {
     [plans],
   )
 
+  const onlineCheckout = Boolean(
+    instructions?.online || instructions?.mode === 'uddoktapay',
+  )
+
   const handleChoosePlan = async (plan: PlanTemplate) => {
     setFormError(null)
     setFormOk(null)
@@ -80,12 +89,42 @@ export function BillingSettingsSection({ title, info }: Props) {
         window.location.href = result.redirectUrl
         return
       }
+      if (result.activated) {
+        setFormOk(`${plan.name} is active.`)
+        await reload()
+        return
+      }
       setCheckoutInvoice(result.invoice)
-      setFormOk(`Invoice created for ${plan.name}. Complete payment below.`)
+      setFormOk(
+        onlineCheckout
+          ? `Invoice created for ${plan.name}. Use Pay online below if you were not redirected.`
+          : `Invoice created for ${plan.name}. Complete payment below.`,
+      )
       await reload()
     } catch (err) {
       setFormError(
         err instanceof Error ? err.message : 'Could not start checkout.',
+      )
+    } finally {
+      setBusyPlanId(null)
+    }
+  }
+
+  const handlePayOnline = async () => {
+    if (!openInvoice?.planId) return
+    setFormError(null)
+    setFormOk(null)
+    setBusyPlanId('pay-online')
+    try {
+      const result = await startCheckout(openInvoice.planId)
+      if (result.redirectUrl) {
+        window.location.href = result.redirectUrl
+        return
+      }
+      setFormError('Payment page was not returned. Try again or contact support.')
+    } catch (err) {
+      setFormError(
+        err instanceof Error ? err.message : 'Could not open payment page.',
       )
     } finally {
       setBusyPlanId(null)
@@ -363,42 +402,59 @@ export function BillingSettingsSection({ title, info }: Props) {
               ) : null}
 
               {openInvoice.status === 'open' ? (
-                <>
-                  <div className="pd-billing__pay-grid">
-                    <Select
-                      label="Payment method"
-                      value={paymentMethod}
-                      options={[
-                        { value: 'bkash', label: 'bKash' },
-                        { value: 'nagad', label: 'Nagad' },
-                        { value: 'bank', label: 'Bank transfer' },
-                        { value: 'other', label: 'Other' },
-                      ]}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
-                    <Input
-                      label="Transaction ID"
-                      value={paymentReference}
-                      onChange={(e) => setPaymentReference(e.target.value)}
-                      placeholder="e.g. 8N2XXXXXXX"
-                      autoComplete="off"
-                    />
-                  </div>
-                  <Input
-                    label="Note (optional)"
-                    value={paymentNote}
-                    onChange={(e) => setPaymentNote(e.target.value)}
-                    placeholder="Sender name or account"
-                  />
+                onlineCheckout ? (
                   <div className="pd-admin__row-actions">
                     <Button
-                      onClick={() => void handleSubmitPayment()}
-                      disabled={busyPlanId === 'pay' || !paymentReference.trim()}
+                      onClick={() => void handlePayOnline()}
+                      disabled={busyPlanId === 'pay-online'}
                     >
-                      {busyPlanId === 'pay' ? 'Submitting…' : 'Submit payment'}
+                      {busyPlanId === 'pay-online'
+                        ? 'Opening Paymently…'
+                        : 'Pay online'}
                     </Button>
                   </div>
-                </>
+                ) : (
+                  <>
+                    <div className="pd-billing__pay-grid">
+                      <Select
+                        label="Payment method"
+                        value={paymentMethod}
+                        options={[
+                          { value: 'bkash', label: 'bKash' },
+                          { value: 'nagad', label: 'Nagad' },
+                          { value: 'bank', label: 'Bank transfer' },
+                          { value: 'other', label: 'Other' },
+                        ]}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                      />
+                      <Input
+                        label="Transaction ID"
+                        value={paymentReference}
+                        onChange={(e) => setPaymentReference(e.target.value)}
+                        placeholder="e.g. 8N2XXXXXXX"
+                        autoComplete="off"
+                      />
+                    </div>
+                    <Input
+                      label="Note (optional)"
+                      value={paymentNote}
+                      onChange={(e) => setPaymentNote(e.target.value)}
+                      placeholder="Sender name or account"
+                    />
+                    <div className="pd-admin__row-actions">
+                      <Button
+                        onClick={() => void handleSubmitPayment()}
+                        disabled={
+                          busyPlanId === 'pay' || !paymentReference.trim()
+                        }
+                      >
+                        {busyPlanId === 'pay'
+                          ? 'Submitting…'
+                          : 'Submit payment'}
+                      </Button>
+                    </div>
+                  </>
+                )
               ) : (
                 <p className="pd-billing__meta">
                   Reference {openInvoice.paymentReference}. We’ll activate your
@@ -415,9 +471,11 @@ export function BillingSettingsSection({ title, info }: Props) {
                 const isCurrent =
                   currentPlanId === plan.id &&
                   billing?.billingStatus !== 'canceled'
-                const isFeatured = plan.id === 'growth'
+                const isFeatured = planIsHighlighted(plan)
                 const isTest =
                   plan.id === 'test' || Boolean(plan.features?.isTest)
+                const badge = planBadge(plan)
+                const cta = planCtaLabel(plan)
                 return (
                   <article
                     key={plan.id}
@@ -430,6 +488,12 @@ export function BillingSettingsSection({ title, info }: Props) {
                     <div className="pd-billing__plan-head">
                       <h3 className="pd-billing__plan-title">
                         {plan.name}
+                        {badge ? (
+                          <>
+                            {' '}
+                            <Badge variant="completed">{badge}</Badge>
+                          </>
+                        ) : null}
                         {isTest ? (
                           <>
                             {' '}
@@ -438,7 +502,10 @@ export function BillingSettingsSection({ title, info }: Props) {
                         ) : null}
                       </h3>
                       <p className="pd-billing__plan-price">
-                        {formatBdt(plan.priceBdt)} <span>/ month</span>
+                        {formatBdt(plan.priceBdt)}{' '}
+                        <span>
+                          / {plan.interval === 'year' ? 'year' : 'month'}
+                        </span>
                       </p>
                     </div>
                     <p className="pd-billing__plan-desc">{plan.description}</p>
@@ -455,10 +522,15 @@ export function BillingSettingsSection({ title, info }: Props) {
                       {isCurrent
                         ? 'Current plan'
                         : busyPlanId === plan.id
-                          ? 'Starting…'
-                          : billing?.billingStatus === 'trial'
-                            ? 'Choose plan'
-                            : 'Switch plan'}
+                          ? onlineCheckout
+                            ? 'Opening Paymently…'
+                            : 'Starting…'
+                          : (cta ??
+                            (onlineCheckout
+                              ? 'Pay with Paymently'
+                              : billing?.billingStatus === 'trial'
+                                ? 'Choose plan'
+                                : 'Switch plan'))}
                     </Button>
                   </article>
                 )

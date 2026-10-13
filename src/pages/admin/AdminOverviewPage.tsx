@@ -11,7 +11,8 @@ import {
   ADMIN_ACTIVITY,
   ADMIN_AGENCIES,
   ADMIN_PEOPLE,
-  ADMIN_PLATFORM,
+  ADMIN_PLANS,
+  ADMIN_ADMINS,
   adminAgencyPath,
 } from '@/lib/adminPaths'
 import { useTenantMembers } from '@/lib/tenantMembersStore'
@@ -182,11 +183,18 @@ export default function AdminOverviewPage() {
             <span>Audit log</span>
           </span>
         </Link>
-        <Link className="pd-admin__shortcut" to={ADMIN_PLATFORM}>
+        <Link className="pd-admin__shortcut" to={ADMIN_PLANS}>
           <Building2 size={18} aria-hidden />
           <span>
-            <strong>Platform</strong>
-            <span>Admins, defaults, announcements</span>
+            <strong>Plans</strong>
+            <span>Subscription catalog</span>
+          </span>
+        </Link>
+        <Link className="pd-admin__shortcut" to={ADMIN_ADMINS}>
+          <Users size={18} aria-hidden />
+          <span>
+            <strong>Admins</strong>
+            <span>Platform operators</span>
           </span>
         </Link>
       </section>

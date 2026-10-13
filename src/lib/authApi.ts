@@ -1000,3 +1000,87 @@ export async function confirmPasswordReset(token: string, password: string) {
     },
   )
 }
+
+export type PlatformAdminRow = {
+  id: string
+  email: string
+  name: string
+  role: 'platform_admin'
+  status: 'active' | 'disabled'
+  createdAt: string | null
+  isBootstrap: boolean
+}
+
+export async function listPlatformAdmins(): Promise<PlatformAdminRow[]> {
+  if (!authApiConfigured()) {
+    const { PLATFORM_ADMIN_USER } = await import('@/lib/seededUsers')
+    return [
+      {
+        id: PLATFORM_ADMIN_USER.id,
+        email: PLATFORM_ADMIN_USER.email,
+        name: PLATFORM_ADMIN_USER.name,
+        role: 'platform_admin',
+        status: 'active',
+        createdAt: null,
+        isBootstrap: true,
+      },
+    ]
+  }
+  try {
+    const body = await apiFetch<{ admins: PlatformAdminRow[] }>(
+      '/api/platform/admin/admins',
+    )
+    return Array.isArray(body.admins) ? body.admins : []
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, 'Could not load platform admins.'))
+  }
+}
+
+export async function createPlatformAdmin(input: {
+  name: string
+  email: string
+  password: string
+}): Promise<PlatformAdminRow> {
+  if (!authApiConfigured()) {
+    throw new Error('Connect the platform API to add admins.')
+  }
+  try {
+    const body = await apiFetch<{ admin: PlatformAdminRow }>(
+      '/api/platform/admin/admins',
+      {
+        method: 'POST',
+        body: {
+          name: input.name.trim(),
+          email: input.email.trim(),
+          password: input.password,
+        },
+      },
+    )
+    if (!body.admin) throw new Error('Create-admin response was incomplete.')
+    return body.admin
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, 'Could not create platform admin.'))
+  }
+}
+
+export async function setPlatformAdminStatus(input: {
+  userId: string
+  status: 'active' | 'disabled'
+}): Promise<PlatformAdminRow> {
+  if (!authApiConfigured()) {
+    throw new Error('Connect the platform API to update admins.')
+  }
+  try {
+    const body = await apiFetch<{ admin: PlatformAdminRow }>(
+      `/api/platform/admin/admins/${encodeURIComponent(input.userId)}/status`,
+      {
+        method: 'PATCH',
+        body: { status: input.status },
+      },
+    )
+    if (!body.admin) throw new Error('Update-admin response was incomplete.')
+    return body.admin
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, 'Could not update admin status.'))
+  }
+}

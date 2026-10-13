@@ -3,6 +3,8 @@ import express from 'express'
 import { pool, query } from './db.js'
 import {
   createAgencyUser,
+  createPlatformAdmin,
+  listPlatformAdmins,
   loginWithPassword,
   readBearerToken,
   requireAuth,
@@ -12,6 +14,7 @@ import {
   seedAuthUsers,
   setAgencyUserPassword,
   setAgencyUserStatus,
+  setPlatformAdminStatus,
   startViewAs,
   stopViewAs,
 } from './auth.js'
@@ -1105,6 +1108,86 @@ app.post('/api/platform/audit', requireAuth, async (req, res) => {
     })
   }
 })
+
+app.get(
+  '/api/platform/admin/admins',
+  requirePlatformAdmin,
+  async (_req, res) => {
+    try {
+      const admins = await listPlatformAdmins()
+      res.json({ admins })
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'list admins failed',
+      })
+    }
+  },
+)
+
+app.post(
+  '/api/platform/admin/admins',
+  requirePlatformAdmin,
+  async (req, res) => {
+    try {
+      const result = await createPlatformAdmin({
+        email: req.body?.email,
+        name: req.body?.name,
+        password: req.body?.password,
+        id: req.body?.id,
+      })
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      await appendAudit({
+        tenantId: req.auth.tenantId || 'platform',
+        actorUserId: req.auth.user.id,
+        actorEmail: req.auth.user.email,
+        action: 'admin.create',
+        entityType: 'user',
+        entityId: result.body.admin.id,
+        summary: `Created platform admin ${result.body.admin.email}`,
+      })
+      res.status(201).json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'create admin failed',
+      })
+    }
+  },
+)
+
+app.patch(
+  '/api/platform/admin/admins/:userId/status',
+  requirePlatformAdmin,
+  async (req, res) => {
+    try {
+      const result = await setPlatformAdminStatus({
+        userId: req.params.userId,
+        status: req.body?.status,
+        actorUserId: req.auth.user.id,
+      })
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      await appendAudit({
+        tenantId: req.auth.tenantId || 'platform',
+        actorUserId: req.auth.user.id,
+        actorEmail: req.auth.user.email,
+        action: 'admin.status',
+        entityType: 'user',
+        entityId: result.body.admin.id,
+        summary: `Set platform admin status to ${result.body.admin.status}`,
+      })
+      res.json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'update admin failed',
+      })
+    }
+  },
+)
 
 /** Admin-only full dump (ops / support). */
 app.get(

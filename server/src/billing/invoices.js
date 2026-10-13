@@ -155,10 +155,30 @@ export async function submitInvoicePayment({
   return { ok: true, invoice: await getInvoice(invoiceId) }
 }
 
+export async function attachGatewayPayment({
+  invoiceId,
+  gatewayPaymentId,
+  paymentMethod = 'gateway',
+}) {
+  await query(
+    `update platform.billing_invoices
+     set gateway_payment_id = coalesce($2, gateway_payment_id),
+         payment_method = coalesce($3, payment_method),
+         updated_at = now()
+     where id = $1`,
+    [invoiceId, gatewayPaymentId || null, paymentMethod || null],
+  )
+  return getInvoice(invoiceId)
+}
+
 export async function markInvoicePaid({
   invoiceId,
   verifiedBy,
   activatePlan = true,
+  paymentMethod,
+  paymentReference,
+  gatewayPaymentId,
+  paymentNote,
 }) {
   const invoice = await getInvoice(invoiceId)
   if (!invoice) {
@@ -176,9 +196,20 @@ export async function markInvoicePaid({
      set status = 'paid',
          paid_at = now(),
          verified_by = $2,
+         payment_method = coalesce($3, payment_method),
+         payment_reference = coalesce($4, payment_reference),
+         gateway_payment_id = coalesce($5, gateway_payment_id),
+         payment_note = coalesce($6, payment_note),
          updated_at = now()
      where id = $1`,
-    [invoiceId, verifiedBy || null],
+    [
+      invoiceId,
+      verifiedBy || null,
+      paymentMethod ? String(paymentMethod).slice(0, 40) : null,
+      paymentReference ? String(paymentReference).slice(0, 120) : null,
+      gatewayPaymentId ? String(gatewayPaymentId).slice(0, 120) : null,
+      paymentNote ? String(paymentNote).slice(0, 500) : null,
+    ],
   )
 
   let billing = null

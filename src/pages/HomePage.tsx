@@ -3,7 +3,6 @@ import {
   ClipboardList,
   FileText,
   Handshake,
-  HelpCircle,
   UserRoundSearch,
   Users,
   UsersRound,
@@ -73,12 +72,6 @@ const QUICK_LINKS: QuickLink[] = [
     label: 'Track client',
     description: 'Public passport lookup',
     icon: UserRoundSearch,
-  },
-  {
-    path: '/help',
-    label: 'Help',
-    description: 'Workflow, search & FAQ',
-    icon: HelpCircle,
   },
 ]
 

@@ -65,7 +65,12 @@ export const PLAN_CATALOG: PlanTemplate[] = [
     smsLimit: 2000,
     smsOverageBdt: 0.4,
     modules: ['finance', 'documents', 'subAgents', ...ALL_SERVICES],
-    features: { label: 'Growth', includesSubAgents: true },
+    features: {
+      label: 'Growth',
+      includesSubAgents: true,
+      isHighlighted: true,
+      badge: 'Popular',
+    },
     isPublic: true,
     isActive: true,
   },
@@ -96,7 +101,28 @@ export const PLAN_CATALOG: PlanTemplate[] = [
 export const TRIAL_PLAN_ID = 'growth'
 export const TRIAL_DAYS = 14
 
+export function planIsHighlighted(plan: PlanTemplate): boolean {
+  if (typeof plan.features?.isHighlighted === 'boolean') {
+    return plan.features.isHighlighted
+  }
+  return plan.id === 'growth'
+}
+
+export function planBadge(plan: PlanTemplate): string | null {
+  const badge = plan.features?.badge
+  return typeof badge === 'string' && badge.trim() ? badge.trim() : null
+}
+
+export function planCtaLabel(plan: PlanTemplate): string | null {
+  const label = plan.features?.ctaLabel
+  return typeof label === 'string' && label.trim() ? label.trim() : null
+}
+
 export function planHighlights(plan: PlanTemplate): string[] {
+  const custom = plan.features?.marketingBullets
+  if (Array.isArray(custom) && custom.length > 0) {
+    return custom.map((line) => String(line).trim()).filter(Boolean)
+  }
   const lines = [
     `${plan.userLimit} users`,
     plan.subAgentLimit > 0

@@ -109,7 +109,9 @@ export type BillingSnapshot = {
 }
 
 export type PaymentInstructions = {
-  mode: 'manual' | 'external'
+  mode: 'manual' | 'external' | 'uddoktapay'
+  /** True when hosted Paymently / UddoktaPay checkout is active. */
+  online?: boolean
   bkash: string | null
   nagad: string | null
   bankName: string | null

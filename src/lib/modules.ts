@@ -229,7 +229,6 @@ const SUB_AGENT_ALLOWED_PREFIXES = [
   '/documents',
   '/payments',
   '/profile',
-  '/help',
   '/my-submissions',
 ] as const
 
@@ -264,7 +263,7 @@ export function filterNavItems(
   role: UserRole,
 ): NavItem[] {
   if (role === 'platform_admin') {
-    return items.filter((item) => item.adminOnly || item.path === '/help')
+    return items.filter((item) => item.adminOnly)
   }
 
   if (role === 'sub_agent') {

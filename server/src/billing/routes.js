@@ -3,7 +3,9 @@ import { assertCanManageUsers } from '../rbac.js'
 import {
   listPlanTemplates,
   getPlanTemplate,
+  createPlanTemplate,
   updatePlanTemplate,
+  deletePlanTemplate,
 } from './plans.js'
 import {
   applyPlanToTenant,
@@ -29,6 +31,8 @@ import {
 import {
   createCheckout,
   handleGatewayWebhook,
+  handleUddoktaPayReturn,
+  handleUddoktaPayWebhook,
   paymentInstructions,
 } from './gateway.js'
 
@@ -104,6 +108,10 @@ export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }
         planId,
         returnUrl: req.body?.returnUrl,
         amountBdt,
+        customer: {
+          fullName: req.auth?.user?.name,
+          email: req.auth?.user?.email,
+        },
       })
       if (!result.ok) {
         res.status(result.status || 400).json({ error: result.error })
@@ -234,17 +242,93 @@ export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }
     },
   )
 
+  /** Paymently / UddoktaPay IPN */
+  app.post(
+    '/api/platform/webhooks/billing/uddoktapay',
+    async (req, res) => {
+      try {
+        const result = await handleUddoktaPayWebhook(req.body, req.headers)
+        if (!result.ok) {
+          res.status(result.status || 400).json({ error: result.error })
+          return
+        }
+        res.json(result)
+      } catch (error) {
+        res.status(500).json({
+          error: error instanceof Error ? error.message : 'webhook failed',
+        })
+      }
+    },
+  )
+
+  /**
+   * Browser return after Paymently checkout.
+   * Verifies invoice_id then redirects to the UI billing page.
+   */
+  const uddoktaPayReturnHandler = async (req, res) => {
+    try {
+      const providerInvoiceId =
+        req.query?.invoice_id ||
+        req.body?.invoice_id ||
+        req.query?.invoiceId ||
+        req.body?.invoiceId
+      const result = await handleUddoktaPayReturn({
+        providerInvoiceId,
+        returnUrl: req.query?.return_url || req.body?.return_url,
+      })
+      if (result.redirectUrl) {
+        res.redirect(303, result.redirectUrl)
+        return
+      }
+      res.status(result.status || 400).json({ error: result.error })
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'return handler failed',
+      })
+    }
+  }
+  app.get(
+    '/api/platform/billing/uddoktapay/return',
+    uddoktaPayReturnHandler,
+  )
+  app.post(
+    '/api/platform/billing/uddoktapay/return',
+    uddoktaPayReturnHandler,
+  )
+
   // —— Admin ——
   app.get(
     '/api/platform/admin/billing/plans',
     requirePlatformAdmin,
     async (_req, res) => {
       try {
-        const plans = await listPlanTemplates({ publicOnly: false })
+        const plans = await listPlanTemplates({
+          publicOnly: false,
+          includeInactive: true,
+        })
         res.json({ plans })
       } catch (error) {
         res.status(500).json({
           error: error instanceof Error ? error.message : 'list plans failed',
+        })
+      }
+    },
+  )
+
+  app.post(
+    '/api/platform/admin/billing/plans',
+    requirePlatformAdmin,
+    async (req, res) => {
+      try {
+        const result = await createPlanTemplate(req.body || {})
+        if (!result.ok) {
+          res.status(result.status || 400).json({ error: result.error })
+          return
+        }
+        res.status(201).json(result)
+      } catch (error) {
+        res.status(500).json({
+          error: error instanceof Error ? error.message : 'create plan failed',
         })
       }
     },
@@ -264,6 +348,28 @@ export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }
       } catch (error) {
         res.status(500).json({
           error: error instanceof Error ? error.message : 'update plan failed',
+        })
+      }
+    },
+  )
+
+  app.delete(
+    '/api/platform/admin/billing/plans/:planId',
+    requirePlatformAdmin,
+    async (req, res) => {
+      try {
+        const hard =
+          String(req.query.hard ?? '').toLowerCase() === '1' ||
+          String(req.query.hard ?? '').toLowerCase() === 'true'
+        const result = await deletePlanTemplate(req.params.planId, { hard })
+        if (!result.ok) {
+          res.status(result.status || 400).json({ error: result.error })
+          return
+        }
+        res.json(result)
+      } catch (error) {
+        res.status(500).json({
+          error: error instanceof Error ? error.message : 'delete plan failed',
         })
       }
     },

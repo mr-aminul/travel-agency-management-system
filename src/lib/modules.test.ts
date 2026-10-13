@@ -95,8 +95,8 @@ describe('module entitlements', () => {
       '/admin/agencies',
       '/admin/people',
       '/admin/activity',
-      '/admin/platform',
-      '/help',
+      '/admin/plans',
+      '/admin/admins',
     ])
   })
 

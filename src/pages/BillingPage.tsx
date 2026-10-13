@@ -1,5 +1,5 @@
-import { useCallback } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { useCallback, useMemo } from 'react'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { BillingSettingsSection } from '@/components/billing/BillingSettingsSection'
 import { Button } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
@@ -11,6 +11,39 @@ import '@/styles/layout-settings.css'
 export default function BillingPage() {
   const { status, user, signOut } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  const paymentBanner = useMemo(() => {
+    const payment = searchParams.get('payment')
+    if (payment === 'success') {
+      return {
+        tone: 'ok' as const,
+        text: 'Payment received. Your subscription is active.',
+      }
+    }
+    if (payment === 'pending') {
+      return {
+        tone: 'pending' as const,
+        text: 'Payment is still processing. Refresh in a moment if access does not unlock.',
+      }
+    }
+    if (payment === 'canceled') {
+      return {
+        tone: 'warn' as const,
+        text: 'Payment was canceled. Choose a plan again when you are ready.',
+      }
+    }
+    if (payment === 'failed' || payment === 'error') {
+      const reason = searchParams.get('reason')
+      return {
+        tone: 'error' as const,
+        text:
+          reason ||
+          'Payment could not be confirmed. Try again or contact support.',
+      }
+    }
+    return null
+  }, [searchParams])
 
   const handleSignOut = useCallback(async () => {
     queryClient.clear()
@@ -36,16 +69,28 @@ export default function BillingPage() {
           <div>
             <h1 style={{ margin: 0, fontSize: '1.35rem' }}>Billing</h1>
             <p className="pd-billing__meta">
-              Pick a plan and submit payment to restore full access.
+              Pick a plan and pay online to restore full access.
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => void handleSignOut()}>
             Sign out
           </Button>
         </div>
+        {paymentBanner ? (
+          <p
+            className={
+              paymentBanner.tone === 'error' || paymentBanner.tone === 'warn'
+                ? 'pd-settings-form__status pd-settings-form__status--error'
+                : 'pd-settings-form__status'
+            }
+            role="status"
+          >
+            {paymentBanner.text}
+          </p>
+        ) : null}
         <BillingSettingsSection
           title="Subscription"
-          info="Plans unlock modules and monthly limits for users, sub agents, storage, and SMS."
+          info="Plans unlock modules and monthly limits for users, sub agents, storage, and SMS. Online payment runs through Paymently."
         />
       </div>
     </div>

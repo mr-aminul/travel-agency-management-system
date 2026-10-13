@@ -8,7 +8,12 @@ export const ADMIN_PEOPLE = '/admin/people'
 
 export const ADMIN_ACTIVITY = '/admin/activity'
 
+/** @deprecated Use ADMIN_PLANS or ADMIN_ADMINS. Kept for legacy redirects. */
 export const ADMIN_PLATFORM = '/admin/platform'
+
+export const ADMIN_PLANS = '/admin/plans'
+
+export const ADMIN_ADMINS = '/admin/admins'
 
 export function adminAgencyPath(
   tenantId: string,
