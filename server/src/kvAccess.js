@@ -36,6 +36,7 @@ export const TENANT_ARRAY_KEYS = new Set([
 /** Object maps keyed by tenantId. Agency gets only own entry. */
 export const TENANT_MAP_KEYS = new Set([
   'pd-agency-profiles',
+  'pd-agency-appearance',
   'pd-onboarding-state',
 ])
 

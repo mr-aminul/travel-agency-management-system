@@ -34,13 +34,12 @@ import { ClientProfileFieldsSection } from '@/components/settings/ClientProfileF
 import { SmsTemplatesSection } from '@/components/settings/SmsTemplatesSection'
 import { getActiveTenantId } from '@/lib/authApi'
 import {
-  applyAppearance,
-  applyThemeColor,
-  applyThemeMode,
+  AGENCY_APPEARANCE_EVENT,
+  readAgencyAppearance,
+  saveAgencyAppearance,
+} from '@/lib/agencyAppearance'
+import {
   DEFAULT_THEME_COLOR,
-  readAppearance,
-  readCustomThemeColor,
-  readThemeMode,
   type AppearanceMode,
 } from '@/lib/brand'
 import {
@@ -63,11 +62,7 @@ import {
   validateRequiredPhone,
   validateRequiredText,
 } from '@/lib/fieldValidation'
-import {
-  applySidebarMode,
-  type SidebarExpandMode,
-} from '@/lib/sidebarPrefs'
-import { useSidebarPrefs } from '@/layout/useSidebarPrefs'
+import { type SidebarExpandMode } from '@/lib/sidebarPrefs'
 import { ServicesSettingsSection } from '@/components/settings/ServicesSettingsSection'
 import { ServicesSettingsSectionV2 } from '@/components/settings/ServicesSettingsSectionV2'
 import { UserAccessSection } from '@/components/settings/UserAccessSection'
@@ -130,7 +125,7 @@ const SETTINGS_SECTIONS: {
     {
       id: 'appearance',
       label: 'Appearance',
-      info: 'Choose light, dark, or match the system. Theme color tints the app. Auto expands the sidebar on hover; Click uses the button at the bottom of the sidebar.',
+      info: 'Shared for everyone in this agency. Choose light, dark, or match the system. Theme color tints the app. Auto expands the sidebar on hover; Click uses the button at the bottom of the sidebar.',
       icon: Palette,
     },
   ]
@@ -209,12 +204,15 @@ export default function SettingsPage() {
     isEditor,
     isEditorV2,
   )
-  const [themeMode, setThemeMode] = useState(readThemeMode)
-  const [customColor, setCustomColor] = useState(readCustomThemeColor)
-  const [appearance, setAppearance] = useState(readAppearance)
-  const { mode: sidebarMode } = useSidebarPrefs()
   const tenantId = getActiveTenantId()
   const tenant = useActiveTenant()
+  const [agencyAppearance, setAgencyAppearance] = useState(() =>
+    readAgencyAppearance(tenantId),
+  )
+  const themeMode = agencyAppearance.themeMode
+  const customColor = agencyAppearance.themeColor
+  const appearance = agencyAppearance.appearance
+  const sidebarMode = agencyAppearance.sidebarMode
   const [agencyDraft, setAgencyDraft] = useState(() =>
     withBusinessNameFallback(readAgencyProfile(tenantId), tenant.name),
   )
@@ -227,7 +225,20 @@ export default function SettingsPage() {
     setAgencyDraft(
       withBusinessNameFallback(readAgencyProfile(tenantId), tenant.name),
     )
+    setAgencyAppearance(readAgencyAppearance(tenantId))
   }, [tenantId, tenant.name])
+
+  useEffect(() => {
+    const onAppearanceChange = () => {
+      setAgencyAppearance(readAgencyAppearance(tenantId))
+    }
+    window.addEventListener(AGENCY_APPEARANCE_EVENT, onAppearanceChange)
+    window.addEventListener('pd-data-rehydrated', onAppearanceChange)
+    return () => {
+      window.removeEventListener(AGENCY_APPEARANCE_EVENT, onAppearanceChange)
+      window.removeEventListener('pd-data-rehydrated', onAppearanceChange)
+    }
+  }, [tenantId])
 
   const agencyGaps = listAgencyProfileGaps(agencyDraft)
   const businessAlertCount = settingsNavAlertCount(agencyDraft)
@@ -564,7 +575,12 @@ export default function SettingsPage() {
                         title={option.label}
                         aria-label={option.label}
                         onClick={() =>
-                          setAppearance(applyAppearance(option.value))
+                          setAgencyAppearance(
+                            saveAgencyAppearance(
+                              { appearance: option.value },
+                              tenantId,
+                            ),
+                          )
                         }
                       >
                         <Icon size={15} strokeWidth={2.25} aria-hidden />
@@ -589,7 +605,14 @@ export default function SettingsPage() {
                     className={`pd-theme-mode__option${themeMode === 'default' ? ' is-selected' : ''}`}
                     title={`Default ${formatHex(DEFAULT_THEME_COLOR)}`}
                     aria-label={`Default ${formatHex(DEFAULT_THEME_COLOR)}`}
-                    onClick={() => setThemeMode(applyThemeMode('default'))}
+                    onClick={() =>
+                      setAgencyAppearance(
+                        saveAgencyAppearance(
+                          { themeMode: 'default' },
+                          tenantId,
+                        ),
+                      )
+                    }
                   >
                     <span
                       className="pd-theme-mode__swatch"
@@ -606,11 +629,23 @@ export default function SettingsPage() {
                     aria-label={`Custom ${formatHex(customColor)}`}
                     title={`Custom ${formatHex(customColor)}`}
                     className={`pd-theme-mode__option pd-theme-mode__option--custom${themeMode === 'custom' ? ' is-selected' : ''}`}
-                    onClick={() => setThemeMode(applyThemeMode('custom'))}
+                    onClick={() =>
+                      setAgencyAppearance(
+                        saveAgencyAppearance(
+                          { themeMode: 'custom' },
+                          tenantId,
+                        ),
+                      )
+                    }
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        setThemeMode(applyThemeMode('custom'))
+                        setAgencyAppearance(
+                          saveAgencyAppearance(
+                            { themeMode: 'custom' },
+                            tenantId,
+                          ),
+                        )
                         e.currentTarget.querySelector('input')?.click()
                       }
                     }}
@@ -626,11 +661,15 @@ export default function SettingsPage() {
                       className="pd-theme-swatch__input"
                       value={customColor}
                       onChange={(e) => {
-                        const next = applyThemeColor(e.target.value)
-                        if (next) {
-                          setCustomColor(next)
-                          setThemeMode('custom')
-                        }
+                        setAgencyAppearance(
+                          saveAgencyAppearance(
+                            {
+                              themeMode: 'custom',
+                              themeColor: e.target.value,
+                            },
+                            tenantId,
+                          ),
+                        )
                       }}
                     />
                   </label>
@@ -656,7 +695,14 @@ export default function SettingsPage() {
                         className={`pd-appearance-toggle__option${selected ? ' is-selected' : ''}`}
                         title={option.title}
                         aria-label={option.title}
-                        onClick={() => applySidebarMode(option.value)}
+                        onClick={() =>
+                          setAgencyAppearance(
+                            saveAgencyAppearance(
+                              { sidebarMode: option.value },
+                              tenantId,
+                            ),
+                          )
+                        }
                       >
                         <Icon size={15} strokeWidth={2.25} aria-hidden />
                         <span>{option.label}</span>

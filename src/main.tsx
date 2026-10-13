@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { bootstrapDataBackend } from './bootstrapData'
+import { initAgencyAppearanceSync } from './lib/agencyAppearance'
 import { initAppearanceListener } from './lib/brand'
 import { initKeyboardFocus } from './lib/keyboardFocus'
 
@@ -12,6 +13,7 @@ import '@fontsource/plus-jakarta-sans/latin-800.css'
 import './index.css'
 
 initAppearanceListener()
+initAgencyAppearanceSync()
 initKeyboardFocus()
 
 /**

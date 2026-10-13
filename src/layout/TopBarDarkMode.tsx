@@ -1,6 +1,10 @@
-import { useCallback, useRef, useState, type MouseEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { Moon, Sun } from 'lucide-react'
-import { applyAppearance } from '@/lib/brand'
+import {
+  AGENCY_APPEARANCE_EVENT,
+  saveAgencyAppearance,
+} from '@/lib/agencyAppearance'
+import { getActiveTenantId } from '@/lib/authApi'
 import { Tooltip } from '@/components/ui'
 
 const THEME_TRANSITION_MS = 450
@@ -74,11 +78,24 @@ export function TopBarDarkMode() {
   const [isDark, setIsDark] = useState(readIsDark)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
+  useEffect(() => {
+    const sync = () => setIsDark(readIsDark())
+    window.addEventListener(AGENCY_APPEARANCE_EVENT, sync)
+    window.addEventListener('pd-data-rehydrated', sync)
+    return () => {
+      window.removeEventListener(AGENCY_APPEARANCE_EVENT, sync)
+      window.removeEventListener('pd-data-rehydrated', sync)
+    }
+  }, [])
+
   const handleToggle = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       const next = isDark ? 'light' : 'dark'
       runCircularThemeTransition(buttonRef.current, event, () => {
-        applyAppearance(next)
+        saveAgencyAppearance(
+          { appearance: next },
+          getActiveTenantId(),
+        )
         setIsDark(!isDark)
       })
     },

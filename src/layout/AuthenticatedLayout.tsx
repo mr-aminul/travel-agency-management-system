@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { AppLayout } from './AppLayout'
 import { useAgencyProfile } from './useAgencyProfile'
 import { useAuth } from '@/lib/auth'
+import { syncActiveAgencyAppearance } from '@/lib/agencyAppearance'
 import {
   DEFAULT_BRAND_NAME,
   resolveBrandDisplay,
@@ -54,6 +55,11 @@ export default function AuthenticatedLayout() {
       ? findTenantMemberForUser(tenant.id, user.id, user.email)
       : undefined
   const pendingApprovals = useOpenPendingChangeCount(tenant.id)
+
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    syncActiveAgencyAppearance(tenant.id)
+  }, [status, tenant.id])
 
   useEffect(() => {
     if (
