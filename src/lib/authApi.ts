@@ -576,7 +576,7 @@ export async function signInWithPassword(
         session = await loginLocally(normalizedEmail, rawPassword)
       } else if (isNetworkFailure(error)) {
         throw new Error(
-          'Cannot reach the live API. Check your network, or set VITE_ALLOW_OFFLINE_AUTH=1 for demo logins only.',
+          'Cannot reach the sign-in service. Check your connection and try again.',
         )
       } else {
         throw error
