@@ -10,7 +10,8 @@ Production lives on the inventivelab **VPS** (Caddy + Docker). No Vercel.
 | Piece | Value |
 |-------|--------|
 | App UI | https://onetrack.inventivelab.bd → Caddy static from `/opt/onetrack-platform/web` |
-| API | https://api.onetrack.inventivelab.bd → Docker API on `127.0.0.1:4010` |
+| API (app) | Same-origin `https://onetrack.inventivelab.bd/api/*` → Docker API on `127.0.0.1:4010` |
+| API (direct) | https://api.onetrack.inventivelab.bd → same backend (webhooks / ops) |
 | Database | Isolated Postgres in Docker on `127.0.0.1:5433` (not shared RDS) |
 
 ## Deploy (this repo)
@@ -24,7 +25,7 @@ npm run deploy:vps   # build SPA + rsync UI/API + docker compose + Caddy
 
 - DNS for `onetrack` and `api.onetrack` must point at the VPS.
 - Does **not** touch n8n / MinIO / Cloudreve.
-- Build sets `VITE_USE_PLATFORM_API=1` and `VITE_API_BASE_URL=https://api.onetrack.inventivelab.bd`.
+- Build sets `VITE_USE_PLATFORM_API=1` and empty `VITE_API_BASE_URL` (relative `/api` via Caddy on the UI host).
 - UI is atomic: staged under `web-releases/<sha>`, symlink `web/` flipped only after API health check.
 
 ## Frontend env

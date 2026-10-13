@@ -1,11 +1,25 @@
-# OneTrack platform UI: static SPA at onetrack.inventivelab.bd
+# OneTrack platform UI at onetrack.inventivelab.bd
 # Install as /etc/caddy/conf.d/onetrack-platform-ui.caddy
+#
+# /api/* is reverse-proxied same-origin so the SPA never depends on the
+# api.onetrack subdomain (mobile carrier DNS / QUIC issues break that path).
+# External clients and webhooks can still use api.onetrack.inventivelab.bd.
 onetrack.inventivelab.bd {
-	root * /opt/onetrack-platform/web
 	encode gzip
-	try_files {path} /index.html
-	file_server
-	header {
-		X-App onetrack-platform-ui
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:4010
+		header {
+			X-App onetrack-platform-api
+		}
+	}
+
+	handle {
+		root * /opt/onetrack-platform/web
+		try_files {path} /index.html
+		file_server
+		header {
+			X-App onetrack-platform-ui
+		}
 	}
 }

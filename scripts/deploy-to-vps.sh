@@ -95,8 +95,10 @@ echo "[platform-ui] Building SPA …"
 if [[ ! -d node_modules ]]; then
   npm ci
 fi
+# Same-origin /api (Caddy proxies on the UI host). Do not bake api.onetrack into
+# the bundle — mobile data often fails that cross-origin hop while the UI loads.
 VITE_USE_PLATFORM_API=1 \
-  VITE_API_BASE_URL="$PUBLIC_API_URL" \
+  VITE_API_BASE_URL= \
   npm run build
 
 if [[ ! -f dist/index.html ]]; then
@@ -249,7 +251,15 @@ echo "$API_HEADERS" | tr -d '\r' | grep -qi '^x-app: onetrack-platform-api' || {
   echo "$API_HEADERS" >&2
   exit 1
 }
-echo "  API 200 (Caddy)"
+echo "  API 200 (Caddy api host)"
+
+SAME_ORIGIN_HEALTH="$(curl -fsS "$PUBLIC_UI_URL/api/platform/health")"
+echo "$SAME_ORIGIN_HEALTH" | grep -q '"ok":true' || {
+  echo "Same-origin API proxy check failed: $PUBLIC_UI_URL/api/platform/health" >&2
+  echo "$SAME_ORIGIN_HEALTH" >&2
+  exit 1
+}
+echo "  API 200 (same-origin via UI host)"
 
 UI_HEADERS="$(curl -fsSI "$PUBLIC_UI_URL/")"
 if echo "$UI_HEADERS" | tr -d '\r' | grep -qi '^server: vercel'; then
@@ -265,4 +275,4 @@ echo "$UI_HEADERS" | tr -d '\r' | grep -qi '^x-app: onetrack-platform-ui' || {
 }
 echo "  UI  200 (Caddy)"
 echo "[platform-ui] Live → $PUBLIC_UI_URL (release $RELEASE_SHA)"
-echo "[platform-api] Live → $PUBLIC_API_URL"
+echo "[platform-api] Live → $PUBLIC_API_URL (and $PUBLIC_UI_URL/api)"

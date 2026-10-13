@@ -187,13 +187,13 @@ export default function AdminPlatformPage() {
                 </div>
                 <div>
                   <dt>API</dt>
-                  <dd>api.onetrack.inventivelab.bd</dd>
+                  <dd>onetrack.inventivelab.bd/api (api.onetrack for ops)</dd>
                 </div>
                 <div>
                   <dt>Health</dt>
                   <dd>
                     <a
-                      href="https://api.onetrack.inventivelab.bd/api/platform/health"
+                      href="/api/platform/health"
                       target="_blank"
                       rel="noreferrer"
                     >
