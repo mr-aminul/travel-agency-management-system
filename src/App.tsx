@@ -56,6 +56,7 @@ const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'))
 const AcceptInvitePage = lazy(() => import('@/pages/auth/AcceptInvitePage'))
 const ChooseWorkspacePage = lazy(() => import('@/pages/auth/ChooseWorkspacePage'))
 const BillingPage = lazy(() => import('@/pages/BillingPage'))
+const SubscribePage = lazy(() => import('@/pages/SubscribePage'))
 const LandingPage = lazy(() => import('@/pages/LandingPage'))
 
 function RouteFallback() {
@@ -132,6 +133,7 @@ function ProductApp() {
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/subscribe" element={<SubscribePage />} />
           <Route path="/choose-workspace" element={<ChooseWorkspacePage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

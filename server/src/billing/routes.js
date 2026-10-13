@@ -35,13 +35,81 @@ import {
   handleUddoktaPayWebhook,
   paymentInstructions,
 } from './gateway.js'
+import {
+  createSelfServeSubscription,
+  listPublicCheckoutPlans,
+} from './subscribe.js'
+import { query } from '../db.js'
 
 function tenantScope(req, explicit) {
   if (isPlatformAdmin(req.auth) && explicit) return String(explicit).trim()
   return req.auth?.tenantId
 }
 
+async function agencyNamesById(ids) {
+  const wanted = new Set(ids.map((id) => String(id || '').trim()).filter(Boolean))
+  if (wanted.size === 0) return new Map()
+  const names = new Map()
+  try {
+    const result = await query(
+      `select value from platform.kv_store where key = 'pd-tenants-created'`,
+    )
+    const list = Array.isArray(result.rows[0]?.value)
+      ? result.rows[0].value
+      : []
+    for (const tenant of list) {
+      const id = String(tenant?.id || '').trim()
+      if (wanted.has(id) && tenant?.name) names.set(id, String(tenant.name))
+    }
+  } catch {
+    /* ignore */
+  }
+  return names
+}
+
 export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }) {
+  /** Public plan catalog for landing → subscribe (no auth). */
+  app.get('/api/platform/public/billing/plans', async (_req, res) => {
+    try {
+      const plans = await listPublicCheckoutPlans()
+      res.json({ plans, instructions: paymentInstructions() })
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'list plans failed',
+      })
+    }
+  })
+
+  /**
+   * Self-serve signup from marketing pricing:
+   * create agency + owner, open invoice, redirect to Paymently.
+   */
+  app.post('/api/platform/public/subscribe', async (req, res) => {
+    try {
+      const result = await createSelfServeSubscription({
+        agencyName: req.body?.agencyName,
+        ownerName: req.body?.ownerName,
+        ownerEmail: req.body?.ownerEmail,
+        ownerPassword: req.body?.ownerPassword,
+        planId: req.body?.planId,
+        returnUrl: req.body?.returnUrl,
+        clientIp:
+          req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ||
+          req.socket?.remoteAddress,
+      })
+      if (!result.ok) {
+        res.status(result.status || 400).json({ error: result.error })
+        return
+      }
+      res.status(result.status || 201).json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error:
+          error instanceof Error ? error.message : 'Could not start subscribe.',
+      })
+    }
+  })
+
   app.get('/api/platform/billing/plans', requireAuth, async (_req, res) => {
     try {
       const plans = await listPlanTemplates({ publicOnly: true })
@@ -381,8 +449,15 @@ export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }
     async (_req, res) => {
       try {
         const tenants = await listTenantBillingSummaries()
-        const pending = await listPendingInvoices()
-        res.json({ tenants, pendingInvoices: pending })
+        const pending = await listPendingInvoices({ includeOpen: true })
+        const names = await agencyNamesById(pending.map((inv) => inv.tenantId))
+        res.json({
+          tenants,
+          pendingInvoices: pending.map((inv) => ({
+            ...inv,
+            agencyName: names.get(inv.tenantId) || null,
+          })),
+        })
       } catch (error) {
         res.status(500).json({
           error:

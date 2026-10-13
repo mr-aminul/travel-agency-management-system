@@ -99,9 +99,15 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
   const pending = (snapshot.invoices ?? []).filter(
     (inv) => inv.status === 'pending_review' || inv.status === 'open',
   )
+  const billingNotes = snapshot.billing?.billingNotes?.trim() || ''
 
   return (
     <div className="pd-admin__plan" aria-label="Subscription">
+      {billingNotes ? (
+        <p className="pd-admin__quiet" style={{ marginBottom: '0.75rem' }}>
+          {billingNotes}
+        </p>
+      ) : null}
       <dl className="pd-client-detail__card-fields">
         <div className="pd-client-detail__card-field">
           <dt>Plan</dt>

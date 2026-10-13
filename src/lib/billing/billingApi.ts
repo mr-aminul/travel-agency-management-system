@@ -64,6 +64,85 @@ export async function fetchBillingMe(
   return apiFetch<BillingSnapshot>(`/api/platform/billing/me${qs}`)
 }
 
+export async function fetchPublicBillingPlans(): Promise<{
+  plans: PlanTemplate[]
+  instructions: PaymentInstructions
+}> {
+  if (!authApiConfigured()) {
+    return {
+      plans: PLAN_CATALOG.filter((plan) => !plan.features?.isTest),
+      instructions: DEFAULT_INSTRUCTIONS,
+    }
+  }
+  try {
+    return await apiFetch<{
+      plans: PlanTemplate[]
+      instructions: PaymentInstructions
+    }>('/api/platform/public/billing/plans', { skipAuth: true })
+  } catch {
+    return {
+      plans: PLAN_CATALOG.filter((plan) => !plan.features?.isTest),
+      instructions: DEFAULT_INSTRUCTIONS,
+    }
+  }
+}
+
+export type PublicSubscribeInput = {
+  agencyName: string
+  ownerName: string
+  ownerEmail: string
+  ownerPassword: string
+  planId: string
+  returnUrl?: string
+}
+
+export type PublicSubscribeResult = {
+  accessToken: string | null
+  expiresAt?: string
+  tenantId: string
+  signedInAt?: string
+  user?: {
+    id: string
+    email: string
+    name: string
+    role: string
+  }
+  tenant: { id: string; name: string; slug: string }
+  plan: PlanTemplate
+  invoice: BillingInvoice
+  redirectUrl: string | null
+  activated?: boolean
+  mode?: 'manual' | 'external' | 'uddoktapay'
+  instructions?: PaymentInstructions
+}
+
+export async function publicSubscribe(
+  input: PublicSubscribeInput,
+): Promise<PublicSubscribeResult> {
+  if (!authApiConfigured()) {
+    throw new Error('Online signup needs the platform API.')
+  }
+  try {
+    return await apiFetch<PublicSubscribeResult>(
+      '/api/platform/public/subscribe',
+      {
+        method: 'POST',
+        skipAuth: true,
+        body: {
+          ...input,
+          returnUrl:
+            input.returnUrl ||
+            (typeof window !== 'undefined'
+              ? `${window.location.origin}/billing`
+              : undefined),
+        },
+      },
+    )
+  } catch (error) {
+    throw new Error(errorMessage(error, 'Could not start signup checkout.'))
+  }
+}
+
 export async function startCheckout(
   planId: string,
   tenantId?: string,

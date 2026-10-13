@@ -147,11 +147,13 @@ export async function createCheckout({
   returnUrl,
   amountBdt,
   customer,
+  description,
 }) {
   const invoiceResult = await createPlanInvoice({
     tenantId,
     planId,
     amountBdt,
+    description,
   })
   if (!invoiceResult.ok) return invoiceResult
 

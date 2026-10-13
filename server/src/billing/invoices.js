@@ -242,13 +242,25 @@ export async function voidInvoice(invoiceId) {
   return getInvoice(invoiceId)
 }
 
-export async function listPendingInvoices({ limit = 100 } = {}) {
+/**
+ * Invoices that need ops attention: manual payment review, or open
+ * self-serve / gateway checkouts that have not completed yet.
+ */
+export async function listPendingInvoices({
+  limit = 100,
+  includeOpen = true,
+} = {}) {
+  const statuses = includeOpen
+    ? ['pending_review', 'open']
+    : ['pending_review']
   const result = await query(
     `select * from platform.billing_invoices
-     where status = 'pending_review'
-     order by updated_at asc
-     limit $1`,
-    [Math.min(200, Math.max(1, Number(limit) || 100))],
+     where status = any($1::text[])
+     order by
+       case when status = 'pending_review' then 0 else 1 end,
+       updated_at asc
+     limit $2`,
+    [statuses, Math.min(200, Math.max(1, Number(limit) || 100))],
   )
   return result.rows.map(mapInvoice)
 }

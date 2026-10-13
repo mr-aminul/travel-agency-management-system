@@ -66,6 +66,8 @@ export type BillingInvoice = {
   verifiedBy: string | null
   createdAt: string | null
   updatedAt: string | null
+  /** Present on admin pending-invoice lists. */
+  agencyName?: string | null
 }
 
 export type BillingAccess = {

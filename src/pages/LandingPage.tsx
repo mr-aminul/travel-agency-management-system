@@ -33,9 +33,12 @@ import { publicUrl } from '@/lib/publicUrl'
 import { appUrl } from '@/lib/siteOrigins'
 import '@/styles/layout-landing.css'
 
-const TRIAL_MAILTO = `mailto:${SALES_EMAIL}?subject=${encodeURIComponent(
-  'OneTrack 14-day trial for our agency',
-)}`
+function subscribeUrl(planId?: string): string {
+  const path = planId
+    ? `/subscribe?plan=${encodeURIComponent(planId)}`
+    : '/subscribe?plan=growth'
+  return appUrl(path)
+}
 
 function formatTaka(amount: number): string {
   return `৳${amount.toLocaleString('en-IN')}`
@@ -98,7 +101,7 @@ function LandingNav() {
         <a className="lp-nav__signin" href={appUrl('/login')}>
           Sign In
         </a>
-        <a className="lp-btn lp-btn--solid-light lp-btn--sm" href={TRIAL_MAILTO}>
+        <a className="lp-btn lp-btn--solid-light lp-btn--sm" href={subscribeUrl('growth')}>
           <span className="lp-nav__cta-full">Start Free Trial</span>
           <span className="lp-nav__cta-short">Trial</span>
         </a>
@@ -125,7 +128,7 @@ function Hero() {
           <span className="lp-hero__title-line">from one terminal.</span>
         </h1>
         <div className="lp-hero__ctas lp-rise" style={revealDelay(280)}>
-          <a className="lp-btn lp-btn--navy" href={TRIAL_MAILTO}>
+          <a className="lp-btn lp-btn--navy" href={subscribeUrl('growth')}>
             Start 14-Day Trial
             <ArrowRight size={18} strokeWidth={2.25} />
           </a>
@@ -338,7 +341,7 @@ function PricingTicket({ plan, index }: { plan: PricingPlan; index: number }) {
           <strong>0{index + 1}</strong>
         </div>
         <Barcode />
-        <a className="lp-ticket__board" href={TRIAL_MAILTO}>
+        <a className="lp-ticket__board" href={subscribeUrl(plan.id)}>
           Board
           <ArrowUpRight size={16} strokeWidth={2.25} />
         </a>
@@ -383,7 +386,7 @@ function FinalCall() {
         </h2>
         <p className="lp-final__lede">Your agency. One board. This week.</p>
         <div className="lp-hero__ctas">
-          <a className="lp-btn lp-btn--amber" href={TRIAL_MAILTO}>
+          <a className="lp-btn lp-btn--amber" href={subscribeUrl('growth')}>
             Start a 14-day trial
             <ArrowRight size={18} strokeWidth={2.25} />
           </a>
