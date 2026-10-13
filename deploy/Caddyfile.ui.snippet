@@ -1,10 +1,44 @@
-# OneTrack platform UI at onetrack.inventivelab.bd
+# OneTrack marketing + app UI
 # Install as /etc/caddy/conf.d/onetrack-platform-ui.caddy
 #
-# /api/* is reverse-proxied same-origin so the SPA never depends on the
-# api.onetrack subdomain (mobile carrier DNS / QUIC issues break that path).
-# External clients and webhooks can still use api.onetrack.inventivelab.bd.
+# Marketing: onetrack.inventivelab.bd — landing at /, static assets, else → app
+# App:       app.inventivelab.bd — SPA + same-origin /api → 127.0.0.1:4010
+# External webhooks can still use api.onetrack.inventivelab.bd.
+
 onetrack.inventivelab.bd {
+	encode gzip
+
+	# Built assets + public images for the marketing SPA
+	@marketing_static {
+		path /assets/* /images/* /favicon.ico /favicon.svg
+		path *.js *.css *.map *.woff *.woff2 *.ttf *.png *.jpg *.jpeg *.webp *.svg *.ico
+	}
+	handle @marketing_static {
+		root * /opt/onetrack-platform/web
+		file_server
+		header {
+			X-App onetrack-platform-marketing
+		}
+	}
+
+	# Exact marketing home
+	@marketing_home path /
+	handle @marketing_home {
+		root * /opt/onetrack-platform/web
+		rewrite * /index.html
+		file_server
+		header {
+			X-App onetrack-platform-marketing
+		}
+	}
+
+	# Legacy product deep links → app host
+	handle {
+		redir https://app.inventivelab.bd{uri} permanent
+	}
+}
+
+app.inventivelab.bd {
 	encode gzip
 
 	handle /api/* {

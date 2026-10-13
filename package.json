@@ -18,6 +18,8 @@
     "@astryxdesign/cli": "^0.3.0",
     "@astryxdesign/core": "^0.3.0",
     "@astryxdesign/theme-neutral": "^0.3.0",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
     "@fontsource/plus-jakarta-sans": "^5.3.0",
     "@heroicons/react": "^2.2.0",

@@ -9,8 +9,9 @@ Production lives on the inventivelab **VPS** (Caddy + Docker). No Vercel.
 
 | Piece | Value |
 |-------|--------|
-| App UI | https://onetrack.inventivelab.bd → Caddy static from `/opt/onetrack-platform/web` |
-| API (app) | Same-origin `https://onetrack.inventivelab.bd/api/*` → Docker API on `127.0.0.1:4010` |
+| Marketing | https://onetrack.inventivelab.bd → landing; legacy product paths 301 → app |
+| App UI | https://app.inventivelab.bd → Caddy static from `/opt/onetrack-platform/web` |
+| API (app) | Same-origin `https://app.inventivelab.bd/api/*` → Docker API on `127.0.0.1:4010` |
 | API (direct) | https://api.onetrack.inventivelab.bd → same backend (webhooks / ops) |
 | Database | Isolated Postgres in Docker on `127.0.0.1:5433` (not shared RDS) |
 
@@ -23,10 +24,11 @@ Production lives on the inventivelab **VPS** (Caddy + Docker). No Vercel.
 npm run deploy:vps   # build SPA + rsync UI/API + docker compose + Caddy
 ```
 
-- DNS for `onetrack` and `api.onetrack` must point at the VPS.
+- DNS for `onetrack`, `app`, and `api.onetrack` must point at the VPS.
 - Does **not** touch n8n / MinIO / Cloudreve.
-- Build sets `VITE_USE_PLATFORM_API=1` and empty `VITE_API_BASE_URL` (relative `/api` via Caddy on the UI host).
+- Build sets `VITE_USE_PLATFORM_API=1`, empty `VITE_API_BASE_URL`, plus `VITE_APP_ORIGIN` / `VITE_MARKETING_ORIGIN`.
 - UI is atomic: staged under `web-releases/<sha>`, symlink `web/` flipped only after API health check.
+- Server `PLATFORM_PUBLIC_UI_URL` / `PLATFORM_PUBLIC_API_URL` should be the **app** origin (invite/reset/billing links).
 
 ## Frontend env
 

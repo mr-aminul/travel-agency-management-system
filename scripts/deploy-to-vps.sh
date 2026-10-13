@@ -33,12 +33,14 @@ HOST="$(env_or_file VPS_HOST)"
 USER_NAME="$(env_or_file VPS_USER)"
 PASS="$(env_or_file VPS_PASSWORD)"
 PUBLIC_UI_URL="$(env_or_file PLATFORM_PUBLIC_UI_URL)"
-PUBLIC_UI_URL="${PUBLIC_UI_URL:-https://onetrack.inventivelab.bd}"
+PUBLIC_UI_URL="${PUBLIC_UI_URL:-https://app.inventivelab.bd}"
 PUBLIC_API_URL="$(env_or_file PLATFORM_PUBLIC_API_URL)"
-# Same-origin /api on the UI host is preferred for webhooks + browser return.
+# Same-origin /api on the app host is preferred for webhooks + browser return.
 PUBLIC_API_URL="${PUBLIC_API_URL:-$PUBLIC_UI_URL}"
-# Include local Vite origins so localhost can call the live API directly if needed.
-CORS_ORIGIN="${PLATFORM_CORS_ORIGIN:-https://onetrack.inventivelab.bd,http://localhost:8003,http://127.0.0.1:8003}"
+MARKETING_UI_URL="$(env_or_file PLATFORM_MARKETING_URL)"
+MARKETING_UI_URL="${MARKETING_UI_URL:-https://onetrack.inventivelab.bd}"
+# Include marketing + app + local Vite origins.
+CORS_ORIGIN="${PLATFORM_CORS_ORIGIN:-https://app.inventivelab.bd,https://onetrack.inventivelab.bd,http://localhost:8003,http://127.0.0.1:8003}"
 REMOTE_ROOT="${PLATFORM_REMOTE_ROOT:-/opt/onetrack-platform}"
 REMOTE_WEB_DIR="$REMOTE_ROOT/web"
 REMOTE_RELEASES_DIR="$REMOTE_ROOT/web-releases"
@@ -102,10 +104,12 @@ echo "[platform-ui] Building SPA …"
 if [[ ! -d node_modules ]]; then
   npm ci
 fi
-# Same-origin /api (Caddy proxies on the UI host). Do not bake api.onetrack into
+# Same-origin /api (Caddy proxies on the app host). Do not bake api.onetrack into
 # the bundle — mobile data often fails that cross-origin hop while the UI loads.
 VITE_USE_PLATFORM_API=1 \
   VITE_API_BASE_URL= \
+  VITE_APP_ORIGIN="$PUBLIC_UI_URL" \
+  VITE_MARKETING_ORIGIN="$MARKETING_UI_URL" \
   npm run build
 
 if [[ ! -f dist/index.html ]]; then
@@ -266,34 +270,75 @@ done
 REMOTE
 
 echo "[platform] Public checks …"
-API_HEADERS="$(curl -fsSI "$PUBLIC_API_URL/api/platform/health")"
+API_HEADERS="$(curl -fsSI "https://api.onetrack.inventivelab.bd/api/platform/health")"
 echo "$API_HEADERS" | tr -d '\r' | grep -qi '^x-app: onetrack-platform-api' || {
-  echo "API check failed: expected X-App: onetrack-platform-api from Caddy" >&2
+  echo "API check failed: expected X-App: onetrack-platform-api from api.onetrack" >&2
   echo "$API_HEADERS" >&2
   exit 1
 }
-echo "  API 200 (Caddy api host)"
+echo "  API 200 (Caddy api.onetrack host)"
 
-SAME_ORIGIN_HEALTH="$(curl -fsS "$PUBLIC_UI_URL/api/platform/health")"
+# App host may need a moment for DNS/ACME on first cutover.
+wait_for_curl() {
+  local label="$1"
+  shift
+  local attempt=1
+  local out=""
+  while [[ "$attempt" -le 12 ]]; do
+    if out="$("$@" 2>/dev/null)"; then
+      printf '%s' "$out"
+      return 0
+    fi
+    echo "  waiting for $label (attempt $attempt/12)…"
+    sleep 5
+    attempt=$((attempt + 1))
+  done
+  return 1
+}
+
+SAME_ORIGIN_HEALTH="$(wait_for_curl "app API" curl -fsS "$PUBLIC_UI_URL/api/platform/health")" || {
+  echo "Same-origin API proxy check failed: $PUBLIC_UI_URL/api/platform/health" >&2
+  exit 1
+}
 echo "$SAME_ORIGIN_HEALTH" | grep -q '"ok":true' || {
   echo "Same-origin API proxy check failed: $PUBLIC_UI_URL/api/platform/health" >&2
   echo "$SAME_ORIGIN_HEALTH" >&2
   exit 1
 }
-echo "  API 200 (same-origin via UI host)"
+echo "  API 200 (same-origin via app host)"
 
-UI_HEADERS="$(curl -fsSI "$PUBLIC_UI_URL/")"
+UI_HEADERS="$(wait_for_curl "app UI" curl -fsSI "$PUBLIC_UI_URL/")" || {
+  echo "App UI check failed: could not reach $PUBLIC_UI_URL/" >&2
+  exit 1
+}
 if echo "$UI_HEADERS" | tr -d '\r' | grep -qi '^server: vercel'; then
-  echo "UI still resolving to Vercel, not this VPS." >&2
-  echo "Point DNS for onetrack.inventivelab.bd (A → VPS, same IP as api.onetrack) and remove the Vercel CNAME." >&2
-  echo "Until then the public URL will keep serving the old Vercel deploy." >&2
+  echo "App UI still resolving to Vercel, not this VPS." >&2
+  echo "Point DNS for app.inventivelab.bd (A → VPS) and remove any Vercel CNAME." >&2
   exit 1
 fi
 echo "$UI_HEADERS" | tr -d '\r' | grep -qi '^x-app: onetrack-platform-ui' || {
-  echo "UI check failed: expected X-App: onetrack-platform-ui from Caddy" >&2
+  echo "App UI check failed: expected X-App: onetrack-platform-ui from Caddy" >&2
   echo "$UI_HEADERS" >&2
   exit 1
 }
-echo "  UI  200 (Caddy)"
-echo "[platform-ui] Live → $PUBLIC_UI_URL (release $RELEASE_SHA)"
+echo "  App UI 200 (Caddy)"
+
+MARKETING_HEADERS="$(curl -fsSI "$MARKETING_UI_URL/")"
+echo "$MARKETING_HEADERS" | tr -d '\r' | grep -qi '^x-app: onetrack-platform-marketing' || {
+  echo "Marketing check failed: expected X-App: onetrack-platform-marketing from Caddy" >&2
+  echo "$MARKETING_HEADERS" >&2
+  exit 1
+}
+echo "  Marketing 200 (Caddy)"
+
+LEGACY_REDIR="$(curl -fsSI "$MARKETING_UI_URL/login" | tr -d '\r')"
+echo "$LEGACY_REDIR" | grep -qi '^location: https://app.inventivelab.bd/login' || {
+  echo "Legacy redirect check failed: $MARKETING_UI_URL/login should 301 to app /login" >&2
+  echo "$LEGACY_REDIR" >&2
+  exit 1
+}
+echo "  Legacy /login → app (301)"
+
+echo "[platform-ui] App live → $PUBLIC_UI_URL (release $RELEASE_SHA)"
+echo "[platform-ui] Marketing live → $MARKETING_UI_URL"
 echo "[platform-api] Live → $PUBLIC_API_URL (and $PUBLIC_UI_URL/api)"

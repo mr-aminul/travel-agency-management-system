@@ -37,7 +37,7 @@ export function gatewayMode() {
 function publicUiBase() {
   return (
     String(process.env.PLATFORM_PUBLIC_UI_URL || '').trim().replace(/\/+$/, '') ||
-    'https://onetrack.inventivelab.bd'
+    'https://app.inventivelab.bd'
   )
 }
 

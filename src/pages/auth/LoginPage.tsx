@@ -8,6 +8,7 @@ import {
   type LoginIntent,
 } from '@/lib/authWorkspaces'
 import { publicUrl } from '@/lib/publicUrl'
+import { marketingHomeUrl } from '@/lib/siteOrigins'
 import { Button, Input, RadioGroup } from '@/components/ui'
 import {
   validateRequiredEmail,
@@ -160,6 +161,9 @@ export default function LoginPage() {
             <Link to="/forgot-password" className="pd-login__text-link">
               Forgot password?
             </Link>
+            <a href={marketingHomeUrl()} className="pd-login__text-link">
+              Back to OneTrack
+            </a>
           </form>
         </div>
       </div>

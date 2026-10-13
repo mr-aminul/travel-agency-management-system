@@ -37,7 +37,7 @@ export function publicUiBaseUrl() {
   return String(
     process.env.PLATFORM_PUBLIC_UI_URL ||
       process.env.PUBLIC_UI_URL ||
-      'https://onetrack.inventivelab.bd',
+      'https://app.inventivelab.bd',
   ).replace(/\/$/, '')
 }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fillSmsTemplate } from '@/lib/smsTemplateFill'
+import { appOrigin } from '@/lib/siteOrigins'
 import type { Client } from '@/types/client'
 import { TENANT_IDS } from '@/types/tenant'
 
@@ -35,7 +36,7 @@ describe('fillSmsTemplate', () => {
       { client },
     )
     expect(body).toBe(
-      `Track: ${window.location.origin}${import.meta.env.BASE_URL || '/'}track?passport=A12345678 · Agent: Rakib Travels`,
+      `Track: ${appOrigin()}${import.meta.env.BASE_URL || '/'}track?passport=A12345678 · Agent: Rakib Travels`,
     )
   })
 

@@ -1,4 +1,5 @@
 import { getTenantById, getTenantBySlug } from '@/lib/tenantsStore'
+import { appOrigin } from '@/lib/siteOrigins'
 
 /** Public asset under Vite `base` (`/` by default; `/platform/` when VITE_BASE_PATH is set for EC2). */
 export function publicUrl(path: string): string {
@@ -7,11 +8,10 @@ export function publicUrl(path: string): string {
   return `${base}${normalized}`
 }
 
-/** Absolute URL for a public app path, including Vite `base`. */
+/** Absolute URL for a public app path (always on the app host). */
 export function absolutePublicUrl(path: string): string {
   const relative = publicUrl(path)
-  if (typeof window === 'undefined') return relative
-  return new URL(relative, window.location.origin).toString()
+  return new URL(relative, `${appOrigin()}/`).toString()
 }
 
 export function subAgentClientFormPath(subAgentId: string): string {

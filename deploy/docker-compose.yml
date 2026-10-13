@@ -41,12 +41,12 @@ services:
       PGDATABASE: onetrack_platform
       PGUSER: platform
       PGPASSWORD: ${PLATFORM_DB_PASSWORD:?set PLATFORM_DB_PASSWORD}
-      CORS_ORIGIN: ${PLATFORM_CORS_ORIGIN:-https://onetrack.inventivelab.bd,http://localhost:8003,http://127.0.0.1:8003}
+      CORS_ORIGIN: ${PLATFORM_CORS_ORIGIN:-https://app.inventivelab.bd,https://onetrack.inventivelab.bd,http://localhost:8003,http://127.0.0.1:8003}
       PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-aminulislamborhan@gmail.com}
       PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-12345}
       SEED_AGENCY_PASSWORD: ${SEED_AGENCY_PASSWORD:-12345}
       SEED_FORCE_PASSWORDS: ${SEED_FORCE_PASSWORDS:-0}
-      PLATFORM_PUBLIC_UI_URL: ${PLATFORM_PUBLIC_UI_URL:-https://onetrack.inventivelab.bd}
+      PLATFORM_PUBLIC_UI_URL: ${PLATFORM_PUBLIC_UI_URL:-https://app.inventivelab.bd}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-465}
       SMTP_SECURE: ${SMTP_SECURE:-1}
@@ -63,7 +63,7 @@ services:
       BILLING_GATEWAY: ${BILLING_GATEWAY:-uddoktapay}
       UDDOKTAPAY_API_URL: ${UDDOKTAPAY_API_URL:-https://onetrack.paymently.io/api}
       UDDOKTAPAY_API_KEY: ${UDDOKTAPAY_API_KEY:-}
-      PLATFORM_PUBLIC_API_URL: ${PLATFORM_PUBLIC_API_URL:-https://onetrack.inventivelab.bd}
+      PLATFORM_PUBLIC_API_URL: ${PLATFORM_PUBLIC_API_URL:-https://app.inventivelab.bd}
       BILLING_BKASH_NUMBER: ${BILLING_BKASH_NUMBER:-}
       BILLING_NAGAD_NUMBER: ${BILLING_NAGAD_NUMBER:-}
       BILLING_BANK_NAME: ${BILLING_BANK_NAME:-}

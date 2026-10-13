@@ -1,7 +1,15 @@
-import { Suspense, lazy } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useParams,
+} from 'react-router-dom'
 import { postLoginPath } from '@/lib/authWorkspaces'
 import { useAuth } from '@/lib/auth'
+import { appOrigin, isMarketingHost } from '@/lib/siteOrigins'
 
 const AuthenticatedLayout = lazy(() => import('@/layout/AuthenticatedLayout'))
 const CaseInvoicePage = lazy(() => import('@/pages/CaseInvoicePage'))
@@ -48,9 +56,19 @@ const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'))
 const AcceptInvitePage = lazy(() => import('@/pages/auth/AcceptInvitePage'))
 const ChooseWorkspacePage = lazy(() => import('@/pages/auth/ChooseWorkspacePage'))
 const BillingPage = lazy(() => import('@/pages/BillingPage'))
+const LandingPage = lazy(() => import('@/pages/LandingPage'))
 
 function RouteFallback() {
   return <div className="pd-route-fallback" aria-busy="true" aria-live="polite" />
+}
+
+/** Marketing host only serves `/`; anything else goes to the app origin. */
+function MarketingToAppRedirect() {
+  useEffect(() => {
+    const { pathname, search, hash } = window.location
+    window.location.replace(`${appOrigin()}${pathname}${search}${hash}`)
+  }, [])
+  return <RouteFallback />
 }
 
 function LegacyAgentsRedirect() {
@@ -79,10 +97,36 @@ function CatchAllRedirect() {
   return <Navigate to={postLoginPath(session)} replace />
 }
 
+/** App host: landing at `/` for guests; signed-in users get the app shell. */
+function ProductRoot() {
+  const { status, session } = useAuth()
+  const { pathname } = useLocation()
+  if (status === 'authenticated' && session) {
+    return <AuthenticatedLayout />
+  }
+  if (pathname === '/' || pathname === '') {
+    return <LandingPage />
+  }
+  return <Navigate to="/login" replace />
+}
+
 /** Matches Vite `base` (`/` by default; `/platform/` when VITE_BASE_PATH is set for EC2). */
 const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
 
-function App() {
+function MarketingApp() {
+  return (
+    <BrowserRouter basename={routerBasename}>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="*" element={<MarketingToAppRedirect />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  )
+}
+
+function ProductApp() {
   return (
     <BrowserRouter basename={routerBasename}>
       <Suspense fallback={<RouteFallback />}>
@@ -103,7 +147,7 @@ function App() {
           <Route path="/join/direct/:tenantSlug" element={<PublicClientIntakePage />} />
           <Route path="/join/:subAgentId" element={<PublicClientIntakePage />} />
           <Route path="/i/:token" element={<PublicInvoicePage />} />
-          <Route path="/" element={<AuthenticatedLayout />}>
+          <Route path="/" element={<ProductRoot />}>
             <Route index element={<HomePage />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="service-board" element={<ServiceBoardPage />} />
@@ -207,6 +251,10 @@ function App() {
       </Suspense>
     </BrowserRouter>
   )
+}
+
+function App() {
+  return isMarketingHost() ? <MarketingApp /> : <ProductApp />
 }
 
 export default App

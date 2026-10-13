@@ -18,15 +18,20 @@ Local Vite proxies `/api` to `https://api.onetrack.inventivelab.bd`, so localhos
 
 | Piece | Where |
 |-------|--------|
-| App UI | **VPS** (Caddy static) → https://onetrack.inventivelab.bd |
+| Marketing | **VPS** → https://onetrack.inventivelab.bd (landing; product paths redirect to app) |
+| App UI | **VPS** (Caddy static) → https://app.inventivelab.bd |
 | API + Postgres | **VPS** (isolated Docker). App uses same-origin `/api`; https://api.onetrack.inventivelab.bd stays for webhooks/ops |
 
-DNS for both hostnames must point at the inventivelab VPS (same host as `api.onetrack`).
+DNS for `onetrack`, `app`, and `api.onetrack` must point at the inventivelab VPS.
 
 Build-time env (set by `npm run deploy:vps`):
 
 - `VITE_USE_PLATFORM_API=1`
-- `VITE_API_BASE_URL=` (empty — relative `/api` via the UI host Caddy proxy)
+- `VITE_API_BASE_URL=` (empty — relative `/api` via the app host Caddy proxy)
+- `VITE_APP_ORIGIN=https://app.inventivelab.bd`
+- `VITE_MARKETING_ORIGIN=https://onetrack.inventivelab.bd`
+
+Localhost serves the landing at `/` when signed out. Dedicated marketing-host preview: `VITE_FORCE_MARKETING=1 npm run dev`
 
 ### Deploy (GitHub Actions, preferred)
 
