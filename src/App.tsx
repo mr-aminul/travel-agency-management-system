@@ -10,6 +10,7 @@ import {
 import { postLoginPath } from '@/lib/authWorkspaces'
 import { useAuth } from '@/lib/auth'
 import { appOrigin, isMarketingHost } from '@/lib/siteOrigins'
+import { PwaChrome } from '@/components/pwa/PwaChrome'
 
 const AuthenticatedLayout = lazy(() => import('@/layout/AuthenticatedLayout'))
 const CaseInvoicePage = lazy(() => import('@/pages/CaseInvoicePage'))
@@ -131,6 +132,7 @@ function MarketingApp() {
 function ProductApp() {
   return (
     <BrowserRouter basename={routerBasename}>
+      <PwaChrome />
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

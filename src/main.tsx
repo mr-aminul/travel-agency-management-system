@@ -4,6 +4,7 @@ import { bootstrapDataBackend } from './bootstrapData'
 import { initAgencyAppearanceSync } from './lib/agencyAppearance'
 import { initAppearanceListener } from './lib/brand'
 import { initKeyboardFocus } from './lib/keyboardFocus'
+import { initPwaDisplayMode, registerPwa } from './lib/pwaRegister'
 
 /* Login-critical fonts only. Shell weights load with AuthenticatedLayout. */
 import '@fontsource/inter/latin-400.css'
@@ -15,6 +16,8 @@ import './index.css'
 initAppearanceListener()
 initAgencyAppearanceSync()
 initKeyboardFocus()
+initPwaDisplayMode()
+registerPwa()
 
 /**
  * Hydrate the save/load backend before importing stores/App, otherwise

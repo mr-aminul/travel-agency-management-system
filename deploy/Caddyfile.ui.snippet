@@ -8,6 +8,12 @@
 onetrack.inventivelab.bd {
 	encode gzip
 
+	# Never let marketing register / cache a service worker (shared UI build).
+	@marketing_pwa path /sw.js /workbox-*.js /registerSW.js /manifest.webmanifest
+	handle @marketing_pwa {
+		respond 404
+	}
+
 	# Built assets + public images for the marketing SPA
 	@marketing_static {
 		path /assets/* /images/* /favicon.ico /favicon.svg
@@ -46,6 +52,17 @@ app.inventivelab.bd {
 		header {
 			X-App onetrack-platform-api
 		}
+	}
+
+	# SW + manifest must revalidate so updates are not stuck behind a CDN/browser cache.
+	@pwa_runtime path /sw.js /workbox-*.js /registerSW.js /manifest.webmanifest
+	handle @pwa_runtime {
+		root * /opt/onetrack-platform/web
+		header {
+			Cache-Control "no-cache, no-store, must-revalidate"
+			X-App onetrack-platform-ui
+		}
+		file_server
 	}
 
 	handle {

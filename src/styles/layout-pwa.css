@@ -1,0 +1,136 @@
+.pd-pwa-offline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  padding-top: calc(0.45rem + env(safe-area-inset-top, 0px));
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-theme-subtle);
+  border-bottom: 0.0625rem solid var(--color-border);
+}
+
+.pd-pwa-offline[hidden],
+.pd-pwa-sheet[hidden] {
+  display: none !important;
+}
+
+.pd-pwa-sheet {
+  position: fixed;
+  z-index: 40;
+  inset-inline: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  width: min(22.5rem, calc(100% - 1.5rem));
+  margin-inline: auto;
+  box-shadow: var(--shadow-deep);
+}
+
+.pd-pwa-sheet .pd-card__header {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+.pd-pwa-sheet__mark {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.65rem;
+  flex-shrink: 0;
+  object-fit: cover;
+  background: var(--color-theme);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--color-theme) 14%, transparent);
+}
+
+.pd-pwa-sheet__mark--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-theme) 12%, var(--color-bg-muted));
+  color: var(--color-theme-ink);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--color-theme) 14%, transparent);
+}
+
+.pd-pwa-sheet__steps {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pd-pwa-sheet__steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pd-pwa-sheet__step-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--color-theme) 12%, var(--color-bg-muted));
+  color: var(--color-theme-ink);
+}
+
+.pd-pwa-sheet__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.pd-pwa-sheet__actions .pd-btn {
+  flex: 1 1 auto;
+}
+
+html.pd-pwa-standalone,
+html.pd-pwa-standalone body,
+html.pd-pwa-standalone #root {
+  min-height: 100dvh;
+  height: 100dvh;
+}
+
+html.pd-pwa-standalone .pd-app-shell {
+  height: 100dvh;
+}
+
+html.pd-pwa-standalone .pd-login,
+html.pd-pwa-standalone .pd-invoice-page-frame--public,
+html.pd-pwa-standalone .pd-invoice-checkout {
+  min-height: 100dvh;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pd-pwa-sheet:not([hidden]) {
+    animation: pd-pwa-sheet-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@keyframes pd-pwa-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
