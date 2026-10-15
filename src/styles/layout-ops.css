@@ -520,3 +520,103 @@
   gap: 0.5rem;
   margin-top: 0.75rem;
 }
+
+/* ── Money book (Payments) ───────────────────────────────────────── */
+
+.pd-money__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.pd-money__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.pd-money__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pd-money__filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.pd-money__what {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.pd-money__what-title {
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.pd-money__what-party {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-theme-ink);
+  text-decoration: none;
+  width: fit-content;
+}
+
+a.pd-money__what-party:hover {
+  text-decoration: underline;
+}
+
+.pd-money__what-note {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.35;
+}
+
+.pd-money__txn {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-money__amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pd-money__amount--in {
+  color: var(--color-status-completed, #15803d);
+  font-weight: 650;
+}
+
+.pd-money__amount--out {
+  color: var(--color-text);
+  font-weight: 650;
+}
+
+.pd-money__balance {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+@media (max-width: 767px) {
+  .pd-money__actions {
+    width: 100%;
+  }
+
+  .pd-money__actions .pd-btn {
+    flex: 1 1 auto;
+  }
+}

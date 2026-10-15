@@ -12,6 +12,8 @@ export const DATA_KEYS = {
   subAgentsCreatedLegacy: 'pd-partners-created',
   casesCreated: 'pd-cases-created',
   paymentsCreated: 'pd-payments-created',
+  /** Manual cash-book rows (supplier payouts, other in/out). Receipts stay in payments. */
+  ledgerEntries: 'pd-ledger-entries',
   employeesCreated: 'pd-employees-created',
   attendanceCreated: 'pd-attendance-created',
   requestsCreated: 'pd-requests-created',

@@ -12,6 +12,7 @@ export const TENANT_ARRAY_KEYS = new Set([
   'pd-partners-created', // legacy key; prefer pd-sub-agents-created
   'pd-cases-created',
   'pd-payments-created',
+  'pd-ledger-entries',
   'pd-employees-created',
   'pd-attendance-created',
   'pd-requests-created',

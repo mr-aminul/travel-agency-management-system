@@ -465,3 +465,21 @@ export function useCommissionSettlements(
     [all, activeId, subAgentId],
   )
 }
+
+/** All commission payouts for the signed-in agency (cash-book outflows). */
+export function useAllCommissionSettlements(): CommissionSettlement[] {
+  const { session } = useAuth()
+  const all = useSyncExternalStore(
+    subscribeCommissions,
+    getSettlementsSnapshot,
+    getSettlementsSnapshot,
+  )
+  const activeId = session?.tenantId ?? DEFAULT_TENANT_ID
+  return useMemo(
+    () =>
+      all
+        .filter((item) => item.tenantId === activeId)
+        .sort((a, b) => b.settledAt.localeCompare(a.settledAt)),
+    [all, activeId],
+  )
+}
