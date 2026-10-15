@@ -203,6 +203,26 @@ export async function listPayments(tenantId) {
   return result.rows.map((row) => row.payload)
 }
 
+export async function getCase(tenantId, id) {
+  const result = await query(
+    `select payload from platform.cases
+     where tenant_id = $1 and id = $2
+     limit 1`,
+    [tenantId, String(id || '').trim()],
+  )
+  return result.rows[0]?.payload || null
+}
+
+export async function getClient(tenantId, id) {
+  const result = await query(
+    `select payload from platform.clients
+     where tenant_id = $1 and id = $2
+     limit 1`,
+    [tenantId, String(id || '').trim()],
+  )
+  return result.rows[0]?.payload || null
+}
+
 export async function listAllClientsAdmin() {
   const result = await query(
     `select payload from platform.clients order by tenant_id, updated_at desc`,

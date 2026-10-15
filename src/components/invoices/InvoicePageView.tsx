@@ -12,6 +12,8 @@ type InvoicePageViewProps = {
   toolbar: ReactNode
   /** Shown above the toolbar (e.g. incomplete business profile). */
   notice?: ReactNode
+  /** Public pay CTA / status; sits above the toolbar, does not change the document. */
+  hero?: ReactNode
   /** Outer chrome only (e.g. public page background). Must not change invoice layout. */
   frameClassName?: string
 }
@@ -20,6 +22,7 @@ export function InvoicePageView({
   invoice,
   toolbar,
   notice,
+  hero,
   frameClassName,
 }: InvoicePageViewProps) {
   const frameClass = ['pd-invoice-page-frame', frameClassName]
@@ -35,6 +38,7 @@ export function InvoicePageView({
         {notice ? (
           <div className="pd-invoice-page__notice">{notice}</div>
         ) : null}
+        {hero ? <div className="pd-invoice-page__hero">{hero}</div> : null}
         <div className="pd-invoice-page__toolbar">{toolbar}</div>
         <div className="pd-invoice-page__stage">
           <InvoiceDocument invoice={invoice} />

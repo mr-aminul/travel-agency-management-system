@@ -31,6 +31,11 @@ import {
   revokeInvoiceShare,
 } from './invoices.js'
 import {
+  completeMockClientInvoiceCheckout,
+  createClientInvoiceCheckout,
+  publicInvoicePayInfo,
+} from './clientInvoicePay.js'
+import {
   canWriteKvKey,
   filterEntriesForAuth,
   filterValueForTenant,
@@ -898,13 +903,63 @@ app.get('/api/platform/public/invoices/:token', async (req, res) => {
       res.status(404).json({ error: 'Invoice not found or revoked.' })
       return
     }
-    res.json({ invoice: row.invoice, caseId: row.case_id })
+    res.json({
+      invoice: row.invoice,
+      caseId: row.case_id,
+      pay: publicInvoicePayInfo(row),
+    })
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'read failed',
     })
   }
 })
+
+app.post(
+  '/api/platform/public/invoices/:token/checkout',
+  async (req, res) => {
+    try {
+      const result = await createClientInvoiceCheckout(req.params.token)
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      res.json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error:
+          error instanceof Error ? error.message : 'Could not start checkout.',
+      })
+    }
+  },
+)
+
+app.post(
+  '/api/platform/public/invoices/:token/checkout/:checkoutId/complete-mock',
+  async (req, res) => {
+    try {
+      const result = await completeMockClientInvoiceCheckout({
+        token: req.params.token,
+        checkoutId: req.params.checkoutId,
+        method: req.body?.method,
+      })
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      res.json({
+        alreadyPaid: Boolean(result.alreadyPaid),
+        paymentId: result.paymentId,
+        invoice: result.invoice,
+      })
+    } catch (error) {
+      res.status(500).json({
+        error:
+          error instanceof Error ? error.message : 'Could not complete payment.',
+      })
+    }
+  },
+)
 
 /** Public passport track: domain tables first, KV fallback. */
 app.get('/api/platform/public/track', async (req, res) => {
