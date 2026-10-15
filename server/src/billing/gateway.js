@@ -22,6 +22,7 @@ import {
   uddoktapayConfigured,
   verifyUddoktaPayPayment,
 } from './uddoktapay.js'
+import { applyClientInvoicePayment } from '../clientInvoicePay.js'
 
 const UDDOKTAPAY_MODES = new Set(['uddoktapay', 'paymently'])
 
@@ -304,8 +305,15 @@ export async function applyUddoktaPayPayment(data, { verifiedBy = 'uddoktapay' }
     }
   }
 
+  const meta = metadataObject(data?.metadata)
+  if (String(meta.kind || '') === 'client_invoice') {
+    return applyClientInvoicePayment(data, { verifiedBy })
+  }
+
   const billingInvoiceId = await resolveBillingInvoiceIdFromPayment(data)
   if (!billingInvoiceId) {
+    const clientPay = await applyClientInvoicePayment(data, { verifiedBy })
+    if (clientPay.ok || clientPay.alreadyPaid) return clientPay
     return {
       ok: false,
       status: 404,
@@ -362,8 +370,13 @@ export async function handleUddoktaPayReturn({ providerInvoiceId, returnUrl }) {
   try {
     const verified = await verifyUddoktaPayPayment(id)
     const meta = metadataObject(verified.data?.metadata)
+    const clientInvoiceReturn =
+      String(meta.kind || '') === 'client_invoice' && meta.share_token
+        ? `${publicUiBase()}/i/${String(meta.share_token)}`
+        : ''
     const destBase =
       String(returnUrl || meta.return_url || '').trim() ||
+      clientInvoiceReturn ||
       `${publicUiBase()}/billing`
 
     if (verified.completed) {

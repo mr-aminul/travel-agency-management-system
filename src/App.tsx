@@ -14,6 +14,7 @@ import { appOrigin, isMarketingHost } from '@/lib/siteOrigins'
 const AuthenticatedLayout = lazy(() => import('@/layout/AuthenticatedLayout'))
 const CaseInvoicePage = lazy(() => import('@/pages/CaseInvoicePage'))
 const PublicInvoicePage = lazy(() => import('@/pages/PublicInvoicePage'))
+const PublicInvoicePayPage = lazy(() => import('@/pages/PublicInvoicePayPage'))
 const CaseDetailPage = lazy(() => import('@/pages/CaseDetailPage'))
 const CasesPage = lazy(() => import('@/pages/CasesPage'))
 const LegacyCasesRedirect = lazy(() => import('@/pages/LegacyCasesRedirect'))
@@ -148,6 +149,7 @@ function ProductApp() {
           <Route path="/register/:tenantSlug" element={<PublicClientIntakePage />} />
           <Route path="/join/direct/:tenantSlug" element={<PublicClientIntakePage />} />
           <Route path="/join/:subAgentId" element={<PublicClientIntakePage />} />
+          <Route path="/i/:token/pay" element={<PublicInvoicePayPage />} />
           <Route path="/i/:token" element={<PublicInvoicePage />} />
           <Route path="/" element={<ProductRoot />}>
             <Route index element={<HomePage />} />

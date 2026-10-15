@@ -65,6 +65,11 @@ describe('public invoice page', () => {
     expect(screen.getByRole('heading', { name: 'Billed To' })).toBeInTheDocument()
     expect(screen.getByText('Md. Rahim Uddin')).toBeInTheDocument()
     expect(screen.getByText('Partial package deposit')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Pay ৳ 35,000 now' }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Pay this invoice')).toBeInTheDocument()
+    expect(screen.getByText('bKash')).toBeInTheDocument()
   })
 
   it('explains when the share link is invalid', async () => {
