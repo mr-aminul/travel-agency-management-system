@@ -277,3 +277,163 @@
     height: 3rem;
   }
 }
+
+/* ── Today follow-ups ────────────────────────────────────────────── */
+
+.pd-today {
+  width: 100%;
+  max-width: 36rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-card, 0.85rem);
+  border: 0.0625rem solid var(--color-border);
+  background: var(--color-surface-raised, var(--color-surface));
+  box-shadow: var(--shadow-low);
+  text-align: left;
+}
+
+.pd-today--compact {
+  max-width: none;
+}
+
+.pd-today__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.pd-today__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pd-today__icon,
+.pd-today__clear {
+  display: inline-flex;
+  color: var(--color-theme-ink);
+}
+
+.pd-today__clear {
+  color: var(--color-status-completed, #15803d);
+}
+
+.pd-today__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.pd-today__count {
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-on-theme);
+  background: var(--color-theme);
+}
+
+.pd-today__headline {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.pd-today__chips {
+  flex-wrap: wrap;
+}
+
+.pd-today__chip-count {
+  margin-left: 0.3rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.pd-today__empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.pd-today__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.pd-today__row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.65rem;
+  text-decoration: none;
+  color: inherit;
+  background: color-mix(in srgb, var(--color-theme) 5%, var(--color-bg-muted));
+  border: 0.0625rem solid transparent;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.pd-today__row:hover {
+  border-color: color-mix(in srgb, var(--color-theme) 28%, var(--color-border));
+  background: color-mix(in srgb, var(--color-theme) 9%, white);
+}
+
+.pd-today__row-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--color-theme) 12%, var(--color-bg-muted));
+  color: var(--color-theme-ink);
+}
+
+.pd-today__row-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.pd-today__row-title {
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.pd-today__row-detail {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.35;
+}
+
+.pd-today__row-go {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.pd-home .pd-today {
+  align-self: center;
+}

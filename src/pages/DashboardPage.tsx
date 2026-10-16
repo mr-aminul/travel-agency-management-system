@@ -13,6 +13,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { FilterChip, FilterChips, PageHeader } from '@/components/ui'
+import { TodayFollowUps } from '@/components/home/TodayFollowUps'
 import { BentoTile } from '@/components/dashboard/BentoTile'
 import { DonutChart, type DonutSlice } from '@/components/dashboard/DonutChart'
 import { TrendChart } from '@/components/dashboard/TrendChart'
@@ -221,6 +222,8 @@ export default function DashboardPage() {
           </time>
         }
       />
+
+      <TodayFollowUps compact />
 
       <div className="pd-dash-bento">
         <div className="pd-dash-bento__kpis">

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { BusinessProfileSetupNotice } from '@/components/BusinessProfileSetupNotice'
 import { HomeGlobalSearch } from '@/components/home/HomeGlobalSearch'
+import { TodayFollowUps } from '@/components/home/TodayFollowUps'
 import { PlatformTour } from '@/components/onboarding/PlatformTour'
 import { useAgencyProfile } from '@/layout/useAgencyProfile'
 import { agencyProfileIsIncomplete } from '@/lib/agencyProfileGaps'
@@ -46,7 +47,7 @@ const QUICK_LINKS: QuickLink[] = [
   {
     path: '/payments',
     label: 'Payments',
-    description: 'Collections & balances',
+    description: 'Money book & balances',
     icon: Wallet,
   },
   {
@@ -114,6 +115,8 @@ export default function HomePage() {
       ) : null}
 
       <HomeGlobalSearch />
+
+      <TodayFollowUps />
 
       <PlatformTour />
 
