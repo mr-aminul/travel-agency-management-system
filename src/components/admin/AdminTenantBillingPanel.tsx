@@ -11,9 +11,9 @@ import {
   adminCreateInvoice,
   adminExtendTrial,
   adminFetchTenantBilling,
+  adminListPlans,
   adminMarkInvoicePaid,
   adminPatchBilling,
-  fetchBillingPlans,
 } from '@/lib/billing/billingApi'
 import {
   formatBdt,
@@ -44,9 +44,10 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
     try {
       const [me, catalog] = await Promise.all([
         adminFetchTenantBilling(tenantId),
-        fetchBillingPlans(),
+        adminListPlans(),
       ])
       setSnapshot(me)
+      // Admin catalog includes non-public plans (e.g. Test/UAT).
       setPlans([...catalog.plans].sort((a, b) => a.sortOrder - b.sortOrder))
       const nextPlanId = me.billing?.planId || 'growth'
       setPlanId(nextPlanId)
