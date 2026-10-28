@@ -3,6 +3,13 @@ import { query } from '../db.js'
 export const TRIAL_DAYS = 14
 export const TRIAL_PLAN_ID = 'growth'
 
+/**
+ * Temporary UAT default: every agency is on Test/comp with no billing wall.
+ * Set false (and re-seed defaults) when leaving UAT / going paid-enforced.
+ */
+export const UAT_FORCE_TEST_PLAN = true
+export const UAT_PLAN_ID = 'test'
+
 const ALL_SERVICE_MODULES = [
   'services.touristVisa',
   'services.studentVisa',
@@ -20,19 +27,19 @@ export const FALLBACK_PLANS = [
     id: 'test',
     name: 'Test',
     description:
-      'Zero-taka plan for payment gateway testing. Not for production agencies.',
+      'UAT / first-client plan — unrestricted while we develop. Downgrade manually when ready.',
     sortOrder: 5,
     priceBdt: 0,
     currency: 'BDT',
     interval: 'month',
-    userLimit: 20,
-    subAgentLimit: 30,
-    storageLimitBytes: 40 * 1024 ** 3,
-    smsLimit: 2000,
-    smsOverageBdt: 0.4,
-    modules: ['finance', 'documents', 'subAgents', ...ALL_SERVICE_MODULES],
-    features: { label: 'Test', isTest: true },
-    isPublic: true,
+    userLimit: 10000,
+    subAgentLimit: 10000,
+    storageLimitBytes: 1024 * 1024 ** 3,
+    smsLimit: 100000,
+    smsOverageBdt: 0,
+    modules: ['finance', 'documents', 'subAgents', 'hr', ...ALL_SERVICE_MODULES],
+    features: { label: 'Test', isTest: true, uatUnrestricted: true },
+    isPublic: false,
     isActive: true,
   },
   {

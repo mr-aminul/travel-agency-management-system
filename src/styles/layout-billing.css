@@ -291,10 +291,17 @@
 }
 
 .pd-billing-wall {
+  /* html/body/#root clip overflow; this frame must scroll like .pd-login / .pd-track */
+  height: 100%;
   min-height: 100%;
   display: grid;
   place-items: center;
-  padding: 2rem 1.25rem;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding:
+    calc(2rem + env(safe-area-inset-top, 0px)) 1.25rem
+    calc(2rem + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
   background:
     radial-gradient(
       1200px 500px at 50% -10%,

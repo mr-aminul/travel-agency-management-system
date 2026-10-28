@@ -5,6 +5,8 @@ import {
   periodEndFromNow,
   trialEndsAtFromNow,
   TRIAL_PLAN_ID,
+  UAT_FORCE_TEST_PLAN,
+  UAT_PLAN_ID,
 } from './plans.js'
 
 function mapBillingRow(row) {
@@ -103,6 +105,19 @@ export async function ensureTenantBilling(tenantId, { startTrial = true } = {}) 
   const existing = await getTenantBilling(id)
   if (existing) return existing
   if (!startTrial) return null
+
+  // UAT: new agencies land on Test/comp (no trial expiry). Flip UAT_FORCE_TEST_PLAN off later.
+  if (UAT_FORCE_TEST_PLAN) {
+    const applied = await applyPlanToTenant({
+      tenantId: id,
+      planId: UAT_PLAN_ID,
+      billingStatus: 'active',
+      planKind: 'comp',
+      currentPeriodEnd: periodEndFromNow('year'),
+      syncModules: true,
+    })
+    return applied.billing ?? getTenantBilling(id)
+  }
 
   const plan = await getPlanTemplate(TRIAL_PLAN_ID)
   const trialEnds = trialEndsAtFromNow()
@@ -333,11 +348,39 @@ export async function bootstrapDemoTenantBilling() {
     /* ignore */
   }
 
+  try {
+    const billed = await query(`select tenant_id from platform.tenant_billing`)
+    for (const row of billed.rows) {
+      if (row?.tenant_id) candidates.add(String(row.tenant_id))
+    }
+  } catch {
+    /* ignore */
+  }
+
   for (const tenantId of candidates) {
     const existing = await getTenantBilling(tenantId)
+
+    if (UAT_FORCE_TEST_PLAN) {
+      // UAT: every agency on Test/comp — no trial walls for first clients.
+      if (
+        existing?.planId === UAT_PLAN_ID &&
+        existing.billingStatus === 'active' &&
+        existing.planKind === 'comp'
+      ) {
+        continue
+      }
+      await applyPlanToTenant({
+        tenantId,
+        planId: UAT_PLAN_ID,
+        billingStatus: 'active',
+        planKind: 'comp',
+        currentPeriodEnd: periodEndFromNow('year'),
+        syncModules: !existing,
+      })
+      continue
+    }
+
     if (existing) continue
-    // Demo / launch agencies start paid on Business so ops are not locked.
-    // Keep existing module toggles — do not overwrite seed catalogs.
     await applyPlanToTenant({
       tenantId,
       planId: 'business',

@@ -1,6 +1,10 @@
 import { query } from '../db.js'
-import { getPlanTemplate } from './plans.js'
+import { getPlanTemplate, UAT_PLAN_ID } from './plans.js'
 import { ensureTenantBilling, getTenantBilling } from './tenantBilling.js'
+
+function isUatUnrestricted(billing) {
+  return billing?.planId === UAT_PLAN_ID
+}
 
 function currentPeriodKey(date = new Date()) {
   const y = date.getUTCFullYear()
@@ -143,6 +147,9 @@ export async function getUsageSnapshot(tenantId) {
 
 export async function assertCanAddUser(tenantId) {
   const snap = await getUsageSnapshot(tenantId)
+  if (isUatUnrestricted(snap.billing)) {
+    return { ok: true, snapshot: snap }
+  }
   const { limits, usage } = snap
   if (usage.seatCommit >= limits.userLimit) {
     return {
@@ -158,6 +165,9 @@ export async function assertCanAddUser(tenantId) {
 
 export async function assertCanAddSubAgent(tenantId) {
   const snap = await getUsageSnapshot(tenantId)
+  if (isUatUnrestricted(snap.billing)) {
+    return { ok: true, snapshot: snap }
+  }
   const { limits, usage } = snap
   if (limits.subAgentLimit <= 0) {
     return {
@@ -182,6 +192,9 @@ export async function assertCanAddSubAgent(tenantId) {
 
 export async function assertCanUpload(tenantId, incomingBytes = 0) {
   const snap = await getUsageSnapshot(tenantId)
+  if (isUatUnrestricted(snap.billing)) {
+    return { ok: true, snapshot: snap }
+  }
   const { limits, usage } = snap
   const next = usage.storageBytes + Math.max(0, Number(incomingBytes) || 0)
   if (next > limits.storageLimitBytes) {
@@ -198,6 +211,9 @@ export async function assertCanUpload(tenantId, incomingBytes = 0) {
 
 export async function assertCanSendSms(tenantId) {
   const snap = await getUsageSnapshot(tenantId)
+  if (isUatUnrestricted(snap.billing)) {
+    return { ok: true, snapshot: snap, overage: false }
+  }
   const { limits, usage } = snap
   // Soft allow overage when overage rate is set; hard block when rate is 0 and at cap.
   if (usage.smsSent >= limits.smsLimit && Number(limits.smsOverageBdt) <= 0) {
