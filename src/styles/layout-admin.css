@@ -632,6 +632,41 @@
   gap: var(--spacing-2);
 }
 
+.pd-admin__bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin: 0.75rem 0 0;
+  padding: 0.625rem 0.875rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-md, 0.5rem);
+  background: color-mix(in srgb, var(--color-theme) 8%, var(--color-bg));
+}
+
+.pd-admin__bulk-count {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pd-admin__bulk-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pd-admin__select-col {
+  width: 2.25rem;
+}
+
+.pd-admin__select-cell {
+  width: 2.25rem;
+  vertical-align: middle;
+}
+
 .pd-admin__credential-name {
   margin: 0 0 var(--spacing-3);
   font-weight: 600;
@@ -765,6 +800,19 @@
   }
 
   .pd-admin__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-admin__plan-bill {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-admin__plan-ops {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-admin__shortcuts,
+  .pd-admin__form-grid {
     grid-template-columns: 1fr;
   }
 

@@ -672,6 +672,10 @@ a.pd-btn {
   font-size: 0.875rem;
 }
 
+.pd-check--icon-only {
+  gap: 0;
+}
+
 .pd-check.is-disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -1066,6 +1070,11 @@ a.pd-btn {
     flex-wrap: wrap;
   }
 
+  .pd-page-header__actions > .pd-btn,
+  .pd-page-header__actions > .pd-split-btn {
+    flex: 1 1 auto;
+  }
+
   .pd-page-header__title {
     font-size: 1.25rem;
   }
@@ -1082,6 +1091,19 @@ a.pd-btn {
   .pd-modal {
     width: min(24rem, calc(100vw - 1.5rem));
     max-width: calc(100vw - 1.5rem);
+  }
+
+  .pd-progress {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pd-form-actions {
+    width: 100%;
+  }
+
+  .pd-form-actions > .pd-btn {
+    flex: 1 1 auto;
   }
 }
 
@@ -1212,6 +1234,13 @@ a.pd-btn {
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+}
+
+.pd-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 /* ── Empty state ──────────────────────────────────────────────────── */

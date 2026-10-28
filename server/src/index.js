@@ -4,6 +4,7 @@ import { pool, query } from './db.js'
 import {
   createAgencyUser,
   createPlatformAdmin,
+  deleteAgencyUser,
   listPlatformAdmins,
   loginWithPassword,
   readBearerToken,
@@ -338,6 +339,39 @@ app.patch(
     } catch (error) {
       res.status(500).json({
         error: error instanceof Error ? error.message : 'update status failed',
+      })
+    }
+  },
+)
+
+app.delete(
+  '/api/platform/auth/users/:userId',
+  requireAuth,
+  async (req, res) => {
+    try {
+      if (!(await assertCanManageAgencyUser(req, res))) return
+      const email = String(req.body?.email ?? req.query?.email ?? '').trim()
+      const result = await deleteAgencyUser({
+        userId: req.params.userId,
+        email,
+      })
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      await appendAudit({
+        tenantId: result.body.tenantId || req.auth.tenantId,
+        actorUserId: req.auth.user.id,
+        actorEmail: req.auth.user.email,
+        action: 'user.delete',
+        entityType: 'user',
+        entityId: result.body.user.id,
+        summary: `Deleted user ${result.body.user.email}`,
+      })
+      res.status(200).json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'delete user failed',
       })
     }
   },
@@ -1303,7 +1337,7 @@ async function start() {
   try {
     const summary = await ensureLaunchAgencies()
     console.log(
-      `[platform-api] launch agencies ready: ${summary.tenants} tenants, ${summary.clients} clients, ${summary.cases} cases, ${summary.payments} payments`,
+      `[platform-api] launch agencies ready: ${summary.tenants} tenants (retired: ${(summary.retired || []).join(', ') || 'none'})`,
     )
   } catch (error) {
     console.error(

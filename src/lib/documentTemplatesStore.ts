@@ -14,6 +14,7 @@ import type {
   TemplateColumn,
   TemplateStamp,
 } from '@/types/documentTemplate'
+import { DEFAULT_CANVAS_BODY_HTML } from '@/types/documentMergeFields'
 import {
   DOCUMENT_TEMPLATE_GROUPS,
   PRINT_FORMATS,
@@ -166,6 +167,7 @@ function normalizeTemplate(value: unknown): DocumentTemplate | undefined {
           .map((item) => item.trim())
           .filter(Boolean)
       : [],
+    bodyHtml: typeof value.bodyHtml === 'string' ? value.bodyHtml : '',
     createdAt,
     updatedAt:
       typeof value.updatedAt === 'string' && value.updatedAt
@@ -218,6 +220,7 @@ function seedForTenant(tenantId: string, prefix: string): DocumentTemplate[] {
       stamps: embassyStamps(),
       letterIntro: '',
       letterItems: [],
+      bodyHtml: '',
     },
     {
       ...base,
@@ -235,6 +238,7 @@ function seedForTenant(tenantId: string, prefix: string): DocumentTemplate[] {
       stamps: embassyStamps(),
       letterIntro: '',
       letterItems: [],
+      bodyHtml: '',
     },
     {
       ...base,
@@ -252,6 +256,7 @@ function seedForTenant(tenantId: string, prefix: string): DocumentTemplate[] {
       stamps: putupStamps(),
       letterIntro: '',
       letterItems: [],
+      bodyHtml: '',
     },
     {
       ...base,
@@ -270,6 +275,7 @@ function seedForTenant(tenantId: string, prefix: string): DocumentTemplate[] {
         'রিক্রুটিং এজেন্সী {{agency}} (লাইসেন্স নম্বরঃ {{license}}) এর ব্যবস্থাপনা পরিচালক সৌদিআরব গামি কর্মীর অনুকুলে একক বহির্গমন ছাড়পত্র গ্রহনের জন্য আবেদনপত্রসহ নিম্নে বর্ণিত কাগজপত্রাদি দাখিল করিয়াছেন।',
       letterItems: [...NOTESHEET_ITEMS],
       format: 'notesheet-male',
+      bodyHtml: '',
     },
     sheet(base, prefix, '0005', {
       name: 'Mofa Barcode',
@@ -308,6 +314,24 @@ function seedForTenant(tenantId: string, prefix: string): DocumentTemplate[] {
       title: 'অঙ্গীকারনামা',
       country: 'সৌদি আরব',
     }),
+    {
+      ...base,
+      id: `DOC-${prefix}0010`,
+      name: 'Client introduction letter',
+      group: 'Manpower',
+      format: 'canvas',
+      layout: 'letter',
+      direction: 'ltr',
+      title: 'To Whom It May Concern',
+      licenseNo: '',
+      country: '',
+      declaration: '',
+      headerRows: [],
+      stamps: [],
+      letterIntro: '',
+      letterItems: [],
+      bodyHtml: DEFAULT_CANVAS_BODY_HTML,
+    },
   ]
 }
 
@@ -331,6 +355,7 @@ function sheet(
     stamps: [],
     letterIntro: '',
     letterItems: [],
+    bodyHtml: '',
     ...extra,
   }
 }
@@ -433,10 +458,11 @@ function fromDraft(draft: DocumentTemplateDraft, current?: DocumentTemplate): Om
   DocumentTemplate,
   'id' | 'tenantId' | 'createdAt'
 > {
+  const format = draft.format ?? current?.format ?? 'canvas'
   return {
     name: draft.name.trim(),
     group: draft.group,
-    format: draft.format ?? current?.format ?? 'embassy-list',
+    format,
     layout: draft.layout,
     direction: draft.direction,
     title: draft.title.trim() || draft.name.trim(),
@@ -452,6 +478,10 @@ function fromDraft(draft: DocumentTemplateDraft, current?: DocumentTemplate): Om
     stamps: draft.stamps ?? current?.stamps ?? [],
     letterIntro: draft.letterIntro?.trim() ?? '',
     letterItems: draft.letterItems?.map((item) => item.trim()).filter(Boolean) ?? [],
+    bodyHtml:
+      typeof draft.bodyHtml === 'string'
+        ? draft.bodyHtml
+        : (current?.bodyHtml ?? ''),
     updatedAt: new Date().toISOString(),
   }
 }

@@ -44,8 +44,6 @@ function seedDefinitions() {
     'aminulislamborhan@gmail.com'
   const adminPassword =
     process.env.PLATFORM_ADMIN_PASSWORD?.trim() || '12345678'
-  const agencyPassword =
-    process.env.SEED_AGENCY_PASSWORD?.trim() || '12345678'
 
   return [
     {
@@ -53,16 +51,8 @@ function seedDefinitions() {
       email: adminEmail,
       name: 'Aminul Islam Borhan',
       role: 'platform_admin',
-      tenantId: 'tenant-full',
+      tenantId: null,
       password: adminPassword,
-    },
-    {
-      id: 'user-abc-owner',
-      email: 'demo@abctravel.com',
-      name: 'ABC Travel Agency',
-      role: 'agency_user',
-      tenantId: 'tenant-full',
-      password: agencyPassword,
     },
   ]
 }
@@ -658,6 +648,39 @@ export async function setAgencyUserStatus({ userId, email, status }) {
       user: publicUser(updated),
       tenantId: updated.tenant_id || null,
       status: updated.status,
+    },
+  }
+}
+
+/** Permanently remove an agency or sub-agent login (sessions cascade). */
+export async function deleteAgencyUser({ userId, email }) {
+  const row = await findAgencyUserRow({ userId, email })
+  if (!row) {
+    return { ok: false, status: 404, error: 'User not found.' }
+  }
+
+  const tenantId = row.tenant_id || null
+  const emailLower = String(row.email ?? '')
+    .trim()
+    .toLowerCase()
+
+  if (tenantId && emailLower) {
+    await query(
+      `delete from platform.invites
+       where tenant_id = $1 and lower(email) = $2`,
+      [tenantId, emailLower],
+    )
+  }
+
+  await query(`delete from platform.users where id = $1`, [row.id])
+
+  return {
+    ok: true,
+    status: 200,
+    body: {
+      user: publicUser(row),
+      tenantId,
+      deleted: true,
     },
   }
 }

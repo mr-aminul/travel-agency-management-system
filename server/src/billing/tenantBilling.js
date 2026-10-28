@@ -331,9 +331,8 @@ export async function listTenantBillingSummaries() {
 }
 
 export async function bootstrapDemoTenantBilling() {
-  const seedIds = ['tenant-full']
-  // Prefer known TENANT_IDS from SPA; also accept slug-based launch ids.
-  const candidates = new Set(seedIds)
+  // Only tenants already in the catalog / billing table — no hard-coded demo ids.
+  const candidates = new Set()
   try {
     const created = await query(
       `select value from platform.kv_store where key = 'pd-tenants-created'`,

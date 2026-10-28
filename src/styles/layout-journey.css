@@ -172,3 +172,9 @@
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-theme) 16%, transparent);
   }
 }
+
+@media (max-width: 767px) {
+  .pd-journey__date {
+    white-space: normal;
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Building2, ChevronRight, PauseCircle, Plus, Timer } from 'lucide-react'
+import { readAgencyProfile } from '@/lib/agencyProfile'
 import { agencyWithOwnerCreateErrors } from '@/lib/agencyUserRules'
 import { ADMIN_AGENCIES, adminAgencyPath } from '@/lib/adminPaths'
 import { provisionAgencyUser } from '@/lib/authApi'
@@ -302,7 +303,12 @@ export default function TenantsAdminPage() {
                 >
                   <TableCell>
                     <span className="pd-admin__user">
-                      <Avatar name={tenant.name} size="sm" kind="business" />
+                      <Avatar
+                        name={tenant.name}
+                        size="sm"
+                        kind="business"
+                        src={readAgencyProfile(tenant.id).profilePicture}
+                      />
                       <Link
                         className="pd-admin__business-name"
                         to={href}

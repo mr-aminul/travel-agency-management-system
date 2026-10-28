@@ -7,6 +7,7 @@ import {
 import { agencyCreateErrors, slugifyAgencyName } from '@/lib/agencyUserRules'
 import {
   DATA_KEYS,
+  injectClientSideSeeds,
   loadJson,
   loadJsonParsed,
   removeJson,
@@ -47,6 +48,15 @@ const SEED_TENANTS: Tenant[] = [
     enabledModules: [...ALL_MODULE_IDS],
   },
 ]
+
+/** Offline/tests only — live API catalogs come from pd-tenants-created. */
+function seedTenantBase(): Tenant[] {
+  if (!injectClientSideSeeds()) return []
+  return SEED_TENANTS.map((tenant) => ({
+    ...tenant,
+    enabledModules: [...tenant.enabledModules],
+  }))
+}
 
 const NEW_SERVICE_MODULES: ModuleId[] = [
   'services.touristVisa',
@@ -189,13 +199,13 @@ function withOverrides(base: Tenant[]): Tenant[] {
   })
 }
 
-let tenants: Tenant[] = withOverrides(SEED_TENANTS)
+let tenants: Tenant[] = withOverrides(seedTenantBase())
 /** Agencies created via admin / launch bootstrap (persisted through the data layer). */
 let createdTenants: Tenant[] = readCreatedTenants()
 let snapshot: Tenant[] = []
 
 function rebuildSnapshot() {
-  // Launch agencies also live in pd-tenants-created (like Ismail). Dedupe by id.
+  // Live catalogs come from pd-tenants-created; seeds only offline/tests.
   const byId = new Map<string, Tenant>()
   for (const tenant of tenants) byId.set(tenant.id, tenant)
   for (const tenant of createdTenants) {
@@ -208,7 +218,7 @@ function rebuildSnapshot() {
 rebuildSnapshot()
 
 function reloadTenantsFromStorage() {
-  tenants = withOverrides(SEED_TENANTS)
+  tenants = withOverrides(seedTenantBase())
   createdTenants = readCreatedTenants()
   rebuildSnapshot()
   listeners.forEach((listener) => listener())
@@ -315,7 +325,7 @@ export function updateTenantName(
   const overrides = readNameOverrides()
   overrides[tenantId] = trimmed
   persistNameOverrides(overrides)
-  tenants = withOverrides(SEED_TENANTS)
+  tenants = withOverrides(seedTenantBase())
   syncProfileBusinessName(tenantId, trimmed)
   emit()
   return getTenantById(tenantId)
@@ -376,7 +386,7 @@ export function setTenantStatus(
   const overrides = readStatusOverrides()
   overrides[tenantId] = status
   persistStatusOverrides(overrides)
-  tenants = withOverrides(SEED_TENANTS)
+  tenants = withOverrides(seedTenantBase())
   emit()
   return getTenantById(tenantId)
 }
@@ -430,7 +440,7 @@ export function resetTenantEntitlements() {
   removeJson(NAMES_KEY)
   removeJson(STATUSES_KEY)
   removeJson(CREATED_TENANTS_KEY)
-  tenants = withOverrides(SEED_TENANTS)
+  tenants = withOverrides(seedTenantBase())
   createdTenants = []
   emit()
 }

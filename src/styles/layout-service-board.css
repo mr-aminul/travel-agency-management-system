@@ -541,7 +541,16 @@
   color: var(--color-status-on-hold);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 767px) {
+  .pd-board__head {
+    flex-wrap: wrap;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .pd-board__title {
+    white-space: normal;
+  }
+
   .pd-board__columns {
     min-height: 18rem;
     padding: 0.7rem;

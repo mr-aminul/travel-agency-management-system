@@ -599,3 +599,27 @@
     transition: none;
   }
 }
+
+@media (max-width: 767px) {
+  .pd-login {
+    padding:
+      calc(1rem + env(safe-area-inset-top, 0px)) 0.875rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    align-items: flex-start;
+  }
+
+  .pd-login__corner-logo {
+    inset-block-start: 0.875rem;
+    inset-inline-start: 0.875rem;
+  }
+
+  .pd-login__card {
+    gap: 1.25rem;
+    padding: 1.35rem 1.1rem 1.25rem;
+  }
+
+  .pd-login__intent .pd-radio__label {
+    white-space: normal;
+    font-size: 0.6875rem;
+    line-height: 1.15;
+  }
+}

@@ -113,7 +113,7 @@
   gap: 0.4rem;
 }
 
-@media (max-width: 40rem) {
+@media (max-width: 767px) {
   .pd-tour__card {
     width: calc(100vw - 2rem) !important;
     left: 1rem !important;

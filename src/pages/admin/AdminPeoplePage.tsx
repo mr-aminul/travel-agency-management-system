@@ -1,14 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Handshake, Users } from 'lucide-react'
+import { Handshake, Trash2, Users } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
-import { setAgencyUserStatus } from '@/lib/authApi'
+import { deleteAgencyUser, setAgencyUserStatus } from '@/lib/authApi'
 import { adminAgencyPath, setSupportReturnPath } from '@/lib/adminPaths'
 import {
+  removeSubAgentLogins,
   setSubAgentLoginStatus,
   useAllSubAgentLogins,
 } from '@/lib/subAgentLoginsStore'
 import {
+  removeTenantMembers,
   updateTenantMember,
   useTenantMembers,
 } from '@/lib/tenantMembersStore'
@@ -18,6 +20,8 @@ import { cx } from '@/lib/cx'
 import {
   Avatar,
   Button,
+  Checkbox,
+  ConfirmDialog,
   EmptyState,
   PageHeader,
   SearchField,
@@ -61,6 +65,10 @@ function asEditableStatus(value: string): EditableStatus | undefined {
   return undefined
 }
 
+function loginRowId(login: SubAgentLoginLink): string {
+  return `${login.tenantId}:${login.subAgentId}`
+}
+
 export default function AdminPeoplePage() {
   const { user, startViewAs } = useAuth()
   const tenants = useTenants()
@@ -73,6 +81,9 @@ export default function AdminPeoplePage() {
   const [tenantFilter, setTenantFilter] = useState('all')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | undefined>()
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const logins = useAllSubAgentLogins()
 
@@ -116,10 +127,56 @@ export default function AdminPeoplePage() {
     })
   }, [logins, search, tenantFilter])
 
+  const visibleIds = useMemo(
+    () =>
+      tab === 'agency'
+        ? filteredMembers.map((member) => member.id)
+        : filteredLogins.map(loginRowId),
+    [tab, filteredMembers, filteredLogins],
+  )
+
+  useEffect(() => {
+    setSelectedIds(new Set())
+    setConfirmDelete(false)
+  }, [tab, search, tenantFilter])
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const next = new Set([...prev].filter((id) => visibleIds.includes(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [visibleIds])
+
   if (user?.role !== 'platform_admin') return null
+
+  const selectedCount = selectedIds.size
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
+  const someVisibleSelected =
+    visibleIds.some((id) => selectedIds.has(id)) && !allVisibleSelected
 
   const setTab = (next: TabId) => {
     setSearchParams(next === 'agency' ? {} : { tab: next }, { replace: true })
+  }
+
+  const toggleId = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
+  const toggleAllVisible = (checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      for (const id of visibleIds) {
+        if (checked) next.add(id)
+        else next.delete(id)
+      }
+      return next
+    })
   }
 
   const handleViewAsMember = async (member: TenantMember) => {
@@ -177,7 +234,7 @@ export default function AdminPeoplePage() {
   ) => {
     const nextStatus = asEditableStatus(nextRaw)
     if (!nextStatus || nextStatus === login.status) return
-    const rowId = `${login.tenantId}:${login.subAgentId}`
+    const rowId = loginRowId(login)
     setError(undefined)
     setBusyId(rowId)
     try {
@@ -197,6 +254,89 @@ export default function AdminPeoplePage() {
       setBusyId(null)
     }
   }
+
+  const handleConfirmDelete = async () => {
+    if (selectedCount === 0) return
+    setError(undefined)
+    setIsDeleting(true)
+    try {
+      if (tab === 'agency') {
+        const targets = filteredMembers.filter((member) =>
+          selectedIds.has(member.id),
+        )
+        const results = await Promise.allSettled(
+          targets.map((member) =>
+            deleteAgencyUser({ userId: member.id, email: member.email }),
+          ),
+        )
+        const failed = results.find((result) => result.status === 'rejected')
+        if (failed && failed.status === 'rejected') {
+          throw failed.reason instanceof Error
+            ? failed.reason
+            : new Error('Could not delete one or more users.')
+        }
+        removeTenantMembers(targets.map((member) => member.id))
+      } else {
+        const targets = filteredLogins.filter((login) =>
+          selectedIds.has(loginRowId(login)),
+        )
+        const results = await Promise.allSettled(
+          targets.map((login) =>
+            deleteAgencyUser({ userId: login.userId, email: login.email }),
+          ),
+        )
+        const failed = results.find((result) => result.status === 'rejected')
+        if (failed && failed.status === 'rejected') {
+          throw failed.reason instanceof Error
+            ? failed.reason
+            : new Error('Could not delete one or more logins.')
+        }
+        removeSubAgentLogins(
+          targets.map((login) => ({
+            subAgentId: login.subAgentId,
+            tenantId: login.tenantId,
+          })),
+        )
+      }
+      setSelectedIds(new Set())
+      setConfirmDelete(false)
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not delete selected people.',
+      )
+      setConfirmDelete(false)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const bulkBar =
+    selectedCount > 0 ? (
+      <div className="pd-admin__bulk-bar" role="region" aria-label="Bulk actions">
+        <span className="pd-admin__bulk-count">
+          {selectedCount} selected
+        </span>
+        <div className="pd-admin__bulk-actions">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setSelectedIds(new Set())}
+            disabled={isDeleting}
+          >
+            Clear
+          </Button>
+          <Button
+            size="sm"
+            variant="danger"
+            disabled={isDeleting || busyId != null}
+            onClick={() => setConfirmDelete(true)}
+          >
+            <Trash2 size={14} strokeWidth={2.25} aria-hidden />
+            Delete
+          </Button>
+        </div>
+      </div>
+    ) : null
 
   return (
     <div className="pd-page pd-admin pd-clients" aria-label="People">
@@ -244,6 +384,8 @@ export default function AdminPeoplePage() {
         />
       </div>
 
+      {bulkBar}
+
       {error ? (
         <p className="pd-field__error" role="alert">
           {error}
@@ -261,6 +403,19 @@ export default function AdminPeoplePage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="pd-admin__select-col">
+                  <Checkbox
+                    hideLabel
+                    label="Select all visible users"
+                    checked={allVisibleSelected}
+                    aria-checked={
+                      someVisibleSelected ? 'mixed' : allVisibleSelected
+                    }
+                    onChange={(event) =>
+                      toggleAllVisible(event.target.checked)
+                    }
+                  />
+                </TableHead>
                 <TableHead>Person</TableHead>
                 <TableHead>Agency</TableHead>
                 <TableHead>Role</TableHead>
@@ -271,6 +426,16 @@ export default function AdminPeoplePage() {
             <TableBody>
               {filteredMembers.map((member) => (
                 <TableRow key={member.id}>
+                  <TableCell className="pd-admin__select-cell">
+                    <Checkbox
+                      hideLabel
+                      label={`Select ${member.name}`}
+                      checked={selectedIds.has(member.id)}
+                      onChange={(event) =>
+                        toggleId(member.id, event.target.checked)
+                      }
+                    />
+                  </TableCell>
                   <TableCell>
                     <span className="pd-admin__user">
                       <Avatar name={member.name} size="sm" />
@@ -299,7 +464,7 @@ export default function AdminPeoplePage() {
                       className={statusToneClass(member.status)}
                       value={member.status}
                       options={statusOptions(member.status)}
-                      disabled={busyId != null}
+                      disabled={busyId != null || isDeleting}
                       onChange={(event) =>
                         void handleMemberStatusChange(
                           member,
@@ -314,7 +479,9 @@ export default function AdminPeoplePage() {
                         size="sm"
                         variant="secondary"
                         disabled={
-                          member.status !== 'active' || busyId != null
+                          member.status !== 'active' ||
+                          busyId != null ||
+                          isDeleting
                         }
                         onClick={() => void handleViewAsMember(member)}
                       >
@@ -337,6 +504,17 @@ export default function AdminPeoplePage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="pd-admin__select-col">
+                <Checkbox
+                  hideLabel
+                  label="Select all visible sub-agent logins"
+                  checked={allVisibleSelected}
+                  aria-checked={
+                    someVisibleSelected ? 'mixed' : allVisibleSelected
+                  }
+                  onChange={(event) => toggleAllVisible(event.target.checked)}
+                />
+              </TableHead>
               <TableHead>Sub agent</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Agency</TableHead>
@@ -346,8 +524,19 @@ export default function AdminPeoplePage() {
           <TableBody>
             {filteredLogins.map((login) => {
               const sub = findSubAgentById(login.subAgentId)
+              const rowId = loginRowId(login)
               return (
-                <TableRow key={`${login.tenantId}:${login.subAgentId}`}>
+                <TableRow key={rowId}>
+                  <TableCell className="pd-admin__select-cell">
+                    <Checkbox
+                      hideLabel
+                      label={`Select ${sub?.name ?? login.email}`}
+                      checked={selectedIds.has(rowId)}
+                      onChange={(event) =>
+                        toggleId(rowId, event.target.checked)
+                      }
+                    />
+                  </TableCell>
                   <TableCell>{sub?.name ?? login.subAgentId}</TableCell>
                   <TableCell>{login.email}</TableCell>
                   <TableCell>
@@ -365,7 +554,7 @@ export default function AdminPeoplePage() {
                       className={statusToneClass(login.status)}
                       value={login.status}
                       options={statusOptions(login.status)}
-                      disabled={busyId != null}
+                      disabled={busyId != null || isDeleting}
                       onChange={(event) =>
                         void handleLoginStatusChange(
                           login,
@@ -380,6 +569,22 @@ export default function AdminPeoplePage() {
           </TableBody>
         </Table>
       )}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => (isDeleting ? undefined : setConfirmDelete(false))}
+        onConfirm={() => void handleConfirmDelete()}
+        title={
+          tab === 'agency' ? 'Delete selected users?' : 'Delete selected logins?'
+        }
+        description={
+          tab === 'agency'
+            ? `Permanently remove ${selectedCount} agency user${selectedCount === 1 ? '' : 's'} and their logins. This cannot be undone.`
+            : `Permanently remove ${selectedCount} sub-agent login${selectedCount === 1 ? '' : 's'}. This cannot be undone.`
+        }
+        confirmLabel={isDeleting ? 'Deleting…' : 'Delete'}
+        confirmVariant="danger"
+      />
     </div>
   )
 }

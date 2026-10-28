@@ -16,6 +16,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
+import { readAgencyProfile } from '@/lib/agencyProfile'
 import {
   ADMIN_AGENCIES,
   adminAgencyPath,
@@ -129,7 +130,12 @@ export default function TenantAdminLayout() {
       <div className="pd-client-detail__layout">
         <aside className="pd-client-detail__card" aria-label="Agency">
           <div className="pd-client-detail__card-identity">
-            <Avatar name={tenant.name} size="xl" kind="business" />
+            <Avatar
+              name={tenant.name}
+              size="xl"
+              kind="business"
+              src={readAgencyProfile(tenant.id).profilePicture}
+            />
             <div className="pd-client-detail__title-row">
               <h1 className="pd-client-detail__name">{tenant.name}</h1>
             </div>

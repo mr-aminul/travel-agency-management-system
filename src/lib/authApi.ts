@@ -808,6 +808,31 @@ export async function setAgencyUserStatus(input: {
   /* Local/offline: member status is the source of truth. */
 }
 
+/** Permanently delete an agency or sub-agent login. 404 is treated as already gone. */
+export async function deleteAgencyUser(input: {
+  userId: string
+  email: string
+}): Promise<void> {
+  if (authApiConfigured()) {
+    try {
+      await apiFetch(
+        `/api/platform/auth/users/${encodeURIComponent(input.userId)}`,
+        {
+          method: 'DELETE',
+          body: { email: input.email },
+        },
+      )
+      return
+    } catch (error) {
+      if (!isNetworkFailure(error)) {
+        if (error instanceof ApiError && error.status === 404) return
+        throw new Error(apiErrorMessage(error, 'Could not delete user.'))
+      }
+    }
+  }
+  /* Local/offline: member / login stores are the source of truth. */
+}
+
 export async function setAgencyUserPassword(input: {
   userId: string
   email: string

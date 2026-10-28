@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react'
-import { Eye, Plus, Users } from 'lucide-react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Eye, Plus, Trash2, Users } from 'lucide-react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ADMIN_AGENCIES, adminAgencyPath, setSupportReturnPath } from '@/lib/adminPaths'
 import { useAuth } from '@/lib/useAuth'
@@ -9,6 +9,7 @@ import {
 } from '@/lib/agencyUserRules'
 import {
   createUserInvite,
+  deleteAgencyUser,
   provisionAgencyUser,
   setAgencyUserPassword,
   setAgencyUserStatus,
@@ -16,6 +17,7 @@ import {
 import { absolutePublicUrl } from '@/lib/publicUrl'
 import {
   createTenantMember,
+  removeTenantMembers,
   updateTenantMember,
   useTenantMembersByTenantId,
 } from '@/lib/tenantMembersStore'
@@ -30,6 +32,8 @@ import {
   Avatar,
   avatarKindForMemberRole,
   Button,
+  Checkbox,
+  ConfirmDialog,
   CopyableText,
   EmptyState,
   Input,
@@ -104,11 +108,74 @@ export default function TenantUsersPage() {
   const [resetMember, setResetMember] = useState<TenantMember | null>(null)
   const [resetPassword, setResetPassword] = useState('')
   const [actionError, setActionError] = useState<string | undefined>()
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const { markAllTouched, showError, blur, resetTouched } =
     useTouchedFields<CreateField>()
 
+  const memberIds = useMemo(() => members.map((member) => member.id), [members])
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const next = new Set([...prev].filter((id) => memberIds.includes(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [memberIds])
+
   if (!tenant) {
     return <Navigate to={ADMIN_AGENCIES} replace />
+  }
+
+  const selectedCount = selectedIds.size
+  const allSelected =
+    memberIds.length > 0 && memberIds.every((id) => selectedIds.has(id))
+  const someSelected =
+    memberIds.some((id) => selectedIds.has(id)) && !allSelected
+
+  const toggleId = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
+  const toggleAll = (checked: boolean) => {
+    setSelectedIds(checked ? new Set(memberIds) : new Set())
+  }
+
+  const handleConfirmDelete = async () => {
+    if (selectedCount === 0) return
+    setActionError(undefined)
+    setIsDeleting(true)
+    try {
+      const targets = members.filter((member) => selectedIds.has(member.id))
+      const results = await Promise.allSettled(
+        targets.map((member) =>
+          deleteAgencyUser({ userId: member.id, email: member.email }),
+        ),
+      )
+      const failed = results.find((result) => result.status === 'rejected')
+      if (failed && failed.status === 'rejected') {
+        throw failed.reason instanceof Error
+          ? failed.reason
+          : new Error('Could not delete one or more users.')
+      }
+      removeTenantMembers(targets.map((member) => member.id))
+      setSelectedIds(new Set())
+      setConfirmDelete(false)
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Could not delete selected users.',
+      )
+      setConfirmDelete(false)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const values = {
@@ -502,6 +569,36 @@ export default function TenantUsersPage() {
     <div className="pd-client-detail__overview" aria-label="People">
       <section className="pd-client-detail__section pd-client-detail__section--compact">
       {sectionHead}
+      {selectedCount > 0 ? (
+        <div
+          className="pd-admin__bulk-bar"
+          role="region"
+          aria-label="Bulk actions"
+        >
+          <span className="pd-admin__bulk-count">
+            {selectedCount} selected
+          </span>
+          <div className="pd-admin__bulk-actions">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setSelectedIds(new Set())}
+              disabled={isDeleting}
+            >
+              Clear
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              disabled={isDeleting || busyId != null}
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 size={14} strokeWidth={2.25} aria-hidden />
+              Delete
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {actionError && !resetMember ? (
         <p className="pd-field__error" role="alert">
           {actionError}
@@ -510,6 +607,15 @@ export default function TenantUsersPage() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="pd-admin__select-col">
+              <Checkbox
+                hideLabel
+                label="Select all users"
+                checked={allSelected}
+                aria-checked={someSelected ? 'mixed' : allSelected}
+                onChange={(event) => toggleAll(event.target.checked)}
+              />
+            </TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
@@ -520,6 +626,16 @@ export default function TenantUsersPage() {
         <TableBody>
           {members.map((member) => (
             <TableRow key={member.id}>
+              <TableCell className="pd-admin__select-cell">
+                <Checkbox
+                  hideLabel
+                  label={`Select ${member.name}`}
+                  checked={selectedIds.has(member.id)}
+                  onChange={(event) =>
+                    toggleId(member.id, event.target.checked)
+                  }
+                />
+              </TableCell>
               <TableCell>
                 <span className="pd-admin__user">
                   <Avatar
@@ -541,7 +657,7 @@ export default function TenantUsersPage() {
                   className={statusToneClass(member.status)}
                   value={member.status}
                   options={statusOptions(member.status)}
-                  disabled={busyId != null}
+                  disabled={busyId != null || isDeleting}
                   onChange={(event) =>
                     void handleMemberStatusChange(member, event.target.value)
                   }
@@ -553,7 +669,7 @@ export default function TenantUsersPage() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      disabled={busyId != null}
+                      disabled={busyId != null || isDeleting}
                       onClick={() => void handleViewAs(member)}
                     >
                       <Eye size={14} strokeWidth={2.25} aria-hidden />
@@ -563,7 +679,7 @@ export default function TenantUsersPage() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    disabled={busyId != null}
+                    disabled={busyId != null || isDeleting}
                     onClick={() => {
                       setResetMember(member)
                       setResetPassword('')
@@ -582,6 +698,15 @@ export default function TenantUsersPage() {
       {createModal}
       {credentialsModal}
       {resetModal}
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => (isDeleting ? undefined : setConfirmDelete(false))}
+        onConfirm={() => void handleConfirmDelete()}
+        title="Delete selected users?"
+        description={`Permanently remove ${selectedCount} user${selectedCount === 1 ? '' : 's'} from ${tenant.name}. This cannot be undone.`}
+        confirmLabel={isDeleting ? 'Deleting…' : 'Delete'}
+        confirmVariant="danger"
+      />
     </div>
   )
 }

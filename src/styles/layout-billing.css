@@ -474,3 +474,18 @@
   border-radius: 0.55rem;
   background: color-mix(in srgb, var(--color-surface) 96%, transparent);
 }
+
+@media (max-width: 767px) {
+  .pd-billing__invoice {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .pd-billing__invoice .pd-btn {
+    width: 100%;
+  }
+
+  .pd-billing-admin__storage-field {
+    grid-template-columns: 1fr;
+  }
+}

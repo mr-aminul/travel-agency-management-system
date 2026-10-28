@@ -1,27 +1,17 @@
 /**
- * Promote the demo launch agency (ABC Travel Agency) into a real platform tenant
- * + domain rows, same path as agencies created via signup.
- * Idempotent: upserts by id; strips retired launch agencies; never deletes
- * other created tenants (e.g. customer signups).
+ * Launch-agency maintenance on API boot.
+ * Retired demo agencies are stripped from the tenant catalog so they do not
+ * reappear after an admin cleanup. Live customer tenants are left untouched.
  */
 
-/** Retired multi-agency launch seeds — removed from pd-tenants-created on boot. */
+/** Retired launch / demo tenant ids — removed from pd-tenants-created on boot. */
 const RETIRED_LAUNCH_TENANT_IDS = new Set([
   'tenant-leisure',
   'tenant-manpower',
+  'tenant-full', // ABC Travel Agency demo
 ])
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+
 import { query } from './db.js'
-import { upsertCase, upsertClient, upsertPayment } from './domain.js'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-
-function loadData() {
-  const raw = readFileSync(join(__dirname, 'launchAgencyData.json'), 'utf8')
-  return JSON.parse(raw)
-}
 
 async function readKv(key) {
   const result = await query(
@@ -52,73 +42,80 @@ function asObject(value) {
     : {}
 }
 
-/** Merge items by id into an existing array (incoming wins on conflict). */
-function mergeById(existing, incoming) {
-  const map = new Map()
-  for (const item of asArray(existing)) {
-    if (item && typeof item === 'object' && typeof item.id === 'string') {
-      map.set(item.id, item)
-    }
+function itemTenantId(item) {
+  if (!item || typeof item !== 'object') return null
+  if (typeof item.tenantId === 'string' && item.tenantId.trim()) {
+    return item.tenantId.trim()
   }
-  for (const item of asArray(incoming)) {
-    if (item && typeof item === 'object' && typeof item.id === 'string') {
-      map.set(item.id, item)
-    }
-  }
-  return [...map.values()]
+  // Tenant catalog rows use `id`
+  if (typeof item.id === 'string' && item.id.trim()) return item.id.trim()
+  return null
+}
+
+function stripRetiredFromArray(value) {
+  return asArray(value).filter((item) => {
+    const tenantId = itemTenantId(item)
+    return !tenantId || !RETIRED_LAUNCH_TENANT_IDS.has(tenantId)
+  })
+}
+
+function stripRetiredFromMap(value) {
+  const next = { ...asObject(value) }
+  for (const id of RETIRED_LAUNCH_TENANT_IDS) delete next[id]
+  return next
 }
 
 export async function ensureLaunchAgencies() {
-  const data = loadData()
-  const launchIds = new Set(data.tenants.map((t) => t.id))
-
-  // 1) Tenants: same store as customer signups (pd-tenants-created)
   const existingTenants = asArray(await readKv('pd-tenants-created'))
-  const others = existingTenants.filter(
+  const nextTenants = existingTenants.filter(
     (t) =>
       t &&
       typeof t === 'object' &&
-      !launchIds.has(t.id) &&
+      typeof t.id === 'string' &&
       !RETIRED_LAUNCH_TENANT_IDS.has(t.id),
   )
-  const nextTenants = [...data.tenants, ...others]
   await writeKv('pd-tenants-created', nextTenants)
 
-  // 2) Agency profiles (contact / branding) — drop retired launch profiles
-  const profiles = asObject(await readKv('pd-agency-profiles'))
-  for (const id of RETIRED_LAUNCH_TENANT_IDS) delete profiles[id]
-  await writeKv('pd-agency-profiles', { ...profiles, ...data.profiles })
-
-  // 3) Domain tables: clients / cases / payments
-  for (const client of data.clients) {
-    await upsertClient(client.tenantId, client)
-  }
-  for (const item of data.cases) {
-    const { stepDetails: _stepDetails, ...payload } = item
-    await upsertCase(item.tenantId, payload)
-  }
-  for (const payment of data.payments) {
-    await upsertPayment(payment.tenantId, payment)
-  }
-
-  // 4) Supporting KV arrays (employees, sub-agents, members)
   await writeKv(
+    'pd-agency-profiles',
+    stripRetiredFromMap(await readKv('pd-agency-profiles')),
+  )
+  await writeKv(
+    'pd-agency-appearance',
+    stripRetiredFromMap(await readKv('pd-agency-appearance')),
+  )
+  await writeKv(
+    'pd-onboarding-state',
+    stripRetiredFromMap(await readKv('pd-onboarding-state')),
+  )
+  await writeKv(
+    'pd-tenant-entitlements',
+    stripRetiredFromMap(await readKv('pd-tenant-entitlements')),
+  )
+  await writeKv(
+    'pd-tenant-names',
+    stripRetiredFromMap(await readKv('pd-tenant-names')),
+  )
+  await writeKv(
+    'pd-tenant-statuses',
+    stripRetiredFromMap(await readKv('pd-tenant-statuses')),
+  )
+
+  for (const key of [
     'pd-employees-created',
-    mergeById(await readKv('pd-employees-created'), data.employees),
-  )
-  await writeKv(
     'pd-sub-agents-created',
-    mergeById(await readKv('pd-sub-agents-created'), data.subAgents),
-  )
-  await writeKv(
     'pd-tenant-members-created',
-    mergeById(await readKv('pd-tenant-members-created'), data.members),
-  )
+    'pd-clients-created',
+    'pd-cases-created',
+    'pd-payments-created',
+  ]) {
+    const current = await readKv(key)
+    if (current === undefined) continue
+    await writeKv(key, stripRetiredFromArray(current))
+  }
 
   return {
-    tenants: data.tenants.length,
-    clients: data.clients.length,
-    cases: data.cases.length,
-    payments: data.payments.length,
+    tenants: nextTenants.length,
+    retired: [...RETIRED_LAUNCH_TENANT_IDS],
   }
 }

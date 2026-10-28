@@ -288,7 +288,7 @@
   outline-offset: 2px;
 }
 
-@media (min-width: 40rem) {
+@media (min-width: 768px) {
   .pd-track__current {
     align-items: flex-end;
   }
@@ -318,7 +318,7 @@
   text-decoration: underline;
 }
 
-@media (min-width: 40rem) {
+@media (min-width: 768px) {
   .pd-track__sheet--wide .pd-track__form {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;

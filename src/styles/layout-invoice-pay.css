@@ -255,7 +255,12 @@
   background: #fff;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
+  .pd-invoice-pay__copy {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
   .pd-invoice-pay__cta,
   .pd-invoice-pay__cta .pd-btn {
     width: 100%;

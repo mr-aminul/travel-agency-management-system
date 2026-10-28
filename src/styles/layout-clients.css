@@ -2196,6 +2196,23 @@
 }
 
 @media (max-width: 767px) {
+  .pd-clients__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-payments__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pd-payments__actions {
+    width: 100%;
+  }
+
+  .pd-payments__actions .pd-btn {
+    flex: 1 1 auto;
+  }
+
   .pd-clients__toolbar {
     flex-direction: column;
     align-items: stretch;

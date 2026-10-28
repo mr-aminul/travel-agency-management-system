@@ -112,3 +112,18 @@
   color: var(--pd-muted, #64748b);
   text-align: center;
 }
+
+@media (max-width: 767px) {
+  .pd-workspace-pick__card {
+    padding: 1.25rem 1rem 1rem;
+    border-radius: 1rem;
+  }
+
+  .pd-workspace-pick__option {
+    padding: 0.85rem 0.875rem;
+  }
+
+  .pd-workspace-pick__option:hover {
+    transform: none;
+  }
+}

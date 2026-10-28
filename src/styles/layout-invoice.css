@@ -83,6 +83,27 @@
   .pd-invoice-page__actions .pd-btn {
     flex: 1 1 auto;
   }
+
+  .pd-invoice__header {
+    flex-wrap: wrap;
+    gap: var(--spacing-4, 1rem);
+  }
+
+  .pd-invoice__brand,
+  .pd-invoice__meta,
+  .pd-invoice__party {
+    max-width: 100%;
+  }
+
+  .pd-invoice__meta {
+    align-items: flex-start;
+    text-align: left;
+    width: 100%;
+  }
+
+  .pd-invoice__issued {
+    justify-content: flex-start;
+  }
 }
 
 .pd-invoice-page__public-label {
@@ -314,7 +335,9 @@
 }
 
 .pd-invoice .pd-table-wrap {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-md, 0.5rem);
   box-shadow: none;
 }

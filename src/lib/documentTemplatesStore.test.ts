@@ -49,6 +49,7 @@ describe('document print templates', () => {
         'Notesheet (Female)',
         'Office Forwarding',
         'Agency Undertaking',
+        'Client introduction letter',
       ]),
     )
   })

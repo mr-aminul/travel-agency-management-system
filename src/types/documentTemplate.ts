@@ -14,6 +14,8 @@ export const PRINT_FORMATS = [
   'notesheet-female',
   'office-forwarding',
   'undertaking',
+  /** Freeform Word-like document with merge fields. */
+  'canvas',
 ] as const
 
 export type PrintFormat = (typeof PRINT_FORMATS)[number]
@@ -70,6 +72,8 @@ export type DocumentTemplate = {
   stamps: TemplateStamp[]
   letterIntro: string
   letterItems: string[]
+  /** TipTap HTML body for `format: 'canvas'` templates. */
+  bodyHtml: string
   createdAt: string
   updatedAt: string
 }
@@ -88,6 +92,7 @@ export type DocumentTemplateDraft = {
   stamps?: TemplateStamp[]
   letterIntro?: string
   letterItems?: string[]
+  bodyHtml?: string
 }
 
 export type PrintPassengerRow = {

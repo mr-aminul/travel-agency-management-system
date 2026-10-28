@@ -246,6 +246,24 @@ export function updateTenantMember(
   return next
 }
 
+export function removeTenantMember(memberId: string): boolean {
+  const before = members.length
+  members = members.filter((member) => member.id !== memberId)
+  if (members.length === before) return false
+  emit()
+  return true
+}
+
+export function removeTenantMembers(memberIds: string[]): number {
+  const idSet = new Set(memberIds.filter(Boolean))
+  if (idSet.size === 0) return 0
+  const before = members.length
+  members = members.filter((member) => !idSet.has(member.id))
+  const removed = before - members.length
+  if (removed > 0) emit()
+  return removed
+}
+
 export function resetTenantMembers() {
   removeJson(STORAGE_KEY)
   members = seedMembers()

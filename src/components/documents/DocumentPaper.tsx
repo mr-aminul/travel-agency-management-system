@@ -1,3 +1,6 @@
+import { fillDocumentHtml } from '@/lib/documentMergeFill'
+import type { AgencyProfile } from '@/lib/agencyProfile'
+import type { Client } from '@/types/client'
 import type { DocumentTemplate, PrintPassengerRow } from '@/types/documentTemplate'
 import { PUTUP_DECLARATION } from '@/types/documentTemplate'
 
@@ -6,6 +9,12 @@ type DocumentPaperProps = {
   agencyName: string
   date: string
   rows: PrintPassengerRow[]
+  /** Primary client used to fill canvas merge fields. */
+  client?: Client | null
+  agencyProfile?: Pick<
+    AgencyProfile,
+    'businessName' | 'address' | 'mobile' | 'website'
+  > | null
 }
 
 const BN = '০১২৩৪৫৬৭৮৯'
@@ -23,12 +32,25 @@ export function DocumentPaper({
   agencyName,
   date,
   rows,
+  client = null,
+  agencyProfile = null,
 }: DocumentPaperProps) {
   const license = template.licenseNo || '864'
   const agency = agencyName || '-'
   const count = rows.length
 
   switch (template.format) {
+    case 'canvas':
+      return (
+        <CanvasSheet
+          template={template}
+          agencyName={agency}
+          agencyProfile={agencyProfile}
+          client={client}
+          date={date}
+          license={license}
+        />
+      )
     case 'visa-cancel':
       return (
         <EmbassySheet
@@ -100,6 +122,54 @@ export function DocumentPaper({
         />
       )
   }
+}
+
+function CanvasSheet({
+  template,
+  agencyName,
+  agencyProfile,
+  client,
+  date,
+  license,
+}: {
+  template: DocumentTemplate
+  agencyName: string
+  agencyProfile: DocumentPaperProps['agencyProfile']
+  client: Client | null
+  date: string
+  license: string
+}) {
+  const html = fillDocumentHtml(template.bodyHtml || '', {
+    client,
+    agency: agencyProfile ?? {
+      businessName: agencyName,
+      address: '',
+      mobile: '',
+      website: '',
+    },
+    license,
+    date,
+    country: template.country,
+    documentTitle: template.title,
+  })
+
+  return (
+    <article
+      className="pd-paper pd-paper--canvas"
+      dir={template.direction}
+      lang={template.direction === 'rtl' ? 'ar' : undefined}
+    >
+      {template.title.trim() ? (
+        <h1 className="pd-paper__title pd-doc-canvas__sheet-title">
+          {template.title.trim()}
+        </h1>
+      ) : null}
+      <div
+        className="pd-doc-canvas__prose pd-doc-canvas__prose--filled"
+        dangerouslySetInnerHTML={{ __html: html || '<p></p>' }}
+      />
+    </article>
+  )
 }
 
 function EmbassySheet({

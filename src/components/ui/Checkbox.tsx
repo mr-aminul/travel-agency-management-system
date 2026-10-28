@@ -6,6 +6,8 @@ export type CheckboxProps = Omit<
   'type'
 > & {
   label: string
+  /** Hide the visible label (keeps it for assistive tech). */
+  hideLabel?: boolean
 }
 
 export function Checkbox({
@@ -13,6 +15,7 @@ export function Checkbox({
   id,
   className,
   disabled,
+  hideLabel = false,
   ...props
 }: CheckboxProps) {
   const autoId = useId()
@@ -22,6 +25,7 @@ export function Checkbox({
     <label
       className={cx(
         'pd-check',
+        hideLabel && 'pd-check--icon-only',
         disabled && 'is-disabled',
         className,
       )}
@@ -35,7 +39,9 @@ export function Checkbox({
         {...props}
       />
       <span className="pd-check__box" aria-hidden />
-      <span className="pd-check__label">{label}</span>
+      <span className={cx('pd-check__label', hideLabel && 'pd-sr-only')}>
+        {label}
+      </span>
     </label>
   )
 }

@@ -129,6 +129,35 @@ export function setSubAgentLoginStatus(
   return upsertSubAgentLogin({ ...current, status })
 }
 
+export function removeSubAgentLogin(
+  subAgentId: string,
+  tenantId = getActiveTenantId(),
+): boolean {
+  const before = cache.length
+  cache = cache.filter(
+    (row) => !(row.subAgentId === subAgentId && row.tenantId === tenantId),
+  )
+  if (cache.length === before) return false
+  persist()
+  return true
+}
+
+export function removeSubAgentLogins(
+  keys: Array<{ subAgentId: string; tenantId: string }>,
+): number {
+  if (keys.length === 0) return 0
+  const removeKeys = new Set(
+    keys.map((key) => `${key.tenantId}:${key.subAgentId}`),
+  )
+  const before = cache.length
+  cache = cache.filter(
+    (row) => !removeKeys.has(`${row.tenantId}:${row.subAgentId}`),
+  )
+  const removed = before - cache.length
+  if (removed > 0) persist()
+  return removed
+}
+
 export function useSubAgentLogin(
   subAgentId: string,
   tenantId = getActiveTenantId(),

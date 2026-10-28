@@ -254,7 +254,7 @@
   opacity: 0.85;
 }
 
-@media (max-width: 40rem) {
+@media (max-width: 767px) {
   .pd-global-search--inline {
     width: min(22rem, calc(100dvw - 1rem));
     max-width: calc(100dvw - 1rem);
