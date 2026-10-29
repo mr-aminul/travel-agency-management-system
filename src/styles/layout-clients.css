@@ -472,53 +472,145 @@
   outline-offset: 0.125rem;
 }
 
-.pd-profile-photo__remove {
-  position: absolute;
-  top: -0.25rem;
-  right: -0.25rem;
-  z-index: 1;
+@media (hover: none) {
+  .pd-profile-photo__upload {
+    opacity: 1;
+    background: color-mix(in srgb, var(--color-text) 28%, transparent);
+  }
+}
+
+.pd-profile-photo-picker.pd-modal {
+  width: min(22rem, calc(100vw - 2rem));
+  max-width: min(22rem, calc(100vw - 2rem));
+  padding: 1.25rem;
+}
+
+.pd-profile-photo-picker .pd-modal__title {
+  text-align: center;
+}
+
+.pd-profile-photo-picker .pd-modal__body {
+  margin-top: 1rem;
+}
+
+.pd-profile-photo-picker .pd-modal__actions {
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.pd-profile-photo-picker__remove-action {
+  margin-right: auto;
+}
+
+.pd-profile-photo-picker__view,
+.pd-profile-photo-picker__stage {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+}
+
+.pd-profile-photo-picker__stage {
+  padding: 0.25rem 0;
+  border-radius: 0.75rem;
+  transition: background-color 0.15s ease;
+}
+
+.pd-profile-photo-picker__stage.is-dragging {
+  background: color-mix(in srgb, var(--color-theme) 7%, transparent);
+}
+
+.pd-profile-photo-picker__preview {
+  display: block;
+  width: min(14rem, 64vw);
+  height: min(14rem, 64vw);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-bg-muted, var(--color-bg));
+  box-shadow: inset 0 0 0 0.0625rem var(--color-border);
+}
+
+.pd-profile-photo-picker__placeholder {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  margin: 0;
-  padding: 0;
-  border: 0.0625rem solid var(--color-border);
+  width: min(14rem, 64vw);
+  height: min(14rem, 64vw);
   border-radius: 50%;
-  background: var(--color-surface-raised, var(--color-bg));
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s ease, color 0.15s ease;
+  background: var(--color-bg-muted, var(--color-bg));
+  color: var(--color-text-muted);
+  box-shadow: inset 0 0 0 0.0625rem var(--color-border);
 }
 
-.pd-profile-photo__control:hover .pd-profile-photo__remove,
-.pd-profile-photo__control:focus-within .pd-profile-photo__remove,
-.pd-profile-photo__remove:focus-visible {
-  opacity: 1;
-}
-
-.pd-profile-photo__remove:hover,
-.pd-profile-photo__remove:focus-visible {
+.pd-profile-photo-picker__caption {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
   color: var(--color-text);
+  text-align: center;
 }
 
-.pd-profile-photo__remove:focus-visible {
-  outline: 0.125rem solid color-mix(in srgb, var(--color-theme) 55%, transparent);
-  outline-offset: 0.125rem;
+.pd-profile-photo-picker__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-align: center;
 }
 
-@media (hover: none) {
+.pd-profile-photo-picker__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
 
-  .pd-profile-photo__upload,
-  .pd-profile-photo__remove {
-    opacity: 1;
-  }
+.pd-profile-photo-picker__body {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+}
 
-  .pd-profile-photo__upload {
-    background: color-mix(in srgb, var(--color-text) 28%, transparent);
-  }
+.pd-profile-photo-picker__divider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.pd-profile-photo-picker__divider::before,
+.pd-profile-photo-picker__divider::after {
+  content: '';
+  height: 0.0625rem;
+  background: var(--color-border);
+}
+
+.pd-profile-photo-picker__divider span {
+  white-space: nowrap;
+}
+
+.pd-profile-photo-picker__body > .pd-field {
+  width: 100%;
+  min-width: 0;
+}
+
+.pd-profile-photo-picker__error {
+  margin: -0.25rem 0 0;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--color-danger, #b42318);
+}
+
+.pd-client-detail__card-identity > .pd-profile-photo {
+  display: flex;
+  justify-content: center;
+  width: auto;
+  padding-top: 0;
 }
 
 /* Detail */

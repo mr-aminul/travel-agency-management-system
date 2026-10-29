@@ -339,13 +339,13 @@ export default function AdminPeoplePage() {
     ) : null
 
   return (
-    <div className="pd-page pd-admin pd-clients" aria-label="People">
+    <div className="pd-page pd-admin pd-clients" aria-label="Users">
       <PageHeader
-        title="People"
+        title="Users"
         description="Every agency user and sub-agent login across the platform."
       />
 
-      <div className="pd-admin__tabs" role="tablist" aria-label="People tabs">
+      <div className="pd-admin__tabs" role="tablist" aria-label="User tabs">
         <button
           type="button"
           role="tab"

@@ -52,10 +52,15 @@ describe('buildAccessPageColumns', () => {
 
     expect(labels).toContain('Home')
     expect(labels).toContain('Clients')
+    expect(labels).toContain('Sub Agents - Directory')
+    expect(labels).toContain('Sub Agents - Approvals')
     expect(labels).toContain('HR - Employees')
     expect(labels).toContain('HR - Attendance & Leave')
     expect(labels).toContain('HR - Payroll')
     expect(labels).not.toContain('HR')
+    expect(labels).not.toContain('Dashboard')
+    expect(labels).not.toContain('Settings')
+    expect(labels).not.toContain('Trash')
     expect(labels).not.toContain('Businesses')
     expect(labels).not.toContain('Agencies')
     expect(columns.some((column) => column.path.startsWith('/admin'))).toBe(

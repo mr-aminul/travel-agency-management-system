@@ -561,6 +561,7 @@
 }
 
 .pd-doc-canvas__stage {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
@@ -806,6 +807,75 @@
   color: inherit;
   font-weight: inherit;
   padding: 0;
+}
+
+.pd-doc-mention {
+  position: absolute;
+  z-index: 30;
+  width: min(18rem, calc(100% - 1rem));
+  max-height: 16rem;
+  overflow: auto;
+  padding: 0.4rem;
+  border: 1px solid color-mix(in srgb, #101828 12%, transparent);
+  border-radius: 0.55rem;
+  background: #fff;
+  box-shadow: 0 0.75rem 1.75rem color-mix(in srgb, #101828 16%, transparent);
+}
+
+.pd-doc-mention__hint {
+  margin: 0;
+  padding: 0.35rem 0.55rem 0.25rem;
+  color: #667085;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.pd-doc-mention__empty {
+  margin: 0;
+  padding: 0.65rem 0.55rem;
+  color: #667085;
+  font-size: 0.875rem;
+}
+
+.pd-doc-mention__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-doc-mention__item {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: #101828;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.pd-doc-mention__item:hover,
+.pd-doc-mention__item.is-active {
+  background: color-mix(in srgb, #1570ef 10%, #fff);
+}
+
+.pd-doc-mention__label {
+  font-size: 0.9rem;
+  font-weight: 550;
+}
+
+.pd-doc-mention__meta {
+  flex-shrink: 0;
+  color: #667085;
+  font-size: 0.72rem;
 }
 
 .pd-paper--canvas {

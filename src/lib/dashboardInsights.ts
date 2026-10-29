@@ -237,9 +237,17 @@ function isStaleCase(item: Case, asOf: Date): boolean {
   return daysBetween(parts, partsFromDate(asOf)) >= STALE_DAYS
 }
 
-function ratioChange(current: number, previous: number): number | null {
+export function ratioChange(current: number, previous: number): number | null {
   if (previous === 0) return current === 0 ? 0 : null
   return (current - previous) / previous
+}
+
+/** Open balance older than 30 days from service open date. */
+export function isOverdueReceivable(item: Case, asOf: Date = new Date()): boolean {
+  if (!isOpenCase(item) || item.balance <= 0) return false
+  const parts = parseDateParts(item.createdAt)
+  if (!parts) return false
+  return daysBetween(parts, partsFromDate(asOf)) > 30
 }
 
 export function computeOwnerKpis(

@@ -38,6 +38,19 @@ export const settingsNavItem: NavItem = {
   icon: Settings,
 }
 
+export const trashNavItem: NavItem = {
+  path: '/trash',
+  label: 'Trash',
+  icon: Trash2,
+}
+
+export const dashboardNavItem: NavItem = {
+  path: '/dashboard',
+  label: 'Dashboard',
+  icon: LayoutDashboard,
+  agencyOnly: true,
+}
+
 export const layoutConfig: AppLayoutConfig = {
   brand: {
     name: 'OneTrack',
@@ -47,47 +60,66 @@ export const layoutConfig: AppLayoutConfig = {
   },
   navItems: [
     { path: '/', label: 'Home', icon: Home, end: true },
+    { path: '/clients', label: 'Clients', icon: Users, section: 'Work' },
     {
-      path: '/dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      agencyOnly: true,
-    },
-    { path: '/clients', label: 'Clients', icon: Users },
-    {
-      path: '/sub-agents',
-      label: 'Sub Agents',
-      icon: Handshake,
-      moduleId: 'subAgents',
-      agencyOnly: true,
-    },
-    {
-      path: '/approvals',
-      label: 'Approvals',
-      icon: ClipboardCheck,
-      agencyOnly: true,
-      moduleId: 'subAgents',
-    },
-    {
-      path: '/my-submissions',
-      label: 'My submissions',
-      icon: Inbox,
-      subAgentOnly: true,
-    },
-    { path: '/services', label: 'Services', icon: ListChecks },
-    { path: '/payments', label: 'Payments', icon: Wallet, moduleId: 'finance' },
-    {
-      path: '/reports',
-      label: 'Reports',
-      icon: BarChart3,
-      moduleId: 'finance',
-      agencyOnly: true,
+      path: '/services',
+      label: 'Services',
+      icon: ListChecks,
+      section: 'Work',
     },
     {
       path: '/documents',
       label: 'Documents',
       icon: FileText,
       moduleId: 'documents',
+      section: 'Work',
+    },
+    {
+      path: '/sub-agents',
+      label: 'Sub Agents',
+      icon: Handshake,
+      moduleId: 'subAgents',
+      agencyOnly: true,
+      section: 'Network',
+      children: [
+        {
+          path: '/sub-agents',
+          label: 'Directory',
+          icon: Handshake,
+          moduleId: 'subAgents',
+          agencyOnly: true,
+          end: true,
+        },
+        {
+          path: '/approvals',
+          label: 'Approvals',
+          icon: ClipboardCheck,
+          moduleId: 'subAgents',
+          agencyOnly: true,
+        },
+      ],
+    },
+    {
+      path: '/my-submissions',
+      label: 'My submissions',
+      icon: Inbox,
+      subAgentOnly: true,
+      section: 'Network',
+    },
+    {
+      path: '/payments',
+      label: 'Payments',
+      icon: Wallet,
+      moduleId: 'finance',
+      section: 'Money',
+    },
+    {
+      path: '/reports',
+      label: 'Reports',
+      icon: BarChart3,
+      moduleId: 'finance',
+      agencyOnly: true,
+      section: 'Money',
     },
     {
       path: '/hr',
@@ -95,6 +127,7 @@ export const layoutConfig: AppLayoutConfig = {
       icon: UsersRound,
       moduleId: 'hr',
       agencyOnly: true,
+      section: 'Team',
       children: [
         {
           path: '/hr/employees',
@@ -121,48 +154,64 @@ export const layoutConfig: AppLayoutConfig = {
     },
     {
       path: '/admin',
-      label: 'Overview',
+      label: 'Platform',
       icon: LayoutDashboard,
       adminOnly: true,
       end: true,
+      section: 'Admin',
     },
     {
       path: '/admin/agencies',
       label: 'Agencies',
       icon: Building2,
       adminOnly: true,
+      section: 'Admin',
     },
     {
       path: '/admin/people',
-      label: 'People',
+      label: 'Users',
       icon: Users,
       adminOnly: true,
+      section: 'Admin',
     },
     {
       path: '/admin/activity',
       label: 'Activity',
       icon: Activity,
       adminOnly: true,
+      section: 'Admin',
     },
     {
       path: '/admin/plans',
       label: 'Plans',
       icon: CreditCard,
       adminOnly: true,
+      section: 'Admin',
     },
     {
       path: '/admin/admins',
       label: 'Admins',
       icon: Shield,
       adminOnly: true,
+      section: 'Admin',
     },
-    { path: '/trash', label: 'Trash', icon: Trash2, agencyOnly: true },
-    { ...settingsNavItem, agencyOnly: true },
   ],
 }
 
-/** Pages available in global search (nav + account pages for now). */
+/** Leaf nav pages for search — skips expandable group shells. */
+function searchableNavLeaves(items: NavItem[]): NavItem[] {
+  return items.flatMap((item) =>
+    item.children?.length
+      ? flattenNavItems(item.children)
+      : [item],
+  )
+}
+
+/** Pages available in global search (nav + account/utility pages). */
 export const searchablePages: NavItem[] = [
-  ...flattenNavItems(layoutConfig.navItems),
+  ...searchableNavLeaves(layoutConfig.navItems),
+  dashboardNavItem,
   profileNavItem,
+  settingsNavItem,
+  trashNavItem,
 ]

@@ -26,8 +26,23 @@ interface SidebarProps {
   onMobileClose?: () => void
 }
 
-function isGroupPath(pathname: string, path: string) {
+function isPathMatch(pathname: string, path: string, end?: boolean) {
+  if (end || path === '/') return pathname === path
   return pathname === path || pathname.startsWith(`${path}/`)
+}
+
+function isGroupActive(pathname: string, item: NavItem) {
+  if (isPathMatch(pathname, item.path, item.end)) return true
+  return (item.children ?? []).some((child) =>
+    isPathMatch(pathname, child.path, child.end),
+  )
+}
+
+function childBadgeTotal(item: NavItem) {
+  return (item.children ?? []).reduce(
+    (sum, child) => sum + (child.badgeCount ?? 0),
+    0,
+  )
 }
 
 function navLinkClass(collapsed: boolean, isActive: boolean, isChild = false) {
@@ -126,11 +141,16 @@ function NavItemGroup({
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const children = item.children ?? []
-  const groupActive = isGroupPath(pathname, item.path)
+  const groupActive = isGroupActive(pathname, item)
   const [userCollapsed, setUserCollapsed] = useState(false)
   const groupOpen = groupActive && !userCollapsed
   const Icon = item.icon
   const firstChildPath = children[0]?.path ?? item.path
+  const badgeCount = (item.badgeCount ?? 0) + childBadgeTotal(item)
+  const groupAriaLabel =
+    badgeCount > 0
+      ? `${item.label}, ${badgeCount} needing attention`
+      : item.label
 
   useEffect(() => {
     if (!groupActive) setUserCollapsed(false)
@@ -141,7 +161,7 @@ function NavItemGroup({
       <NavLink
         to={firstChildPath}
         className={() => navLinkClass(true, groupActive)}
-        aria-label={item.label}
+        aria-label={groupAriaLabel}
         onClick={(e) => {
           e.stopPropagation()
           onNavigate()
@@ -155,11 +175,20 @@ function NavItemGroup({
         <span className="pd-sidebar-nav__label" aria-hidden>
           {item.label}
         </span>
+        <NavBadge count={badgeCount} />
       </NavLink>
     )
 
     return (
-      <Tooltip content={item.label} side="right" className="pd-sidebar-nav__tooltip">
+      <Tooltip
+        content={
+          badgeCount > 0
+            ? `${item.label} (${badgeCount} needing attention)`
+            : item.label
+        }
+        side="right"
+        className="pd-sidebar-nav__tooltip"
+      >
         {link}
       </Tooltip>
     )
@@ -176,6 +205,7 @@ function NavItemGroup({
           .filter(Boolean)
           .join(' ')}
         aria-expanded={groupOpen}
+        aria-label={badgeCount > 0 ? groupAriaLabel : undefined}
         onClick={(e) => {
           e.preventDefault()
           e.stopPropagation()
@@ -194,6 +224,7 @@ function NavItemGroup({
           </span>
         ) : null}
         <span className="pd-sidebar-nav__label">{item.label}</span>
+        <NavBadge count={badgeCount} />
         <ChevronDown
           size={CHEVRON_SIZE}
           strokeWidth={NAV_ICON_STROKE}
@@ -354,23 +385,47 @@ export function Sidebar({
       <div className="pd-sidebar-body">
         <div className="pd-sidebar-divider" />
         <nav className="pd-sidebar-nav" data-tour="sidebar-nav">
-          {navItems.map((item) =>
-            item.children?.length ? (
-              <NavItemGroup
-                key={item.path}
-                item={item}
-                collapsed={collapsed}
-                onNavigate={closeMobile}
-              />
-            ) : (
-              <NavItemLink
-                key={item.path}
-                item={item}
-                collapsed={collapsed}
-                onNavigate={closeMobile}
-              />
-            ),
-          )}
+          {navItems.map((item, index) => {
+            const prevSection = index > 0 ? navItems[index - 1]?.section : undefined
+            const showSection =
+              Boolean(item.section) && item.section !== prevSection
+            return (
+              <div key={item.path} className="pd-sidebar-nav__entry">
+                {showSection ? (
+                  <div
+                    className={[
+                      'pd-sidebar-nav__section',
+                      collapsed && 'pd-sidebar-nav__section--collapsed',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    aria-hidden="true"
+                  >
+                    {collapsed ? (
+                      <span className="pd-sidebar-nav__section-rule" />
+                    ) : (
+                      <span className="pd-sidebar-nav__section-label">
+                        {item.section}
+                      </span>
+                    )}
+                  </div>
+                ) : null}
+                {item.children?.length ? (
+                  <NavItemGroup
+                    item={item}
+                    collapsed={collapsed}
+                    onNavigate={closeMobile}
+                  />
+                ) : (
+                  <NavItemLink
+                    item={item}
+                    collapsed={collapsed}
+                    onNavigate={closeMobile}
+                  />
+                )}
+              </div>
+            )
+          })}
         </nav>
 
         {!isMobile && isManual && (

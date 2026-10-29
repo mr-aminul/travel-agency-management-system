@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Accordion, Avatar, Badge, Button, Input, Select, SideDrawer, Tabs } from '@/components/ui'
+import { Accordion, Badge, Button, Input, Select, SideDrawer, Tabs } from '@/components/ui'
+import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import {
   Link,
   Navigate,
@@ -877,11 +878,18 @@ export default function ClientDetailPage() {
       <div className="pd-client-detail__layout">
         <aside className="pd-client-detail__card" aria-label="Client profile">
           <div className="pd-client-detail__card-identity">
-            <Avatar
+            <ProfilePhotoField
               name={displayName}
-              src={client.avatarUrl}
-              size="xl"
+              fallbackName="Client"
               kind="client"
+              value={client.avatarUrl}
+              onChange={(avatarUrl) => {
+                try {
+                  updateClient(client.id, { avatarUrl })
+                } catch (error) {
+                  notifyIfPendingApproval(error)
+                }
+              }}
             />
             <div className="pd-client-detail__title-row">
               <h1 className="pd-client-detail__name">

@@ -100,19 +100,23 @@ export default function AuthenticatedLayout() {
         ? 0
         : settingsNavAlertCount(agencyProfile)
 
-    const withBadges = (items: typeof moduleFiltered) =>
+    const withBadges = (items: typeof moduleFiltered): typeof moduleFiltered =>
       items.map((item) => {
-        if (item.path === '/settings' && settingsBadge > 0) {
-          return { ...item, badgeCount: settingsBadge }
+        const children = item.children?.length
+          ? withBadges(item.children)
+          : undefined
+        const next = children ? { ...item, children } : { ...item }
+        if (next.path === '/settings' && settingsBadge > 0) {
+          return { ...next, badgeCount: settingsBadge }
         }
         if (
-          item.path === '/approvals' &&
+          next.path === '/approvals' &&
           role === 'agency_user' &&
           pendingApprovals > 0
         ) {
-          return { ...item, badgeCount: pendingApprovals }
+          return { ...next, badgeCount: pendingApprovals }
         }
-        return item
+        return next
       })
 
     if (role === 'platform_admin' || role === 'sub_agent' || !user) {

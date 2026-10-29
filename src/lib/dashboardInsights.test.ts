@@ -15,8 +15,10 @@ import {
   formatCompactBdt,
   formatDeltaPercent,
   formatSharePercent,
+  isOverdueReceivable,
   needsAttention,
   pipelineFunnel,
+  ratioChange,
   recentPayments,
   receivablesAging,
   revenueByService,
@@ -461,5 +463,37 @@ describe('owner dashboard insights', () => {
     expect(clientsBySubAgent([], subAgents)).toEqual([])
     expect(workloadByAssignee([], employees)).toEqual([])
     expect(revenueByService([])).toEqual([])
+  })
+
+  it('flags open balances older than 30 days as overdue', () => {
+    const openCase = cases[0]
+    expect(openCase).toBeDefined()
+    if (!openCase) return
+
+    expect(
+      isOverdueReceivable(
+        { ...openCase, balance: 1000, createdAt: '2026-08-01' },
+        asOf,
+      ),
+    ).toBe(true)
+    expect(
+      isOverdueReceivable(
+        { ...openCase, balance: 1000, createdAt: '2026-10-01' },
+        asOf,
+      ),
+    ).toBe(false)
+    expect(
+      isOverdueReceivable(
+        { ...openCase, balance: 0, createdAt: '2026-01-01' },
+        asOf,
+      ),
+    ).toBe(false)
+  })
+
+  it('formats period deltas for collected vs prior', () => {
+    expect(ratioChange(120, 100)).toBeCloseTo(0.2)
+    expect(formatDeltaPercent(0.2)).toBe('+20%')
+    expect(formatDeltaPercent(-0.2)).toBe('−20%')
+    expect(ratioChange(50, 0)).toBeNull()
   })
 })

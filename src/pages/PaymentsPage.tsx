@@ -1,5 +1,5 @@
-import { useMemo, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -73,12 +73,21 @@ function walletOptions() {
   )
 }
 
+function moneyStatFromSearch(value: string | null): MoneyStatId | 'all' | null {
+  if (value === 'hand' || value === 'in' || value === 'out' || value === 'due') {
+    return value
+  }
+  if (value === 'all') return 'all'
+  return null
+}
+
 export default function PaymentsPage() {
   const payments = usePayments()
   const cases = useCases()
   const clients = useClients()
   const settlements = useAllCommissionSettlements()
   const manual = useManualLedgerEntries()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [selectedStat, setSelectedStat] = useState<MoneyStatId | 'all'>('all')
   const [directionFilter, setDirectionFilter] =
@@ -187,22 +196,35 @@ export default function PaymentsPage() {
       ? 'Add the transaction ID from the receipt.'
       : undefined
 
+  const writeStatQuery = (stat: MoneyStatId | 'all') => {
+    const next = new URLSearchParams(searchParams)
+    if (stat === 'all') next.delete('stat')
+    else next.set('stat', stat)
+    setSearchParams(next, { replace: true })
+  }
+
+  useEffect(() => {
+    const fromUrl = moneyStatFromSearch(searchParams.get('stat'))
+    if (!fromUrl) return
+    setSelectedStat(fromUrl)
+    if (fromUrl === 'in') setDirectionFilter('in')
+    else if (fromUrl === 'out') setDirectionFilter('out')
+    else setDirectionFilter('all')
+  }, [searchParams])
+
   const selectStat = (id: string) => {
     const next = id as MoneyStatId | 'all'
     if (next === selectedStat) {
       setSelectedStat('all')
       setDirectionFilter('all')
+      writeStatQuery('all')
       return
     }
     setSelectedStat(next)
     if (next === 'in') setDirectionFilter('in')
     else if (next === 'out') setDirectionFilter('out')
-    else if (next === 'hand' || next === 'due') {
-      /* Totals only — keep the full book visible. */
-      setDirectionFilter('all')
-    } else {
-      setDirectionFilter('all')
-    }
+    else setDirectionFilter('all')
+    writeStatQuery(next)
   }
 
   const closeDrawer = () => {
@@ -363,6 +385,7 @@ export default function PaymentsPage() {
             onClick={() => {
               setDirectionFilter('all')
               setSelectedStat('all')
+              writeStatQuery('all')
             }}
           >
             All
@@ -372,6 +395,7 @@ export default function PaymentsPage() {
             onClick={() => {
               setDirectionFilter('in')
               setSelectedStat('in')
+              writeStatQuery('in')
             }}
           >
             Money in
@@ -381,6 +405,7 @@ export default function PaymentsPage() {
             onClick={() => {
               setDirectionFilter('out')
               setSelectedStat('out')
+              writeStatQuery('out')
             }}
           >
             Money out

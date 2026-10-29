@@ -37,6 +37,7 @@ import { useClients } from '@/lib/clientsStore'
 import { fillDocumentHtml } from '@/lib/documentMergeFill'
 import { formatPrintDate } from '@/lib/documentPrint'
 import { MergeField } from '@/components/documents/mergeFieldExtension'
+import { MergeFieldMentionMenu } from '@/components/documents/mergeFieldMention'
 import {
   DocumentImage,
   type DocumentImageAlign,
@@ -49,17 +50,10 @@ import {
   type DocumentMergeGroup,
 } from '@/types/documentMergeFields'
 import {
-  DOCUMENT_TEMPLATE_GROUPS,
   type DocumentTemplate,
   type DocumentTemplateDraft,
-  type DocumentTemplateGroup,
 } from '@/types/documentTemplate'
 import type { Client } from '@/types/client'
-
-const GROUP_OPTIONS = DOCUMENT_TEMPLATE_GROUPS.map((group) => ({
-  value: group,
-  label: group === 'Embassy' ? 'Embassy' : 'Manpower',
-}))
 
 const DIRECTION_OPTIONS = [
   { value: 'ltr', label: 'Left to right' },
@@ -164,9 +158,6 @@ export function DocumentCanvasEditor({
   const clients = useClients()
   const agencyName = profile.businessName.trim() || DEFAULT_BRAND_NAME
   const [name, setName] = useState(initial?.name ?? '')
-  const [group, setGroup] = useState<DocumentTemplateGroup>(
-    initial?.group ?? 'Manpower',
-  )
   const [direction, setDirection] = useState<'ltr' | 'rtl'>(
     initial?.direction === 'rtl' ? 'rtl' : 'ltr',
   )
@@ -200,7 +191,7 @@ export function DocumentCanvasEditor({
         types: ['heading', 'paragraph'],
       }),
       Placeholder.configure({
-        placeholder: 'Start writing your document…',
+        placeholder: 'Start writing… Type @ to insert a field',
       }),
       MergeField,
       DocumentImage.configure({
@@ -370,7 +361,7 @@ export function DocumentCanvasEditor({
     const html = editor?.getHTML() ?? bodyHtml
     onSubmit({
       name,
-      group,
+      group: initial?.group ?? 'Manpower',
       format: 'canvas',
       layout: 'letter',
       direction,
@@ -423,8 +414,8 @@ export function DocumentCanvasEditor({
               placeholder="Template name"
             />
             <p className="pd-doc-canvas__hint">
-              Craft the page like a Word document. Insert auto-fill fields where
-              client or agency details should appear.
+              Craft the page like a Word document. Type @ to insert an auto-fill
+              field, or pick one from the list.
             </p>
           </div>
         </div>
@@ -467,14 +458,6 @@ export function DocumentCanvasEditor({
       ) : null}
 
       <div className="pd-doc-canvas__meta pd-doc-canvas__no-print">
-        <Select
-          label="Group"
-          value={group}
-          options={GROUP_OPTIONS}
-          onChange={(event) =>
-            setGroup(event.target.value as DocumentTemplateGroup)
-          }
-        />
         <Select
           label="Text direction"
           value={direction}
@@ -567,7 +550,7 @@ export function DocumentCanvasEditor({
               <div className="pd-doc-canvas__fields-head">
                 <h2>Insert information</h2>
                 <p>
-                  Click a field to place it at the cursor. It fills from the
+                  Type @ in the document or click a field. It fills from the
                   client profile when you preview or print.
                 </p>
                 <label className="pd-doc-canvas__search">
@@ -616,6 +599,7 @@ export function DocumentCanvasEditor({
         </aside>
 
         <div className="pd-doc-canvas__stage">
+          <MergeFieldMentionMenu editor={editor} enabled={mode === 'edit'} />
           {mode === 'edit' ? (
             <>
               <div

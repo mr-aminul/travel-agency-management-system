@@ -22,6 +22,7 @@ import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 import { formatBalance } from '@/lib/clientsStore'
 import { caseServiceFee } from '@/lib/caseMoney'
 import { getEmployeeDisplayName } from '@/lib/employeesStore'
+import { isOverdueReceivable } from '@/lib/dashboardInsights'
 import { formatBdt } from '@/lib/dashboardMetrics'
 import { formatDisplayDate } from '@/lib/formatDate'
 import { cx } from '@/lib/cx'
@@ -160,6 +161,7 @@ export function CasesList({
   const [serviceFilters, setServiceFilters] = useState<string[]>([])
   const [newCaseOpen, setNewCaseOpen] = useState(false)
   const [dueOnly, setDueOnly] = useState(false)
+  const [overdueOnly, setOverdueOnly] = useState(false)
   const [highlightServiceFee, setHighlightServiceFee] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Case | null>(null)
   const catalog = useCatalogServiceRefs()
@@ -169,6 +171,9 @@ export function CasesList({
   const urlService = syncNewWithSearchParams
     ? resolveServiceFromSlug(searchParams.get('service') ?? '')
     : undefined
+  const urlDue = syncNewWithSearchParams && searchParams.get('due') === '1'
+  const urlOverdue =
+    syncNewWithSearchParams && searchParams.get('overdue') === '1'
 
   useEffect(() => {
     if (!serviceFeeHighlightToken) return
@@ -183,6 +188,13 @@ export function CasesList({
     if (!showServiceChips || !syncNewWithSearchParams) return
     setServiceFilters(urlService ? [urlService] : [])
   }, [showServiceChips, syncNewWithSearchParams, urlService])
+
+  useEffect(() => {
+    if (!syncNewWithSearchParams) return
+    setDueOnly(urlDue || urlOverdue)
+    setOverdueOnly(urlOverdue)
+    if (urlDue || urlOverdue) setStatusFilters([])
+  }, [syncNewWithSearchParams, urlDue, urlOverdue])
 
   const feeCellClass = cx(
     'pd-cases__balance',
@@ -233,6 +245,7 @@ export function CasesList({
 
   const filtered = serviceScoped.filter((item) => {
     if (dueOnly && (!isOpenService(item) || item.balance <= 0)) return false
+    if (overdueOnly && !isOverdueReceivable(item)) return false
     return matchesFilters(
       item,
       search,
@@ -244,6 +257,7 @@ export function CasesList({
   const hasActiveFilters =
     statusFilters.length > 0 ||
     dueOnly ||
+    overdueOnly ||
     (!showServiceChips && showServiceColumn && serviceFilters.length > 0)
 
   const selectedStat: ServiceStatId | undefined = dueOnly
@@ -255,20 +269,36 @@ export function CasesList({
         ? 'all'
         : undefined
 
+  const writeBalanceQuery = (due: boolean, overdue = false) => {
+    if (!syncNewWithSearchParams) return
+    const next = new URLSearchParams(searchParams)
+    if (due) next.set('due', '1')
+    else next.delete('due')
+    if (overdue) next.set('overdue', '1')
+    else next.delete('overdue')
+    setSearchParams(next, { replace: true })
+  }
+
   const selectStat = (id: string) => {
     const next = id as ServiceStatId
     if (next === selectedStat || next === 'all') {
       setStatusFilters([])
       setDueOnly(false)
+      setOverdueOnly(false)
+      writeBalanceQuery(false)
       return
     }
     if (next === 'due') {
       setStatusFilters([])
       setDueOnly(true)
+      setOverdueOnly(false)
+      writeBalanceQuery(true)
       return
     }
     setDueOnly(false)
+    setOverdueOnly(false)
     setStatusFilters([next])
+    writeBalanceQuery(false)
   }
 
   const writeServiceQuery = (service?: string) => {
@@ -324,7 +354,9 @@ export function CasesList({
     setStatusFilters([])
     setServiceFilters([])
     setDueOnly(false)
+    setOverdueOnly(false)
     writeServiceQuery()
+    writeBalanceQuery(false)
   }
 
   const newCaseButton = (
@@ -338,6 +370,7 @@ export function CasesList({
     search.trim().length > 0 ||
     statusFilters.length > 0 ||
     dueOnly ||
+    overdueOnly ||
     (showServiceColumn && serviceFilters.length > 0)
 
   const body =
@@ -549,7 +582,12 @@ export function CasesList({
                 placeholder="All statuses"
                 searchPlaceholder="Search statuses…"
                 value={statusFilters}
-                onChange={(event) => setStatusFilters(event.target.value)}
+                onChange={(event) => {
+                  setStatusFilters(event.target.value)
+                  setDueOnly(false)
+                  setOverdueOnly(false)
+                  writeBalanceQuery(false)
+                }}
                 options={STATUS_FILTERS}
               />
               {hasActiveFilters && (
@@ -559,6 +597,8 @@ export function CasesList({
                   onClick={() => {
                     setStatusFilters([])
                     setDueOnly(false)
+                    setOverdueOnly(false)
+                    writeBalanceQuery(false)
                     if (!showServiceChips) {
                       setServiceFilters([])
                       writeServiceQuery()
@@ -596,12 +636,19 @@ export function CasesList({
                   icon: CircleDot,
                   options: STATUS_FILTERS,
                   value: statusFilters,
-                  onChange: setStatusFilters,
+                  onChange: (value: string[]) => {
+                    setStatusFilters(value)
+                    setDueOnly(false)
+                    setOverdueOnly(false)
+                    writeBalanceQuery(false)
+                  },
                 },
               ]}
               onClearAll={() => {
                 setStatusFilters([])
                 setDueOnly(false)
+                setOverdueOnly(false)
+                writeBalanceQuery(false)
                 if (!showServiceChips) {
                   setServiceFilters([])
                   writeServiceQuery()

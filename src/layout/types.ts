@@ -7,6 +7,11 @@ export interface NavItem {
   icon?: LucideIcon
   end?: boolean
   children?: NavItem[]
+  /**
+   * Sidebar section heading. Consecutive items with the same value share one
+   * label; omit for ungrouped items (e.g. Home).
+   */
+  section?: string
   /** When set, the item is hidden unless the tenant has this module. */
   moduleId?: ModuleId
   /** When true, only a platform admin sees this item. */

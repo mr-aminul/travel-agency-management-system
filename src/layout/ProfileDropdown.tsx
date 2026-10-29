@@ -6,10 +6,15 @@ import {
   IdCard,
   LogOut,
   Settings,
+  Trash2,
   Undo2,
 } from 'lucide-react'
 import { SignOutConfirmModal } from '@/components/ConfirmModal'
-import { settingsNavItem, profileNavItem } from '@/config/layout'
+import {
+  settingsNavItem,
+  profileNavItem,
+  trashNavItem,
+} from '@/config/layout'
 import { settingsNavAlertCount } from '@/lib/agencyProfileGaps'
 import { getActiveTenantId } from '@/lib/authApi'
 import { findTenantMemberForUser } from '@/lib/tenantMembersStore'
@@ -115,31 +120,42 @@ export function ProfileDropdown({
             </Link>
           ) : null}
           {isAgencyUser ? (
-            <Link
-              to={settingsNavItem.path}
-              className="pd-topbar__dropdown-item"
-              onClick={() => setOpen(false)}
-              role="menuitem"
-              aria-label={
-                settingsBadge > 0
-                  ? `${settingsNavItem.label}, ${settingsBadge} needing attention`
-                  : undefined
-              }
-            >
-              <Settings size={14} strokeWidth={2} />
-              <span className="pd-topbar__dropdown-item-label">
-                {settingsNavItem.label}
-              </span>
-              {settingsBadge > 0 ? (
-                <span
-                  className="pd-topbar__dropdown-badge"
-                  aria-hidden
-                  title={`${settingsBadge} needing attention`}
-                >
-                  {settingsBadge}
+            <>
+              <Link
+                to={settingsNavItem.path}
+                className="pd-topbar__dropdown-item"
+                onClick={() => setOpen(false)}
+                role="menuitem"
+                aria-label={
+                  settingsBadge > 0
+                    ? `${settingsNavItem.label}, ${settingsBadge} needing attention`
+                    : undefined
+                }
+              >
+                <Settings size={14} strokeWidth={2} />
+                <span className="pd-topbar__dropdown-item-label">
+                  {settingsNavItem.label}
                 </span>
-              ) : null}
-            </Link>
+                {settingsBadge > 0 ? (
+                  <span
+                    className="pd-topbar__dropdown-badge"
+                    aria-hidden
+                    title={`${settingsBadge} needing attention`}
+                  >
+                    {settingsBadge}
+                  </span>
+                ) : null}
+              </Link>
+              <Link
+                to={trashNavItem.path}
+                className="pd-topbar__dropdown-item"
+                onClick={() => setOpen(false)}
+                role="menuitem"
+              >
+                <Trash2 size={14} strokeWidth={2} />
+                {trashNavItem.label}
+              </Link>
+            </>
           ) : null}
           {isViewingAs ? (
             <button

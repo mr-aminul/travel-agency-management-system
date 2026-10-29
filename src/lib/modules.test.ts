@@ -98,6 +98,14 @@ describe('module entitlements', () => {
       '/admin/plans',
       '/admin/admins',
     ])
+    expect(nav.map((item) => item.label)).toEqual([
+      'Platform',
+      'Agencies',
+      'Users',
+      'Activity',
+      'Plans',
+      'Admins',
+    ])
   })
 
   it('scopes sub-agent paths and nav', () => {
@@ -154,6 +162,9 @@ describe('module entitlements', () => {
     expect(labels).toContain('Services')
     expect(labels).toContain('Clients')
     expect(labels).toContain('Payments')
+    expect(labels).not.toContain('Dashboard')
+    expect(labels).not.toContain('Settings')
+    expect(labels).not.toContain('Trash')
     expect(labels).not.toContain('Manpower')
     expect(labels).not.toContain('Leisure')
     expect(labels).not.toContain('Ticketing')

@@ -3,6 +3,7 @@ import {
   ClipboardList,
   FileText,
   Handshake,
+  LayoutDashboard,
   UserRoundSearch,
   Users,
   UsersRound,
@@ -43,6 +44,12 @@ const QUICK_LINKS: QuickLink[] = [
     label: 'Services',
     description: 'List or board of open files',
     icon: ClipboardList,
+  },
+  {
+    path: '/dashboard',
+    label: 'Insights',
+    description: 'Today’s chase, cash & overdue',
+    icon: LayoutDashboard,
   },
   {
     path: '/payments',
