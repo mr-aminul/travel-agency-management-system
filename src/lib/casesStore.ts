@@ -37,6 +37,9 @@ import {
   updateClientRecord,
 } from '@/lib/clientsStore'
 import { getActiveTenantId, readSession } from '@/lib/authApi'
+import { logAuditEvent } from '@/lib/auditClient'
+import { deletePendingCommissionsByCaseId } from '@/lib/commissionsStore'
+import { deletePaymentsByCaseId } from '@/lib/paymentsStore'
 import { queueOrApplySubAgentChange } from '@/lib/subAgentScope'
 import { PendingApprovalError } from '@/lib/pendingApprovalError'
 import {
@@ -653,7 +656,7 @@ export function createCase(input: CreateCaseInput): Case {
   const progress = buildInitialSteps(input.service, createdAt, serviceCountry)
   const status = input.status ?? 'Pending'
   const created: Case = {
-    id: `case-${Date.now().toString(36)}`,
+    id: `case-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     tenantId: tenantId(),
     caseId: nextCaseId(),
     clientId: client.id,
@@ -760,6 +763,61 @@ export function updateCase(
     }
   }
   return updated
+}
+
+/**
+ * Permanently remove a mistaken or unused service file.
+ * Also drops its payments and pending commissions, then refreshes the client.
+ */
+export function deleteCase(id: string): boolean {
+  const existing = getCaseById(id)
+  if (!existing) return false
+  if (readSession()?.user.role === 'sub_agent' && !getClientById(existing.clientId)) {
+    return false
+  }
+
+  const gate = queueOrApplySubAgentChange({
+    entityType: 'case',
+    action: 'delete',
+    entityId: id,
+    summary: `Delete ${existing.service} for ${existing.clientName}`,
+    payload: { id },
+  })
+  if ('queued' in gate) {
+    throw new PendingApprovalError(gate.queued)
+  }
+
+  cases = cases.filter((item) => item.id !== id)
+  deletePaymentsByCaseId(id)
+  deletePendingCommissionsByCaseId(id)
+  syncClientFromCases(existing.clientId)
+
+  const client = findClientRecord(existing.clientId)
+  if (
+    client &&
+    !cases.some(
+      (item) =>
+        item.clientId === existing.clientId &&
+        item.tenantId === client.tenantId &&
+        item.service === existing.service,
+    )
+  ) {
+    updateClientRecord(existing.clientId, {
+      services: client.services.filter(
+        (service) => service !== existing.service,
+      ),
+    })
+  }
+
+  emit()
+  void logAuditEvent({
+    action: 'case.delete',
+    entityType: 'case',
+    entityId: id,
+    summary: `Deleted ${existing.service} (${existing.caseId}) for ${existing.clientName}`,
+    meta: { clientId: existing.clientId, service: existing.service },
+  })
+  return true
 }
 
 export type CompleteStepResult =

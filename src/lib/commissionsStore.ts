@@ -413,6 +413,25 @@ export function settleEntries(
   return settlement
 }
 
+/** Drop pending commissions for a deleted service file. Settled rows stay. */
+export function deletePendingCommissionsByCaseId(caseId: string): number {
+  const active = tenantId()
+  const before = entries.length
+  entries = entries.filter(
+    (item) =>
+      !(
+        item.caseId === caseId &&
+        item.tenantId === active &&
+        item.status === 'pending'
+      ),
+  )
+  const removed = before - entries.length
+  if (removed === 0) return 0
+  persistEntries()
+  emit()
+  return removed
+}
+
 export function resetCommissions() {
   removeJson(ENTRIES_KEY)
   removeJson(SETTLEMENTS_KEY)

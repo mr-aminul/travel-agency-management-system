@@ -116,7 +116,7 @@ export default function HomePage() {
 
       <HomeGlobalSearch />
 
-      <TodayFollowUps />
+      <TodayFollowUps variant="summary" />
 
       <PlatformTour />
 

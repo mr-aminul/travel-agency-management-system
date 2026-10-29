@@ -9,6 +9,7 @@ import {
   DATA_KEYS,
   injectClientSideSeeds,
   loadJsonParsed,
+  removeJson,
   saveJson,
 } from '@/lib/data'
 import { logAuditEvent } from '@/lib/auditClient'
@@ -169,6 +170,13 @@ function reloadFromStorage() {
   emit()
 }
 
+export function resetPayments() {
+  removeJson(STORAGE_KEY)
+  dirtySeedIds.clear()
+  payments = mergeWithSeeds([])
+  emit()
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('pd-data-rehydrated', reloadFromStorage)
 }
@@ -270,6 +278,19 @@ export function createPayment(input: CreatePaymentInput): Payment {
     })
   }
   return created
+}
+
+/** Remove every payment tied to a service file (used when deleting the file). */
+export function deletePaymentsByCaseId(caseId: string): number {
+  const removing = payments.filter(
+    (item) => item.caseId === caseId && inActiveTenant(item),
+  )
+  if (removing.length === 0) return 0
+  const removeIds = new Set(removing.map((item) => item.id))
+  payments = payments.filter((item) => !removeIds.has(item.id))
+  persist()
+  emit()
+  return removing.length
 }
 
 export function formatPaymentAmount(amount: number): string {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Badge, Button, EmptyState, FilterChip, FilterChips, FilterPopover, PageHeader, SearchField, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type BadgeVariant } from '@/components/ui'
+import { Badge, Button, ConfirmDialog, EmptyState, FilterChip, FilterChips, FilterPopover, PageHeader, SearchField, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type BadgeVariant } from '@/components/ui'
 import {
   CheckCircle2,
   CircleDot,
@@ -11,12 +11,13 @@ import {
   PauseCircle,
   PlayCircle,
   Plus,
+  Trash2,
   Wallet,
 } from 'lucide-react'
 import { NewCaseForm } from '@/components/cases/NewCaseForm'
 import { StatCards } from '@/components/StatCards'
 import { getCurrentStepLabel } from '@/lib/caseChecklist'
-import { createCase, getEnabledServiceOptions } from '@/lib/casesStore'
+import { createCase, deleteCase, getEnabledServiceOptions } from '@/lib/casesStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 import { formatBalance } from '@/lib/clientsStore'
 import { caseServiceFee } from '@/lib/caseMoney'
@@ -31,6 +32,7 @@ import {
 import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { iconForService } from '@/lib/serviceIcons'
 import { notifyIfPendingApproval } from '@/lib/notifyPendingApproval'
+import { getPaymentsByCaseId } from '@/lib/paymentsStore'
 import { workDetailPath } from '@/lib/workPaths'
 import {
   serviceToSlug,
@@ -125,6 +127,8 @@ export type CasesListProps = {
   serviceFeeHighlightToken?: number
   /** List / Board control when this list is the Services page. */
   viewToggle?: ReactNode
+  /** Show a delete action on each row (client overview services table). */
+  allowDelete?: boolean
 }
 
 export const SERVICE_FEE_HIGHLIGHT_MS = 3000
@@ -147,6 +151,7 @@ export function CasesList({
   selectedId,
   serviceFeeHighlightToken = 0,
   viewToggle,
+  allowDelete = false,
 }: CasesListProps) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -156,6 +161,7 @@ export function CasesList({
   const [newCaseOpen, setNewCaseOpen] = useState(false)
   const [dueOnly, setDueOnly] = useState(false)
   const [highlightServiceFee, setHighlightServiceFee] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<Case | null>(null)
   const catalog = useCatalogServiceRefs()
   const serviceFilterOptions = useEnabledServiceOptions()
   useServiceIconOverrides()
@@ -372,6 +378,11 @@ export function CasesList({
             </TableHead>
             <TableHead>Balance due</TableHead>
             <TableHead>Status</TableHead>
+            {allowDelete ? (
+              <TableHead className="pd-cases__actions-head">
+                <span className="pd-sr-only">Actions</span>
+              </TableHead>
+            ) : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -414,6 +425,24 @@ export function CasesList({
                     {item.status}
                   </Badge>
                 </TableCell>
+                {allowDelete ? (
+                  <TableCell
+                    className="pd-cases__actions-cell"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="pd-btn--icon"
+                      aria-label={`Delete ${item.service}`}
+                      title="Delete service"
+                      onClick={() => setPendingDelete(item)}
+                    >
+                      <Trash2 size={14} strokeWidth={2.25} aria-hidden />
+                    </Button>
+                  </TableCell>
+                ) : null}
               </TableRow>
             )
           })}
@@ -635,6 +664,43 @@ export function CasesList({
           lockService={lockService}
         />
       </SideDrawer>
+
+      {allowDelete ? (
+        <ConfirmDialog
+          open={pendingDelete != null}
+          onClose={() => setPendingDelete(null)}
+          onConfirm={() => {
+            if (!pendingDelete) return
+            try {
+              deleteCase(pendingDelete.id)
+              setPendingDelete(null)
+            } catch (error) {
+              if (notifyIfPendingApproval(error)) {
+                setPendingDelete(null)
+                return
+              }
+              throw error
+            }
+          }}
+          title={
+            pendingDelete
+              ? `Delete ${pendingDelete.service}?`
+              : 'Delete service?'
+          }
+          description={(() => {
+            if (!pendingDelete) {
+              return 'This permanently removes the service file. This cannot be undone.'
+            }
+            const paymentCount = getPaymentsByCaseId(pendingDelete.id).length
+            if (paymentCount === 0) {
+              return 'This permanently removes the service file. This cannot be undone.'
+            }
+            return `This permanently removes the service file and its ${paymentCount} payment${paymentCount === 1 ? '' : 's'}. This cannot be undone.`
+          })()}
+          confirmLabel="Delete"
+          confirmVariant="danger"
+        />
+      ) : null}
     </div>
   )
 }

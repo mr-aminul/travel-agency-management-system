@@ -102,6 +102,16 @@
   cursor: pointer;
 }
 
+.pd-cases__actions-head,
+.pd-cases__actions-cell {
+  width: 2.75rem;
+  text-align: right;
+}
+
+.pd-cases__actions-cell {
+  white-space: nowrap;
+}
+
 .pd-cases__row.is-selected .pd-table__td {
   background: color-mix(in srgb, var(--color-theme) 10%, transparent);
 }

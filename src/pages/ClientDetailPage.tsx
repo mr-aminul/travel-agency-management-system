@@ -1190,6 +1190,7 @@ export default function ClientDetailPage() {
                               defaultService={primaryServiceType(client.services)}
                               embedded
                               showToolbar={false}
+                              allowDelete
                               emptyTitle="No services yet"
                               emptyDescription="Add a service on this profile to track steps, documents, and payments."
                             />

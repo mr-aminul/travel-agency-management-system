@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight, Check, ClipboardList, FileText, Link2, SquarePen } from 'lucide-react'
+import { ArrowRight, Check, ClipboardList, FileText, Link2, SquarePen, Trash2 } from 'lucide-react'
 import { CasePipeline } from '@/components/cases/CasePipeline'
 import { getCurrentStepLabel } from '@/lib/caseChecklist'
 import { formatDisplayDate } from '@/lib/formatDate'
@@ -8,13 +8,15 @@ import { serviceDetailAriaLabel } from '@/lib/serviceDisplay'
 import { countMissingDocuments } from '@/lib/caseDocuments'
 import { listCaseInfoGaps } from '@/lib/caseServiceRules'
 import { cx } from '@/lib/cx'
-import { Badge, Button, Input, Modal, Select, Textarea, type BadgeVariant } from '@/components/ui'
+import { Badge, Button, ConfirmDialog, Input, Modal, Select, Textarea, type BadgeVariant } from '@/components/ui'
 import {
   CASE_STATUS_OPTIONS,
+  deleteCase,
   getCaseById,
   updateCase,
   useCases,
 } from '@/lib/casesStore'
+import { notifyIfPendingApproval } from '@/lib/notifyPendingApproval'
 import { usePaymentsByCaseId } from '@/lib/paymentsStore'
 import { formatBalance, getClientById } from '@/lib/clientsStore'
 import { caseServiceFee, parseMoneyInput } from '@/lib/caseMoney'
@@ -143,6 +145,7 @@ export default function CaseDetailPage() {
   const [requestOpen, setRequestOpen] = useState(false)
   const [requestTo, setRequestTo] = useState<CaseStatus>('In-Progress')
   const [requestRemarks, setRequestRemarks] = useState('')
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [trackingCopied, setTrackingCopied] = useState(false)
   const [flashTarget, setFlashTarget] = useState<'status' | 'pipeline' | null>(
     null,
@@ -151,6 +154,7 @@ export default function CaseDetailPage() {
   useEffect(() => {
     setEditing(false)
     setRequestOpen(false)
+    setDeleteOpen(false)
     setTrackingCopied(false)
     setFlashTarget(null)
   }, [caseId])
@@ -231,6 +235,22 @@ export default function CaseDetailPage() {
       description: draft.description,
     })
     setEditing(false)
+  }
+
+  const confirmDelete = () => {
+    const clientServicesPath = clientPath(item.clientId, 'services')
+    try {
+      const removed = deleteCase(item.id)
+      setDeleteOpen(false)
+      if (removed) navigate(clientServicesPath, { replace: true })
+    } catch (error) {
+      if (notifyIfPendingApproval(error)) {
+        setDeleteOpen(false)
+        navigate(clientServicesPath, { replace: true })
+        return
+      }
+      throw error
+    }
   }
 
   const openServiceBoardTarget = () => {
@@ -347,6 +367,14 @@ export default function CaseDetailPage() {
             >
               <SquarePen size={14} strokeWidth={2.25} aria-hidden />
               Edit
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 size={14} strokeWidth={2.25} aria-hidden />
+              Delete
             </Button>
           </>
         )}
@@ -585,6 +613,19 @@ export default function CaseDetailPage() {
           onChange={(event) => setRequestRemarks(event.target.value)}
         />
       </Modal>
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title={`Delete ${item.service}?`}
+        description={
+          casePayments.length > 0
+            ? `This permanently removes the service file and its ${casePayments.length} payment${casePayments.length === 1 ? '' : 's'}. This cannot be undone.`
+            : 'This permanently removes the service file. This cannot be undone.'
+        }
+        confirmLabel="Delete"
+        confirmVariant="danger"
+      />
     </div>
   )
 }

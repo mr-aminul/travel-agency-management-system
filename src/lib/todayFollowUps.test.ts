@@ -79,12 +79,66 @@ describe('todayFollowUps', () => {
       ],
     })
 
-    expect(summary.money.map((row) => row.title)).toEqual(['Rahim'])
-    expect(summary.docs.map((row) => row.title)).toEqual(['Nusrat'])
-    expect(summary.stuck.some((row) => row.title === 'Imran')).toBe(true)
+    expect(summary.money.items.map((row) => row.title)).toEqual(['Rahim'])
+    expect(summary.docs.items.map((row) => row.title)).toEqual(['Nusrat'])
+    expect(summary.stuck.items.some((row) => row.title === 'Imran')).toBe(true)
     expect(todayFollowUpsTotal(summary)).toBeGreaterThanOrEqual(3)
     expect(todayFollowUpsHeadline(summary)).toMatch(/owe money/i)
     expect(pickDefaultTodayBucket(summary)).toBe('money')
+  })
+
+  it('returns every docs item without truncating', () => {
+    const cases = Array.from({ length: 12 }, (_, index) =>
+      caseStub({
+        id: `case-docs-${index}`,
+        clientId: `c-docs-${index}`,
+        clientName: `Client ${String(index).padStart(2, '0')}`,
+        documents: [
+          {
+            id: 'passport',
+            name: 'Passport',
+            required: true,
+            status: 'missing',
+          },
+        ],
+      }),
+    )
+
+    const summary = buildTodayFollowUps({
+      cases,
+      clients,
+      requests: [],
+      asOf: new Date('2026-10-15T12:00:00.000Z'),
+    })
+
+    expect(summary.docs.items).toHaveLength(12)
+    expect(todayFollowUpsHeadline(summary)).toBe('12 need docs')
+    expect(todayFollowUpsTotal(summary)).toBe(12)
+  })
+
+  it('ignores not_due required docs when building the docs bucket', () => {
+    const summary = buildTodayFollowUps({
+      cases: [
+        caseStub({
+          id: 'case-later',
+          clientName: 'Later',
+          updatedAt: '2026-10-14',
+          documents: [
+            {
+              id: 'medical',
+              name: 'Medical',
+              required: true,
+              status: 'not_due',
+            },
+          ],
+        }),
+      ],
+      clients,
+      requests: [],
+      asOf: new Date('2026-10-15T12:00:00.000Z'),
+    })
+
+    expect(summary.docs.items).toHaveLength(0)
   })
 
   it('reports a clear day when nothing needs chase', () => {

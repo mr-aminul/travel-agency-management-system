@@ -20,10 +20,15 @@ export type TodayFollowUpItem = {
   amount?: number
 }
 
+export type TodayBucketSummary = {
+  /** Full chase list for this bucket (scroll in the UI). */
+  items: TodayFollowUpItem[]
+}
+
 export type TodayFollowUpsSummary = {
-  money: TodayFollowUpItem[]
-  docs: TodayFollowUpItem[]
-  stuck: TodayFollowUpItem[]
+  money: TodayBucketSummary
+  docs: TodayBucketSummary
+  stuck: TodayBucketSummary
 }
 
 export const TODAY_BUCKETS: {
@@ -52,6 +57,7 @@ function isOpenCase(item: Case): boolean {
   return item.status !== 'Completed' && item.status !== 'Cancelled'
 }
 
+/** Required docs that are due now (status missing — not later / not_due). */
 function missingRequiredCount(item: Case): number {
   return item.documents.filter(
     (doc) => doc.required && doc.status === 'missing',
@@ -61,18 +67,21 @@ function missingRequiredCount(item: Case): number {
 /**
  * Daily chase list: money due, missing docs, and stuck / on-hold files.
  * Built from live cases — no separate to-do store.
+ * Returns every matching item; the UI scrolls instead of truncating.
  */
 export function buildTodayFollowUps(input: {
   cases: Case[]
   clients: Client[]
   requests: StatusUpdateRequest[]
   asOf?: Date
-  limitPerBucket?: number
 }): TodayFollowUpsSummary {
   const asOf = input.asOf ?? new Date()
-  const limit = input.limitPerBucket ?? 8
 
-  const money = balancesToCollect(input.cases, limit, asOf).map((row) => {
+  const moneyItems: TodayFollowUpItem[] = balancesToCollect(
+    input.cases,
+    Number.POSITIVE_INFINITY,
+    asOf,
+  ).map((row) => {
     const bits = [row.service]
     if (row.ageDays > 30) bits.push(`${row.ageDays}d open`)
     if (row.departsOn) bits.push('departs soon')
@@ -86,7 +95,7 @@ export function buildTodayFollowUps(input: {
     }
   })
 
-  const docs: TodayFollowUpItem[] = input.cases
+  const docsItems: TodayFollowUpItem[] = input.cases
     .filter((item) => isOpenCase(item) && missingRequiredCount(item) > 0)
     .map((item) => {
       const missing = missingRequiredCount(item)
@@ -99,13 +108,12 @@ export function buildTodayFollowUps(input: {
       }
     })
     .sort((a, b) => a.title.localeCompare(b.title))
-    .slice(0, limit)
 
-  const stuck = needsAttention(
+  const stuckItems: TodayFollowUpItem[] = needsAttention(
     input.cases,
     input.requests,
     input.clients,
-    limit * 2,
+    Number.POSITIVE_INFINITY,
     asOf,
   )
     .filter(
@@ -114,7 +122,6 @@ export function buildTodayFollowUps(input: {
         item.reason === 'stale' ||
         item.reason === 'pending-request',
     )
-    .slice(0, limit)
     .map((item) => ({
       id: `stuck:${item.id}`,
       bucket: 'stuck' as const,
@@ -123,29 +130,31 @@ export function buildTodayFollowUps(input: {
       href: item.href,
     }))
 
-  return { money, docs, stuck }
+  return {
+    money: { items: moneyItems },
+    docs: { items: docsItems },
+    stuck: { items: stuckItems },
+  }
 }
 
 export function todayFollowUpsTotal(summary: TodayFollowUpsSummary): number {
-  return summary.money.length + summary.docs.length + summary.stuck.length
+  return (
+    summary.money.items.length +
+    summary.docs.items.length +
+    summary.stuck.items.length
+  )
 }
 
 export function todayFollowUpsHeadline(summary: TodayFollowUpsSummary): string {
   const parts: string[] = []
-  if (summary.money.length > 0) {
-    parts.push(
-      `${summary.money.length} owe money`,
-    )
+  if (summary.money.items.length > 0) {
+    parts.push(`${summary.money.items.length} owe money`)
   }
-  if (summary.docs.length > 0) {
-    parts.push(
-      `${summary.docs.length} missing doc${summary.docs.length === 1 ? '' : 's'}`,
-    )
+  if (summary.docs.items.length > 0) {
+    parts.push(`${summary.docs.items.length} need docs`)
   }
-  if (summary.stuck.length > 0) {
-    parts.push(
-      `${summary.stuck.length} stuck`,
-    )
+  if (summary.stuck.items.length > 0) {
+    parts.push(`${summary.stuck.items.length} stuck`)
   }
   if (parts.length === 0) return 'You are clear for now.'
   if (parts.length === 1) return parts[0] ?? ''
@@ -156,7 +165,7 @@ export function todayFollowUpsHeadline(summary: TodayFollowUpsSummary): string {
 export function pickDefaultTodayBucket(
   summary: TodayFollowUpsSummary,
 ): TodayBucketId {
-  if (summary.money.length > 0) return 'money'
-  if (summary.docs.length > 0) return 'docs'
+  if (summary.money.items.length > 0) return 'money'
+  if (summary.docs.items.length > 0) return 'docs'
   return 'stuck'
 }

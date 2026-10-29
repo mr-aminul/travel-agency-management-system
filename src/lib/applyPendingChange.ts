@@ -1,5 +1,5 @@
 import { createClient, updateClient } from '@/lib/clientsStore'
-import { createCase, updateCase } from '@/lib/casesStore'
+import { createCase, deleteCase, updateCase } from '@/lib/casesStore'
 import { markPendingChange } from '@/lib/subAgentPendingChanges'
 import { beginApplyingApprovedChange, endApplyingApprovedChange } from '@/lib/subAgentScope'
 import type { CreateClientInput, UpdateClientInput } from '@/types/client'
@@ -44,6 +44,13 @@ export function applyApprovedPendingChange(
         throw new Error('Invalid service update payload.')
       }
       updateCase(payload.id, payload.patch as UpdateCaseInput)
+    } else if (change.entityType === 'case' && change.action === 'delete') {
+      if (!isRecord(payload) || typeof payload.id !== 'string') {
+        throw new Error('Invalid service delete payload.')
+      }
+      if (!deleteCase(payload.id)) {
+        throw new Error('Service file not found or could not be deleted.')
+      }
     } else {
       throw new Error('This change type cannot be applied yet.')
     }

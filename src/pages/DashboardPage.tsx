@@ -223,7 +223,7 @@ export default function DashboardPage() {
         }
       />
 
-      <TodayFollowUps compact />
+      <TodayFollowUps variant="panel" />
 
       <div className="pd-dash-bento">
         <div className="pd-dash-bento__kpis">
