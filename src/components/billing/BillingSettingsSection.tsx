@@ -342,15 +342,23 @@ export function BillingSettingsSection({ title, info }: Props) {
                 <div className="pd-billing__meter-label">
                   <span>SMS</span>
                   <span>
-                    {snapshot.usage.smsSent}/{snapshot.limits.smsLimit}
+                    {snapshot.billing?.smsEnabled === false
+                      ? 'Off'
+                      : `${snapshot.usage.smsSent}/${snapshot.limits.smsLimit}`}
                   </span>
                 </div>
                 <Progress
-                  value={snapshot.usage.smsSent}
+                  value={
+                    snapshot.billing?.smsEnabled === false
+                      ? 0
+                      : snapshot.usage.smsSent
+                  }
                   max={Math.max(1, snapshot.limits.smsLimit)}
                 />
                 <span className="pd-billing__meter-value">
-                  Extra {formatBdt(snapshot.limits.smsOverageBdt)} / SMS
+                  {snapshot.billing?.smsEnabled === false
+                    ? 'Sending is turned off for this agency'
+                    : `Extra ${formatBdt(snapshot.limits.smsOverageBdt)} / SMS`}
                 </span>
               </div>
             </div>

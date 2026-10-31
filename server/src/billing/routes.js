@@ -15,6 +15,7 @@ import {
   listTenantBillingSummaries,
   resolveAccess,
   setBillingStatus,
+  setTenantSmsEnabled,
   startTrialForTenant,
   updateBillingNotes,
 } from './tenantBilling.js'
@@ -580,6 +581,16 @@ export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }
           })
         } else if (req.body?.billingNotes != null) {
           await updateBillingNotes(tenantId, req.body.billingNotes)
+        }
+        if (req.body?.smsEnabled != null) {
+          const result = await setTenantSmsEnabled(
+            tenantId,
+            Boolean(req.body.smsEnabled),
+          )
+          if (!result.ok) {
+            res.status(result.status || 400).json({ error: result.error })
+            return
+          }
         }
         const billing = await getTenantBilling(tenantId)
         res.json({ billing })

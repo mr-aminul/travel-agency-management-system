@@ -1077,15 +1077,15 @@ app.post('/api/platform/sms/send', requireAuth, async (req, res) => {
       res.status(400).json({ error: 'clientId required.' })
       return
     }
-    if (req.auth.user.role !== 'platform_admin') {
-      const smsGate = await assertCanSendSms(tenantId)
-      if (!smsGate.ok) {
-        res.status(smsGate.status).json({
-          error: smsGate.error,
-          code: smsGate.code,
-        })
-        return
-      }
+    const smsGate = await assertCanSendSms(tenantId, {
+      bypassQuota: req.auth.user.role === 'platform_admin',
+    })
+    if (!smsGate.ok) {
+      res.status(smsGate.status).json({
+        error: smsGate.error,
+        code: smsGate.code,
+      })
+      return
     }
     const result = await sendSmsToClient({
       tenantId,

@@ -21,7 +21,7 @@ import {
   formatStorageUsage,
 } from '@/lib/billing/format'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
-import { Button, Input, Select } from '@/components/ui'
+import { Button, Input, Select, Switch } from '@/components/ui'
 import type { BillingSnapshot, PlanTemplate } from '@/types/billing'
 
 type Props = {
@@ -150,6 +150,26 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           <dt>SMS</dt>
           <dd>
             {snapshot.usage.smsSent} / {snapshot.limits.smsLimit}
+          </dd>
+        </div>
+        <div className="pd-client-detail__card-field">
+          <dt>SMS sending</dt>
+          <dd>
+            <Switch
+              label={
+                snapshot.billing?.smsEnabled === false
+                  ? 'Off for this agency'
+                  : 'On'
+              }
+              checked={snapshot.billing?.smsEnabled !== false}
+              disabled={busy}
+              onChange={(event) => {
+                const next = event.target.checked
+                void run(() =>
+                  adminPatchBilling(tenantId, { smsEnabled: next }),
+                )
+              }}
+            />
           </dd>
         </div>
         <div className="pd-client-detail__card-field">

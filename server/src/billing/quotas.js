@@ -209,9 +209,22 @@ export async function assertCanUpload(tenantId, incomingBytes = 0) {
   return { ok: true, snapshot: snap }
 }
 
-export async function assertCanSendSms(tenantId) {
+export async function assertCanSendSms(
+  tenantId,
+  { bypassQuota = false } = {},
+) {
   const snap = await getUsageSnapshot(tenantId)
-  if (isUatUnrestricted(snap.billing)) {
+  // Admin kill switch wins over UAT / quota bypass.
+  if (snap.billing?.smsEnabled === false) {
+    return {
+      ok: false,
+      status: 403,
+      code: 'sms_disabled',
+      error: 'SMS is turned off for this agency. Contact support if you need it back on.',
+      snapshot: snap,
+    }
+  }
+  if (bypassQuota || isUatUnrestricted(snap.billing)) {
     return { ok: true, snapshot: snap, overage: false }
   }
   const { limits, usage } = snap

@@ -34,6 +34,8 @@ function mapBillingRow(row) {
     smsLimit: row.sms_limit == null ? null : Number(row.sms_limit),
     smsOverageBdt:
       row.sms_overage_bdt == null ? null : Number(row.sms_overage_bdt),
+    /** Platform admin kill switch. Missing column / null → treated as on. */
+    smsEnabled: row.sms_enabled !== false,
     gatewayCustomerId: row.gateway_customer_id || null,
     gatewaySubscriptionId: row.gateway_subscription_id || null,
     billingNotes: row.billing_notes || '',
@@ -286,6 +288,22 @@ export async function updateBillingNotes(tenantId, notes) {
     [id, String(notes ?? '')],
   )
   return getTenantBilling(id)
+}
+
+/** Turn SMS on/off for one agency (platform admin). */
+export async function setTenantSmsEnabled(tenantId, enabled) {
+  const id = String(tenantId ?? '').trim()
+  if (!id) return { ok: false, status: 400, error: 'Agency required.' }
+  await ensureTenantBilling(id, { startTrial: false })
+  const next = Boolean(enabled)
+  await query(
+    `insert into platform.tenant_billing (tenant_id, sms_enabled, updated_at, created_at)
+     values ($1, $2, now(), now())
+     on conflict (tenant_id) do update
+       set sms_enabled = excluded.sms_enabled, updated_at = now()`,
+    [id, next],
+  )
+  return { ok: true, billing: await getTenantBilling(id) }
 }
 
 export async function extendTrial(tenantId, days = 14) {
