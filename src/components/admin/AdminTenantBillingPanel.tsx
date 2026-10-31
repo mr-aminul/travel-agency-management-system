@@ -153,13 +153,13 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           </dd>
         </div>
         <div className="pd-client-detail__card-field">
-          <dt>SMS sending</dt>
+          <dt>SMS allowed</dt>
           <dd>
             <Switch
               label={
                 snapshot.billing?.smsEnabled === false
-                  ? 'Off for this agency'
-                  : 'On'
+                  ? 'Blocked by platform'
+                  : 'Agency may send'
               }
               checked={snapshot.billing?.smsEnabled !== false}
               disabled={busy}
@@ -170,6 +170,46 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
                 )
               }}
             />
+          </dd>
+        </div>
+        <div className="pd-client-detail__card-field">
+          <dt>Agency SMS</dt>
+          <dd>
+            {snapshot.billing?.smsEnabled === false
+              ? 'Off (platform)'
+              : snapshot.billing?.agencySmsEnabled === false
+                ? 'Off (their choice)'
+                : 'On'}
+          </dd>
+        </div>
+        <div className="pd-client-detail__card-field">
+          <dt>Email allowed</dt>
+          <dd>
+            <Switch
+              label={
+                snapshot.billing?.emailEnabled === false
+                  ? 'Blocked by platform'
+                  : 'Agency may send'
+              }
+              checked={snapshot.billing?.emailEnabled !== false}
+              disabled={busy}
+              onChange={(event) => {
+                const next = event.target.checked
+                void run(() =>
+                  adminPatchBilling(tenantId, { emailEnabled: next }),
+                )
+              }}
+            />
+          </dd>
+        </div>
+        <div className="pd-client-detail__card-field">
+          <dt>Agency email</dt>
+          <dd>
+            {snapshot.billing?.emailEnabled === false
+              ? 'Off (platform)'
+              : snapshot.billing?.agencyEmailEnabled === false
+                ? 'Off (their choice)'
+                : 'On'}
           </dd>
         </div>
         <div className="pd-client-detail__card-field">

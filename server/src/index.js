@@ -82,6 +82,7 @@ import {
 import {
   assertCanAddSubAgent,
   assertCanAddUser,
+  assertCanSendEmail,
   assertCanSendSms,
   assertCanUpload,
   incrementSmsUsage,
@@ -1125,6 +1126,14 @@ app.post('/api/platform/email/send', requireAuth, async (req, res) => {
     const clientId = String(req.body?.clientId ?? '').trim()
     if (!clientId) {
       res.status(400).json({ error: 'clientId required.' })
+      return
+    }
+    const emailGate = await assertCanSendEmail(tenantId)
+    if (!emailGate.ok) {
+      res.status(emailGate.status).json({
+        error: emailGate.error,
+        code: emailGate.code,
+      })
       return
     }
     const result = await sendEmailToClient({

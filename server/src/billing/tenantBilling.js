@@ -34,8 +34,14 @@ function mapBillingRow(row) {
     smsLimit: row.sms_limit == null ? null : Number(row.sms_limit),
     smsOverageBdt:
       row.sms_overage_bdt == null ? null : Number(row.sms_overage_bdt),
-    /** Platform admin kill switch. Missing column / null → treated as on. */
+    /** Platform admin allow switch. Missing column / null → treated as on. */
     smsEnabled: row.sms_enabled !== false,
+    /** Agency preference. Only effective when smsEnabled is on. */
+    agencySmsEnabled: row.agency_sms_enabled !== false,
+    /** Platform admin allow switch for email. */
+    emailEnabled: row.email_enabled !== false,
+    /** Agency email preference. Only effective when emailEnabled is on. */
+    agencyEmailEnabled: row.agency_email_enabled !== false,
     gatewayCustomerId: row.gateway_customer_id || null,
     gatewaySubscriptionId: row.gateway_subscription_id || null,
     billingNotes: row.billing_notes || '',
@@ -290,7 +296,7 @@ export async function updateBillingNotes(tenantId, notes) {
   return getTenantBilling(id)
 }
 
-/** Turn SMS on/off for one agency (platform admin). */
+/** Turn SMS allow on/off for one agency (platform admin). */
 export async function setTenantSmsEnabled(tenantId, enabled) {
   const id = String(tenantId ?? '').trim()
   if (!id) return { ok: false, status: 400, error: 'Agency required.' }
@@ -301,6 +307,80 @@ export async function setTenantSmsEnabled(tenantId, enabled) {
      values ($1, $2, now(), now())
      on conflict (tenant_id) do update
        set sms_enabled = excluded.sms_enabled, updated_at = now()`,
+    [id, next],
+  )
+  return { ok: true, billing: await getTenantBilling(id) }
+}
+
+/**
+ * Agency opts SMS on/off for themselves.
+ * Turning on is blocked when the platform admin has disallowed SMS.
+ */
+export async function setAgencySmsEnabled(tenantId, enabled) {
+  const id = String(tenantId ?? '').trim()
+  if (!id) return { ok: false, status: 400, error: 'Agency required.' }
+  const billing = await ensureTenantBilling(id)
+  if (!billing) {
+    return { ok: false, status: 404, error: 'Billing not found for this agency.' }
+  }
+  const next = Boolean(enabled)
+  if (next && billing.smsEnabled === false) {
+    return {
+      ok: false,
+      status: 403,
+      error:
+        'SMS is turned off by the platform. Contact support if you need it back on.',
+    }
+  }
+  await query(
+    `update platform.tenant_billing
+     set agency_sms_enabled = $2, updated_at = now()
+     where tenant_id = $1`,
+    [id, next],
+  )
+  return { ok: true, billing: await getTenantBilling(id) }
+}
+
+/** Turn email allow on/off for one agency (platform admin). */
+export async function setTenantEmailEnabled(tenantId, enabled) {
+  const id = String(tenantId ?? '').trim()
+  if (!id) return { ok: false, status: 400, error: 'Agency required.' }
+  await ensureTenantBilling(id, { startTrial: false })
+  const next = Boolean(enabled)
+  await query(
+    `insert into platform.tenant_billing (tenant_id, email_enabled, updated_at, created_at)
+     values ($1, $2, now(), now())
+     on conflict (tenant_id) do update
+       set email_enabled = excluded.email_enabled, updated_at = now()`,
+    [id, next],
+  )
+  return { ok: true, billing: await getTenantBilling(id) }
+}
+
+/**
+ * Agency opts email on/off for themselves.
+ * Turning on is blocked when the platform admin has disallowed email.
+ */
+export async function setAgencyEmailEnabled(tenantId, enabled) {
+  const id = String(tenantId ?? '').trim()
+  if (!id) return { ok: false, status: 400, error: 'Agency required.' }
+  const billing = await ensureTenantBilling(id)
+  if (!billing) {
+    return { ok: false, status: 404, error: 'Billing not found for this agency.' }
+  }
+  const next = Boolean(enabled)
+  if (next && billing.emailEnabled === false) {
+    return {
+      ok: false,
+      status: 403,
+      error:
+        'Email is turned off by the platform. Contact support if you need it back on.',
+    }
+  }
+  await query(
+    `update platform.tenant_billing
+     set agency_email_enabled = $2, updated_at = now()
+     where tenant_id = $1`,
     [id, next],
   )
   return { ok: true, billing: await getTenantBilling(id) }

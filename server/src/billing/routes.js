@@ -14,7 +14,10 @@ import {
   getTenantBilling,
   listTenantBillingSummaries,
   resolveAccess,
+  setAgencyEmailEnabled,
+  setAgencySmsEnabled,
   setBillingStatus,
+  setTenantEmailEnabled,
   setTenantSmsEnabled,
   startTrialForTenant,
   updateBillingNotes,
@@ -149,6 +152,105 @@ export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }
     } catch (error) {
       res.status(500).json({
         error: error instanceof Error ? error.message : 'billing summary failed',
+      })
+    }
+  })
+
+  app.patch('/api/platform/billing/sms', requireAuth, async (req, res) => {
+    try {
+      const tenantId = tenantScope(req, req.body?.tenantId)
+      if (!tenantId) {
+        res.status(400).json({ error: 'tenantId required.' })
+        return
+      }
+      if (!isPlatformAdmin(req.auth)) {
+        if (tenantId !== req.auth.tenantId) {
+          res.status(403).json({ error: 'Forbidden.' })
+          return
+        }
+        const gate = await assertCanManageUsers(req.auth, tenantId)
+        if (!gate.ok) {
+          res.status(gate.status).json({ error: gate.error })
+          return
+        }
+      }
+      if (req.body?.agencySmsEnabled == null && req.body?.smsEnabled == null) {
+        res.status(400).json({ error: 'agencySmsEnabled required.' })
+        return
+      }
+      const next =
+        req.body?.agencySmsEnabled != null
+          ? Boolean(req.body.agencySmsEnabled)
+          : Boolean(req.body.smsEnabled)
+      const result = await setAgencySmsEnabled(tenantId, next)
+      if (!result.ok) {
+        res.status(result.status || 400).json({ error: result.error })
+        return
+      }
+      const snapshot = await getUsageSnapshot(tenantId)
+      res.json({
+        billing: result.billing,
+        snapshot: {
+          ...snapshot,
+          access: resolveAccess(snapshot.billing),
+        },
+      })
+    } catch (error) {
+      res.status(500).json({
+        error:
+          error instanceof Error ? error.message : 'update SMS preference failed',
+      })
+    }
+  })
+
+  app.patch('/api/platform/billing/email', requireAuth, async (req, res) => {
+    try {
+      const tenantId = tenantScope(req, req.body?.tenantId)
+      if (!tenantId) {
+        res.status(400).json({ error: 'tenantId required.' })
+        return
+      }
+      if (!isPlatformAdmin(req.auth)) {
+        if (tenantId !== req.auth.tenantId) {
+          res.status(403).json({ error: 'Forbidden.' })
+          return
+        }
+        const gate = await assertCanManageUsers(req.auth, tenantId)
+        if (!gate.ok) {
+          res.status(gate.status).json({ error: gate.error })
+          return
+        }
+      }
+      if (
+        req.body?.agencyEmailEnabled == null &&
+        req.body?.emailEnabled == null
+      ) {
+        res.status(400).json({ error: 'agencyEmailEnabled required.' })
+        return
+      }
+      const next =
+        req.body?.agencyEmailEnabled != null
+          ? Boolean(req.body.agencyEmailEnabled)
+          : Boolean(req.body.emailEnabled)
+      const result = await setAgencyEmailEnabled(tenantId, next)
+      if (!result.ok) {
+        res.status(result.status || 400).json({ error: result.error })
+        return
+      }
+      const snapshot = await getUsageSnapshot(tenantId)
+      res.json({
+        billing: result.billing,
+        snapshot: {
+          ...snapshot,
+          access: resolveAccess(snapshot.billing),
+        },
+      })
+    } catch (error) {
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'update email preference failed',
       })
     }
   })
@@ -586,6 +688,16 @@ export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }
           const result = await setTenantSmsEnabled(
             tenantId,
             Boolean(req.body.smsEnabled),
+          )
+          if (!result.ok) {
+            res.status(result.status || 400).json({ error: result.error })
+            return
+          }
+        }
+        if (req.body?.emailEnabled != null) {
+          const result = await setTenantEmailEnabled(
+            tenantId,
+            Boolean(req.body.emailEnabled),
           )
           if (!result.ok) {
             res.status(result.status || 400).json({ error: result.error })

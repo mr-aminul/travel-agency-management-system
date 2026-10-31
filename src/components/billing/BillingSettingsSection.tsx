@@ -342,14 +342,16 @@ export function BillingSettingsSection({ title, info }: Props) {
                 <div className="pd-billing__meter-label">
                   <span>SMS</span>
                   <span>
-                    {snapshot.billing?.smsEnabled === false
+                    {snapshot.billing?.smsEnabled === false ||
+                    snapshot.billing?.agencySmsEnabled === false
                       ? 'Off'
                       : `${snapshot.usage.smsSent}/${snapshot.limits.smsLimit}`}
                   </span>
                 </div>
                 <Progress
                   value={
-                    snapshot.billing?.smsEnabled === false
+                    snapshot.billing?.smsEnabled === false ||
+                    snapshot.billing?.agencySmsEnabled === false
                       ? 0
                       : snapshot.usage.smsSent
                   }
@@ -357,8 +359,10 @@ export function BillingSettingsSection({ title, info }: Props) {
                 />
                 <span className="pd-billing__meter-value">
                   {snapshot.billing?.smsEnabled === false
-                    ? 'Sending is turned off for this agency'
-                    : `Extra ${formatBdt(snapshot.limits.smsOverageBdt)} / SMS`}
+                    ? 'Turned off by the platform'
+                    : snapshot.billing?.agencySmsEnabled === false
+                      ? 'Turned off under SMS/Email'
+                      : `Extra ${formatBdt(snapshot.limits.smsOverageBdt)} / SMS`}
                 </span>
               </div>
             </div>

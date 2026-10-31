@@ -6,6 +6,7 @@ import type {
   BillingSnapshot,
   PaymentInstructions,
   PlanTemplate,
+  TenantBilling,
 } from '@/types/billing'
 
 const DEFAULT_INSTRUCTIONS: PaymentInstructions = {
@@ -212,6 +213,42 @@ export async function cancelSubscription(tenantId?: string) {
     })
   } catch (error) {
     throw new Error(errorMessage(error, 'Could not cancel subscription.'))
+  }
+}
+
+/** Agency opt-in/out for SMS (only works when platform still allows SMS). */
+export async function patchAgencySmsEnabled(
+  agencySmsEnabled: boolean,
+  tenantId?: string,
+) {
+  try {
+    return await apiFetch<{
+      billing: TenantBilling
+      snapshot: BillingSnapshot
+    }>('/api/platform/billing/sms', {
+      method: 'PATCH',
+      body: { agencySmsEnabled, tenantId },
+    })
+  } catch (error) {
+    throw new Error(errorMessage(error, 'Could not update SMS setting.'))
+  }
+}
+
+/** Agency opt-in/out for email (only works when platform still allows email). */
+export async function patchAgencyEmailEnabled(
+  agencyEmailEnabled: boolean,
+  tenantId?: string,
+) {
+  try {
+    return await apiFetch<{
+      billing: TenantBilling
+      snapshot: BillingSnapshot
+    }>('/api/platform/billing/email', {
+      method: 'PATCH',
+      body: { agencyEmailEnabled, tenantId },
+    })
+  } catch (error) {
+    throw new Error(errorMessage(error, 'Could not update email setting.'))
   }
 }
 

@@ -214,13 +214,25 @@ export async function assertCanSendSms(
   { bypassQuota = false } = {},
 ) {
   const snap = await getUsageSnapshot(tenantId)
-  // Admin kill switch wins over UAT / quota bypass.
+  // Platform admin allow switch wins over UAT / quota bypass.
   if (snap.billing?.smsEnabled === false) {
     return {
       ok: false,
       status: 403,
       code: 'sms_disabled',
-      error: 'SMS is turned off for this agency. Contact support if you need it back on.',
+      error:
+        'SMS is turned off for this agency. Contact support if you need it back on.',
+      snapshot: snap,
+    }
+  }
+  // Agency may opt out while still allowed by the platform.
+  if (snap.billing?.agencySmsEnabled === false) {
+    return {
+      ok: false,
+      status: 403,
+      code: 'sms_disabled_by_agency',
+      error:
+        'SMS sending is turned off in your billing settings. Turn it back on to send messages.',
       snapshot: snap,
     }
   }
@@ -243,6 +255,31 @@ export async function assertCanSendSms(
     snapshot: snap,
     overage: usage.smsSent >= limits.smsLimit,
   }
+}
+
+export async function assertCanSendEmail(tenantId) {
+  const snap = await getUsageSnapshot(tenantId)
+  if (snap.billing?.emailEnabled === false) {
+    return {
+      ok: false,
+      status: 403,
+      code: 'email_disabled',
+      error:
+        'Email is turned off for this agency. Contact support if you need it back on.',
+      snapshot: snap,
+    }
+  }
+  if (snap.billing?.agencyEmailEnabled === false) {
+    return {
+      ok: false,
+      status: 403,
+      code: 'email_disabled_by_agency',
+      error:
+        'Email sending is turned off in your settings. Turn it back on to send messages.',
+      snapshot: snap,
+    }
+  }
+  return { ok: true, snapshot: snap }
 }
 
 export async function getTenantBillingOrEnsure(tenantId) {

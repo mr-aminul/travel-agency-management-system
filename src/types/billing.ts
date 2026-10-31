@@ -41,8 +41,14 @@ export type TenantBilling = {
   storageLimitBytes: number | null
   smsLimit: number | null
   smsOverageBdt: number | null
-  /** Platform admin kill switch. False = agency cannot send SMS. */
+  /** Platform admin allow switch. False = agency cannot send or turn SMS on. */
   smsEnabled: boolean
+  /** Agency preference. Only effective when smsEnabled is true. */
+  agencySmsEnabled: boolean
+  /** Platform admin allow switch for email. */
+  emailEnabled: boolean
+  /** Agency email preference. Only effective when emailEnabled is true. */
+  agencyEmailEnabled: boolean
   gatewayCustomerId: string | null
   gatewaySubscriptionId: string | null
   billingNotes: string

@@ -32,8 +32,8 @@ export function SmsTemplatePicker({
   const label = channel === 'sms' ? 'SMS template' : 'Email template'
   const emptyCopy =
     channel === 'sms'
-      ? 'No SMS templates yet. Add them under Settings → SMS/Email templates.'
-      : 'No email templates yet. Add them under Settings → SMS/Email templates.'
+      ? 'No SMS templates yet. Add them under Settings → SMS/Email.'
+      : 'No email templates yet. Add them under Settings → SMS/Email.'
 
   const toggleFolder = (folder: string) => {
     setExpanded((current) => ({

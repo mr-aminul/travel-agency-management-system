@@ -2,12 +2,19 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import {
+  patchAgencyEmailEnabled,
+  patchAgencySmsEnabled,
+} from '@/lib/billing/billingApi'
+import { authApiConfigured } from '@/lib/billing/platformFlag'
+import { useBilling } from '@/lib/billing/useBilling'
+import {
   Button,
   ConfirmDialog,
   EmptyState,
   Input,
   Select,
   SideDrawer,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -64,9 +71,20 @@ export function SmsTemplatesSection({
   const [renameFrom, setRenameFrom] = useState<string | null>(null)
   const [renameTo, setRenameTo] = useState('')
   const [renameError, setRenameError] = useState<string | null>(null)
+  const [smsBusy, setSmsBusy] = useState(false)
+  const [emailBusy, setEmailBusy] = useState(false)
+  const [smsError, setSmsError] = useState<string | null>(null)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const { snapshot: billingSnapshot, reload: reloadBilling } = useBilling()
   const { markAllTouched, showError, blur, resetTouched } = useTouchedFields<
     'folder' | 'name' | 'body'
   >()
+  const platformAllowsSms = billingSnapshot?.billing?.smsEnabled !== false
+  const agencySmsOn = billingSnapshot?.billing?.agencySmsEnabled !== false
+  const smsSendingOn = platformAllowsSms && agencySmsOn
+  const platformAllowsEmail = billingSnapshot?.billing?.emailEnabled !== false
+  const agencyEmailOn = billingSnapshot?.billing?.agencyEmailEnabled !== false
+  const emailSendingOn = platformAllowsEmail && agencyEmailOn
 
   const resolvedFolder =
     folderChoice === NEW_FOLDER_VALUE ? customFolder : folderChoice
@@ -173,6 +191,103 @@ export function SmsTemplatesSection({
 
   return (
     <>
+      {authApiConfigured() ? (
+        <div className="pd-msg-sending-prefs" aria-label="Message sending">
+          <section
+            className="pd-sms-sending-pref"
+            aria-label="SMS sending for this agency"
+          >
+            <div className="pd-sms-sending-pref__copy">
+              <h3 className="pd-sms-sending-pref__title">SMS sending</h3>
+              <p className="pd-sms-sending-pref__hint">
+                {platformAllowsSms
+                  ? 'When off, staff and auto-status messages cannot send SMS.'
+                  : 'The platform has blocked SMS for this agency. Contact support to allow it again.'}
+              </p>
+              {smsError ? (
+                <p className="pd-field__error" role="alert">
+                  {smsError}
+                </p>
+              ) : null}
+            </div>
+            <Switch
+              className="pd-sms-sending-pref__switch"
+              label={
+                !platformAllowsSms
+                  ? 'Blocked by platform'
+                  : smsSendingOn
+                    ? 'On'
+                    : 'Off'
+              }
+              checked={smsSendingOn}
+              disabled={smsBusy || !platformAllowsSms || !billingSnapshot}
+              onChange={(event) => {
+                const next = event.target.checked
+                setSmsBusy(true)
+                setSmsError(null)
+                void patchAgencySmsEnabled(next)
+                  .then(() => reloadBilling())
+                  .catch((err) => {
+                    setSmsError(
+                      err instanceof Error
+                        ? err.message
+                        : 'Could not update SMS setting.',
+                    )
+                  })
+                  .finally(() => setSmsBusy(false))
+              }}
+            />
+          </section>
+          <section
+            className="pd-sms-sending-pref"
+            aria-label="Email sending for this agency"
+          >
+            <div className="pd-sms-sending-pref__copy">
+              <h3 className="pd-sms-sending-pref__title">Email sending</h3>
+              <p className="pd-sms-sending-pref__hint">
+                {platformAllowsEmail
+                  ? 'When off, staff and auto-status messages cannot send email.'
+                  : 'The platform has blocked email for this agency. Contact support to allow it again.'}
+              </p>
+              {emailError ? (
+                <p className="pd-field__error" role="alert">
+                  {emailError}
+                </p>
+              ) : null}
+            </div>
+            <Switch
+              className="pd-sms-sending-pref__switch"
+              label={
+                !platformAllowsEmail
+                  ? 'Blocked by platform'
+                  : emailSendingOn
+                    ? 'On'
+                    : 'Off'
+              }
+              checked={emailSendingOn}
+              disabled={
+                emailBusy || !platformAllowsEmail || !billingSnapshot
+              }
+              onChange={(event) => {
+                const next = event.target.checked
+                setEmailBusy(true)
+                setEmailError(null)
+                void patchAgencyEmailEnabled(next)
+                  .then(() => reloadBilling())
+                  .catch((err) => {
+                    setEmailError(
+                      err instanceof Error
+                        ? err.message
+                        : 'Could not update email setting.',
+                    )
+                  })
+                  .finally(() => setEmailBusy(false))
+              }}
+            />
+          </section>
+        </div>
+      ) : null}
+
       <header className="pd-settings-panel__header pd-settings-panel__header--flush">
         <h2 id="settings-panel-title" className="pd-settings-panel__title">
           {title}

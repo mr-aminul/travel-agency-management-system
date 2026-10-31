@@ -94,8 +94,8 @@ const SETTINGS_SECTIONS: {
     },
     {
       id: 'smsTemplates',
-      label: 'SMS/Email templates',
-      info: 'Organize SMS and email templates in folders. Staff open SMS/Email template on Messages, then pick SMS template or Email template.',
+      label: 'SMS/Email',
+      info: 'Turn SMS and email sending on or off for this agency, then organize templates in folders. Staff pick templates on Messages.',
       icon: MessageSquareText,
     },
     {
