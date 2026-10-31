@@ -76,6 +76,12 @@ import { sendSmsToClient } from './smsqSend.js'
 import { sendEmailToClient } from './clientEmailSend.js'
 import { registerBillingRoutes } from './billing/routes.js'
 import {
+  resolveAgencyIntake,
+  resolveSubAgentIntake,
+  submitAgencyIntake,
+  submitSubAgentIntake,
+} from './publicIntake.js'
+import {
   bootstrapDemoTenantBilling,
   ensureTenantBilling,
 } from './billing/tenantBilling.js'
@@ -995,6 +1001,75 @@ app.post(
     }
   },
 )
+
+/** Public agency registration link: resolve tenant without auth. */
+app.get('/api/platform/public/intake/agency/:slug', async (req, res) => {
+  try {
+    const result = await resolveAgencyIntake(req.params.slug)
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    res.json({ kind: result.kind, tenant: result.tenant })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'intake resolve failed',
+    })
+  }
+})
+
+app.post('/api/platform/public/intake/agency/:slug', async (req, res) => {
+  try {
+    const result = await submitAgencyIntake(req.params.slug, req.body?.input ?? req.body)
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    res.status(201).json(result)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'intake submit failed',
+    })
+  }
+})
+
+/** Public sub-agent registration link: resolve without auth. */
+app.get('/api/platform/public/intake/sub-agent/:subAgentId', async (req, res) => {
+  try {
+    const result = await resolveSubAgentIntake(req.params.subAgentId)
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    res.json({
+      kind: result.kind,
+      tenant: result.tenant,
+      subAgent: result.subAgent,
+    })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'intake resolve failed',
+    })
+  }
+})
+
+app.post('/api/platform/public/intake/sub-agent/:subAgentId', async (req, res) => {
+  try {
+    const result = await submitSubAgentIntake(
+      req.params.subAgentId,
+      req.body?.input ?? req.body,
+    )
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    res.status(201).json(result)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'intake submit failed',
+    })
+  }
+})
 
 /** Public passport track: domain tables first, KV fallback. */
 app.get('/api/platform/public/track', async (req, res) => {

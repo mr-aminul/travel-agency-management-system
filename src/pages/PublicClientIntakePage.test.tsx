@@ -4,6 +4,11 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { AuthProvider } from '@/lib/AuthProvider'
 import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import { getClientByPhone, resetClients } from '@/lib/clientsStore'
+import {
+  listOpenPendingChanges,
+  listPendingChanges,
+  resetPendingChanges,
+} from '@/lib/subAgentPendingChanges'
 import { TENANT_IDS } from '@/types/tenant'
 import PublicClientIntakePage from '@/pages/PublicClientIntakePage'
 
@@ -11,6 +16,7 @@ afterEach(() => {
   cleanup()
   clearSession()
   resetClients()
+  resetPendingChanges()
 })
 
 function renderIntake(subAgentId: string) {
@@ -43,7 +49,7 @@ function renderAgencyIntake(tenantSlug: string) {
 }
 
 describe('public client intake', () => {
-  it('lets anyone submit a profile that lands under that sub agent', () => {
+  it('queues a partial approval when submitted via a sub-agent link', () => {
     renderIntake('AGT-T0001')
 
     expect(
@@ -62,15 +68,23 @@ describe('public client intake', () => {
       screen.getByRole('heading', { name: 'Details received' }),
     ).toBeInTheDocument()
     expect(screen.getByText(/Rakib Travels/)).toBeInTheDocument()
+    expect(screen.getByText(/for approval/i)).toBeInTheDocument()
 
+    // Not live yet — waiting in Approvals.
     writeSession({
       user: DEMO_USER,
       tenantId: TENANT_IDS.demo,
       signedInAt: '2026-01-01T00:00:00.000Z',
     })
-    const created = getClientByPhone('01822223333')
-    expect(created?.name).toBe('Nusrat Jahan')
-    expect(created?.subAgentId).toBe('AGT-T0001')
+    expect(getClientByPhone('01822223333')).toBeUndefined()
+    const pending = listOpenPendingChanges(TENANT_IDS.demo).filter(
+      (row) => row.subAgentId === 'AGT-T0001',
+    )
+    expect(pending.length).toBeGreaterThan(0)
+    expect(pending[0]?.summary).toMatch(/Partial approval: Nusrat Jahan/)
+    expect(listPendingChanges(TENANT_IDS.demo).some((row) => row.status === 'pending')).toBe(
+      true,
+    )
   })
 
   it('lets anyone submit a profile that lands as an agency client', () => {

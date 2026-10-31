@@ -336,6 +336,31 @@ export function resolveTenantRef(ref: string): Tenant | undefined {
   return getTenantBySlug(ref) ?? getTenantById(ref)
 }
 
+/**
+ * Public intake pages load the agency via an unauthenticated API.
+ * Seed into memory only (no persist) so service pickers can resolve modules.
+ */
+export function seedPublicTenantForIntake(tenant: Tenant): Tenant {
+  const cleaned: Tenant = {
+    id: tenant.id,
+    slug: tenant.slug,
+    name: tenant.name,
+    status: tenant.status,
+    enabledModules: [...tenant.enabledModules],
+  }
+  const index = createdTenants.findIndex((row) => row.id === cleaned.id)
+  if (index < 0) {
+    createdTenants = [cleaned, ...createdTenants]
+  } else {
+    createdTenants = createdTenants.map((row, i) =>
+      i === index ? { ...row, ...cleaned } : row,
+    )
+  }
+  rebuildSnapshot()
+  listeners.forEach((listener) => listener())
+  return cleaned
+}
+
 export function useTenantById(id: string): Tenant | undefined {
   return useTenants().find((tenant) => tenant.id === id)
 }

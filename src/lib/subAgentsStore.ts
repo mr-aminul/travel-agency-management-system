@@ -198,6 +198,34 @@ export function findSubAgentById(id: string): SubAgent | undefined {
   return subAgents.find((subAgent) => subAgent.id === id)
 }
 
+/** Memory-only seed for public sub-agent registration links. */
+export function seedPublicSubAgentForIntake(
+  subAgent: Pick<SubAgent, 'id' | 'tenantId' | 'name' | 'status'> &
+    Partial<SubAgent>,
+): SubAgent {
+  const cleaned: SubAgent = {
+    id: subAgent.id,
+    tenantId: subAgent.tenantId,
+    name: subAgent.name,
+    phone: subAgent.phone ?? '',
+    email: subAgent.email,
+    address: subAgent.address,
+    licenseNumber: subAgent.licenseNumber,
+    branch: subAgent.branch,
+    photoUrl: subAgent.photoUrl,
+    status: subAgent.status === 'Inactive' ? 'Inactive' : 'Active',
+    createdAt: subAgent.createdAt ?? new Date().toISOString().slice(0, 10),
+  }
+  const index = subAgents.findIndex((row) => row.id === cleaned.id)
+  if (index < 0) {
+    subAgents = [cleaned, ...subAgents]
+  } else {
+    subAgents = subAgents.map((row, i) => (i === index ? { ...row, ...cleaned } : row))
+  }
+  emit(false)
+  return cleaned
+}
+
 export function createSubAgent(draft: SubAgentDraft): SubAgent {
   const created: SubAgent = {
     ...draft,
