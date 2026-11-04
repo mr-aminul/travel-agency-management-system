@@ -48,7 +48,9 @@ export const PLATFORM_ADMIN_KV_KEYS = new Set([
   'pd-tenant-entitlements',
   'pd-tenant-names',
   'pd-tenant-statuses',
-  'pd-tenant-members-created',
+  // pd-tenant-members-created is intentionally NOT here: owners/managers must
+  // persist their own People roster (tenant-scoped merge). Admin-only blocked
+  // agency/view-as writes and left ghost logins in platform.users.
   'pd-provisioned-logins',
 ])
 

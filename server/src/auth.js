@@ -512,7 +512,9 @@ export async function createAgencyUser({
         name: trimmedName,
         role: resolvedMemberRole,
         status: 'active',
-      }).catch(() => {})
+      }).catch((error) => {
+        console.error('[tenant-members] upsert after link failed', error)
+      })
       return {
         ok: true,
         status: 200,
@@ -604,7 +606,9 @@ export async function createAgencyUser({
         name: trimmedName || row.name,
         role: memberRole,
         status: row.status === 'disabled' ? 'disabled' : 'active',
-      }).catch(() => {})
+      }).catch((error) => {
+        console.error('[tenant-members] upsert after repair failed', error)
+      })
       return {
         ok: true,
         status: 200,
@@ -662,7 +666,9 @@ export async function createAgencyUser({
       name: trimmedName,
       role: resolvedMemberRole,
       status: 'active',
-    }).catch(() => {})
+    }).catch((error) => {
+      console.error('[tenant-members] upsert after create failed', error)
+    })
   }
 
   return {

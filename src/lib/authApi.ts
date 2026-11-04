@@ -345,10 +345,10 @@ export async function syncAgencyMembers(tenantId: string): Promise<number> {
       },
     )
     const added = Number(body.added ?? 0)
-    if (added > 0) {
-      const { rehydratePlatformData } = await import('@/lib/data/rehydrate')
-      await rehydratePlatformData()
-    }
+    // Always rehydrate after sync so Access Management / People pick up
+    // roster rows repaired on the server (including first load of ghost users).
+    const { rehydratePlatformData } = await import('@/lib/data/rehydrate')
+    await rehydratePlatformData()
     return Number.isFinite(added) ? added : 0
   } catch (error) {
     if (!isNetworkFailure(error)) {
@@ -398,6 +398,9 @@ export async function provisionAgencyUser(
       })
       const user = coerceUser(body.user)
       if (!user) throw new Error('Create-user response was incomplete.')
+      // Pull server People roster so Access Management shows the new login
+      // even when the client KV write was previously blocked for agency users.
+      await syncAgencyMembers(tenantId).catch(() => {})
       return {
         id: user.id,
         email: user.email,
