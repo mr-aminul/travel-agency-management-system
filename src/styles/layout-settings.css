@@ -1854,14 +1854,27 @@
   margin-right: auto;
 }
 
-/* Access Management: rounded table card like Payments */
+/* Access Management: scrollable matrix with stable sticky identity columns */
 .pd-user-access {
   min-width: 0;
   max-width: 100%;
+  container-type: inline-size;
+  container-name: user-access;
 }
 
 .pd-user-access .pd-table-wrap {
   max-width: 100%;
+  max-block-size: min(70vh, 42rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pd-user-access .pd-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
 }
 
 .pd-user-access .pd-table__th:nth-child(-n + 2),
@@ -1872,21 +1885,39 @@
 }
 
 .pd-user-access .pd-table__th:nth-child(-n + 2) {
-  z-index: 2;
+  z-index: 3;
   background: var(--color-theme);
+  position: sticky;
+  inset-block-start: 0;
+}
+
+.pd-user-access .pd-table__th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
 }
 
 .pd-user-access .pd-table__th:nth-child(1),
 .pd-user-access .pd-table__td:nth-child(1) {
   left: 0;
-  min-width: 14rem;
+  width: 12.5rem;
+  min-width: 12.5rem;
+  max-width: 12.5rem;
 }
 
 .pd-user-access .pd-table__th:nth-child(2),
 .pd-user-access .pd-table__td:nth-child(2) {
-  left: 14rem;
-  min-width: 5.5rem;
+  left: 12.5rem;
+  width: 5.25rem;
+  min-width: 5.25rem;
+  max-width: 5.25rem;
   box-shadow: 0.25rem 0 0.5rem color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+.pd-user-access .pd-table__th:nth-child(n + 3),
+.pd-user-access .pd-table__td:nth-child(n + 3) {
+  width: 6.75rem;
+  min-width: 6.75rem;
 }
 
 .pd-user-access .pd-table__body .pd-table__row:hover .pd-table__td:nth-child(-n + 2) {
@@ -1905,6 +1936,7 @@
   flex-direction: column;
   gap: 0.1rem;
   min-width: 0;
+  overflow: hidden;
 }
 
 .pd-user-access__name {
@@ -1913,6 +1945,8 @@
   line-height: 1.25;
   color: var(--color-text);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pd-user-access__role {
@@ -1921,6 +1955,8 @@
   line-height: 1.3;
   color: var(--color-text-sec);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pd-user-access__cell {
@@ -1929,6 +1965,103 @@
 
 .pd-user-access__cell .pd-user-access__select {
   margin-inline: auto;
+  max-width: 100%;
+}
+
+/* Narrow panel: stack each user as a card (stops horizontal shake). */
+@container user-access (max-width: 52rem) {
+  .pd-user-access .pd-table-wrap {
+    max-block-size: none;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .pd-user-access .pd-table,
+  .pd-user-access .pd-table__head,
+  .pd-user-access .pd-table__body,
+  .pd-user-access .pd-table__row,
+  .pd-user-access .pd-table__th,
+  .pd-user-access .pd-table__td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    left: auto;
+    inset-block-start: auto;
+    position: static;
+    box-shadow: none;
+  }
+
+  .pd-user-access .pd-table__head {
+    display: none;
+  }
+
+  .pd-user-access .pd-table__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.5rem 0.75rem;
+    margin: 0 0 0.75rem;
+    padding: 0.875rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    background: var(--color-surface-raised, var(--color-bg));
+    box-shadow: var(--shadow-low);
+  }
+
+  .pd-user-access .pd-table__td {
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .pd-user-access .pd-table__body .pd-table__row:hover .pd-table__td {
+    background: transparent;
+  }
+
+  .pd-user-access .pd-table__td:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .pd-user-access .pd-table__td:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    justify-self: end;
+  }
+
+  .pd-user-access .pd-table__td:nth-child(n + 3) {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-block: 0.35rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  }
+
+  .pd-user-access .pd-table__td:nth-child(n + 3)::before {
+    content: attr(data-label);
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-sec);
+    text-align: left;
+  }
+
+  .pd-user-access__cell .pd-user-access__select {
+    margin-inline: 0;
+    flex: 0 0 auto;
+  }
+
+  .pd-user-access__name,
+  .pd-user-access__role {
+    white-space: normal;
+  }
 }
 
 .pd-user-access__select.is-view .pd-select__trigger {
@@ -2103,29 +2236,6 @@
 
   .pd-settings-template__step-rail-actions {
     opacity: 1;
-  }
-
-  /* Sticky frozen columns eat too much width on phones. Allow natural scroll. */
-  .pd-user-access .pd-table__th:nth-child(-n + 2),
-  .pd-user-access .pd-table__td:nth-child(-n + 2) {
-    position: static;
-    left: auto;
-    box-shadow: none;
-  }
-
-  .pd-user-access .pd-table__th:nth-child(1),
-  .pd-user-access .pd-table__td:nth-child(1) {
-    min-width: 10rem;
-  }
-
-  .pd-user-access .pd-table__th:nth-child(2),
-  .pd-user-access .pd-table__td:nth-child(2) {
-    min-width: 4.5rem;
-  }
-
-  .pd-user-access__name,
-  .pd-user-access__role {
-    white-space: normal;
   }
 
   .pd-step-auto-notify__row {

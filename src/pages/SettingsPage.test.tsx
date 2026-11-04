@@ -165,7 +165,7 @@ describe('settings service catalog', () => {
     expect(screen.getByLabelText('Branch next step')).toBeInTheDocument()
   }, 15000)
 
-  it('puts the business name beside the profile photo', async () => {
+  it('shows a camera control for the business logo', async () => {
     renderSettings('/settings?section=business')
 
     expect(
@@ -179,8 +179,7 @@ describe('settings service catalog', () => {
     expect(
       screen.getByRole('button', { name: 'Upload photo' }),
     ).toBeInTheDocument()
-    const nameField = screen.getByLabelText('Business name')
-    expect(nameField.closest('.pd-profile-photo__name')).not.toBeNull()
+    expect(screen.getByLabelText('Company name')).toBeInTheDocument()
   }, 15000)
 
   it('badges Business profile and marks required fields when incomplete', async () => {
@@ -275,12 +274,18 @@ describe('settings service catalog', () => {
     expect(table).toHaveTextContent('HR - Employees')
     expect(table).toHaveTextContent('HR - Attendance & Leave')
     expect(table).toHaveTextContent('HR - Payroll')
+    expect(table).toHaveTextContent('Access Management')
     expect(table).toHaveTextContent('User')
     expect(table).toHaveTextContent('ABC Travel Agency')
     expect(table).toHaveTextContent('Owner · demo@abctravel.com')
     expect(
       screen.getByRole('button', {
         name: 'HR - Payroll access for ABC Travel Agency',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', {
+        name: 'Access Management access for ABC Travel Agency',
       }),
     ).toBeInTheDocument()
   }, 15000)

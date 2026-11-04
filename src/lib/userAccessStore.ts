@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
+import { SETTINGS_ACCESS_MANAGEMENT_PATH } from '@/lib/accessPages'
 import { getActiveTenantId } from '@/lib/authApi'
 import {
   DATA_KEYS,
@@ -134,6 +135,13 @@ export function getDefaultPageAccessLevel(
   pagePath: string,
 ): PageAccessLevel {
   const path = pagePath.trim()
+  // Access Management tab: owners/managers manage people; staff hidden until granted.
+  if (path === SETTINGS_ACCESS_MANAGEMENT_PATH) {
+    if (!memberRole || memberRole === 'owner' || memberRole === 'manager') {
+      return 'edit'
+    }
+    return 'none'
+  }
   if (!memberRole || memberRole === 'owner') return 'edit'
   if (memberRole === 'manager') {
     if (MANAGER_VIEW_PATHS.has(path) || path.startsWith('/settings')) {

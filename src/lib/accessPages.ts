@@ -1,5 +1,11 @@
 import type { NavItem } from '@/layout/types'
 
+/**
+ * Settings → Access Management tab.
+ * Not a sidebar nav path; stored as a matrix key so owners can hide that tab.
+ */
+export const SETTINGS_ACCESS_MANAGEMENT_PATH = '/settings/access-management'
+
 /** One page column in the user-access matrix. */
 export type AccessPageColumn = {
   /** Stable key: the page path. */
@@ -13,9 +19,10 @@ export type AccessPageColumn = {
  * Builds access-matrix page columns from nav.
  * Leaf pages keep their label; children use "Parent - Child".
  * Admin-only items and parent group shells are omitted.
+ * Always appends Access Management (settings section gate).
  */
 export function buildAccessPageColumns(items: NavItem[]): AccessPageColumn[] {
-  return items.flatMap((item) => {
+  const fromNav = items.flatMap((item) => {
     if (item.adminOnly) return []
 
     const children = item.children?.filter((child) => !child.adminOnly) ?? []
@@ -35,4 +42,13 @@ export function buildAccessPageColumns(items: NavItem[]): AccessPageColumn[] {
       },
     ]
   })
+
+  return [
+    ...fromNav,
+    {
+      id: SETTINGS_ACCESS_MANAGEMENT_PATH,
+      path: SETTINGS_ACCESS_MANAGEMENT_PATH,
+      label: 'Access Management',
+    },
+  ]
 }

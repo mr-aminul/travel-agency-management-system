@@ -20,7 +20,10 @@ import {
   provisionAgencyUser,
   syncAgencyMembers,
 } from '@/lib/authApi'
-import { canManageAgencyUsers } from '@/lib/pageAccess'
+import {
+  canManageAgencyUsers,
+  resolveSettingsAccessManagementLevel,
+} from '@/lib/pageAccess'
 import {
   createTenantMember,
   findTenantMemberForUser,
@@ -102,7 +105,19 @@ export function UserAccessSection({
   const self = user
     ? findTenantMemberForUser(tenantId, user.id, user.email)
     : undefined
-  const canManage = canManageAgencyUsers(user?.role ?? 'agency_user', self?.role)
+  const canManageRole = canManageAgencyUsers(
+    user?.role ?? 'agency_user',
+    self?.role,
+  )
+  const accessMgmtLevel = user
+    ? resolveSettingsAccessManagementLevel({
+        role: user.role,
+        userId: user.id,
+        email: user.email,
+        tenantId,
+      })
+    : 'none'
+  const canManage = canManageRole && accessMgmtLevel === 'edit'
 
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState('')
@@ -300,7 +315,7 @@ export function UserAccessSection({
               const status = statusBadge(member.status)
               return (
                 <TableRow key={member.id}>
-                  <TableCell>
+                  <TableCell data-label="User">
                     <span className="pd-user-access__person">
                       <Avatar
                         name={member.name}
@@ -318,7 +333,7 @@ export function UserAccessSection({
                       </span>
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label="Status">
                     <Badge variant={status.variant} icon={status.icon}>
                       {status.label}
                     </Badge>
@@ -330,7 +345,11 @@ export function UserAccessSection({
                       accessEntries,
                     )
                     return (
-                      <TableCell key={page.id} className="pd-user-access__cell">
+                      <TableCell
+                        key={page.id}
+                        className="pd-user-access__cell"
+                        data-label={page.label}
+                      >
                         <Select
                           size="sm"
                           aria-label={`${page.label} access for ${member.name}`}

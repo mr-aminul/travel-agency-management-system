@@ -37,6 +37,8 @@ import {
   readAgencyAppearance,
   saveAgencyAppearance,
 } from '@/lib/agencyAppearance'
+import { canAccessSettingsAccessManagement } from '@/lib/pageAccess'
+import { useAuth } from '@/lib/useAuth'
 import {
   DEFAULT_THEME_COLOR,
   type AppearanceMode,
@@ -188,6 +190,7 @@ function resolveSettingsSection(
 
 export default function SettingsPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { serviceKey } = useParams()
   const [searchParams] = useSearchParams()
   const sectionParam = searchParams.get('section')
@@ -199,6 +202,18 @@ export default function SettingsPage() {
     sectionParam,
     isEditor,
     isEditorV2,
+  )
+  const tenantIdForAccess = getActiveTenantId()
+  const canSeeAccessManagement =
+    Boolean(user) &&
+    canAccessSettingsAccessManagement({
+      role: user!.role,
+      userId: user!.id,
+      email: user!.email,
+      tenantId: tenantIdForAccess,
+    })
+  const visibleSections = SETTINGS_SECTIONS.filter(
+    (section) => section.id !== 'userAccess' || canSeeAccessManagement,
   )
   const tenantId = getActiveTenantId()
   const tenant = useActiveTenant()
@@ -259,12 +274,19 @@ export default function SettingsPage() {
     }
   }, [tenantId])
 
+  useEffect(() => {
+    if (activeSection === 'userAccess' && !canSeeAccessManagement) {
+      navigate(settingsSectionPath('business'), { replace: true })
+    }
+  }, [activeSection, canSeeAccessManagement, navigate])
+
   const agencyGaps = listAgencyProfileGaps(agencyDraft)
   const businessAlertCount = settingsNavAlertCount(agencyDraft)
   const missingGapIds = new Set(agencyGaps.map((gap) => gap.id))
 
   const currentSection =
-    SETTINGS_SECTIONS.find((section) => section.id === activeSection) ??
+    visibleSections.find((section) => section.id === activeSection) ??
+    visibleSections[0] ??
     SETTINGS_SECTIONS[0]
 
   const goToHref = (href: string) => {
@@ -339,7 +361,7 @@ export default function SettingsPage() {
   return (
     <div ref={settingsRef} className="pd-settings" aria-label="Settings">
       <nav className="pd-settings-nav" aria-label="Settings sections">
-        {SETTINGS_SECTIONS.map((section) => {
+        {visibleSections.map((section) => {
           const Icon = section.icon
           const selected = section.id === activeSection
           const alertCount =

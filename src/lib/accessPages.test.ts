@@ -13,6 +13,11 @@ describe('buildAccessPageColumns', () => {
     expect(buildAccessPageColumns(items)).toEqual([
       { id: '/', path: '/', label: 'Home' },
       { id: '/clients', path: '/clients', label: 'Clients' },
+      {
+        id: '/settings/access-management',
+        path: '/settings/access-management',
+        label: 'Access Management',
+      },
     ])
   })
 
@@ -43,6 +48,11 @@ describe('buildAccessPageColumns', () => {
       },
       { id: '/hr/leave', path: '/hr/leave', label: 'HR - Leave' },
       { id: '/hr/payroll', path: '/hr/payroll', label: 'HR - Payroll' },
+      {
+        id: '/settings/access-management',
+        path: '/settings/access-management',
+        label: 'Access Management',
+      },
     ])
   })
 
@@ -57,6 +67,7 @@ describe('buildAccessPageColumns', () => {
     expect(labels).toContain('HR - Employees')
     expect(labels).toContain('HR - Attendance & Leave')
     expect(labels).toContain('HR - Payroll')
+    expect(labels).toContain('Access Management')
     expect(labels).not.toContain('HR')
     expect(labels).not.toContain('Dashboard')
     expect(labels).not.toContain('Settings')
@@ -66,5 +77,8 @@ describe('buildAccessPageColumns', () => {
     expect(columns.some((column) => column.path.startsWith('/admin'))).toBe(
       false,
     )
+    expect(
+      columns.some((column) => column.path === '/settings/access-management'),
+    ).toBe(true)
   })
 })

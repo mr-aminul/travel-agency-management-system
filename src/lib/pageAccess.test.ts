@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { canAccessPath, resolveUserPageAccess } from '@/lib/pageAccess'
+import {
+  canAccessPath,
+  canAccessSettingsAccessManagement,
+  resolveUserPageAccess,
+} from '@/lib/pageAccess'
+import { TENANT_IDS } from '@/types/tenant'
 
 describe('resolveUserPageAccess', () => {
   it('allows home for agency users without a matrix row', () => {
@@ -24,5 +29,29 @@ describe('resolveUserPageAccess', () => {
         pathname: '/',
       }),
     ).toBe(true)
+  })
+})
+
+describe('canAccessSettingsAccessManagement', () => {
+  it('allows the demo owner to open Access Management', () => {
+    expect(
+      canAccessSettingsAccessManagement({
+        role: 'agency_user',
+        userId: 'user-abc-owner',
+        email: 'demo@abctravel.com',
+        tenantId: TENANT_IDS.demo,
+      }),
+    ).toBe(true)
+  })
+
+  it('hides Access Management for staff by default', () => {
+    expect(
+      canAccessSettingsAccessManagement({
+        role: 'agency_user',
+        userId: 'member-abc-staff',
+        email: 'tanvir@abctravel.com',
+        tenantId: TENANT_IDS.demo,
+      }),
+    ).toBe(false)
   })
 })

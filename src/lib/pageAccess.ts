@@ -1,4 +1,7 @@
-import { buildAccessPageColumns } from '@/lib/accessPages'
+import {
+  SETTINGS_ACCESS_MANAGEMENT_PATH,
+  buildAccessPageColumns,
+} from '@/lib/accessPages'
 import { layoutConfig } from '@/config/layout'
 import { findTenantMemberForUser } from '@/lib/tenantMembersStore'
 import { getPageAccessLevel } from '@/lib/userAccessStore'
@@ -76,4 +79,47 @@ export function canAccessPath(input: {
 export function canManageAgencyUsers(role: UserRole, memberRole?: string) {
   if (role === 'platform_admin') return true
   return memberRole === 'owner' || memberRole === 'manager'
+}
+
+/**
+ * Whether Settings → Access Management is visible for this login.
+ * Owners always see it. Others need matrix level view/edit (staff default none).
+ */
+export function canAccessSettingsAccessManagement(input: {
+  role: UserRole
+  userId: string
+  email: string
+  tenantId: string
+}): boolean {
+  if (input.role === 'platform_admin') return true
+  if (input.role === 'sub_agent') return false
+  const member = findTenantMemberForUser(
+    input.tenantId,
+    input.userId,
+    input.email,
+  )
+  if (!member || member.status === 'disabled') return false
+  if (member.role === 'owner') return true
+  return (
+    getPageAccessLevel(member.id, SETTINGS_ACCESS_MANAGEMENT_PATH) !== 'none'
+  )
+}
+
+/** None / view / edit for the Access Management settings tab. */
+export function resolveSettingsAccessManagementLevel(input: {
+  role: UserRole
+  userId: string
+  email: string
+  tenantId: string
+}): PageAccessLevel {
+  if (input.role === 'platform_admin') return 'edit'
+  if (input.role === 'sub_agent') return 'none'
+  const member = findTenantMemberForUser(
+    input.tenantId,
+    input.userId,
+    input.email,
+  )
+  if (!member || member.status === 'disabled') return 'none'
+  if (member.role === 'owner') return 'edit'
+  return getPageAccessLevel(member.id, SETTINGS_ACCESS_MANAGEMENT_PATH)
 }
