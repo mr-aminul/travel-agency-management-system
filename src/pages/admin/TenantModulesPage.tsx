@@ -1,16 +1,14 @@
-import { Navigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Boxes } from 'lucide-react'
 import { ModuleEntitlementsEditor } from '@/components/admin/ModuleEntitlementsEditor'
-import { ADMIN_AGENCIES } from '@/lib/adminPaths'
 import { useTenantById } from '@/lib/tenantsStore'
 
 export default function TenantModulesPage() {
   const { tenantId = '' } = useParams()
   const tenant = useTenantById(tenantId)
 
-  if (!tenant) {
-    return <Navigate to={ADMIN_AGENCIES} replace />
-  }
+  // Layout owns the missing-agency redirect.
+  if (!tenant) return null
 
   return (
     <div className="pd-client-detail__overview" aria-label="Product">

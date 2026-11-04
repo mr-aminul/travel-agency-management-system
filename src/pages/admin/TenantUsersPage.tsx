@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Eye, Pencil, Plus, Trash2, Users } from 'lucide-react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
-import { ADMIN_AGENCIES, adminAgencyPath, setSupportReturnPath } from '@/lib/adminPaths'
+import { useNavigate, useParams } from 'react-router-dom'
+import { adminAgencyPath, setSupportReturnPath } from '@/lib/adminPaths'
 import { useAuth } from '@/lib/useAuth'
 import {
   STAFF_MEMBER_ROLES,
@@ -146,9 +146,8 @@ export default function TenantUsersPage() {
     }
   }, [tenantId])
 
-  if (!tenant) {
-    return <Navigate to={ADMIN_AGENCIES} replace />
-  }
+  // Layout owns the missing-agency redirect so roster sync cannot bounce us.
+  if (!tenant) return null
 
   const selectedCount = selectedIds.size
   const allSelected =

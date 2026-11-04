@@ -1,16 +1,14 @@
-import { Navigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { MessageSquareText } from 'lucide-react'
 import { AdminTenantMessagingEditor } from '@/components/admin/AdminTenantMessagingEditor'
-import { ADMIN_AGENCIES } from '@/lib/adminPaths'
 import { useTenantById } from '@/lib/tenantsStore'
 
 export default function TenantMessagingPage() {
   const { tenantId = '' } = useParams()
   const tenant = useTenantById(tenantId)
 
-  if (!tenant) {
-    return <Navigate to={ADMIN_AGENCIES} replace />
-  }
+  // Layout owns the missing-agency redirect.
+  if (!tenant) return null
 
   return (
     <div

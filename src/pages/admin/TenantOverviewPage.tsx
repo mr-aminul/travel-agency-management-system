@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import {
   Building2,
   CircleDot,
   type LucideIcon,
 } from 'lucide-react'
-import { ADMIN_AGENCIES, adminAgencyPath } from '@/lib/adminPaths'
+import { adminAgencyPath } from '@/lib/adminPaths'
 import { useTenantMembersByTenantId } from '@/lib/tenantMembersStore'
 import {
   setTenantStatus,
@@ -62,9 +62,8 @@ export default function TenantOverviewPage() {
   const [nameDraft, setNameDraft] = useState<string | null>(null)
   const [nameError, setNameError] = useState<string | undefined>()
 
-  if (!tenant) {
-    return <Navigate to={ADMIN_AGENCIES} replace />
-  }
+  // Layout owns the missing-agency redirect.
+  if (!tenant) return null
 
   const displayName = nameDraft ?? tenant.name
   const owner =

@@ -1,6 +1,5 @@
-import { Navigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { ScrollText } from 'lucide-react'
-import { ADMIN_AGENCIES } from '@/lib/adminPaths'
 import { useTenantById } from '@/lib/tenantsStore'
 import AdminActivityPage from '@/pages/admin/AdminActivityPage'
 
@@ -8,9 +7,8 @@ export default function TenantActivityPage() {
   const { tenantId = '' } = useParams()
   const tenant = useTenantById(tenantId)
 
-  if (!tenant) {
-    return <Navigate to={ADMIN_AGENCIES} replace />
-  }
+  // Layout owns the missing-agency redirect.
+  if (!tenant) return null
 
   return (
     <div className="pd-client-detail__overview" aria-label="Activity">

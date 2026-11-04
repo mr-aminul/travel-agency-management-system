@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   NavLink,
   Navigate,
@@ -73,7 +73,16 @@ export default function TenantAdminLayout() {
   const { user, startViewAs } = useAuth()
   const navigate = useNavigate()
   const { tenantId } = useParams()
-  const tenant = useTenantById(tenantId ?? '')
+  const liveTenant = useTenantById(tenantId ?? '')
+  // Keep the last known agency while KV rehydrates so People sync cannot
+  // bounce the admin back to the agencies list mid-open.
+  const cachedTenantRef = useRef(liveTenant)
+  if (liveTenant) {
+    cachedTenantRef.current = liveTenant
+  } else if (cachedTenantRef.current?.id !== tenantId) {
+    cachedTenantRef.current = undefined
+  }
+  const tenant = liveTenant ?? cachedTenantRef.current
   const members = useTenantMembersByTenantId(tenantId ?? '')
   const [supportBusy, setSupportBusy] = useState(false)
   const [supportError, setSupportError] = useState<string | undefined>()
