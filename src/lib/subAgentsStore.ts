@@ -1,6 +1,10 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
-import { getActiveTenantId } from '@/lib/authApi'
+import {
+  getActiveTenantId,
+  isViewingAsSession,
+  readSession,
+} from '@/lib/authApi'
 import {
   DATA_KEYS,
   hasJson,
@@ -110,7 +114,10 @@ function persistCreatedSubAgents() {
   const created = injectClientSideSeeds()
     ? subAgents.filter((subAgent) => !SEED_IDS.has(subAgent.id))
     : subAgents
-  saveJson(STORAGE_KEY, created)
+  const toSave = canPersistAllTenants()
+    ? created
+    : created.filter((subAgent) => subAgent.tenantId === tenantId())
+  saveJson(STORAGE_KEY, toSave)
   removeJson(LEGACY_STORAGE_KEY)
 }
 
@@ -169,12 +176,22 @@ function inActiveTenant(subAgent: SubAgent) {
   return subAgent.tenantId === tenantId()
 }
 
+/** Globally unique — old AGT-T0001 style collided across agencies. */
 function nextId(existing: string[]) {
-  const nums = existing
-    .map((id) => Number(id.replace(/\D/g, '').slice(-4)))
-    .filter((n) => !Number.isNaN(n))
-  const next = (nums.length ? Math.max(...nums) : 0) + 1
-  return `AGT-T${String(next).padStart(4, '0')}`
+  const used = new Set(existing.map((id) => id.trim()).filter(Boolean))
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const id = `AGT-${crypto.randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`
+    if (!used.has(id)) return id
+  }
+  return `AGT-${Date.now().toString(36).toUpperCase()}`
+}
+
+function canPersistAllTenants(): boolean {
+  const session = readSession()
+  if (!session) return false
+  return (
+    session.user.role === 'platform_admin' && !isViewingAsSession(session)
+  )
 }
 
 export function useSubAgents(): SubAgent[] {
@@ -190,6 +207,16 @@ export function useSubAgents(): SubAgent[] {
 export function getSubAgentById(id: string): SubAgent | undefined {
   return subAgents.find(
     (subAgent) => subAgent.id === id && inActiveTenant(subAgent),
+  )
+}
+
+export function getSubAgentByIdForTenant(
+  id: string,
+  forTenantId: string,
+): SubAgent | undefined {
+  return subAgents.find(
+    (subAgent) =>
+      subAgent.id === id && subAgent.tenantId === forTenantId,
   )
 }
 

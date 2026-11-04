@@ -11,11 +11,13 @@ import '@/styles/layout-cases.css'
 function statusCopy(
   status: CaseDocumentStatus,
   locked: boolean,
+  required: boolean,
 ): { label: string; tone: DocumentRowTone } {
   if (locked) return { label: 'Later', tone: 'idle' }
   if (status === 'approved') return { label: 'Uploaded', tone: 'done' }
   if (status === 'under_review') return { label: 'In review', tone: 'wait' }
-  return { label: 'Missing', tone: 'need' }
+  if (!required) return { label: 'Optional', tone: 'idle' }
+  return { label: 'Needed', tone: 'need' }
 }
 
 export function DocumentsChecklist({
@@ -43,7 +45,11 @@ export function DocumentsChecklist({
           const hasRecord =
             doc.status === 'under_review' || doc.status === 'approved'
           const canUpload = !doc.locked && doc.status !== 'approved'
-          const { label: status, tone } = statusCopy(doc.status, doc.locked)
+          const { label: status, tone } = statusCopy(
+            doc.status,
+            doc.locked,
+            doc.required === true,
+          )
           const detail =
             (hasRecord
               ? doc.fileName || doc.detail || doc.collectionHint

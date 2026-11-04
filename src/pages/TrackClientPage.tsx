@@ -138,6 +138,8 @@ function serviceChipLabel(item: TrackServiceChip, items: TrackServiceChip[]): st
 export default function TrackClientPage() {
   const [params, setSearchParams] = useSearchParams()
   const initialPassport = (params.get('passport') ?? '').trim()
+  const tenantFilter = (params.get('tenant') ?? '').trim()
+  const preferredCaseId = params.get('case')
   const [passport, setPassport] = useState(initialPassport)
   const [submitted, setSubmitted] = useState(initialPassport)
   const [remote, setRemote] = useState<PublicTrackResult | null>(null)
@@ -146,25 +148,29 @@ export default function TrackClientPage() {
   >('idle')
   const { markAllTouched, showError, blur } = useTouchedFields<'passport'>()
   const passportError = validateRequiredPassport(passport)
+  const useApi = shouldUseApiDataBackend()
 
   useEffect(() => {
-    if (!submitted || !shouldUseApiDataBackend()) {
+    if (!submitted || !useApi) {
       setRemote(null)
       setRemoteStatus('idle')
       return
     }
     let cancelled = false
     setRemoteStatus('loading')
-    const tenant = (params.get('tenant') ?? '').trim()
     const query = new URLSearchParams({ passport: submitted })
-    if (tenant) query.set('tenant', tenant)
+    if (tenantFilter) query.set('tenant', tenantFilter)
     void apiFetch<PublicTrackResult>(
       `/api/platform/public/track?${query.toString()}`,
       { skipAuth: true },
     )
       .then((body) => {
         if (cancelled) return
-        setRemote(body)
+        const services = Array.isArray(body?.services) ? body.services : []
+        setRemote({
+          client: body?.client ?? { name: '' },
+          services,
+        })
         setRemoteStatus('idle')
       })
       .catch((error) => {
@@ -179,14 +185,12 @@ export default function TrackClientPage() {
     return () => {
       cancelled = true
     }
-  }, [submitted, params])
+  }, [submitted, tenantFilter, useApi])
 
   const localClient = useMemo(
     () =>
-      submitted && !shouldUseApiDataBackend()
-        ? findClientByPassport(submitted)
-        : undefined,
-    [submitted],
+      submitted && !useApi ? findClientByPassport(submitted) : undefined,
+    [submitted, useApi],
   )
   const localCases = useMemo(
     () => (localClient ? findCasesByClientIdAnyTenant(localClient.id) : []),
@@ -197,8 +201,9 @@ export default function TrackClientPage() {
   const clientPassport =
     localClient?.passport ?? remote?.client.passport ?? submitted
 
-  const chips: TrackServiceChip[] = localCases.length
-    ? localCases.map((item) => ({
+  const chips: TrackServiceChip[] = useMemo(() => {
+    if (localCases.length) {
+      return localCases.map((item) => ({
         id: item.id,
         service: item.service,
         destination: item.destination,
@@ -206,7 +211,10 @@ export default function TrackClientPage() {
         statusLabel: item.status,
         caseItem: item,
       }))
-    : (remote?.services ?? []).map((item) => {
+    }
+    return (remote?.services ?? [])
+      .filter((item) => item && typeof item === 'object' && item.id)
+      .map((item) => {
         const caseItem = caseFromPublicTrack(item)
         return {
           id: item.id,
@@ -218,10 +226,11 @@ export default function TrackClientPage() {
           stepDefs: item.templateSteps,
         }
       })
+  }, [localCases, remote])
 
   const selected = useMemo(
-    () => pickDefault(chips, params.get('case')),
-    [chips, params],
+    () => pickDefault(chips, preferredCaseId),
+    [chips, preferredCaseId],
   )
   const journey = useMemo(
     () =>
@@ -248,19 +257,32 @@ export default function TrackClientPage() {
     }
     const value = passport.trim()
     setSubmitted(value)
-    setSearchParams({ passport: value })
+    const next: Record<string, string> = { passport: value }
+    if (tenantFilter) next.tenant = tenantFilter
+    setSearchParams(next)
   }
 
   const selectService = (caseId: string) => {
     if (!submitted) return
-    setSearchParams({ passport: submitted, case: caseId })
+    const next: Record<string, string> = {
+      passport: submitted,
+      case: caseId,
+    }
+    if (tenantFilter) next.tenant = tenantFilter
+    setSearchParams(next)
   }
 
   const searchedAndMissing =
     Boolean(submitted) &&
     !clientName &&
     remoteStatus !== 'loading' &&
-    (remoteStatus === 'miss' || !shouldUseApiDataBackend())
+    (remoteStatus === 'miss' || !useApi)
+
+  const foundWithoutServices =
+    Boolean(submitted) &&
+    Boolean(clientName) &&
+    chips.length === 0 &&
+    remoteStatus !== 'loading'
 
   return (
     <div className="pd-track">
@@ -316,10 +338,24 @@ export default function TrackClientPage() {
           </p>
         ) : null}
 
+        {remoteStatus === 'error' ? (
+          <p className="pd-field__error" role="alert">
+            Could not look up this passport right now. Check your connection and
+            try again.
+          </p>
+        ) : null}
+
         {searchedAndMissing ? (
           <p className="pd-field__error" role="status">
             No match found for passport {submitted}. Check the number and try
             again, or ask the agency if the file has been registered.
+          </p>
+        ) : null}
+
+        {foundWithoutServices ? (
+          <p className="pd-field__error" role="status">
+            {clientName} is registered, but no service journey is available to
+            show yet. Ask the agency if the file has been opened.
           </p>
         ) : null}
 

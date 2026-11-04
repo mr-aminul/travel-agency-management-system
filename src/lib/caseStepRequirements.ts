@@ -1,6 +1,6 @@
 import type { BuiltinServiceType, ServiceType } from '@/types/case'
 
-export type StepFieldType = 'text' | 'date' | 'textarea' | 'number'
+export type StepFieldType = 'text' | 'date' | 'textarea' | 'number' | 'select'
 
 export type StepFieldDef = {
   key: string
@@ -8,6 +8,8 @@ export type StepFieldDef = {
   type: StepFieldType
   required?: boolean
   placeholder?: string
+  /** Choices when type is select (step decisions). */
+  options?: string[]
 }
 
 export type StepUploadDef = {

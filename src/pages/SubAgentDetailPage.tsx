@@ -312,10 +312,15 @@ export default function SubAgentDetailPage() {
   const subAgent = subAgents.find((item) => item.id === id)
   const allClients = useClients()
   const allCases = useCases()
-  const clients = useMemo(
-    () => allClients.filter((client) => client.subAgentId === id),
-    [allClients, id],
-  )
+  // Tenant-scoped: never attach another agency's clients via colliding AGT ids.
+  const clients = useMemo(() => {
+    if (!subAgent) return []
+    return allClients.filter(
+      (client) =>
+        client.subAgentId === subAgent.id &&
+        client.tenantId === subAgent.tenantId,
+    )
+  }, [allClients, subAgent])
   const casesByClientId = useMemo(
     () => groupCasesByClientId(allCases),
     [allCases],

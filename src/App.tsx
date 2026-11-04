@@ -47,6 +47,7 @@ const TenantAllPage = lazy(() => import('@/pages/admin/TenantAllPage'))
 const TenantOverviewPage = lazy(() => import('@/pages/admin/TenantOverviewPage'))
 const TenantUsersPage = lazy(() => import('@/pages/admin/TenantUsersPage'))
 const TenantModulesPage = lazy(() => import('@/pages/admin/TenantModulesPage'))
+const TenantMessagingPage = lazy(() => import('@/pages/admin/TenantMessagingPage'))
 const TenantActivityPage = lazy(() => import('@/pages/admin/TenantActivityPage'))
 const AdminPeoplePage = lazy(() => import('@/pages/admin/AdminPeoplePage'))
 const AdminActivityPage = lazy(() => import('@/pages/admin/AdminActivityPage'))
@@ -211,12 +212,17 @@ function ProductApp() {
               <Route path="overview" element={<TenantOverviewPage />} />
               <Route path="people" element={<TenantUsersPage />} />
               <Route path="product" element={<TenantModulesPage />} />
+              <Route path="messaging" element={<TenantMessagingPage />} />
               <Route path="activity" element={<TenantActivityPage />} />
               {/* Legacy section aliases */}
               <Route path="users" element={<Navigate to="../people" replace />} />
               <Route
                 path="modules"
                 element={<Navigate to="../product" replace />}
+              />
+              <Route
+                path="sms-email"
+                element={<Navigate to="../messaging" replace />}
               />
             </Route>
             <Route path="admin/people" element={<AdminPeoplePage />} />

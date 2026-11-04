@@ -18,6 +18,8 @@ import {
   setPlatformAdminStatus,
   startViewAs,
   stopViewAs,
+  updateAgencyUserProfile,
+  updateOwnUserProfile,
 } from './auth.js'
 import { appendAudit, listAudit } from './audit.js'
 import {
@@ -418,6 +420,75 @@ app.patch(
     }
   },
 )
+
+app.patch(
+  '/api/platform/auth/users/:userId',
+  requireAuth,
+  async (req, res) => {
+    try {
+      if (!(await assertCanManageAgencyUser(req, res))) return
+      const result = await updateAgencyUserProfile({
+        userId: req.params.userId,
+        email: req.body?.email,
+        name: req.body?.name,
+        nextEmail: req.body?.nextEmail,
+      })
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      await appendAudit({
+        tenantId: result.body.tenantId || req.auth.tenantId,
+        actorUserId: req.auth.user.id,
+        actorEmail: req.auth.user.email,
+        action: 'user.profile',
+        entityType: 'user',
+        entityId: result.body.user.id,
+        summary: `Updated profile for ${result.body.user.email}`,
+      })
+      res.status(200).json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'update user failed',
+      })
+    }
+  },
+)
+
+app.patch('/api/platform/auth/me', requireAuth, async (req, res) => {
+  try {
+    if (req.auth?.viewingAs) {
+      res.status(403).json({
+        error: 'Exit View as before changing your own profile.',
+      })
+      return
+    }
+    const actorId = req.auth?.actor?.id || req.auth?.user?.id
+    const result = await updateOwnUserProfile({
+      userId: actorId,
+      name: req.body?.name,
+      email: req.body?.email,
+    })
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error })
+      return
+    }
+    await appendAudit({
+      tenantId: result.body.tenantId || req.auth.tenantId,
+      actorUserId: result.body.user.id,
+      actorEmail: result.body.user.email,
+      action: 'user.self_profile',
+      entityType: 'user',
+      entityId: result.body.user.id,
+      summary: 'Updated own profile',
+    }).catch(() => {})
+    res.status(200).json(result.body)
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'update profile failed',
+    })
+  }
+})
 
 /** Authenticated KV list: tenant-filtered; domain keys served from tables. */
 app.get('/api/platform/kv', requireAuth, async (req, res) => {
@@ -1282,6 +1353,45 @@ app.post('/api/platform/audit', requireAuth, async (req, res) => {
   }
 })
 
+app.post(
+  '/api/platform/admin/repair/tenant-isolation',
+  requirePlatformAdmin,
+  async (req, res) => {
+    try {
+      const { ensureSubAgentIdsGloballyUnique } = await import(
+        './subAgentIds.js'
+      )
+      const { repairTenantIsolation } = await import(
+        './tenantIsolationRepair.js'
+      )
+      const ids = await ensureSubAgentIdsGloballyUnique()
+      const repair = await repairTenantIsolation()
+      await appendAudit({
+        tenantId: req.auth.tenantId || 'platform',
+        actorUserId: req.auth.user.id,
+        actorEmail: req.auth.user.email,
+        action: 'admin.repair_tenant_isolation',
+        entityType: 'platform',
+        entityId: 'tenant-isolation',
+        summary: 'Repaired cross-agency client / sub-agent isolation',
+        meta: { ...repair, remappedSubAgentIds: ids.remaps?.length ?? 0 },
+      }).catch(() => {})
+      res.json({
+        ok: true,
+        remappedSubAgentIds: ids.remaps?.length ?? 0,
+        ...repair,
+      })
+    } catch (error) {
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'tenant isolation repair failed',
+      })
+    }
+  },
+)
+
 app.get(
   '/api/platform/admin/admins',
   requirePlatformAdmin,
@@ -1414,6 +1524,43 @@ async function start() {
   } catch (error) {
     console.error(
       '[platform-api] domain migrate skipped:',
+      error instanceof Error ? error.message : error,
+    )
+  }
+
+  try {
+    const { ensureSubAgentIdsGloballyUnique } = await import('./subAgentIds.js')
+    const { remaps } = await ensureSubAgentIdsGloballyUnique()
+    if (remaps.length > 0) {
+      console.log(
+        `[platform-api] uniquified ${remaps.length} colliding sub-agent id(s)`,
+      )
+    }
+  } catch (error) {
+    console.error(
+      '[platform-api] sub-agent id uniquify skipped:',
+      error instanceof Error ? error.message : error,
+    )
+  }
+
+  try {
+    const { repairTenantIsolation } = await import(
+      './tenantIsolationRepair.js'
+    )
+    const repair = await repairTenantIsolation()
+    const removed =
+      (repair.removedDuplicateIds || 0) +
+      (repair.removedDuplicatePhones || 0) +
+      (repair.removedDuplicateCases || 0) +
+      (repair.removedDuplicatePayments || 0)
+    if (removed > 0 || repair.clearedOrphanSubAgentLinks > 0) {
+      console.log(
+        `[platform-api] tenant isolation repair: removed ${removed} clone row(s), cleared ${repair.clearedOrphanSubAgentLinks} orphan sub-agent link(s)`,
+      )
+    }
+  } catch (error) {
+    console.error(
+      '[platform-api] tenant isolation repair skipped:',
       error instanceof Error ? error.message : error,
     )
   }

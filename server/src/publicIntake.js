@@ -116,10 +116,22 @@ export async function resolveSubAgentIntake(subAgentId) {
   if (!id) {
     return { ok: false, status: 400, error: 'Registration link is required.' }
   }
+  // Older AGT-T0001 ids could collide across agencies — uniquify first.
+  const { ensureSubAgentIdsGloballyUnique } = await import('./subAgentIds.js')
+  await ensureSubAgentIdsGloballyUnique()
   const subAgents = asArray(await readKv('pd-sub-agents-created'))
-  const subAgent = subAgents.find(
+  const matches = subAgents.filter(
     (row) => row && typeof row === 'object' && String(row.id || '').trim() === id,
   )
+  if (matches.length > 1) {
+    return {
+      ok: false,
+      status: 409,
+      error:
+        'This registration link is ambiguous. Ask the agency for a fresh sub-agent link.',
+    }
+  }
+  const subAgent = matches[0]
   if (!subAgent) {
     return {
       ok: false,

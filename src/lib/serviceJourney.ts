@@ -84,21 +84,34 @@ function stepIsComplete(
   usingCustomDefs: boolean,
 ): boolean {
   if (item.status === 'Completed') return true
-  if (item.steps[stepId]?.completedAt) return true
-  if (usingCustomDefs) return currentIndex >= 0 && index < currentIndex
+  // Never treat a future step as done (stale completedAt from old catalogs).
+  if (currentIndex >= 0 && index > currentIndex) return false
+  if (currentIndex >= 0 && index < currentIndex) return true
+  if (usingCustomDefs) return false
   return isPipelineStepComplete(item, stepId)
 }
 
 export function buildServiceJourney(
   item: Case,
-  options?: { interactive?: boolean; stepDefs?: JourneyStepDefInput[] },
+  options?: {
+    interactive?: boolean
+    stepDefs?: JourneyStepDefInput[]
+    /** Staff pipeline: hide steps after the current one until Mark complete. */
+    hideUpcoming?: boolean
+  },
 ): ServiceJourneyView {
   const interactive = options?.interactive ?? false
+  const hideUpcoming = options?.hideUpcoming ?? interactive
   const usingCustomDefs = Boolean(options?.stepDefs?.length)
   const defs = resolveDefs(item, options?.stepDefs)
-  const currentIndex = defs.findIndex((def) => def.id === item.currentStepId)
+  let currentIndex = defs.findIndex((def) => def.id === item.currentStepId)
+  // Orphan currentStepId (not in catalog): treat first incomplete as current.
+  if (currentIndex < 0 && item.status !== 'Completed') {
+    currentIndex = defs.findIndex((def) => !item.steps[def.id]?.completedAt)
+    if (currentIndex < 0) currentIndex = 0
+  }
 
-  const steps = defs.map((def, index) => {
+  const allSteps = defs.map((def, index) => {
     const done = stepIsComplete(
       item,
       def.id,
@@ -124,14 +137,20 @@ export function buildServiceJourney(
     }
   })
 
-  const completedCount = steps.filter((step) => step.state === 'done').length
-  const totalCount = steps.length
+  const steps = hideUpcoming
+    ? allSteps.filter((step) => step.state !== 'upcoming')
+    : allSteps
+
+  const completedCount = allSteps.filter((step) => step.state === 'done').length
+  const totalCount = defs.length
   const progressPercent =
     totalCount > 0 ? (completedCount / totalCount) * 100 : 0
   const stageNumber =
-    currentIndex >= 0
-      ? Math.min(currentIndex + 1, totalCount)
-      : Math.min(completedCount, totalCount)
+    item.status === 'Completed'
+      ? totalCount
+      : currentIndex >= 0
+        ? Math.min(currentIndex + 1, totalCount)
+        : Math.min(completedCount + 1, totalCount)
 
   return {
     steps,

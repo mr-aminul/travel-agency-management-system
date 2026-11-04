@@ -833,6 +833,137 @@ export async function deleteAgencyUser(input: {
   /* Local/offline: member / login stores are the source of truth. */
 }
 
+export async function updateAgencyUserProfile(input: {
+  userId: string
+  email: string
+  name?: string
+  nextEmail?: string
+}): Promise<AuthUser> {
+  const name =
+    input.name !== undefined ? input.name.trim() : undefined
+  const nextEmail =
+    input.nextEmail !== undefined
+      ? input.nextEmail.trim().toLowerCase()
+      : undefined
+  if (name !== undefined && !name) {
+    throw new Error('Name is required.')
+  }
+  if (nextEmail !== undefined && !nextEmail) {
+    throw new Error('Email is required.')
+  }
+  if (name === undefined && nextEmail === undefined) {
+    throw new Error('Nothing to update.')
+  }
+
+  if (authApiConfigured()) {
+    try {
+      const body = await apiFetch<{ user: AuthUser }>(
+        `/api/platform/auth/users/${encodeURIComponent(input.userId)}`,
+        {
+          method: 'PATCH',
+          body: {
+            email: input.email,
+            ...(name !== undefined ? { name } : {}),
+            ...(nextEmail !== undefined ? { nextEmail } : {}),
+          },
+        },
+      )
+      return body.user
+    } catch (error) {
+      if (!isNetworkFailure(error)) {
+        throw new Error(apiErrorMessage(error, 'Could not update user.'))
+      }
+    }
+  }
+
+  try {
+    const { updateProvisionedProfile } = await import('@/lib/provisionedUsers')
+    return updateProvisionedProfile(input.userId, {
+      ...(name !== undefined ? { name } : {}),
+      ...(nextEmail !== undefined ? { email: nextEmail } : {}),
+    })
+  } catch {
+    /* Offline demo: People store is the source of truth. */
+    return {
+      id: input.userId,
+      email: nextEmail ?? input.email,
+      name: name ?? input.email,
+      role: 'agency_user',
+    }
+  }
+}
+
+/** Update the signed-in user's own name and/or email; refreshes local session. */
+export async function updateOwnProfile(input: {
+  name?: string
+  email?: string
+}): Promise<AuthUser> {
+  const current = readSession()
+  if (!current) throw new Error('Sign in to update your profile.')
+  if (isViewingAsSession(current)) {
+    throw new Error('Exit View as before changing your own profile.')
+  }
+
+  const name =
+    input.name !== undefined ? input.name.trim() : undefined
+  const email =
+    input.email !== undefined ? input.email.trim().toLowerCase() : undefined
+  if (name !== undefined && !name) {
+    throw new Error('Name is required.')
+  }
+  if (email !== undefined && !email) {
+    throw new Error('Email is required.')
+  }
+  if (name === undefined && email === undefined) {
+    throw new Error('Nothing to update.')
+  }
+
+  let user: AuthUser | null = null
+
+  if (authApiConfigured()) {
+    try {
+      const body = await apiFetch<{ user: AuthUser }>(
+        '/api/platform/auth/me',
+        {
+          method: 'PATCH',
+          body: {
+            ...(name !== undefined ? { name } : {}),
+            ...(email !== undefined ? { email } : {}),
+          },
+        },
+      )
+      user = body.user
+    } catch (error) {
+      if (!isNetworkFailure(error)) {
+        throw new Error(apiErrorMessage(error, 'Could not update profile.'))
+      }
+    }
+  }
+
+  if (!user) {
+    try {
+      const { updateProvisionedProfile } = await import('@/lib/provisionedUsers')
+      user = updateProvisionedProfile(current.user.id, {
+        ...(name !== undefined ? { name } : {}),
+        ...(email !== undefined ? { email } : {}),
+      })
+    } catch {
+      user = {
+        ...current.user,
+        ...(name !== undefined ? { name } : {}),
+        ...(email !== undefined ? { email } : {}),
+      }
+    }
+  }
+
+  const next: AuthSession = {
+    ...current,
+    user,
+  }
+  writeSession(next)
+  return user
+}
+
 export async function setAgencyUserPassword(input: {
   userId: string
   email: string

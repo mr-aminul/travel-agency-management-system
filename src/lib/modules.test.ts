@@ -124,6 +124,9 @@ describe('module entitlements', () => {
       isPathAllowed('/my-submissions', limited.enabledModules, 'sub_agent'),
     ).toBe(true)
     expect(
+      isPathAllowed('/approvals', limited.enabledModules, 'sub_agent'),
+    ).toBe(true)
+    expect(
       isPathAllowed('/sub-agents', limited.enabledModules, 'sub_agent'),
     ).toBe(false)
     expect(

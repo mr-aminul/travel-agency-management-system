@@ -1,6 +1,11 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
-import { getActiveTenantId, readSession } from '@/lib/authApi'
+import {
+  getActiveTenantId,
+  isViewingAsSession,
+  readSession,
+} from '@/lib/authApi'
+import { getSubAgentByIdForTenant } from '@/lib/subAgentsStore'
 import { queueOrApplySubAgentChange } from '@/lib/subAgentScope'
 import { PendingApprovalError } from '@/lib/pendingApprovalError'
 import {
@@ -382,8 +387,21 @@ function shouldPersistClient(client: Client): boolean {
   return Boolean(client.archivedAt)
 }
 
+function canPersistAllTenants(): boolean {
+  const session = readSession()
+  if (!session) return false
+  return (
+    session.user.role === 'platform_admin' && !isViewingAsSession(session)
+  )
+}
+
 function persistCreatedClients() {
-  saveJson(STORAGE_KEY, clients.filter(shouldPersistClient))
+  const rows = clients.filter(shouldPersistClient)
+  // View-as / agency writes must never push another tenant's rows.
+  const toSave = canPersistAllTenants()
+    ? rows
+    : rows.filter((client) => client.tenantId === tenantId())
+  saveJson(STORAGE_KEY, toSave)
 }
 
 let removedClientIds = readRemovedClientIds()
@@ -602,6 +620,15 @@ export function createClient(
   const resolvedInput: CreateClientInput = forcedSubAgentId
     ? { ...input, subAgentId: forcedSubAgentId }
     : input
+  if (resolvedInput.subAgentId) {
+    const subAgent = getSubAgentByIdForTenant(
+      resolvedInput.subAgentId,
+      assignedTenantId,
+    )
+    if (!subAgent) {
+      throw new Error('That sub agent is not part of this agency.')
+    }
+  }
 
   const gate = queueOrApplySubAgentChange({
     entityType: 'client',

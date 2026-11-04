@@ -1,9 +1,15 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   DEMO_USER,
   clearSession,
   writeSession,
 } from '@/lib/authApi'
+import {
+  createMemoryBackend,
+  getDataBackend,
+  resetDataBackend,
+  setDataBackend,
+} from '@/lib/data'
 import {
   createClient,
   getClientById,
@@ -13,9 +19,14 @@ import {
 } from '@/lib/clientsStore'
 import { TENANT_IDS } from '@/types/tenant'
 
+beforeEach(() => {
+  setDataBackend(createMemoryBackend())
+})
+
 afterEach(() => {
   clearSession()
   resetClients()
+  resetDataBackend()
 })
 
 describe('persisted public client intake', () => {
@@ -31,12 +42,12 @@ describe('persisted public client intake', () => {
       { tenantId: TENANT_IDS.demo },
     )
 
-    const persisted = localStorage.getItem('pd-clients-created')
-    expect(persisted).toBeTruthy()
+    const saved = getDataBackend().getItem('pd-clients-created')
+    expect(saved).toBeTruthy()
     resetClients()
     expect(getClientById(created.id)).toBeUndefined()
 
-    localStorage.setItem('pd-clients-created', persisted ?? '[]')
+    getDataBackend().setItem('pd-clients-created', saved ?? '[]')
     reloadClientsFromStorage()
 
     writeSession({
@@ -65,10 +76,10 @@ describe('persisted public client intake', () => {
       customFields: { 'cf-0001': 'Mason' },
     })
 
-    const persisted = localStorage.getItem('pd-clients-created')
-    expect(persisted).toBeTruthy()
+    const saved = getDataBackend().getItem('pd-clients-created')
+    expect(saved).toBeTruthy()
     resetClients()
-    localStorage.setItem('pd-clients-created', persisted ?? '[]')
+    getDataBackend().setItem('pd-clients-created', saved ?? '[]')
     reloadClientsFromStorage()
 
     expect(getClientById(created.id)?.customFields).toEqual({

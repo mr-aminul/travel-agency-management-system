@@ -358,6 +358,60 @@ export async function setTenantEmailEnabled(tenantId, enabled) {
 }
 
 /**
+ * Set per-agency SMS quantity (hard cap).
+ * sms_overage_bdt is forced to 0 so sending stops once the quantity is used.
+ */
+export async function setTenantSmsLimit(tenantId, smsLimit) {
+  const id = String(tenantId ?? '').trim()
+  if (!id) return { ok: false, status: 400, error: 'Agency required.' }
+  const parsed = Number(smsLimit)
+  if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'SMS quantity must be a whole number of 0 or more.',
+    }
+  }
+  await ensureTenantBilling(id, { startTrial: false })
+  await query(
+    `insert into platform.tenant_billing (
+       tenant_id, sms_limit, sms_overage_bdt, updated_at, created_at
+     ) values ($1, $2, 0, now(), now())
+     on conflict (tenant_id) do update
+       set sms_limit = excluded.sms_limit,
+           sms_overage_bdt = 0,
+           updated_at = now()`,
+    [id, parsed],
+  )
+  return { ok: true, billing: await getTenantBilling(id) }
+}
+
+/** Set per-agency storage hard cap (bytes). */
+export async function setTenantStorageLimit(tenantId, storageLimitBytes) {
+  const id = String(tenantId ?? '').trim()
+  if (!id) return { ok: false, status: 400, error: 'Agency required.' }
+  const parsed = Number(storageLimitBytes)
+  if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Storage limit must be a whole number of bytes (0 or more).',
+    }
+  }
+  await ensureTenantBilling(id, { startTrial: false })
+  await query(
+    `insert into platform.tenant_billing (
+       tenant_id, storage_limit_bytes, updated_at, created_at
+     ) values ($1, $2, now(), now())
+     on conflict (tenant_id) do update
+       set storage_limit_bytes = excluded.storage_limit_bytes,
+           updated_at = now()`,
+    [id, parsed],
+  )
+  return { ok: true, billing: await getTenantBilling(id) }
+}
+
+/**
  * Agency opts email on/off for themselves.
  * Turning on is blocked when the platform admin has disallowed email.
  */

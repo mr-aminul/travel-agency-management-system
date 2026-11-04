@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ArrowRight, Check, ClipboardList, FileText, Link2, SquarePen, Trash2 } from 'lucide-react'
 import { CasePipeline } from '@/components/cases/CasePipeline'
@@ -16,6 +16,11 @@ import {
   updateCase,
   useCases,
 } from '@/lib/casesStore'
+import {
+  destinationCountryOptions,
+  formatDestination,
+  matchCountryFromDestination,
+} from '@/lib/destinationCountries'
 import { notifyIfPendingApproval } from '@/lib/notifyPendingApproval'
 import { usePaymentsByCaseId } from '@/lib/paymentsStore'
 import { formatBalance, getClientById } from '@/lib/clientsStore'
@@ -33,11 +38,28 @@ import {
 import { submitStatusRequest } from '@/lib/requestsStore'
 import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { iconForService } from '@/lib/serviceIcons'
+import {
+  listServiceCountries,
+  useServiceTemplates,
+} from '@/lib/serviceTemplatesStore'
 import { flashAndReveal } from '@/lib/scrollWithin'
 import { clientPath, workDetailPath, workInvoicePath } from '@/lib/workPaths'
 import { clientTrackingUrl } from '@/lib/publicUrl'
 import type { CaseStatus } from '@/types/case'
 import '@/styles/layout-cases.css'
+
+function cityFromDestination(destination: string, country: string): string {
+  const place = destination.trim()
+  const dest = country.trim()
+  if (!place) return ''
+  if (!dest) return place
+  if (place.toLowerCase() === dest.toLowerCase()) return ''
+  const suffix = `, ${dest}`
+  if (place.toLowerCase().endsWith(suffix.toLowerCase())) {
+    return place.slice(0, place.length - suffix.length).trim()
+  }
+  return place
+}
 
 function statusBadgeVariant(status: CaseStatus): BadgeVariant {
   if (status === 'Completed') return 'completed'
@@ -128,6 +150,7 @@ export default function CaseDetailPage() {
   const { id: clientId = '', caseId = '' } = useParams()
   const navigate = useNavigate()
   useCases()
+  useServiceTemplates()
   useServiceIconOverrides()
   const item = getCaseById(caseId)
   const casePayments = usePaymentsByCaseId(caseId)
@@ -136,6 +159,7 @@ export default function CaseDetailPage() {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState({
     status: 'Pending' as CaseStatus,
+    country: '',
     destination: '',
     assignedTo: '',
     departureDate: '',
@@ -150,6 +174,23 @@ export default function CaseDetailPage() {
   const [flashTarget, setFlashTarget] = useState<'status' | 'pipeline' | null>(
     null,
   )
+
+  const catalogCountries = useMemo(
+    () => (item ? listServiceCountries(item.service) : []),
+    [item],
+  )
+  const countryOptions = useMemo(() => {
+    if (catalogCountries.length) {
+      return [
+        { value: '', label: 'Select country' },
+        ...catalogCountries.map((name) => ({ value: name, label: name })),
+      ]
+    }
+    return [
+      { value: '', label: 'Select country' },
+      ...destinationCountryOptions(),
+    ]
+  }, [catalogCountries])
 
   useEffect(() => {
     setEditing(false)
@@ -195,10 +236,20 @@ export default function CaseDetailPage() {
   const assignedName = getEmployeeDisplayName(item.assignedTo)
   const currentLabel = getCurrentStepLabel(item)
   const displayStatus = editing ? draft.status : item.status
-  const displayDestination = editing ? draft.destination : (item.destination ?? '')
+  const countryLookup = catalogCountries.length
+    ? catalogCountries
+    : destinationCountryOptions().map((option) => option.value)
+  const displayCountry = editing
+    ? draft.country
+    : item.serviceCountry?.trim() ||
+      matchCountryFromDestination(item.destination, countryLookup) ||
+      ''
+  const displayDestination = editing
+    ? formatDestination(draft.destination, draft.country)
+    : (item.destination ?? '')
   const displayAssignedTo = editing ? draft.assignedTo : (item.assignedTo ?? '')
   const missingCountry = editing
-    ? !displayDestination.trim()
+    ? !draft.country.trim() && !draft.destination.trim()
     : setupGaps.some((gap) => gap.id === 'country')
   const missingAssignee = editing
     ? !displayAssignedTo
@@ -212,9 +263,17 @@ export default function CaseDetailPage() {
   const ribbon = boardItem ? SERVICE_BOARD_RIBBON[boardItem.state] : null
 
   const startEditing = () => {
+    const country =
+      item.serviceCountry?.trim() ||
+      matchCountryFromDestination(item.destination, [
+        ...catalogCountries,
+        ...(item.destination ? [item.destination] : []),
+      ]) ||
+      ''
     setDraft({
       status: item.status,
-      destination: item.destination ?? '',
+      country,
+      destination: cityFromDestination(item.destination ?? '', country),
       assignedTo: item.assignedTo ?? '',
       departureDate: item.departureDate ?? '',
       serviceFee: serviceFee ? String(serviceFee) : '',
@@ -225,9 +284,11 @@ export default function CaseDetailPage() {
 
   const finishEditing = () => {
     const nextFee = parseMoneyInput(draft.serviceFee)
+    const country = draft.country.trim()
     updateCase(item.id, {
       status: draft.status,
-      destination: draft.destination,
+      serviceCountry: country || undefined,
+      destination: formatDestination(draft.destination, country),
       assignedTo: draft.assignedTo,
       departureDate: draft.departureDate || undefined,
       serviceFee: nextFee,
@@ -409,8 +470,37 @@ export default function CaseDetailPage() {
           <div className="pd-case-detail__facts">
             <Fact attention={missingCountry}>
               {editing ? (
+                <Select
+                  label="Country"
+                  hint={
+                    catalogCountries.length
+                      ? 'From Service catalog for this service'
+                      : undefined
+                  }
+                  searchable
+                  searchPlaceholder="Search countries…"
+                  value={draft.country}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      country: event.target.value,
+                    }))
+                  }
+                  options={countryOptions}
+                />
+              ) : (
                 <Input
-                  label="Destination"
+                  label="Country"
+                  value={displayCountry || '-'}
+                  readOnly
+                  tabIndex={-1}
+                />
+              )}
+            </Fact>
+            <Fact>
+              {editing ? (
+                <Input
+                  label="City / destination"
                   value={draft.destination}
                   onChange={(event) =>
                     setDraft((current) => ({
@@ -418,11 +508,12 @@ export default function CaseDetailPage() {
                       destination: event.target.value,
                     }))
                   }
+                  placeholder="City or area"
                 />
               ) : (
                 <Input
                   label="Destination"
-                  value={item.destination || '-'}
+                  value={displayDestination || '-'}
                   readOnly
                   tabIndex={-1}
                 />

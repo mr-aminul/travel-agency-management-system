@@ -6,6 +6,20 @@ Object.assign(import.meta.env, {
   VITE_ALLOW_OFFLINE_AUTH: '1',
 })
 
+/**
+ * Node 22+ exposes a broken global `localStorage` getter (needs
+ * --localstorage-file). That shadows jsdom's Storage and makes bare
+ * `localStorage.getItem` throw. Point the global at the jsdom instance.
+ */
+if (typeof window !== 'undefined' && window.localStorage) {
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: window.localStorage,
+    configurable: true,
+    enumerable: true,
+    writable: true,
+  })
+}
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   configurable: true,

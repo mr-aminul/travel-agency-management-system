@@ -14,8 +14,9 @@ import {
 } from 'lucide-react'
 import { formatDisplayDate } from '@/lib/formatDate'
 import { resolveServiceTemplate } from '@/lib/resolveServiceTemplate'
-import { getServiceTemplateOverride, resolveServiceTemplateOverride } from '@/lib/serviceTemplatesStore'
+import { resolveServiceCountry } from '@/lib/serviceTemplatesStore'
 import { matchBranchNextStepId } from '@/lib/stepBranchRules'
+import { matchDecisionNextStepId } from '@/lib/stepDecisions'
 import type {
   BuiltinServiceType,
   Case,
@@ -69,15 +70,19 @@ export function getStepsForStage(
   return getStepDefs(service, country).filter((step) => step.stage === stage)
 }
 
-/** A step is done when recorded, passed, or the whole case is completed. */
+/**
+ * A step is done only when it is before the current catalog step
+ * (or the whole case is completed). Future steps never count as done,
+ * even if stale completedAt data remains from an old template.
+ */
 export function isPipelineStepComplete(item: Case, stepId: string): boolean {
   if (item.status === 'Completed') return true
-  if (item.steps[stepId]?.completedAt) return true
   const country = templateCountry(item)
-  return (
-    getStepIndex(item.service, stepId, country) <
-    getStepIndex(item.service, item.currentStepId, country)
-  )
+  const stepIndex = getStepIndex(item.service, stepId, country)
+  const currentIndex = getStepIndex(item.service, item.currentStepId, country)
+  if (stepIndex < 0) return false
+  if (currentIndex < 0) return Boolean(item.steps[stepId]?.completedAt)
+  return stepIndex < currentIndex
 }
 
 /** Stage is complete only when every milestone in that stage is complete. */
@@ -193,22 +198,24 @@ export function getBuiltinStepDefs(service: ServiceType): StepDef[] {
   return STEPS_BY_SERVICE[service as BuiltinServiceType] ?? CUSTOM_STEPS
 }
 
+/** Catalog country for this file: explicit serviceCountry, else destination match. */
 export function templateCountry(
-  item: Pick<Case, 'serviceCountry' | 'destination'>,
+  item: Pick<Case, 'service' | 'serviceCountry' | 'destination'>,
 ): string | undefined {
-  return item.serviceCountry || undefined
+  const explicit = item.serviceCountry?.trim()
+  if (explicit) return explicit
+  const fromDestination = resolveServiceCountry(item.service, item.destination)
+  return fromDestination || undefined
 }
 
+/** Pipeline steps always mirror Settings → Service catalog for this country. */
 export function getStepDefs(
   service: ServiceType,
   country?: string,
 ): StepDef[] {
   const builtin = getBuiltinStepDefs(service)
-  const override = country
-    ? resolveServiceTemplateOverride(service, country)
-    : getServiceTemplateOverride(service)
-  if (!override?.steps.length) return builtin
-  return override.steps.map((step, index, all) => {
+  const { steps } = resolveServiceTemplate(service, country ?? '')
+  return steps.map((step, index, all) => {
     const match = builtin.find((item) => item.id === step.id)
     return {
       id: step.id,
@@ -221,6 +228,83 @@ export function getStepDefs(
 
 export function getStepDefsForCase(item: Case): StepDef[] {
   return getStepDefs(item.service, templateCountry(item))
+}
+
+/**
+ * Repair progress when catalog steps change (rename/reorder) or currentStepId
+ * is missing from the catalog. Past steps stay done; current is open; future
+ * never keep a completed stamp.
+ */
+export function alignCaseProgressToCatalog(item: Case): {
+  currentStepId: string
+  steps: Record<string, CaseStepRecord>
+  changed: boolean
+} {
+  const country = templateCountry(item)
+  const defs = getStepDefs(item.service, country)
+  if (defs.length === 0) {
+    return {
+      currentStepId: item.currentStepId,
+      steps: item.steps,
+      changed: false,
+    }
+  }
+
+  const defIds = new Set(defs.map((def) => def.id))
+  let currentStepId = item.currentStepId
+  if (!defIds.has(currentStepId)) {
+    const firstOpen = defs.find((def) => !item.steps[def.id]?.completedAt)
+    currentStepId = firstOpen?.id ?? defs[0]!.id
+  }
+
+  const currentIndex = defs.findIndex((def) => def.id === currentStepId)
+  const steps: Record<string, CaseStepRecord> = { ...item.steps }
+  let changed = currentStepId !== item.currentStepId
+
+  defs.forEach((def, index) => {
+    const existing = steps[def.id]
+    if (index < currentIndex) {
+      if (!existing?.completedAt) {
+        steps[def.id] = {
+          completedAt: item.updatedAt || new Date().toISOString(),
+          detail: existing?.detail?.trim() || 'Completed',
+          ...(existing?.fields ? { fields: existing.fields } : {}),
+          ...(existing?.uploads ? { uploads: existing.uploads } : {}),
+        }
+        changed = true
+      }
+      return
+    }
+    if (index === currentIndex) {
+      if (!existing) {
+        steps[def.id] = { completedAt: null, detail: 'In progress' }
+        changed = true
+        return
+      }
+      if (existing.completedAt) {
+        steps[def.id] = {
+          ...existing,
+          completedAt: null,
+          detail: existing.detail?.trim() || 'In progress',
+        }
+        changed = true
+      }
+      return
+    }
+    if (existing?.completedAt) {
+      steps[def.id] = {
+        completedAt: null,
+        ...(existing.fields ? { fields: existing.fields } : {}),
+        ...(existing.uploads ? { uploads: existing.uploads } : {}),
+      }
+      changed = true
+    } else if (!existing) {
+      steps[def.id] = { completedAt: null }
+      changed = true
+    }
+  })
+
+  return { currentStepId, steps, changed }
 }
 
 export function getFirstStepId(service: ServiceType, country?: string): string {
@@ -325,9 +409,14 @@ export function buildProgressAtStep(
 export function getCurrentStepLabel(item: Case): string {
   if (item.status === 'Completed') return 'Completed'
   if (item.status === 'Cancelled') return 'Cancelled'
+  const country = templateCountry(item)
+  const match = getStepDef(item.service, item.currentStepId, country)
+  if (match) return match.label
+  // Orphan currentStepId after catalog edit — show the first open catalog step.
+  const aligned = alignCaseProgressToCatalog(item)
   return (
-    getStepDef(item.service, item.currentStepId, templateCountry(item))
-      ?.label ?? 'Intake'
+    getStepDef(item.service, aligned.currentStepId, country)?.label ??
+    'In progress'
   )
 }
 
@@ -341,10 +430,19 @@ export function getNextStepDef(item: Case): StepDef | null {
   const templateStep = resolveServiceTemplate(item.service, country).steps.find(
     (step) => step.id === item.currentStepId,
   )
+  const validStepIds = new Set(defs.map((def) => def.id))
+  const decisionNextId = matchDecisionNextStepId(
+    templateStep,
+    item.steps[item.currentStepId]?.fields,
+    validStepIds,
+  )
+  if (decisionNextId) {
+    return defs.find((def) => def.id === decisionNextId) ?? null
+  }
   const branchedId = matchBranchNextStepId(
     templateStep,
     item.documents,
-    new Set(defs.map((def) => def.id)),
+    validStepIds,
   )
   if (branchedId) {
     return defs.find((def) => def.id === branchedId) ?? null

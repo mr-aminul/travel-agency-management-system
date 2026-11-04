@@ -181,6 +181,22 @@
   align-items: center;
 }
 
+.pd-admin__plan-storage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 0.0625rem solid var(--color-border);
+}
+
+.pd-admin__plan-storage-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5.5rem auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
 .pd-admin__plan-ops {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -604,6 +620,32 @@
   flex-shrink: 0;
 }
 
+.pd-admin__messaging-quantity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.55rem;
+}
+
+.pd-admin__messaging-quantity-head .pd-admin__module-group-title {
+  margin: 0;
+}
+
+.pd-admin__messaging-quantity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.pd-admin__messaging-quantity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) auto;
+  gap: 0.5rem;
+  align-items: center;
+  max-width: 22rem;
+}
+
 .pd-admin__module-switch .pd-switch__label {
   position: absolute;
   width: 1px;
@@ -807,8 +849,17 @@
     grid-template-columns: 1fr;
   }
 
+  .pd-admin__plan-storage-row {
+    grid-template-columns: 1fr;
+  }
+
   .pd-admin__plan-ops {
     grid-template-columns: 1fr;
+  }
+
+  .pd-admin__messaging-quantity-row {
+    grid-template-columns: 1fr;
+    max-width: none;
   }
 
   .pd-admin__shortcuts,

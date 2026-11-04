@@ -17,8 +17,12 @@ function statusCopy(
   variant: BadgeVariant
 } {
   if (locked) return { label: 'Later', variant: 'on-hold' }
-  // Number-only / under_review without a scan still needs a file.
-  if (!hasFile) return { label: 'Needed', variant: 'danger' }
+  if (!hasFile) {
+    // Match Service catalog Required — optional docs are not "Needed".
+    return document.required
+      ? { label: 'Needed', variant: 'danger' }
+      : { label: 'Optional', variant: 'pending' }
+  }
   if (document.status === 'approved') return { label: 'Uploaded', variant: 'completed' }
   if (document.status === 'under_review') {
     return { label: 'In review', variant: 'in-progress' }
@@ -53,7 +57,7 @@ export function DocumentWorkspace({
   const status = statusCopy(document, locked, hasFile)
   const allowEdit = canEdit && !locked
   const mode = allowEdit ? 'edit' : 'view'
-  const needsFile = allowEdit && !hasFile
+  const needsFile = allowEdit && !hasFile && document.required === true
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()

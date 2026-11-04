@@ -181,6 +181,9 @@ describe('service detail', () => {
     expect(screen.queryByRole('heading', { name: 'Travel' })).not.toBeInTheDocument()
 
     const facts = screen.getByLabelText('Service details')
+    expect(within(facts).getByLabelText('Country')).toHaveValue(
+      'Saudi Arabia',
+    )
     expect(within(facts).getByLabelText('Destination')).toHaveValue(
       'Riyadh, Saudi Arabia',
     )
@@ -222,7 +225,8 @@ describe('service detail', () => {
 
     const facts = screen.getByLabelText('Service details')
     const labels = [
-      'Destination',
+      'Country',
+      'City / destination',
       'Departure',
       'Current step',
       'Assigned to',

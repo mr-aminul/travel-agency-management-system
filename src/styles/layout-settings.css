@@ -1,5 +1,6 @@
 /* Settings page, loaded only with SettingsPage
-   Frame: sticky section topbar | content fill */
+   One vertical scroller on `.pd-settings` so top→bottom feels smooth;
+   section tabs stick while the panel content moves. Flow editor opts out. */
 .pd-settings {
   display: flex;
   flex-direction: column;
@@ -8,6 +9,17 @@
   height: 100%;
   min-height: 0;
   max-width: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+.pd-settings:has(.pd-settings-panel--flow) {
+  overflow: hidden;
+  scroll-behavior: auto;
 }
 
 .pd-settings-nav {
@@ -29,6 +41,9 @@
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  /* Keep horizontal swipe on tabs from fighting the page scroller. */
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
 }
 
 .pd-settings-nav::-webkit-scrollbar {
@@ -114,16 +129,18 @@
 
 .pd-settings-panel {
   display: flex;
-  flex: 1 1 auto;
+  /* Size to content so the parent `.pd-settings` scroller can reach the bottom.
+     Flow mode overrides this to fill the remaining viewport. */
+  flex: 0 0 auto;
   flex-direction: column;
   gap: 1.25rem;
   min-width: 0;
   min-height: 0;
-  padding: 1.5rem 1.75rem 2rem;
+  padding: 1.5rem 1.75rem 2.5rem;
   border: 0;
   border-radius: 0;
   background: transparent;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .pd-settings-panel__header {
@@ -183,10 +200,11 @@
 
 .pd-settings-panel__body {
   min-width: 0;
-  flex: 1;
+  /* Don't shrink below content height — that used to clip long sections
+     inside a nested panel scroller and break top/bottom scrolling. */
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
 .pd-settings-section {
@@ -338,6 +356,252 @@
   letter-spacing: 0.02em;
   color: var(--color-text);
   user-select: all;
+}
+
+/* Business profile: client-style card + billing-style summary rail */
+.pd-business-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: min(64rem, 100%);
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+.pd-business-profile__header {
+  margin: 0;
+  padding-bottom: 0.75rem;
+}
+
+.pd-business-profile__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
+  align-items: start;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.pd-business-profile__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+.pd-business-profile__card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  padding: 1.25rem 1.25rem 1.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--color-theme) 7%, var(--color-surface, #fff)) 0%,
+      var(--color-surface, #fff) 40%
+    );
+  box-shadow: var(--shadow-low);
+}
+
+.pd-business-profile__identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.15rem;
+}
+
+.pd-business-profile__identity-copy {
+  min-width: 0;
+  flex: 1 1 12rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pd-business-profile__company {
+  margin: 0;
+  font-family: var(--font-heading, inherit);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.pd-business-profile__tagline {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--color-text-sec, var(--color-text-secondary));
+}
+
+.pd-business-profile__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.pd-business-profile__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.pd-business-profile__preview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-surface, #fff) 88%, var(--color-bg));
+}
+
+.pd-business-profile__preview-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.pd-business-profile__preview-item span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pd-business-profile__preview-item svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: var(--color-theme-ink, var(--color-theme));
+}
+
+.pd-business-profile__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.pd-business-profile__summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.85rem;
+  background: var(--color-surface, #fff);
+  box-shadow: var(--shadow-low);
+}
+
+.pd-business-profile__summary-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pd-business-profile__summary-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--color-theme) 12%, transparent);
+  color: var(--color-theme-ink, var(--color-theme));
+}
+
+.pd-business-profile__summary-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-sec, var(--color-text-secondary));
+}
+
+.pd-business-profile__package-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pd-business-profile__package-row strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--color-text);
+}
+
+.pd-business-profile__summary-meta {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-text-sec, var(--color-text-secondary));
+}
+
+.pd-business-profile__summary-quiet {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-sec, var(--color-text-secondary));
+}
+
+.pd-business-profile__summary-link {
+  width: fit-content;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--color-theme-ink, var(--color-theme));
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.pd-business-profile__summary-link:hover {
+  color: var(--color-theme);
+}
+
+.pd-business-profile__aside .pd-billing__meter {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+@media (min-width: 901px) {
+  .pd-business-profile__aside {
+    position: sticky;
+    top: 0.5rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .pd-business-profile__body {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-business-profile__aside {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .pd-business-profile__grid,
+  .pd-business-profile__preview,
+  .pd-business-profile__aside {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-business-profile__card {
+    padding: 1rem;
+  }
 }
 
 .pd-settings-form {
@@ -1130,6 +1394,7 @@
   flex-direction: column;
   gap: 1rem;
   min-width: 0;
+  max-height: min(70vh, 42rem);
   padding: 0.875rem 1rem;
   border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
   border-radius: var(--radius-md, 0.5rem);
@@ -1138,6 +1403,10 @@
     var(--color-text) 2%,
     var(--color-surface-raised, var(--color-bg))
   );
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .pd-settings-template__panel-section {
@@ -1717,7 +1986,22 @@
   }
 
   .pd-settings-panel {
-    padding: 1rem 1rem 1.5rem;
+    padding: 1rem 1rem calc(1.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .pd-settings-panel__header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .pd-settings-panel__actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .pd-settings-panel__actions .pd-btn {
+    width: 100%;
   }
 
   .pd-settings-form__grid {
@@ -1727,6 +2011,78 @@
   .pd-settings-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  /* Service catalog: stack checklist under the name so rows fit phones. */
+  .pd-settings-catalog .pd-table-wrap {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .pd-settings-catalog .pd-table,
+  .pd-settings-catalog .pd-table__head,
+  .pd-settings-catalog .pd-table__body,
+  .pd-settings-catalog .pd-table__row,
+  .pd-settings-catalog .pd-table__th,
+  .pd-settings-catalog .pd-table__td {
+    display: block;
+    width: 100%;
+  }
+
+  .pd-settings-catalog .pd-table__head {
+    display: none;
+  }
+
+  .pd-settings-catalog .pd-table__row {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem 0.75rem;
+    margin: 0 0 0.625rem;
+    padding: 0.875rem 0.875rem 0.875rem 0.875rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    background: var(--color-surface-raised, var(--color-bg));
+    box-shadow: var(--shadow-low);
+  }
+
+  .pd-settings-catalog .pd-table__td {
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .pd-settings-catalog .pd-table__body .pd-table__row:hover .pd-table__td {
+    background: transparent;
+  }
+
+  .pd-settings-catalog .pd-table__td:first-child {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .pd-settings-catalog .pd-table__td:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .pd-settings-catalog .pd-table__td:last-child {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+
+  .pd-settings-catalog__meta {
+    flex-wrap: wrap;
+  }
+
+  .pd-settings-catalog__name {
+    max-width: 100%;
+    white-space: normal;
   }
 
   .pd-settings-template__row {
@@ -1739,6 +2095,10 @@
 
   .pd-settings-template__journey-split {
     grid-template-columns: 1fr;
+  }
+
+  .pd-settings-template__step-panel {
+    max-height: none;
   }
 
   .pd-settings-template__step-rail-actions {
@@ -1825,11 +2185,15 @@
 }
 /* Service catalog v2: flowchart canvas */
 .pd-settings-panel--flow {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
   padding: 0;
 }
 
 .pd-settings-panel--flow .pd-settings-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
   height: 100%;
 }
@@ -2124,6 +2488,107 @@
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
+}
+
+.pd-service-flow__doc-pick-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.pd-settings-template__decision-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pd-settings-template__decision-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.65rem 0.7rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+}
+
+.pd-settings-template__decision-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.pd-settings-template__decision-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.pd-settings-template__decision-option-row {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.pd-settings-template__decision-option-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pd-settings-template__step-fields {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pd-settings-template__step-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem 0.7rem;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+}
+
+.pd-settings-template__step-field-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.pd-settings-template__step-field-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+}
+
+.pd-settings-template__step-field-meta .pd-select {
+  min-width: 8.5rem;
+  max-width: 12rem;
+}
+
+.pd-settings-template__step-field-routes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+  border-top: 1px dashed color-mix(in srgb, var(--color-border) 85%, transparent);
 }
 
 .pd-service-flow-node {

@@ -1,10 +1,14 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import {
+  alignCaseProgressToCatalog,
   buildInitialSteps,
   buildProgressAtStep,
   deriveStageFromStep,
   getNextStepDef,
+  getStepDefsForCase,
+  getStepIndex,
+  templateCountry,
 } from '@/lib/caseChecklist'
 import { identityKindForDocumentId, type IdentityKind } from '@/lib/clientDocuments'
 import {
@@ -25,7 +29,6 @@ import {
   hydrateStepUploadsFromCase,
 } from '@/lib/caseStepRequirementResolve'
 import { getDocumentForm } from '@/lib/caseDocumentForms'
-import { getStepIndex } from '@/lib/caseChecklist'
 import {
   clientProgressBlockers,
   progressBlockedMessage,
@@ -36,7 +39,11 @@ import {
   updateClient,
   updateClientRecord,
 } from '@/lib/clientsStore'
-import { getActiveTenantId, readSession } from '@/lib/authApi'
+import {
+  getActiveTenantId,
+  isViewingAsSession,
+  readSession,
+} from '@/lib/authApi'
 import { logAuditEvent } from '@/lib/auditClient'
 import { deletePendingCommissionsByCaseId } from '@/lib/commissionsStore'
 import { deletePaymentsByCaseId } from '@/lib/paymentsStore'
@@ -480,8 +487,21 @@ function shouldPersistCase(item: Case): boolean {
   return !SEED_IDS.has(item.id) || dirtySeedIds.has(item.id)
 }
 
+function canPersistAllTenants(): boolean {
+  const session = readSession()
+  if (!session) return false
+  return (
+    session.user.role === 'platform_admin' && !isViewingAsSession(session)
+  )
+}
+
 function persistCases() {
-  saveJson(STORAGE_KEY, cases.filter(shouldPersistCase))
+  const rows = cases.filter(shouldPersistCase)
+  const active = getActiveTenantId() || DEFAULT_TENANT_ID
+  const toSave = canPersistAllTenants()
+    ? rows
+    : rows.filter((item) => item.tenantId === active)
+  saveJson(STORAGE_KEY, toSave)
 }
 
 function markCaseDirty(id: string) {
@@ -832,7 +852,23 @@ function applyUploadsToDocuments(
   let next = documents.map((doc) => ({ ...doc }))
   for (const uploadDef of uploadDefs) {
     const uploaded = uploads.find((itemUpload) => itemUpload.key === uploadDef.key)
-    if (!uploaded?.fileName.trim() || !uploadDef.documentId) continue
+    if (!uploaded || !uploadDef.documentId) continue
+    if (!uploaded.fileName.trim()) {
+      // Staff removed the attachment — clear the linked case document.
+      next = next.map((doc) =>
+        doc.id === uploadDef.documentId
+          ? {
+              ...doc,
+              status: 'missing' as CaseDocumentStatus,
+              detail: '',
+              fileName: undefined,
+              fileId: undefined,
+              mimeType: undefined,
+            }
+          : doc,
+      )
+      continue
+    }
     next = next.map((doc) =>
       doc.id === uploadDef.documentId
         ? {
@@ -853,6 +889,73 @@ function applyUploadsToDocuments(
 }
 
 /**
+ * Remove one attachment from a step (and its linked case document).
+ * If that file was required and the step was already complete, the step reopens.
+ */
+export function clearCaseStepUpload(
+  caseId: string,
+  stepId: string,
+  uploadKey: string,
+): CompleteStepResult {
+  const item = getCaseById(caseId)
+  if (!item || item.status === 'Cancelled') {
+    return { ok: false, errors: { form: 'This case cannot be updated.' } }
+  }
+
+  const requirement = getCaseStepRequirement(item, stepId)
+  const uploadDef = requirement.uploads.find((upload) => upload.key === uploadKey)
+  if (!uploadDef) {
+    return { ok: false, errors: { form: 'That file is not on this step.' } }
+  }
+
+  const existing = item.steps[stepId]
+  const nextStepUploads = (existing?.uploads ?? []).filter(
+    (upload) => upload.key !== uploadKey,
+  )
+  const documents = applyUploadsToDocuments(
+    item.documents,
+    requirement.uploads,
+    [{ key: uploadKey, fileName: '' }],
+  )
+
+  const wasComplete = Boolean(existing?.completedAt)
+  const reopen = wasComplete && uploadDef.required === true
+  const steps = {
+    ...item.steps,
+    [stepId]: {
+      ...existing,
+      completedAt: reopen ? null : (existing?.completedAt ?? null),
+      detail: existing?.detail,
+      fields: existing?.fields ? { ...existing.fields } : undefined,
+      uploads: nextStepUploads,
+    },
+  }
+
+  const country = templateCountry(item)
+  const updated = updateCase(caseId, {
+    steps,
+    documents,
+    ...(reopen
+      ? {
+          currentStepId: stepId,
+          status:
+            item.status === 'Completed' ? ('In-Progress' as CaseStatus) : item.status,
+          stage: deriveStageFromStep(
+            item.service,
+            stepId,
+            item.status === 'Completed' ? 'In-Progress' : item.status,
+            country,
+          ),
+        }
+      : {}),
+  })
+
+  return updated
+    ? { ok: true, case: updated }
+    : { ok: false, errors: { form: 'Could not remove file.' } }
+}
+
+/**
  * Update a completed (or in-progress) step’s saved fields/uploads without advancing.
  */
 export function updateCaseStep(
@@ -865,7 +968,7 @@ export function updateCaseStep(
     return { ok: false, errors: { form: 'This case cannot be updated.' } }
   }
 
-  const requirement = getCaseStepRequirement(item, stepId)
+  const requirement = getCaseStepRequirement(item, stepId, input.fields)
   if (!requirement) {
     return {
       ok: false,
@@ -874,9 +977,6 @@ export function updateCaseStep(
   }
 
   const hydrated = hydrateStepUploadsFromCase(item, requirement, input)
-  const validation = validateStepCompletion(requirement, hydrated)
-  if (!validation.ok) return validation
-
   const existing = item.steps[stepId]
   if (!existing?.completedAt && stepId !== item.currentStepId) {
     return {
@@ -885,20 +985,39 @@ export function updateCaseStep(
     }
   }
 
+  const validation = validateStepCompletion(requirement, hydrated)
+  const clearedRequired = requirement.uploads.some(
+    (upload) =>
+      upload.required &&
+      input.uploads.some(
+        (entry) => entry.key === upload.key && !entry.fileName.trim(),
+      ),
+  )
+  // Editing may clear a required file; reopen the step instead of blocking save.
+  if (!validation.ok && !(existing?.completedAt && clearedRequired)) {
+    return validation
+  }
+
   const documents = applyUploadsToDocuments(
     item.documents,
     requirement.uploads,
     hydrated.uploads,
   )
-  const summary = summarizeStepCompletion(requirement, hydrated)
+  const reopen = Boolean(existing?.completedAt && clearedRequired)
+  const summary = summarizeStepCompletion(requirement, {
+    ...hydrated,
+    uploads: hydrated.uploads.filter((upload) => upload.fileName.trim()),
+  })
   const steps = {
     ...item.steps,
     [stepId]: {
       ...existing,
-      completedAt: existing?.completedAt ?? null,
+      completedAt: reopen ? null : (existing?.completedAt ?? null),
       detail: summary,
       fields: { ...hydrated.fields },
-      uploads: hydrated.uploads.map((upload) => ({ ...upload })),
+      uploads: hydrated.uploads
+        .filter((upload) => upload.fileName.trim())
+        .map((upload) => ({ ...upload })),
     },
   }
 
@@ -908,15 +1027,128 @@ export function updateCaseStep(
     hydrated.fields.travelledOn ||
     hydrated.fields.departureConfirmedOn
 
+  const country = templateCountry(item)
   const updated = updateCase(id, {
     steps,
     documents,
     departureDate: departureFromFields || item.departureDate,
+    ...(reopen
+      ? {
+          currentStepId: stepId,
+          status:
+            item.status === 'Completed'
+              ? ('In-Progress' as CaseStatus)
+              : item.status,
+          stage: deriveStageFromStep(
+            item.service,
+            stepId,
+            item.status === 'Completed' ? 'In-Progress' : item.status,
+            country,
+          ),
+        }
+      : {}),
   })
 
   return updated
     ? { ok: true, case: updated }
     : { ok: false, errors: { form: 'Could not update step.' } }
+}
+
+/**
+ * Keep case progress in sync with the Service catalog (step ids/labels).
+ * Safe to call on every pipeline open — only writes when something drifted.
+ */
+export function ensureCaseAlignedWithCatalog(caseId: string): Case | undefined {
+  const item = getCaseById(caseId)
+  if (!item || item.status === 'Cancelled') return item
+  const aligned = alignCaseProgressToCatalog(item)
+  if (!aligned.changed) return item
+  const country = templateCountry(item)
+  return updateCase(caseId, {
+    currentStepId: aligned.currentStepId,
+    steps: aligned.steps,
+    stage: deriveStageFromStep(
+      item.service,
+      aligned.currentStepId,
+      item.status,
+      country,
+    ),
+    serviceCountry: country || item.serviceCountry,
+  })
+}
+
+/**
+ * Move back to a previous (or current) catalog step after a mistake.
+ * Clears completion from that step forward and makes it the current step.
+ */
+export function revertCaseToStep(
+  caseId: string,
+  stepId: string,
+): CompleteStepResult {
+  const item = getCaseById(caseId)
+  if (!item || item.status === 'Cancelled') {
+    return { ok: false, errors: { form: 'This case cannot be updated.' } }
+  }
+
+  const aligned = alignCaseProgressToCatalog(item)
+  const working: Case = {
+    ...item,
+    currentStepId: aligned.currentStepId,
+    steps: aligned.steps,
+  }
+  const defs = getStepDefsForCase(working)
+  const targetIndex = defs.findIndex((def) => def.id === stepId)
+  if (targetIndex < 0) {
+    return { ok: false, errors: { form: 'That step is not in this catalog.' } }
+  }
+  const currentIndex = defs.findIndex((def) => def.id === working.currentStepId)
+  if (item.status !== 'Completed' && targetIndex > currentIndex) {
+    return {
+      ok: false,
+      errors: { form: 'Complete earlier steps before opening this one.' },
+    }
+  }
+
+  const steps = { ...working.steps }
+  defs.forEach((def, index) => {
+    const existing = steps[def.id]
+    if (index < targetIndex) {
+      if (!existing?.completedAt) {
+        steps[def.id] = {
+          completedAt: item.updatedAt || new Date().toISOString(),
+          detail: existing?.detail?.trim() || 'Completed',
+          ...(existing?.fields ? { fields: existing.fields } : {}),
+          ...(existing?.uploads ? { uploads: existing.uploads } : {}),
+        }
+      }
+      return
+    }
+    steps[def.id] = {
+      completedAt: null,
+      detail:
+        index === targetIndex
+          ? existing?.detail?.trim() || 'Reopened'
+          : undefined,
+      ...(existing?.fields ? { fields: existing.fields } : {}),
+      ...(existing?.uploads ? { uploads: existing.uploads } : {}),
+    }
+  })
+
+  const country = templateCountry(working)
+  const updated = updateCase(caseId, {
+    currentStepId: stepId,
+    steps,
+    status: item.status === 'Completed' ? 'In-Progress' : item.status,
+    stage: deriveStageFromStep(
+      working.service,
+      stepId,
+      item.status === 'Completed' ? 'In-Progress' : item.status,
+      country,
+    ),
+  })
+  return updated
+    ? { ok: true, case: updated }
+    : { ok: false, errors: { form: 'Could not move back to this step.' } }
 }
 
 /**
@@ -927,12 +1159,29 @@ export function completeCurrentStep(
   id: string,
   input: StepCompletionInput,
 ): CompleteStepResult {
-  const item = getCaseById(id)
-  if (!item || item.status === 'Cancelled') {
+  const raw = getCaseById(id)
+  if (!raw || raw.status === 'Cancelled') {
     return { ok: false, errors: { form: 'This case cannot be updated.' } }
   }
-  if (item.status === 'Completed') {
+  if (raw.status === 'Completed') {
     return { ok: false, errors: { form: 'This case is already completed.' } }
+  }
+
+  const aligned = alignCaseProgressToCatalog(raw)
+  const item: Case =
+    aligned.changed
+      ? {
+          ...raw,
+          currentStepId: aligned.currentStepId,
+          steps: aligned.steps,
+        }
+      : raw
+  if (aligned.changed) {
+    updateCase(id, {
+      currentStepId: aligned.currentStepId,
+      steps: aligned.steps,
+      serviceCountry: templateCountry(raw) || raw.serviceCountry,
+    })
   }
 
   const client = getClientById(item.clientId)
@@ -946,7 +1195,11 @@ export function completeCurrentStep(
     }
   }
 
-  const requirement = getCaseStepRequirement(item, item.currentStepId)
+  const requirement = getCaseStepRequirement(
+    item,
+    item.currentStepId,
+    input.fields,
+  )
   if (!requirement) {
     return {
       ok: false,

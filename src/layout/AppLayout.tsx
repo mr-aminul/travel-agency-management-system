@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useState, useEffect } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { profileNavItem } from '@/config/layout'
 import { ADMIN_AGENCIES } from '@/lib/adminPaths'
@@ -55,6 +55,15 @@ export function AppLayout({
   const { isMobile } = useBreakpoint()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [exitBusy, setExitBusy] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const pageKey = pageIdentity(pathname)
+
+  useEffect(() => {
+    const node = scrollRef.current
+    if (!node) return
+    node.scrollTop = 0
+    node.scrollLeft = 0
+  }, [pageKey])
 
   const handleStopViewAs = useCallback(async () => {
     setExitBusy(true)
@@ -161,6 +170,7 @@ export function AppLayout({
                * transparent top bar so page sticky chrome cannot paint over it.
                */}
               <div
+                ref={scrollRef}
                 className={[
                   'pd-app-scroll',
                   isFillPage ? 'pd-app-scroll--fill' : '',
@@ -176,7 +186,7 @@ export function AppLayout({
                     .filter(Boolean)
                     .join(' ')}
                 >
-                  <Fragment key={pageIdentity(pathname)}>
+                  <Fragment key={pageKey}>
                     <Outlet />
                   </Fragment>
                 </main>

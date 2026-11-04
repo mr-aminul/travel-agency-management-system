@@ -2,7 +2,11 @@ import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
 import { getCaseById, updateCase } from '@/lib/casesStore'
 import { caseBalanceDue } from '@/lib/caseMoney'
-import { getActiveTenantId } from '@/lib/authApi'
+import {
+  getActiveTenantId,
+  isViewingAsSession,
+  readSession,
+} from '@/lib/authApi'
 import { getClientById } from '@/lib/clientsStore'
 import { recordCommissionForCase } from '@/lib/commissionsStore'
 import {
@@ -125,8 +129,21 @@ function shouldPersist(item: Payment): boolean {
   return !SEED_IDS.has(item.id) || dirtySeedIds.has(item.id)
 }
 
+function canPersistAllTenants(): boolean {
+  const session = readSession()
+  if (!session) return false
+  return (
+    session.user.role === 'platform_admin' && !isViewingAsSession(session)
+  )
+}
+
 function persist() {
-  saveJson(STORAGE_KEY, payments.filter(shouldPersist))
+  const rows = payments.filter(shouldPersist)
+  const active = getActiveTenantId() || DEFAULT_TENANT_ID
+  const toSave = canPersistAllTenants()
+    ? rows
+    : rows.filter((item) => item.tenantId === active)
+  saveJson(STORAGE_KEY, toSave)
 }
 
 function mergeWithSeeds(created: Payment[]): Payment[] {

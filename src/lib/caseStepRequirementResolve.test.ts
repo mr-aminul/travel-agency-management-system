@@ -31,6 +31,51 @@ function asLeisure() {
 }
 
 describe('case step Needs docs', () => {
+  it('does not block complete when a Needs doc is optional', () => {
+    asLeisure()
+    saveServiceTemplate({
+      serviceName: 'Tour Package',
+      steps: [
+        {
+          id: 'enquiry',
+          label: 'Enquiry',
+          requiredDocumentIds: ['passport'],
+        },
+        { id: 'gone', label: 'Travelled', requiredDocumentIds: [] },
+      ],
+      documents: [{ id: 'passport', name: 'Passport', required: false }],
+    })
+
+    const client = createClient({
+      name: 'Optional Docs Client',
+      phone: `016${Date.now().toString().slice(-8)}`,
+      primaryService: 'Tour Package',
+      idChecked: true,
+    })
+    const file = createCase({
+      clientId: client.id,
+      service: 'Tour Package',
+    })
+
+    const requirement = getCaseStepRequirement(file, 'enquiry')
+    expect(
+      requirement.uploads.some(
+        (upload) => upload.documentId === 'passport' && upload.required,
+      ),
+    ).toBe(false)
+
+    const withoutFile = validateStepCompletion(requirement, {
+      fields: {
+        destination: 'Cox',
+        guests: '2',
+        travelDates: 'Next week',
+        notes: 'Family trip',
+      },
+      uploads: [],
+    })
+    expect(withoutFile.ok).toBe(true)
+  })
+
   it('blocks completing a status until its Needs docs are uploaded', () => {
     asLeisure()
     saveServiceTemplate({

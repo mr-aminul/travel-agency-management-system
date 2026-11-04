@@ -6,6 +6,25 @@ export type ServiceStepBranchRule = {
   nextStepId: string
 }
 
+/** One choice on a step decision (e.g. Finger → Yes / No). */
+export type ServiceStepDecisionOption = {
+  value: string
+  /** Empty = follow the default next status in the list. */
+  nextStepId?: string
+  /** When this choice is picked, step documents are not required to complete. */
+  skipDocuments?: boolean
+}
+
+/**
+ * Step-level Yes/No (or multi) question that can route the pipeline
+ * and optionally skip document requirements for a choice.
+ */
+export type ServiceStepDecision = {
+  key: string
+  label: string
+  options: ServiceStepDecisionOption[]
+}
+
 /** Auto SMS/email when a client file enters this status. */
 export type ServiceStepAutoNotify = {
   sms?: boolean
@@ -16,16 +35,36 @@ export type ServiceStepAutoNotify = {
   emailTemplateId?: string
 }
 
+/** Custom form field on a pipeline status (shown when completing that step). */
+export type ServiceStepField = {
+  key: string
+  label: string
+  type: 'text' | 'date' | 'number' | 'textarea' | 'select'
+  required?: boolean
+  placeholder?: string
+  options?: string[]
+}
+
 export type ServiceStepConfig = {
   id: string
   label: string
-  /** Catalog document ids that must be filed before this status can complete. */
+  /**
+   * Catalog document ids attached to this status.
+   * Only documents with `required: true` block completion (unless a decision skips docs).
+   */
   requiredDocumentIds?: string[]
   /**
    * After this status completes, first matching rule picks the next step.
    * If none match, the journey continues to the next step in the list.
    */
   branchRules?: ServiceStepBranchRule[]
+  /** Step questions (e.g. Finger Yes/No) answered when completing this status. */
+  decisions?: ServiceStepDecision[]
+  /**
+   * Custom fields for Complete step. When the agency has a saved catalog flow,
+   * only these (+ decisions) appear — not the builtin Employer/date forms.
+   */
+  fields?: ServiceStepField[]
   /** When the file reaches this status, optionally auto-send SMS and/or email. */
   autoNotify?: ServiceStepAutoNotify
 }

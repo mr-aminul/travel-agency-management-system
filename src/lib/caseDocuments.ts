@@ -12,7 +12,10 @@ import {
 import { getStepDef, getStepIndex, templateCountry } from '@/lib/caseChecklist'
 import { findStepForDocument } from '@/lib/caseStepRequirements'
 import { getClientById } from '@/lib/clientsStore'
-import { resolveServiceTemplateOverride } from '@/lib/serviceTemplatesStore'
+import {
+  getServiceTemplateOverride,
+  resolveServiceTemplateOverride,
+} from '@/lib/serviceTemplatesStore'
 import type { ServiceDocumentConfig } from '@/types/serviceTemplate'
 import type {
   BuiltinServiceType,
@@ -551,64 +554,103 @@ function findProgressUploadForDocument(item: Case, documentId: string) {
   )
 }
 
+/** Live catalog documents for this file (country → all-countries → builtin). */
+function catalogDocumentsFor(item: Case): ServiceDocumentConfig[] {
+  const country = templateCountry(item)
+  const exact = country
+    ? getServiceTemplateOverride(item.service, country)
+    : undefined
+  const resolved =
+    exact ?? resolveServiceTemplateOverride(item.service, country ?? item.destination)
+  if (resolved?.documents.length) return resolved.documents
+  return getDefaultDocumentConfigs(item.service)
+}
+
+/** Live Required flag from Service catalog (not the snapshot at case create). */
+function catalogRequiredForDocument(
+  item: Case,
+  documentId: string,
+  fallback: boolean,
+): boolean {
+  const match = catalogDocumentsFor(item).find((doc) => doc.id === documentId)
+  if (!match) return fallback
+  return match.required === true
+}
+
 export function syncDocumentsWithProgress(item: Case): CaseDocument[] {
   return item.documents.map((doc) => {
-    const collector = findStepForDocument(item.service, doc.id)
-    const unlockStepId = collector?.requirement.stepId ?? doc.unlockStepId
+    const required = catalogRequiredForDocument(item, doc.id, doc.required)
+    const withCatalog: CaseDocument = {
+      ...doc,
+      required,
+      detail:
+        required === doc.required
+          ? doc.detail
+          : required
+            ? 'Required for this service'
+            : doc.detail === 'Required for this service'
+              ? 'Optional for this service'
+              : doc.detail,
+    }
+    const collector = findStepForDocument(item.service, withCatalog.id)
+    const unlockStepId =
+      collector?.requirement.stepId ?? withCatalog.unlockStepId
     const unlocked = isStepUnlocked(item, unlockStepId)
-    const uploaded = findProgressUploadForDocument(item, doc.id)
+    const uploaded = findProgressUploadForDocument(item, withCatalog.id)
 
-    if (collector || uploaded || doc.unlockStepId) {
+    if (collector || uploaded || withCatalog.unlockStepId) {
       const hasDetails =
-        Boolean(doc.fields && Object.keys(doc.fields).length > 0) ||
+        Boolean(withCatalog.fields && Object.keys(withCatalog.fields).length > 0) ||
         Boolean(uploaded?.fileName) ||
-        Boolean(doc.fileName)
+        Boolean(withCatalog.fileName)
       if (
-        doc.status === 'approved' ||
-        doc.status === 'under_review' ||
+        withCatalog.status === 'approved' ||
+        withCatalog.status === 'under_review' ||
         hasDetails
       ) {
         return {
-          ...doc,
+          ...withCatalog,
           unlockStepId,
           status:
-            doc.status === 'approved'
+            withCatalog.status === 'approved'
               ? ('approved' as const)
               : ('under_review' as const),
-          detail: doc.detail || uploaded?.fileName || doc.fileName || 'Recorded',
-          fileName: doc.fileName || uploaded?.fileName,
-          fileId: doc.fileId || uploaded?.fileId,
-          mimeType: doc.mimeType || uploaded?.mimeType,
+          detail:
+            withCatalog.detail ||
+            uploaded?.fileName ||
+            withCatalog.fileName ||
+            'Recorded',
+          fileName: withCatalog.fileName || uploaded?.fileName,
+          fileId: withCatalog.fileId || uploaded?.fileId,
+          mimeType: withCatalog.mimeType || uploaded?.mimeType,
         }
       }
       if (!unlocked) {
         return {
-          ...doc,
+          ...withCatalog,
           unlockStepId,
           status: 'not_due' as const,
-          detail: doc.detail,
         }
       }
-      if (collector || doc.unlockStepId) {
+      if (collector || withCatalog.unlockStepId) {
         return {
-          ...doc,
+          ...withCatalog,
           unlockStepId,
           status: 'missing' as const,
-          detail: doc.detail,
         }
       }
     }
 
     // Identity docs may already be approved from the client profile.
-    if (doc.status === 'approved') return doc
+    if (withCatalog.status === 'approved') return withCatalog
 
-    if (!unlocked && doc.status === 'missing') {
-      return { ...doc, status: 'not_due' as const }
+    if (!unlocked && withCatalog.status === 'missing') {
+      return { ...withCatalog, status: 'not_due' as const }
     }
-    if (unlocked && doc.status === 'not_due') {
-      return { ...doc, status: 'missing' as const }
+    if (unlocked && withCatalog.status === 'not_due') {
+      return { ...withCatalog, status: 'missing' as const }
     }
-    return doc
+    return withCatalog
   })
 }
 

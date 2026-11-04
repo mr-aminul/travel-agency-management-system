@@ -7,6 +7,7 @@ import {
   StepAutoNotifyEditor,
 } from '@/components/settings/StepAutoNotifyEditor'
 import { StepBranchRulesEditor } from '@/components/settings/StepBranchRulesEditor'
+import { StepFieldsEditor } from '@/components/settings/StepFieldsEditor'
 import { cx } from '@/lib/cx'
 import {
   Button,
@@ -219,6 +220,14 @@ export function ServiceTemplateEditor({
         branchRules: item.branchRules?.filter(
           (rule) => rule.nextStepId !== stepId,
         ),
+        decisions: item.decisions?.map((decision) => ({
+          ...decision,
+          options: decision.options.map((option) =>
+            option.nextStepId === stepId
+              ? { ...option, nextStepId: undefined }
+              : option,
+          ),
+        })),
       }))
     setSteps(next)
     if (selectedStepId === stepId) {
@@ -439,7 +448,7 @@ export function ServiceTemplateEditor({
                 </span>
                 <SettingsInfo
                   title="Status journey"
-                  body="Staff move a file through these steps. Needs docs must be filed before that status can complete. Add dropdown fields on documents, then branch Next step rules (e.g. Fit → Visa, Unfit → Re-medical)."
+                  body="Staff move a file through these steps. Add Fields (Dropdown choices can set next status / skip docs), attach Needs docs, and wire Branch from document dropdowns."
                 />
               </span>
             </div>
@@ -617,10 +626,35 @@ export function ServiceTemplateEditor({
                     }}
                   />
 
+                  <StepFieldsEditor
+                    key={`${country || 'all'}:${selectedStep.id}`}
+                    step={selectedStep}
+                    steps={steps}
+                    onChange={({ fields, decisions }) => {
+                      const id = selectedStep.id
+                      setSteps((current) =>
+                        current.map((item) =>
+                          item.id === id
+                            ? {
+                                ...item,
+                                fields,
+                                decisions,
+                              }
+                            : item,
+                        ),
+                      )
+                      markDirty()
+                    }}
+                  />
+
                   <section className="pd-settings-template__panel-section">
                     <span className="pd-settings-template__panel-label">
                       Needs docs
                     </span>
+                    <p className="pd-service-flow__inspector-copy">
+                      Attach what this step may collect. Turn on Required only
+                      when staff must upload it before Complete.
+                    </p>
                     {documents.length === 0 ? (
                       <p className="pd-settings-template__needs-empty">
                         Add documents first
@@ -639,18 +673,40 @@ export function ServiceTemplateEditor({
                               (other.requiredDocumentIds ?? []).includes(doc.id),
                           )
                           return (
-                            <Checkbox
+                            <div
                               key={doc.id}
-                              label={
-                                ownedElsewhere && !checked
-                                  ? `${doc.name || 'Untitled'} (move here)`
-                                  : doc.name || 'Untitled'
-                              }
-                              checked={checked}
-                              onChange={() =>
-                                setStepNeedsDoc(selectedStep.id, doc.id)
-                              }
-                            />
+                              className="pd-service-flow__doc-pick-row"
+                            >
+                              <Checkbox
+                                label={
+                                  ownedElsewhere && !checked
+                                    ? `${doc.name || 'Untitled'} (move here)`
+                                    : doc.name || 'Untitled'
+                                }
+                                checked={checked}
+                                onChange={() =>
+                                  setStepNeedsDoc(selectedStep.id, doc.id)
+                                }
+                              />
+                              {checked ? (
+                                <Switch
+                                  className="pd-service-flow__doc-required"
+                                  label="Required"
+                                  checked={doc.required}
+                                  onChange={(event) => {
+                                    const required = event.target.checked
+                                    setDocuments((current) =>
+                                      current.map((item) =>
+                                        item.id === doc.id
+                                          ? { ...item, required }
+                                          : item,
+                                      ),
+                                    )
+                                    markDirty()
+                                  }}
+                                />
+                              ) : null}
+                            </div>
                           )
                         })}
                       </div>

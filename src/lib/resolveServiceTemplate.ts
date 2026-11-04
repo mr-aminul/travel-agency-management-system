@@ -36,6 +36,7 @@ export function resolveServiceTemplate(
   steps: ServiceStepConfig[]
   documents: ServiceDocumentConfig[]
   isCustomized: boolean
+  hasCatalogOverride: boolean
   countryCount: number
 } {
   const fallback = defaultsFor(service)
@@ -51,7 +52,10 @@ export function resolveServiceTemplate(
   return {
     steps,
     documents,
+    /** Exact country row saved in catalog. */
     isCustomized: Boolean(exact),
+    /** Any saved catalog flow for this service (default or country). */
+    hasCatalogOverride: Boolean(override),
     countryCount: listServiceCountries(service).length,
   }
 }

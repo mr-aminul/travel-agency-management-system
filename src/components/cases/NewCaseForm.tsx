@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { CASE_SERVICE_OPTIONS } from '@/lib/casesStore'
 import { parseMoneyInput } from '@/lib/caseMoney'
 import { Button, Input, Select, Textarea } from '@/components/ui'
@@ -31,6 +31,8 @@ type NewCaseFormProps = {
   onCancel: () => void
   defaultClientId?: string
   defaultService?: ServiceType
+  /** Prefill from client registration / preferred country. */
+  defaultCountry?: string
   /** When true, client is locked to defaultClientId */
   lockClient?: boolean
   /** When true, service is locked to defaultService */
@@ -52,6 +54,7 @@ export function NewCaseForm({
   onCancel,
   defaultClientId = '',
   defaultService,
+  defaultCountry = '',
   lockClient = false,
   lockService = false,
 }: NewCaseFormProps) {
@@ -67,7 +70,7 @@ export function NewCaseForm({
   const [clientId, setClientId] = useState(defaultClientId)
   const [service, setService] = useState<ServiceType>(resolvedDefault)
   const [destination, setDestination] = useState('')
-  const [country, setCountry] = useState('')
+  const [country, setCountry] = useState(defaultCountry.trim())
   const [assignedTo, setAssignedTo] = useState('')
   const [departureDate, setDepartureDate] = useState('')
   const [serviceFee, setServiceFee] = useState('')
@@ -81,11 +84,39 @@ export function NewCaseForm({
   }))
 
   const activeService = lockService ? resolvedDefault : service
-  const countryOptions = destinationCountryOptions(
-    listServiceCountries(activeService),
+  const catalogCountries = useMemo(
+    () => listServiceCountries(activeService),
+    [activeService],
   )
+  const countryOptions = useMemo(() => {
+    if (catalogCountries.length) {
+      return [
+        { value: '', label: 'Select country' },
+        ...catalogCountries.map((name) => ({ value: name, label: name })),
+      ]
+    }
+    return [
+      { value: '', label: 'Select country' },
+      ...destinationCountryOptions(),
+    ]
+  }, [catalogCountries])
   const resolvedClientId = lockClient ? defaultClientId : clientId
   const serviceName = lockService ? resolvedDefault : service
+
+  useEffect(() => {
+    if (!country) {
+      if (catalogCountries.length === 1) setCountry(catalogCountries[0])
+      return
+    }
+    if (
+      catalogCountries.length &&
+      !catalogCountries.some(
+        (name) => name.toLowerCase() === country.toLowerCase(),
+      )
+    ) {
+      setCountry(catalogCountries.length === 1 ? catalogCountries[0] : '')
+    }
+  }, [catalogCountries, country])
 
   const errors: Record<Field, string | undefined> = {
     clientId: validateRequiredSelect(resolvedClientId, 'client'),
@@ -176,7 +207,11 @@ export function NewCaseForm({
             />
             <Select
               label="Country"
-              hint="Optional. Helps pick the right checklist"
+              hint={
+                catalogCountries.length
+                  ? 'From Service catalog for this service'
+                  : 'Optional. Helps pick the right checklist'
+              }
               searchable
               searchPlaceholder="Search countries…"
               placeholder="Select country"

@@ -297,6 +297,159 @@ export async function adminPatchBilling(
   }
 }
 
+/**
+ * Set per-agency SMS quantity hard cap.
+ * Uses PATCH when the API supports it; otherwise apply-plan with the same
+ * plan/status so older production APIs still persist sms_limit.
+ */
+export async function adminSetSmsLimit(
+  tenantId: string,
+  smsLimit: number,
+  snapshot: BillingSnapshot,
+  enabledModules: string[] = [],
+) {
+  if (!Number.isInteger(smsLimit) || smsLimit < 0) {
+    throw new Error('SMS quantity must be a whole number of 0 or more.')
+  }
+
+  try {
+    await adminPatchBilling(tenantId, { smsLimit })
+    const afterPatch = await adminFetchTenantBilling(tenantId)
+    if (afterPatch.limits.smsLimit === smsLimit) {
+      return afterPatch
+    }
+  } catch {
+    /* older API — fall through to apply-plan */
+  }
+
+  const billing = snapshot.billing
+  if (!billing?.planId) {
+    throw new Error('Assign a plan before setting SMS quantity.')
+  }
+
+  await adminApplyPlan(tenantId, {
+    planId: billing.planId,
+    billingStatus: billing.billingStatus,
+    planKind: billing.planKind,
+    trialEndsAt: billing.trialEndsAt,
+    currentPeriodEnd: billing.currentPeriodEnd,
+    userLimit: snapshot.limits.userLimit,
+    subAgentLimit: snapshot.limits.subAgentLimit,
+    storageLimitBytes: snapshot.limits.storageLimitBytes,
+    smsLimit,
+    smsOverageBdt: 0,
+    syncModules: false,
+  })
+
+  // Older APIs ignore syncModules:false and may wipe product toggles — restore.
+  await restoreTenantModules(tenantId, enabledModules)
+
+  const after = await adminFetchTenantBilling(tenantId)
+  if (after.limits.smsLimit !== smsLimit) {
+    throw new Error('SMS quantity did not save. Try again or redeploy the API.')
+  }
+  return after
+}
+
+/**
+ * Set per-agency storage hard cap (bytes).
+ * Same PATCH → apply-plan fallback as SMS quantity for older APIs.
+ */
+export async function adminSetStorageLimit(
+  tenantId: string,
+  storageLimitBytes: number,
+  snapshot: BillingSnapshot,
+  enabledModules: string[] = [],
+) {
+  if (!Number.isInteger(storageLimitBytes) || storageLimitBytes < 0) {
+    throw new Error('Storage limit must be a whole number of bytes (0 or more).')
+  }
+
+  try {
+    await adminPatchBilling(tenantId, { storageLimitBytes })
+    const afterPatch = await adminFetchTenantBilling(tenantId)
+    if (afterPatch.limits.storageLimitBytes === storageLimitBytes) {
+      return afterPatch
+    }
+  } catch {
+    /* older API — fall through to apply-plan */
+  }
+
+  const billing = snapshot.billing
+  if (!billing?.planId) {
+    throw new Error('Assign a plan before setting storage.')
+  }
+
+  await adminApplyPlan(tenantId, {
+    planId: billing.planId,
+    billingStatus: billing.billingStatus,
+    planKind: billing.planKind,
+    trialEndsAt: billing.trialEndsAt,
+    currentPeriodEnd: billing.currentPeriodEnd,
+    userLimit: snapshot.limits.userLimit,
+    subAgentLimit: snapshot.limits.subAgentLimit,
+    storageLimitBytes,
+    smsLimit: snapshot.limits.smsLimit,
+    smsOverageBdt: snapshot.limits.smsOverageBdt,
+    syncModules: false,
+  })
+
+  await restoreTenantModules(tenantId, enabledModules)
+
+  const after = await adminFetchTenantBilling(tenantId)
+  if (after.limits.storageLimitBytes !== storageLimitBytes) {
+    throw new Error('Storage limit did not save. Try again or redeploy the API.')
+  }
+  return after
+}
+
+async function restoreTenantModules(
+  tenantId: string,
+  modules: string[],
+): Promise<void> {
+  const readKey = async (key: string): Promise<unknown> => {
+    try {
+      const body = await apiFetch<{ value?: unknown }>(
+        `/api/platform/kv/${encodeURIComponent(key)}`,
+      )
+      return body.value ?? null
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) return null
+      return null
+    }
+  }
+
+  const writeKey = async (key: string, value: unknown) => {
+    await apiFetch(`/api/platform/kv/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      body: { value },
+    })
+  }
+
+  const entitlementsRaw = await readKey('pd-tenant-entitlements')
+  const entitlements =
+    entitlementsRaw &&
+    typeof entitlementsRaw === 'object' &&
+    !Array.isArray(entitlementsRaw)
+      ? { ...(entitlementsRaw as Record<string, unknown>) }
+      : {}
+  entitlements[tenantId] = modules
+  await writeKey('pd-tenant-entitlements', entitlements)
+
+  const createdRaw = await readKey('pd-tenants-created')
+  if (Array.isArray(createdRaw)) {
+    let changed = false
+    const next = createdRaw.map((row) => {
+      if (!row || typeof row !== 'object' || Array.isArray(row)) return row
+      const tenant = row as Record<string, unknown>
+      if (tenant.id !== tenantId) return row
+      changed = true
+      return { ...tenant, enabledModules: modules }
+    })
+    if (changed) await writeKey('pd-tenants-created', next)
+  }
+}
+
 export async function adminMarkInvoicePaid(invoiceId: string) {
   try {
     return await apiFetch(

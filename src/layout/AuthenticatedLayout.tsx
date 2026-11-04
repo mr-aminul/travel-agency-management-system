@@ -15,7 +15,7 @@ import { findTenantMemberForUser } from '@/lib/tenantMembersStore'
 import { canAccessPath } from '@/lib/pageAccess'
 import { getPageAccessLevel } from '@/lib/userAccessStore'
 import { buildAccessPageColumns } from '@/lib/accessPages'
-import { useOpenPendingChangeCount } from '@/lib/subAgentPendingChanges'
+import { usePendingChanges } from '@/lib/subAgentPendingChanges'
 import {
   filterNavItems,
   isPathAllowed,
@@ -54,7 +54,14 @@ export default function AuthenticatedLayout() {
     user && user.role === 'agency_user'
       ? findTenantMemberForUser(tenant.id, user.id, user.email)
       : undefined
-  const pendingApprovals = useOpenPendingChangeCount(tenant.id)
+  const pendingChanges = usePendingChanges(tenant.id)
+  const pendingApprovals = useMemo(() => {
+    const open = pendingChanges.filter((row) => row.status === 'pending')
+    if (user?.role === 'sub_agent' && user.subAgentId) {
+      return open.filter((row) => row.subAgentId === user.subAgentId).length
+    }
+    return open.length
+  }, [pendingChanges, user])
 
   useEffect(() => {
     if (status !== 'authenticated') return
@@ -109,12 +116,10 @@ export default function AuthenticatedLayout() {
         if (next.path === '/settings' && settingsBadge > 0) {
           return { ...next, badgeCount: settingsBadge }
         }
-        if (
-          next.path === '/approvals' &&
-          role === 'agency_user' &&
-          pendingApprovals > 0
-        ) {
-          return { ...next, badgeCount: pendingApprovals }
+        if (next.path === '/approvals' && pendingApprovals > 0) {
+          if (role === 'agency_user' || role === 'sub_agent') {
+            return { ...next, badgeCount: pendingApprovals }
+          }
         }
         return next
       })

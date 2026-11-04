@@ -14,6 +14,7 @@ import {
   signOut as apiSignOut,
   startViewAsUser,
   stopViewAsUser,
+  updateOwnProfile as apiUpdateOwnProfile,
   writeSession,
 } from '@/lib/authApi'
 import { AuthContext, type AuthContextValue } from '@/lib/authContext'
@@ -66,20 +67,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const startViewAs = useCallback(
     async (input: Parameters<typeof startViewAsUser>[0]) => {
+      // Clear caches before swapping identity so stores cannot persist the
+      // previous agency's rows under the new tenantId.
+      queryClient.clear()
+      {
+        const { setDataBackend, createApiSyncBackend } = await import(
+          '@/lib/data'
+        )
+        setDataBackend(createApiSyncBackend({}))
+        window.dispatchEvent(new Event('pd-data-rehydrated'))
+      }
       const next = await startViewAsUser(input)
       setSession(next)
-      queryClient.clear()
-      await rehydratePlatformData()
+      const ok = await rehydratePlatformData()
+      if (!ok) {
+        const { setDataBackend, createApiSyncBackend } = await import(
+          '@/lib/data'
+        )
+        setDataBackend(createApiSyncBackend({}))
+        window.dispatchEvent(new Event('pd-data-rehydrated'))
+      }
       return next
     },
     [],
   )
 
   const stopViewAs = useCallback(async () => {
+    queryClient.clear()
+    {
+      const { setDataBackend, createApiSyncBackend } = await import(
+        '@/lib/data'
+      )
+      setDataBackend(createApiSyncBackend({}))
+      window.dispatchEvent(new Event('pd-data-rehydrated'))
+    }
     const next = await stopViewAsUser()
     setSession(next)
-    queryClient.clear()
-    await rehydratePlatformData()
+    const ok = await rehydratePlatformData()
+    if (!ok) {
+      const { setDataBackend, createApiSyncBackend } = await import(
+        '@/lib/data'
+      )
+      setDataBackend(createApiSyncBackend({}))
+      window.dispatchEvent(new Event('pd-data-rehydrated'))
+    }
     return next
   }, [])
 
@@ -87,6 +118,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await apiSignOut()
     setSession(null)
   }, [])
+
+  const updateProfile = useCallback(
+    async (input: { name?: string; email?: string }) => {
+      const user = await apiUpdateOwnProfile(input)
+      const current = readSession()
+      if (current) setSession(current)
+      return user
+    },
+    [],
+  )
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -100,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestWorkspacePicker,
       startViewAs,
       stopViewAs,
+      updateProfile,
       signOut,
     }),
     [
@@ -109,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestWorkspacePicker,
       startViewAs,
       stopViewAs,
+      updateProfile,
       signOut,
     ],
   )

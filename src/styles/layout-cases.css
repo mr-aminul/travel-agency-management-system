@@ -1373,6 +1373,13 @@
   color: var(--color-text);
 }
 
+.pd-pipeline__hint {
+  margin: -0.35rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-text-muted, var(--color-text-sec));
+}
+
 @media (max-width: 767px) {
   .pd-pipeline {
     padding: 1rem;

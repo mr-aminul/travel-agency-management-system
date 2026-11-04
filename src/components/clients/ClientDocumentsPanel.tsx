@@ -24,9 +24,15 @@ type SelectedDoc = {
   docId: string
 }
 
-function childTone(locked: boolean, hasFile: boolean): 'done' | 'need' | 'idle' {
+function childTone(
+  locked: boolean,
+  hasFile: boolean,
+  required = true,
+): 'done' | 'need' | 'idle' {
   if (locked) return 'idle'
-  return hasFile ? 'done' : 'need'
+  if (hasFile) return 'done'
+  // Red attention only when catalog marks the paper Required.
+  return required ? 'need' : 'idle'
 }
 
 export function ClientDocumentsPanel({
@@ -277,7 +283,11 @@ export function ClientDocumentsPanel({
                       const active =
                         selected.groupId === group.caseId &&
                         selected.docId === doc.id
-                      const tone = childTone(doc.locked, documentHasFile(doc))
+                      const tone = childTone(
+                        doc.locked,
+                        documentHasFile(doc),
+                        doc.required === true,
+                      )
                       return (
                         <button
                           key={doc.id}

@@ -81,23 +81,13 @@ export const layoutConfig: AppLayoutConfig = {
       moduleId: 'subAgents',
       agencyOnly: true,
       section: 'Network',
-      children: [
-        {
-          path: '/sub-agents',
-          label: 'Directory',
-          icon: Handshake,
-          moduleId: 'subAgents',
-          agencyOnly: true,
-          end: true,
-        },
-        {
-          path: '/approvals',
-          label: 'Approvals',
-          icon: ClipboardCheck,
-          moduleId: 'subAgents',
-          agencyOnly: true,
-        },
-      ],
+    },
+    {
+      path: '/approvals',
+      label: 'Approvals',
+      icon: ClipboardCheck,
+      moduleId: 'subAgents',
+      section: 'Network',
     },
     {
       path: '/my-submissions',

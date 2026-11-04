@@ -234,9 +234,26 @@ export function updateTenantMember(
   const index = members.findIndex((member) => member.id === memberId)
   if (index < 0) throw new Error('User not found.')
   const current = members[index]!
+  const nextEmail =
+    patch.email !== undefined
+      ? patch.email.trim().toLowerCase()
+      : current.email
+  if (!nextEmail) throw new Error('Email is required.')
+  if (nextEmail !== current.email.toLowerCase()) {
+    const duplicate = members.find(
+      (member) =>
+        member.id !== memberId &&
+        member.tenantId === current.tenantId &&
+        member.email.toLowerCase() === nextEmail,
+    )
+    if (duplicate) {
+      throw new Error('A user with this email already exists in this agency.')
+    }
+  }
   const next: TenantMember = {
     ...current,
     name: patch.name !== undefined ? patch.name.trim() : current.name,
+    email: nextEmail,
     role: patch.role ?? current.role,
     status: patch.status ?? current.status,
   }

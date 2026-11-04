@@ -39,6 +39,7 @@ export const TENANT_MAP_KEYS = new Set([
   'pd-agency-profiles',
   'pd-agency-appearance',
   'pd-onboarding-state',
+  'pd-user-avatars',
 ])
 
 /** Platform-admin write only (global IAM / tenancy) */
@@ -148,16 +149,33 @@ export function mergeValueForTenant(key, existing, incoming, tenantId) {
       return nextIncoming
     }
     const others = prior.filter((item) => itemTenantId(item) !== tenantId)
-    const owned = nextIncoming.filter((item) => {
-      const tid = itemTenantId(item)
-      return tid == null || tid === tenantId
-    })
-    // Stamp tenantId on owned items missing it
+    // Only accept rows already stamped for this agency. Blank/foreign tenantId
+    // used to get auto-stamped and caused cross-agency client leaks on view-as.
+    const owned = nextIncoming.filter((item) => itemTenantId(item) === tenantId)
     const stamped = owned.map((item) =>
-      item && typeof item === 'object'
-        ? { ...item, tenantId: itemTenantId(item) || tenantId }
-        : item,
+      item && typeof item === 'object' ? { ...item, tenantId } : item,
     )
+    if (key === 'pd-sub-agents-created') {
+      const taken = new Set(
+        others
+          .map((item) =>
+            item && typeof item === 'object' ? String(item.id || '').trim() : '',
+          )
+          .filter(Boolean),
+      )
+      const uniqueOwned = []
+      for (const item of stamped) {
+        if (!item || typeof item !== 'object') continue
+        let id = String(item.id || '').trim()
+        if (!id) continue
+        if (taken.has(id)) {
+          id = `AGT-${crypto.randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`
+        }
+        taken.add(id)
+        uniqueOwned.push({ ...item, id, tenantId })
+      }
+      return [...others, ...uniqueOwned]
+    }
     return [...others, ...stamped]
   }
   if (TENANT_MAP_KEYS.has(key)) {

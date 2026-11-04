@@ -101,3 +101,9 @@ export function useSubAgentAccessSettings(
     [all, tenantId],
   )
 }
+
+/** Test helper — clears access-settings cache + storage. */
+export function resetSubAgentAccessSettings() {
+  cache = []
+  persist()
+}

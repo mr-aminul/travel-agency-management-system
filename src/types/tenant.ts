@@ -75,6 +75,7 @@ export type CreateTenantMemberInput = {
 
 export type UpdateTenantMemberInput = {
   name?: string
+  email?: string
   role?: TenantMemberRole
   status?: TenantMemberStatus
 }

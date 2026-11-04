@@ -142,6 +142,43 @@ export async function updateProvisionedPassword(
   persist()
 }
 
+export function updateProvisionedProfile(
+  userId: string,
+  patch: { name?: string; email?: string },
+): SeededAuthUser {
+  const index = accounts.findIndex((account) => account.user.id === userId)
+  if (index < 0) {
+    throw new Error('Local login not found for this user.')
+  }
+  const current = accounts[index]!
+  const nextName =
+    patch.name !== undefined ? patch.name.trim() : current.user.name
+  const nextEmail =
+    patch.email !== undefined
+      ? patch.email.trim().toLowerCase()
+      : current.user.email
+  if (!nextName) throw new Error('Name is required.')
+  if (!nextEmail) throw new Error('Email is required.')
+  if (nextEmail !== current.user.email.toLowerCase()) {
+    if (
+      findSeededAccountByEmail(nextEmail) ||
+      findProvisionedAccountByEmail(nextEmail)
+    ) {
+      throw new Error('An account with this email already exists.')
+    }
+  }
+  const nextUser: SeededAuthUser = {
+    ...current.user,
+    name: nextName,
+    email: nextEmail,
+  }
+  accounts = accounts.map((account, i) =>
+    i === index ? { ...current, user: nextUser } : account,
+  )
+  persist()
+  return nextUser
+}
+
 export function resetProvisionedLogins() {
   removeJson(STORAGE_KEY)
   accounts = []

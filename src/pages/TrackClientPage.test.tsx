@@ -126,4 +126,34 @@ describe('public client tracking', () => {
     expect(screen.getByText('Embassy interview pending')).toBeInTheDocument()
     expect(screen.getByText('University applied')).toBeInTheDocument()
   })
+
+  it('shows an error when the public track API fails', async () => {
+    shouldUseApiDataBackend.mockReturnValue(true)
+    apiFetch.mockRejectedValue({ status: 500, message: 'down' })
+
+    renderTrack('/track?passport=A55667788')
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Could not look up this passport right now/i),
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('explains when a passport matches but has no service journey', async () => {
+    shouldUseApiDataBackend.mockReturnValue(true)
+    apiFetch.mockResolvedValue({
+      client: { name: 'Orphan Client', passport: 'Z99887766' },
+      services: [],
+    })
+
+    renderTrack('/track?passport=Z99887766')
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/no service journey is available/i),
+      ).toBeInTheDocument()
+    })
+    expect(screen.queryByLabelText('Service journey')).not.toBeInTheDocument()
+  })
 })

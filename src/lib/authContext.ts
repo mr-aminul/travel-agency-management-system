@@ -28,6 +28,11 @@ export type AuthContextValue = {
     subAgentId?: string
   }) => Promise<AuthSession>
   stopViewAs: () => Promise<AuthSession>
+  /** Update signed-in user's name/email and refresh the session. */
+  updateProfile: (input: {
+    name?: string
+    email?: string
+  }) => Promise<AuthUser>
   signOut: () => Promise<void>
 }
 

@@ -15,6 +15,8 @@ export type ServiceJourneyProps = {
   interactive?: boolean
   /** When set (public track), use these labels instead of local templates. */
   stepDefs?: JourneyStepDefInput[]
+  /** Hide steps after the current one (staff pipeline). */
+  hideUpcoming?: boolean
   progressAriaLabel?: string
   onStepActivate?: (stepId: string, state: JourneyStepState) => void
 }
@@ -50,7 +52,7 @@ function JourneyRow({
       title={
         step.state === 'current'
           ? 'Enter details to complete'
-          : 'View saved details'
+          : 'View or move back to this step'
       }
       onClick={() => onActivate(step.id, step.state)}
     >
@@ -63,12 +65,13 @@ export function ServiceJourney({
   item,
   interactive = false,
   stepDefs,
+  hideUpcoming,
   progressAriaLabel = 'Application progress',
   onStepActivate,
 }: ServiceJourneyProps) {
   const journey = useMemo(
-    () => buildServiceJourney(item, { interactive, stepDefs }),
-    [item, interactive, stepDefs],
+    () => buildServiceJourney(item, { interactive, stepDefs, hideUpcoming }),
+    [item, interactive, stepDefs, hideUpcoming],
   )
 
   return (
@@ -90,10 +93,7 @@ export function ServiceJourney({
       <ol className="pd-journey__steps" aria-label="Service journey">
         {journey.steps.map((step) => {
           const clickable =
-            interactive &&
-            (step.state === 'current' || step.state === 'done')
-              ? onStepActivate
-              : undefined
+            interactive && step.state !== 'upcoming' ? onStepActivate : undefined
 
           return (
             <li

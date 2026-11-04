@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Eye, Plus, Trash2, Users } from 'lucide-react'
+import { Eye, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ADMIN_AGENCIES, adminAgencyPath, setSupportReturnPath } from '@/lib/adminPaths'
 import { useAuth } from '@/lib/useAuth'
@@ -13,7 +13,12 @@ import {
   provisionAgencyUser,
   setAgencyUserPassword,
   setAgencyUserStatus,
+  updateAgencyUserProfile,
 } from '@/lib/authApi'
+import {
+  validateRequiredEmail,
+  validateRequiredName,
+} from '@/lib/fieldValidation'
 import { absolutePublicUrl } from '@/lib/publicUrl'
 import {
   createTenantMember,
@@ -107,6 +112,11 @@ export default function TenantUsersPage() {
     useState<CreatedCredentials | null>(null)
   const [resetMember, setResetMember] = useState<TenantMember | null>(null)
   const [resetPassword, setResetPassword] = useState('')
+  const [editMember, setEditMember] = useState<TenantMember | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editError, setEditError] = useState<string | undefined>()
+  const [isEditing, setIsEditing] = useState(false)
   const [actionError, setActionError] = useState<string | undefined>()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -345,6 +355,63 @@ export default function TenantUsersPage() {
     }
   }
 
+  const openEdit = (member: TenantMember) => {
+    setEditMember(member)
+    setEditName(member.name)
+    setEditEmail(member.email)
+    setEditError(undefined)
+  }
+
+  const closeEdit = () => {
+    if (isEditing) return
+    setEditMember(null)
+    setEditName('')
+    setEditEmail('')
+    setEditError(undefined)
+  }
+
+  const handleEditProfile = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!editMember) return
+    const nameError = validateRequiredName(editName, 'Full name')
+    const emailError = validateRequiredEmail(editEmail)
+    if (nameError || emailError) {
+      setEditError(nameError ?? emailError)
+      return
+    }
+    const nextName = editName.trim()
+    const nextEmail = editEmail.trim().toLowerCase()
+    const nameChanged = nextName !== editMember.name
+    const emailChanged = nextEmail !== editMember.email.toLowerCase()
+    if (!nameChanged && !emailChanged) {
+      closeEdit()
+      return
+    }
+    setEditError(undefined)
+    setIsEditing(true)
+    try {
+      await updateAgencyUserProfile({
+        userId: editMember.id,
+        email: editMember.email,
+        ...(nameChanged ? { name: nextName } : {}),
+        ...(emailChanged ? { nextEmail } : {}),
+      })
+      updateTenantMember(editMember.id, {
+        ...(nameChanged ? { name: nextName } : {}),
+        ...(emailChanged ? { email: nextEmail } : {}),
+      })
+      setEditMember(null)
+      setEditName('')
+      setEditEmail('')
+    } catch (error) {
+      setEditError(
+        error instanceof Error ? error.message : 'Could not update user.',
+      )
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
   const addButton = (
     <Button onClick={() => setCreateOpen(true)}>
       <Plus size={16} strokeWidth={2.25} aria-hidden />
@@ -534,6 +601,51 @@ export default function TenantUsersPage() {
     </Modal>
   )
 
+  const editModal = (
+    <Modal
+      open={editMember != null}
+      onClose={closeEdit}
+      title="Edit user"
+      description={
+        editMember
+          ? `Update name or email for ${editMember.name}.`
+          : undefined
+      }
+      actions={
+        <>
+          <Button variant="secondary" onClick={closeEdit} disabled={isEditing}>
+            Cancel
+          </Button>
+          <Button type="submit" form="pd-admin-edit-user" disabled={isEditing}>
+            {isEditing ? 'Saving…' : 'Save'}
+          </Button>
+        </>
+      }
+    >
+      <form id="pd-admin-edit-user" onSubmit={handleEditProfile} noValidate>
+        <Input
+          label="Full name"
+          required
+          value={editName}
+          onChange={(event) => setEditName(event.target.value)}
+        />
+        <Input
+          label="Email"
+          required
+          type="email"
+          autoComplete="off"
+          value={editEmail}
+          onChange={(event) => setEditEmail(event.target.value)}
+        />
+        {editError ? (
+          <p className="pd-field__error" role="alert">
+            {editError}
+          </p>
+        ) : null}
+      </form>
+    </Modal>
+  )
+
   const sectionHead = (
     <div className="pd-client-detail__section-head">
       <h2 className="pd-client-detail__section-title">
@@ -561,6 +673,7 @@ export default function TenantUsersPage() {
         {createModal}
         {credentialsModal}
         {resetModal}
+        {editModal}
       </div>
     )
   }
@@ -665,6 +778,15 @@ export default function TenantUsersPage() {
               </TableCell>
               <TableCell>
                 <span className="pd-admin__row-actions">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busyId != null || isDeleting || isEditing}
+                    onClick={() => openEdit(member)}
+                  >
+                    <Pencil size={14} strokeWidth={2.25} aria-hidden />
+                    Edit
+                  </Button>
                   {member.status === 'active' ? (
                     <Button
                       variant="secondary"
@@ -698,6 +820,7 @@ export default function TenantUsersPage() {
       {createModal}
       {credentialsModal}
       {resetModal}
+      {editModal}
       <ConfirmDialog
         open={confirmDelete}
         onClose={() => (isDeleting ? undefined : setConfirmDelete(false))}

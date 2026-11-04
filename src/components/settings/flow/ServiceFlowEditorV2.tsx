@@ -3,6 +3,7 @@ import { Plus, Trash2, X } from 'lucide-react'
 import { DocumentFieldsEditor } from '@/components/settings/DocumentFieldsEditor'
 import { StepAutoNotifyEditor } from '@/components/settings/StepAutoNotifyEditor'
 import { StepBranchRulesEditor } from '@/components/settings/StepBranchRulesEditor'
+import { StepFieldsEditor } from '@/components/settings/StepFieldsEditor'
 import {
   BranchConditionDialog,
   type PendingBranch,
@@ -187,7 +188,8 @@ export function ServiceFlowEditorV2({
       {
         id,
         name: '',
-        required: true,
+        // Optional until marked Required — complete still works without it.
+        required: false,
         ...(attachToStepId ? { unlockStepId: attachToStepId } : {}),
       },
     ])
@@ -498,6 +500,14 @@ export function ServiceFlowEditorV2({
                           branchRules: item.branchRules?.filter(
                             (rule) => rule.nextStepId !== stepId,
                           ),
+                          decisions: item.decisions?.map((decision) => ({
+                            ...decision,
+                            options: decision.options.map((option) =>
+                              option.nextStepId === stepId
+                                ? { ...option, nextStepId: undefined }
+                                : option,
+                            ),
+                          })),
                         })),
                     )
                     setSelection(null)
@@ -538,9 +548,45 @@ export function ServiceFlowEditorV2({
                 />
               </div>
               <div className="pd-service-flow__inspector-section">
-                <span className="pd-settings-template__needs-label">
-                  Needs documents
-                </span>
+                <StepFieldsEditor
+                  key={`${country || 'all'}:${selectedStep.id}`}
+                  step={selectedStep}
+                  steps={steps}
+                  onChange={({ fields, decisions }) => {
+                    setSteps((current) =>
+                      current.map((item) =>
+                        item.id === selectedStep.id
+                          ? {
+                              ...item,
+                              fields,
+                              decisions,
+                            }
+                          : item,
+                      ),
+                    )
+                    markDirty()
+                  }}
+                />
+              </div>
+              <div className="pd-service-flow__inspector-section">
+                <div className="pd-settings-template__panel-label-row">
+                  <span className="pd-settings-template__needs-label">
+                    Needs documents
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => addDocument(selectedStep.id)}
+                  >
+                    <Plus size={14} aria-hidden />
+                    Add document
+                  </Button>
+                </div>
+                <p className="pd-service-flow__inspector-copy">
+                  Attach what this step may collect. Turn on Required only when
+                  staff must upload it before Complete.
+                </p>
                 <div className="pd-settings-template__needs-chips">
                   {(selectedStep.requiredDocumentIds ?? []).map((docId) => {
                     const doc = documents.find((item) => item.id === docId)
@@ -560,8 +606,8 @@ export function ServiceFlowEditorV2({
                 </div>
                 {documents.length === 0 ? (
                   <p className="pd-service-flow__inspector-copy">
-                    Add a document on the step, then tick it here so it nests
-                    inside this stage.
+                    Add a document for this step, then mark Required if it must
+                    be filed before Complete.
                   </p>
                 ) : (
                   <div
@@ -574,14 +620,36 @@ export function ServiceFlowEditorV2({
                         selectedStep.requiredDocumentIds ?? []
                       ).includes(doc.id)
                       return (
-                        <Checkbox
+                        <div
                           key={doc.id}
-                          label={doc.name || 'Untitled'}
-                          checked={checked}
-                          onChange={() =>
-                            setStepNeedsDoc(selectedStep.id, doc.id)
-                          }
-                        />
+                          className="pd-service-flow__doc-pick-row"
+                        >
+                          <Checkbox
+                            label={doc.name || 'Untitled'}
+                            checked={checked}
+                            onChange={() =>
+                              setStepNeedsDoc(selectedStep.id, doc.id)
+                            }
+                          />
+                          {checked ? (
+                            <Switch
+                              className="pd-service-flow__doc-required"
+                              label="Required"
+                              checked={doc.required}
+                              onChange={(event) => {
+                                const required = event.target.checked
+                                setDocuments((current) =>
+                                  current.map((item) =>
+                                    item.id === doc.id
+                                      ? { ...item, required }
+                                      : item,
+                                  ),
+                                )
+                                markDirty()
+                              }}
+                            />
+                          ) : null}
+                        </div>
                       )
                     })}
                   </div>

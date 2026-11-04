@@ -27,24 +27,35 @@ export function createMemoryBackend(
   }
 }
 
+function browserLocalStorage(): Storage | null {
+  try {
+    // Prefer window.localStorage so Node's experimental global cannot shadow jsdom.
+    const storage =
+      typeof window !== 'undefined' ? window.localStorage : undefined
+    return storage ?? null
+  } catch {
+    return null
+  }
+}
+
 export const localStorageBackend: DataBackend = {
   getItem(key) {
     try {
-      return localStorage.getItem(key)
+      return browserLocalStorage()?.getItem(key) ?? null
     } catch {
       return null
     }
   },
   setItem(key, value) {
     try {
-      localStorage.setItem(key, value)
+      browserLocalStorage()?.setItem(key, value)
     } catch {
       /* ignore quota / private mode */
     }
   },
   removeItem(key) {
     try {
-      localStorage.removeItem(key)
+      browserLocalStorage()?.removeItem(key)
     } catch {
       /* ignore */
     }

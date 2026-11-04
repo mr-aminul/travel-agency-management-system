@@ -652,6 +652,184 @@ export async function setAgencyUserStatus({ userId, email, status }) {
   }
 }
 
+/**
+ * Update name and/or email for an agency / sub-agent login.
+ * Email must stay unique across platform.users.
+ */
+export async function updateAgencyUserProfile({
+  userId,
+  email,
+  name,
+  nextEmail,
+}) {
+  const row = await findAgencyUserRow({ userId, email })
+  if (!row) {
+    return { ok: false, status: 404, error: 'User not found.' }
+  }
+
+  const trimmedName =
+    name !== undefined && name !== null ? String(name).trim() : undefined
+  const normalizedNextEmail =
+    nextEmail !== undefined && nextEmail !== null
+      ? normalizeEmail(nextEmail)
+      : undefined
+
+  if (trimmedName !== undefined && !trimmedName) {
+    return { ok: false, status: 400, error: 'Name is required.' }
+  }
+  if (normalizedNextEmail !== undefined && !normalizedNextEmail) {
+    return { ok: false, status: 400, error: 'Email is required.' }
+  }
+  if (trimmedName === undefined && normalizedNextEmail === undefined) {
+    return { ok: false, status: 400, error: 'Nothing to update.' }
+  }
+
+  if (
+    normalizedNextEmail &&
+    normalizedNextEmail !== normalizeEmail(row.email)
+  ) {
+    const clash = await query(
+      `select id from platform.users where lower(email) = $1 and id <> $2 limit 1`,
+      [normalizedNextEmail, row.id],
+    )
+    if (clash.rows[0]) {
+      return {
+        ok: false,
+        status: 409,
+        error: 'An account with this email already exists.',
+      }
+    }
+  }
+
+  const nextName = trimmedName !== undefined ? trimmedName : row.name
+  const nextMail =
+    normalizedNextEmail !== undefined ? normalizedNextEmail : row.email
+
+  const result = await query(
+    `update platform.users
+     set name = $2, email = $3, updated_at = now()
+     where id = $1
+     returning id, email, name, role, tenant_id, status, sub_agent_id`,
+    [row.id, nextName, nextMail],
+  )
+  const updated = result.rows[0]
+
+  const previousEmail = normalizeEmail(row.email)
+  const tenantId = updated.tenant_id || null
+  if (
+    tenantId &&
+    previousEmail &&
+    previousEmail !== normalizeEmail(updated.email)
+  ) {
+    await query(
+      `update platform.invites
+       set email = $3
+       where tenant_id = $1 and lower(email) = $2`,
+      [tenantId, previousEmail, updated.email],
+    ).catch(() => {})
+  }
+
+  return {
+    ok: true,
+    status: 200,
+    body: {
+      user: publicUser(updated),
+      tenantId,
+    },
+  }
+}
+
+/** Signed-in user updates their own name and/or email (not while viewing as). */
+export async function updateOwnUserProfile({ userId, name, email }) {
+  const id = String(userId ?? '').trim()
+  if (!id) {
+    return { ok: false, status: 401, error: 'Authentication required.' }
+  }
+
+  const existing = await query(
+    `select id, email, name, role, tenant_id, status, sub_agent_id
+     from platform.users where id = $1 limit 1`,
+    [id],
+  )
+  const row = existing.rows[0]
+  if (!row) {
+    return { ok: false, status: 404, error: 'User not found.' }
+  }
+  if (row.status === 'disabled') {
+    return { ok: false, status: 403, error: 'Account is disabled.' }
+  }
+
+  const trimmedName =
+    name !== undefined && name !== null ? String(name).trim() : undefined
+  const normalizedNextEmail =
+    email !== undefined && email !== null ? normalizeEmail(email) : undefined
+
+  if (trimmedName !== undefined && !trimmedName) {
+    return { ok: false, status: 400, error: 'Name is required.' }
+  }
+  if (normalizedNextEmail !== undefined && !normalizedNextEmail) {
+    return { ok: false, status: 400, error: 'Email is required.' }
+  }
+  if (trimmedName === undefined && normalizedNextEmail === undefined) {
+    return { ok: false, status: 400, error: 'Nothing to update.' }
+  }
+
+  if (
+    normalizedNextEmail &&
+    normalizedNextEmail !== normalizeEmail(row.email)
+  ) {
+    const clash = await query(
+      `select id from platform.users where lower(email) = $1 and id <> $2 limit 1`,
+      [normalizedNextEmail, row.id],
+    )
+    if (clash.rows[0]) {
+      return {
+        ok: false,
+        status: 409,
+        error: 'An account with this email already exists.',
+      }
+    }
+  }
+
+  const nextName = trimmedName !== undefined ? trimmedName : row.name
+  const nextMail =
+    normalizedNextEmail !== undefined ? normalizedNextEmail : row.email
+
+  const result = await query(
+    `update platform.users
+     set name = $2, email = $3, updated_at = now()
+     where id = $1
+     returning id, email, name, role, tenant_id, status, sub_agent_id`,
+    [row.id, nextName, nextMail],
+  )
+  const updated = result.rows[0]
+
+  const previousEmail = normalizeEmail(row.email)
+  const tenantId = updated.tenant_id || null
+  if (
+    tenantId &&
+    previousEmail &&
+    previousEmail !== normalizeEmail(updated.email) &&
+    (updated.role === 'agency_user' || updated.role === 'sub_agent')
+  ) {
+    await query(
+      `update platform.invites
+       set email = $3
+       where tenant_id = $1 and lower(email) = $2`,
+      [tenantId, previousEmail, updated.email],
+    ).catch(() => {})
+  }
+
+  return {
+    ok: true,
+    status: 200,
+    body: {
+      user: publicUser(updated),
+      tenantId,
+    },
+  }
+}
+
 /** Permanently remove an agency or sub-agent login (sessions cascade). */
 export async function deleteAgencyUser({ userId, email }) {
   const row = await findAgencyUserRow({ userId, email })

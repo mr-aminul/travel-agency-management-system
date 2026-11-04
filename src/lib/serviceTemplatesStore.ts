@@ -13,11 +13,16 @@ import {
   normalizeBranchRules,
   validateStepBranchRules,
 } from '@/lib/stepBranchRules'
+import {
+  normalizeDecisions,
+  validateStepDecisions,
+} from '@/lib/stepDecisions'
 import { syncDocumentUnlockSteps } from '@/lib/stepDocumentLinks'
 import type {
   ServiceDocumentConfig,
   ServiceStepAutoNotify,
   ServiceStepConfig,
+  ServiceStepField,
   ServiceTemplateOverride,
 } from '@/types/serviceTemplate'
 
@@ -68,6 +73,43 @@ function normalizeAutoNotify(value: unknown): ServiceStepAutoNotify | undefined 
   }
 }
 
+function normalizeStepFields(value: unknown): ServiceStepField[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const fields = value
+    .map((item): ServiceStepField | undefined => {
+      if (!isRecord(item)) return undefined
+      const key = typeof item.key === 'string' ? item.key.trim() : ''
+      const label = typeof item.label === 'string' ? item.label.trim() : ''
+      if (!key || !label) return undefined
+      const typeRaw = typeof item.type === 'string' ? item.type.trim() : 'text'
+      const type =
+        typeRaw === 'date' ||
+        typeRaw === 'number' ||
+        typeRaw === 'textarea' ||
+        typeRaw === 'select'
+          ? typeRaw
+          : 'text'
+      const options = Array.isArray(item.options)
+        ? item.options
+            .filter((option): option is string => typeof option === 'string')
+            .map((option) => option.trim())
+            .filter(Boolean)
+        : undefined
+      return {
+        key,
+        label,
+        type,
+        ...(item.required === true ? { required: true } : {}),
+        ...(typeof item.placeholder === 'string' && item.placeholder.trim()
+          ? { placeholder: item.placeholder.trim() }
+          : {}),
+        ...(type === 'select' && options?.length ? { options } : {}),
+      }
+    })
+    .filter((item): item is ServiceStepField => item != null)
+  return fields.length ? fields : undefined
+}
+
 function normalizeStep(value: unknown): ServiceStepConfig | undefined {
   if (!isRecord(value)) return undefined
   const id = typeof value.id === 'string' ? value.id.trim() : ''
@@ -80,12 +122,16 @@ function normalizeStep(value: unknown): ServiceStepConfig | undefined {
         .filter(Boolean)
     : undefined
   const branchRules = normalizeBranchRules(value.branchRules)
+  const decisions = normalizeDecisions(value.decisions)
+  const fields = normalizeStepFields(value.fields)
   const autoNotify = normalizeAutoNotify(value.autoNotify)
   return {
     id,
     label,
     ...(requiredDocumentIds?.length ? { requiredDocumentIds } : {}),
     ...(branchRules?.length ? { branchRules } : {}),
+    ...(decisions?.length ? { decisions } : {}),
+    ...(fields?.length ? { fields } : {}),
     ...(autoNotify ? { autoNotify } : {}),
   }
 }
@@ -98,7 +144,8 @@ function normalizeDocument(value: unknown): ServiceDocumentConfig | undefined {
   return {
     id,
     name,
-    required: value.required !== false,
+    // Explicit catalog Required only (false stays false).
+    required: value.required === true,
     unlockStepId:
       typeof value.unlockStepId === 'string' && value.unlockStepId.trim()
         ? value.unlockStepId.trim()
@@ -263,11 +310,15 @@ export function saveServiceTemplate(input: {
   const rawSteps = input.steps
     .map((step) => {
       const autoNotify = normalizeAutoNotify(step.autoNotify)
+      const decisions = normalizeDecisions(step.decisions)
+      const fields = normalizeStepFields(step.fields)
       return {
         id: step.id.trim() || nextTemplateItemId(step.label, []),
         label: step.label.trim(),
         requiredDocumentIds: step.requiredDocumentIds,
         branchRules: normalizeBranchRules(step.branchRules),
+        ...(decisions?.length ? { decisions } : {}),
+        ...(fields?.length ? { fields } : {}),
         ...(autoNotify ? { autoNotify } : {}),
       }
     })
@@ -287,6 +338,8 @@ export function saveServiceTemplate(input: {
   }
   const branchError = validateStepBranchRules(rawSteps)
   if (branchError) throw new Error(branchError)
+  const decisionError = validateStepDecisions(rawSteps)
+  if (decisionError) throw new Error(decisionError)
 
   const { steps, documents } = syncDocumentUnlockSteps(rawSteps, rawDocuments)
 

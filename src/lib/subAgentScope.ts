@@ -98,3 +98,26 @@ export function canApproveSubAgentChanges(
   }
   return settings.approverMemberIds.includes(memberId)
 }
+
+/**
+ * Public registration via a sub-agent share link always lands in Approvals
+ * (partial approval) until an agency user or that sub-agent accepts it.
+ * Admin/agency registration links create the client immediately instead.
+ */
+export function queuePublicSubAgentRegistration(input: {
+  tenantId: string
+  subAgentId: string
+  summary: string
+  payload: unknown
+}): SubAgentPendingChange {
+  return submitPendingChange({
+    tenantId: input.tenantId,
+    subAgentId: input.subAgentId,
+    submittedByUserId: `public-intake:${input.subAgentId}`,
+    submittedByName: 'Registration link',
+    entityType: 'client',
+    action: 'create',
+    summary: input.summary,
+    payload: input.payload,
+  })
+}

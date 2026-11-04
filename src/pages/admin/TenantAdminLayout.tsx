@@ -12,6 +12,7 @@ import {
   ExternalLink,
   LayoutDashboard,
   LayoutGrid,
+  MessageSquareText,
   ScrollText,
   Users,
 } from 'lucide-react'
@@ -55,6 +56,7 @@ const SECTIONS = [
   { to: 'overview', label: 'Overview', icon: LayoutDashboard },
   { to: 'people', label: 'People', icon: Users },
   { to: 'product', label: 'Product', icon: Boxes },
+  { to: 'messaging', label: 'SMS / Email', icon: MessageSquareText },
   { to: 'activity', label: 'Activity', icon: ScrollText },
 ] as const
 

@@ -212,3 +212,9 @@ export function useOpenPendingChangeCount(
   return usePendingChanges(tenantId).filter((row) => row.status === 'pending')
     .length
 }
+
+/** Test helper — clears pending-change cache + storage. */
+export function resetPendingChanges() {
+  cache = []
+  persist()
+}

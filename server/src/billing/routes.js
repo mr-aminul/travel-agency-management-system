@@ -19,6 +19,8 @@ import {
   setBillingStatus,
   setTenantEmailEnabled,
   setTenantSmsEnabled,
+  setTenantSmsLimit,
+  setTenantStorageLimit,
   startTrialForTenant,
   updateBillingNotes,
 } from './tenantBilling.js'
@@ -612,6 +614,8 @@ export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }
           planKind: req.body?.planKind || 'comp',
           trialEndsAt: req.body?.trialEndsAt || null,
           currentPeriodEnd: req.body?.currentPeriodEnd || null,
+          // Limit-only updates (e.g. SMS quantity) must not wipe product toggles.
+          syncModules: req.body?.syncModules !== false,
           overrides: {
             userLimit: req.body?.userLimit,
             subAgentLimit: req.body?.subAgentLimit,
@@ -698,6 +702,23 @@ export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }
           const result = await setTenantEmailEnabled(
             tenantId,
             Boolean(req.body.emailEnabled),
+          )
+          if (!result.ok) {
+            res.status(result.status || 400).json({ error: result.error })
+            return
+          }
+        }
+        if (req.body?.smsLimit != null) {
+          const result = await setTenantSmsLimit(tenantId, req.body.smsLimit)
+          if (!result.ok) {
+            res.status(result.status || 400).json({ error: result.error })
+            return
+          }
+        }
+        if (req.body?.storageLimitBytes != null) {
+          const result = await setTenantStorageLimit(
+            tenantId,
+            req.body.storageLimitBytes,
           )
           if (!result.ok) {
             res.status(result.status || 400).json({ error: result.error })

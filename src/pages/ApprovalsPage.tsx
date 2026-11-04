@@ -13,6 +13,10 @@ import { findSubAgentById } from '@/lib/subAgentsStore'
 import { formatDisplayDate } from '@/lib/formatDate'
 import '@/styles/layout-ops.css'
 
+function isPublicIntake(change: { submittedByUserId: string }) {
+  return change.submittedByUserId.startsWith('public-intake:')
+}
+
 export default function ApprovalsPage() {
   const { user } = useAuth()
   const tenantId = getActiveTenantId()
@@ -21,7 +25,8 @@ export default function ApprovalsPage() {
   const member = user
     ? findTenantMemberForUser(tenantId, user.id, user.email)
     : undefined
-  const canApprove = (() => {
+
+  const agencyCanApprove = (() => {
     if (user?.role !== 'agency_user' || !member || member.status !== 'active') {
       return false
     }
@@ -35,17 +40,29 @@ export default function ApprovalsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const visible = useMemo(() => {
-    const rows =
-      filter === 'pending'
-        ? changes.filter((row) => row.status === 'pending')
-        : changes
+    let rows = changes
+    // Sub-agents only see submissions for their own referrals.
+    if (user?.role === 'sub_agent' && user.subAgentId) {
+      rows = rows.filter((row) => row.subAgentId === user.subAgentId)
+    }
+    if (filter === 'pending') {
+      rows = rows.filter((row) => row.status === 'pending')
+    }
     return rows.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  }, [changes, filter])
+  }, [changes, filter, user])
+
+  const canApproveChange = (subAgentId: string) => {
+    if (agencyCanApprove) return true
+    if (user?.role === 'sub_agent' && user.subAgentId === subAgentId) {
+      return true
+    }
+    return false
+  }
 
   const approve = (id: string) => {
     setError(null)
     const change = changes.find((row) => row.id === id)
-    if (!change || !user) return
+    if (!change || !user || !canApproveChange(change.subAgentId)) return
     try {
       applyApprovedPendingChange(change, {
         userId: user.id,
@@ -59,7 +76,7 @@ export default function ApprovalsPage() {
   const reject = (id: string) => {
     setError(null)
     const change = changes.find((row) => row.id === id)
-    if (!change || !user) return
+    if (!change || !user || !canApproveChange(change.subAgentId)) return
     try {
       rejectPendingChange(change, { userId: user.id, name: user.name })
     } catch (err) {
@@ -71,7 +88,7 @@ export default function ApprovalsPage() {
     <div className="pd-page">
       <PageHeader
         title="Approvals"
-        description="Review changes submitted by logged-in sub-agents before they go live."
+        description="Sub-agent registration links land here as partial approval. Agency admin links create clients directly. Sub-agents can also approve their own submissions."
       />
 
       <div className="pd-toolbar" role="group" aria-label="Filter">
@@ -98,12 +115,14 @@ export default function ApprovalsPage() {
       {visible.length === 0 ? (
         <EmptyState
           title={filter === 'pending' ? 'Nothing to approve' : 'No submissions yet'}
-          description="When sub agents add or edit clients and services, those changes appear here if approval is required."
+          description="Public registrations from a sub-agent link, and other sub-agent changes that need review, appear here."
         />
       ) : (
         <ul className="pd-approval-list">
           {visible.map((change) => {
             const subAgent = findSubAgentById(change.subAgentId)
+            const showActions =
+              change.status === 'pending' && canApproveChange(change.subAgentId)
             return (
               <li key={change.id} className="pd-approval-card">
                 <div className="pd-approval-card__main">
@@ -118,7 +137,9 @@ export default function ApprovalsPage() {
                             : 'neutral'
                       }
                     >
-                      {change.status}
+                      {change.status === 'pending' && isPublicIntake(change)
+                        ? 'Partial approval'
+                        : change.status}
                     </Badge>
                   </div>
                   <p>
@@ -135,7 +156,7 @@ export default function ApprovalsPage() {
                     </p>
                   ) : null}
                 </div>
-                {change.status === 'pending' && canApprove ? (
+                {showActions ? (
                   <div className="pd-form-actions">
                     <Button type="button" size="sm" onClick={() => approve(change.id)}>
                       Approve

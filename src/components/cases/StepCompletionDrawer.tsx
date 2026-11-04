@@ -1,7 +1,18 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { FileViewer } from '@/components/cases/FileViewer'
-import { getStepDef, templateCountry } from '@/lib/caseChecklist'
-import { Button, FileDropzone, Input, SideDrawer, Textarea } from '@/components/ui'
+import {
+  getStepDef,
+  getStepDefsForCase,
+  templateCountry,
+} from '@/lib/caseChecklist'
+import {
+  Button,
+  FileDropzone,
+  Input,
+  Select,
+  SideDrawer,
+  Textarea,
+} from '@/components/ui'
 import {
   getCaseStepRequirement,
   splitStepUploads,
@@ -17,7 +28,11 @@ import {
 } from '@/lib/clientMissingInfo'
 import { getClientById } from '@/lib/clientsStore'
 import { formatDisplayDate, formatDisplayDateTime } from '@/lib/formatDate'
-import { updateCaseStep } from '@/lib/casesStore'
+import {
+  clearCaseStepUpload,
+  revertCaseToStep,
+  updateCaseStep,
+} from '@/lib/casesStore'
 import { completeCaseStepWithSync } from '@/lib/caseWorkflow'
 import { storeFile } from '@/lib/fileStore'
 import type { Case } from '@/types/case'
@@ -102,15 +117,25 @@ function UploadBlocks({
         <p className="pd-step-panel__uploads-title">{title}</p>
         {uploads.map((upload) => {
           const draft = drafts[upload.key]
+          const hasFile = Boolean(
+            draft?.fileId || draft?.fileName?.trim(),
+          )
           return (
             <div key={upload.key} className="pd-step-view__attachment">
               <p className="pd-step-view__attachment-label">{upload.label}</p>
-              <FileViewer
-                fileId={draft?.fileId}
-                fileName={draft?.fileName}
-                mimeType={draft?.mimeType}
-                compact
-              />
+              {hasFile ? (
+                <FileViewer
+                  fileId={draft?.fileId}
+                  fileName={draft?.fileName}
+                  mimeType={draft?.mimeType}
+                  compact
+                  onDelete={
+                    onClear ? () => onClear(upload.key) : undefined
+                  }
+                />
+              ) : (
+                <p className="pd-step-view__empty">No file attached.</p>
+              )}
             </div>
           )
         })}
@@ -124,6 +149,7 @@ function UploadBlocks({
       {uploads.map((upload) => {
         const errorKey = `upload:${upload.key}`
         const draft = drafts[upload.key]
+        const hasFile = Boolean(draft?.fileId || draft?.fileName?.trim())
         return (
           <div key={upload.key} className="pd-step-panel__upload-block">
             <div className="pd-step-panel__upload">
@@ -131,11 +157,11 @@ function UploadBlocks({
                 {upload.label}
                 {upload.required ? ' *' : ''}
               </span>
-              {draft?.fileId ? (
+              {hasFile ? (
                 <FileViewer
-                  fileId={draft.fileId}
-                  fileName={draft.fileName}
-                  mimeType={draft.mimeType}
+                  fileId={draft?.fileId}
+                  fileName={draft?.fileName}
+                  mimeType={draft?.mimeType}
                   compact
                   onUpload={
                     onPick
@@ -189,27 +215,29 @@ export function StepCompletionDrawer({
   onClose,
 }: StepCompletionDrawerProps) {
   const activeStepId = stepId
-  const requirement = activeStepId
-    ? getCaseStepRequirement(item, activeStepId)
-    : undefined
   const stepDef = activeStepId
     ? getStepDef(item.service, activeStepId, templateCountry(item))
     : undefined
-  const { requiredDocs, attachments } = requirement
-    ? splitStepUploads(requirement)
-    : { requiredDocs: [], attachments: [] }
 
   const [fields, setFields] = useState<Record<string, string>>({})
   const [uploads, setUploads] = useState<Record<string, UploadDraft>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [triedSubmit, setTriedSubmit] = useState(false)
 
+  const requirement = activeStepId
+    ? getCaseStepRequirement(item, activeStepId, fields)
+    : undefined
+  const { requiredDocs, attachments } = requirement
+    ? splitStepUploads(requirement)
+    : { requiredDocs: [], attachments: [] }
+
   useEffect(() => {
-    if (!open || !requirement || !activeStepId) return
+    if (!open || !activeStepId) return
+    const baseRequirement = getCaseStepRequirement(item, activeStepId)
     const record = item.steps[activeStepId]
     setFields({ ...(record?.fields ?? {}) })
     const nextUploads: Record<string, UploadDraft> = {}
-    for (const upload of requirement.uploads) {
+    for (const upload of baseRequirement.uploads) {
       const existing = record?.uploads?.find(
         (itemUpload) => itemUpload.key === upload.key,
       )
@@ -223,7 +251,7 @@ export function StepCompletionDrawer({
     setUploads(nextUploads)
     setErrors({})
     setTriedSubmit(false)
-  }, [open, activeStepId, item.steps, item.documents, requirement, mode])
+  }, [open, activeStepId, item.id, item.steps, item.documents, item.service, mode])
 
   if (!requirement || !stepDef || !activeStepId) return null
 
@@ -251,7 +279,12 @@ export function StepCompletionDrawer({
     const nextUploads: StepUploadValue[] = []
     for (const upload of requirement.uploads) {
       const draft = uploads[upload.key]
-      if (!draft?.fileName.trim()) continue
+      // Missing key = untouched (hydrate may refill). Empty fileName = removed.
+      if (draft === undefined) continue
+      if (!draft.fileName.trim()) {
+        nextUploads.push({ key: upload.key, fileName: '' })
+        continue
+      }
       nextUploads.push({
         key: upload.key,
         fileName: draft.fileName.trim(),
@@ -260,6 +293,21 @@ export function StepCompletionDrawer({
       })
     }
     return { fields, uploads: nextUploads }
+  }
+
+  const clearUpload = (key: string) => {
+    setUploads((current) => ({
+      ...current,
+      [key]: { fileName: '' },
+    }))
+    clearError(`upload:${key}`)
+  }
+
+  /** View mode: remove and save immediately so trash works without Edit → Save. */
+  const removeUploadNow = (key: string) => {
+    clearUpload(key)
+    const result = clearCaseStepUpload(item.id, activeStepId, key)
+    if (!result.ok) setErrors(result.errors)
   }
 
   const handleSubmit = (event: FormEvent) => {
@@ -280,6 +328,36 @@ export function StepCompletionDrawer({
     else onModeChange?.('view')
   }
 
+  const handleMoveBack = () => {
+    const result = revertCaseToStep(item.id, activeStepId)
+    if (!result.ok) {
+      setErrors(result.errors)
+      return
+    }
+    onModeChange?.('complete')
+  }
+
+  const canMoveBackHere =
+    canEditCase && isView && activeStepId !== item.currentStepId
+  const catalogSteps = getStepDefsForCase(item)
+  const currentCatalogIndex = catalogSteps.findIndex(
+    (step) => step.id === item.currentStepId,
+  )
+  const previousCatalogStep =
+    isComplete && currentCatalogIndex > 0
+      ? catalogSteps[currentCatalogIndex - 1]
+      : undefined
+
+  const handleBackOneStep = () => {
+    if (!previousCatalogStep) return
+    const result = revertCaseToStep(item.id, previousCatalogStep.id)
+    if (!result.ok) {
+      setErrors(result.errors)
+      return
+    }
+    onClose()
+  }
+
   const title = isView
     ? stepDef.label
     : isComplete
@@ -290,7 +368,7 @@ export function StepCompletionDrawer({
     <>
       <UploadBlocks
         uploads={requiredDocs}
-        title="Required docs"
+        title="Documents"
         drafts={uploads}
         triedSubmit={triedSubmit}
         errors={errors}
@@ -299,13 +377,13 @@ export function StepCompletionDrawer({
           setUploads((current) => ({ ...current, [key]: draft }))
           clearError(`upload:${key}`)
         }}
-        onClear={(key) => {
-          setUploads((current) => {
-            const next = { ...current }
-            delete next[key]
-            return next
-          })
-        }}
+        onClear={
+          readOnly && canEditCase
+            ? removeUploadNow
+            : readOnly
+              ? undefined
+              : clearUpload
+        }
       />
       <UploadBlocks
         uploads={attachments}
@@ -318,13 +396,13 @@ export function StepCompletionDrawer({
           setUploads((current) => ({ ...current, [key]: draft }))
           clearError(`upload:${key}`)
         }}
-        onClear={(key) => {
-          setUploads((current) => {
-            const next = { ...current }
-            delete next[key]
-            return next
-          })
-        }}
+        onClear={
+          readOnly && canEditCase
+            ? removeUploadNow
+            : readOnly
+              ? undefined
+              : clearUpload
+        }
       />
     </>
   )
@@ -347,6 +425,11 @@ export function StepCompletionDrawer({
               <Button type="button" variant="secondary" onClick={onClose}>
                 Close
               </Button>
+              {canMoveBackHere ? (
+                <Button type="button" variant="secondary" onClick={handleMoveBack}>
+                  Move back here
+                </Button>
+              ) : null}
               {canEditCase ? (
                 <Button type="button" onClick={() => onModeChange?.('edit')}>
                   Edit
@@ -365,6 +448,15 @@ export function StepCompletionDrawer({
               >
                 Cancel
               </Button>
+              {previousCatalogStep ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleBackOneStep}
+                >
+                  Back to {previousCatalogStep.label}
+                </Button>
+              ) : null}
               <Button type="submit" form="pd-step-complete-form">
                 {isComplete ? 'Mark complete' : 'Save changes'}
               </Button>
@@ -427,6 +519,26 @@ export function StepCompletionDrawer({
                 rows={3}
                 value={fields[field.key] ?? ''}
                 placeholder={field.placeholder}
+                onChange={(event) => {
+                  setFields((current) => ({
+                    ...current,
+                    [field.key]: event.target.value,
+                  }))
+                  clearError(field.key)
+                }}
+                error={triedSubmit ? errors[field.key] : undefined}
+              />
+            ) : field.type === 'select' ? (
+              <Select
+                key={field.key}
+                label={field.label}
+                required={field.required}
+                value={fields[field.key] ?? ''}
+                placeholder="Choose…"
+                options={(field.options ?? []).map((option) => ({
+                  value: option,
+                  label: option,
+                }))}
                 onChange={(event) => {
                   setFields((current) => ({
                     ...current,

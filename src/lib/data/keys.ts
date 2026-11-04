@@ -45,6 +45,8 @@ export const DATA_KEYS = {
   provisionedLogins: 'pd-provisioned-logins',
   /** Per-tenant business profiles (contact + logo), keyed by tenant id. */
   agencyProfiles: 'pd-agency-profiles',
+  /** Per-tenant staff avatars, keyed by tenant id → user id → image URL. */
+  userAvatars: 'pd-user-avatars',
   /** Per-tenant appearance (dark mode, theme color, sidebar), keyed by tenant id. */
   agencyAppearance: 'pd-agency-appearance',
   /** Per-member page access matrix. */

@@ -229,6 +229,7 @@ const SUB_AGENT_ALLOWED_PREFIXES = [
   '/documents',
   '/payments',
   '/profile',
+  '/approvals',
   '/my-submissions',
 ] as const
 

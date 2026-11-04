@@ -22,6 +22,7 @@ import {
 } from '@/lib/billing/billingApi'
 import { formatBdt, formatDate } from '@/lib/billing/format'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
+import { repairTenantIsolation } from '@/lib/platformAdminApi'
 import { useTenantMembers } from '@/lib/tenantMembersStore'
 import { useTenants } from '@/lib/tenantsStore'
 import { StatCards, type StatCardItem } from '@/components/StatCards'
@@ -61,6 +62,8 @@ export default function AdminOverviewPage() {
   const [pendingInvoices, setPendingInvoices] = useState<BillingInvoice[]>([])
   const [billingBusyId, setBillingBusyId] = useState<string | null>(null)
   const [billingError, setBillingError] = useState<string | null>(null)
+  const [repairBusy, setRepairBusy] = useState(false)
+  const [repairStatus, setRepairStatus] = useState<string | null>(null)
 
   useEffect(() => {
     if (user?.role !== 'platform_admin' || !authApiConfigured()) return
@@ -148,6 +151,32 @@ export default function AdminOverviewPage() {
     }
   }
 
+  const runIsolationRepair = async () => {
+    setRepairBusy(true)
+    setRepairStatus(null)
+    try {
+      const result = await repairTenantIsolation()
+      const removed =
+        (result.removedDuplicateIds ?? 0) +
+        (result.removedDuplicatePhones ?? 0) +
+        (result.removedDuplicateCases ?? 0) +
+        (result.removedDuplicatePayments ?? 0)
+      setRepairStatus(
+        removed > 0
+          ? `Removed ${removed} cross-agency clone(s). Exit View as and open the agency again.`
+          : 'No cross-agency clones found. Isolation checks are clean.',
+      )
+    } catch (err) {
+      setRepairStatus(
+        err instanceof Error
+          ? err.message
+          : 'Could not repair tenant isolation.',
+      )
+    } finally {
+      setRepairBusy(false)
+    }
+  }
+
   return (
     <div className="pd-page pd-admin" aria-label="Platform overview">
       <PageHeader
@@ -155,6 +184,13 @@ export default function AdminOverviewPage() {
         description="Platform pulse: agencies that need attention and shortcuts into daily ops."
         actions={
           <>
+            <Button
+              variant="secondary"
+              disabled={repairBusy || !authApiConfigured()}
+              onClick={() => void runIsolationRepair()}
+            >
+              {repairBusy ? 'Repairing…' : 'Repair data isolation'}
+            </Button>
             <Button
               variant="secondary"
               onClick={() => navigate(ADMIN_AGENCIES)}
@@ -167,6 +203,11 @@ export default function AdminOverviewPage() {
           </>
         }
       />
+      {repairStatus ? (
+        <p className="pd-admin__quiet" role="status">
+          {repairStatus}
+        </p>
+      ) : null}
 
       <StatCards label="Platform metrics" cards={cards} />
 

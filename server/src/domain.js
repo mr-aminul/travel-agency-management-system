@@ -1,4 +1,10 @@
 import { query } from './db.js'
+import { filterDomainItemsForTenant } from './subAgentIds.js'
+import {
+  caseIdOwnedByOtherTenant,
+  clientIdOwnedByOtherTenant,
+  paymentIdOwnedByOtherTenant,
+} from './tenantIsolationRepair.js'
 
 const CLIENTS_KV = 'pd-clients-created'
 const TRASH_KV = 'pd-clients-trash'
@@ -256,11 +262,14 @@ export async function listAllPaymentsAdmin() {
  * Avoids cross-tenant clobber; within-tenant is a full sync for that collection.
  */
 export async function replaceClients(tenantId, items) {
-  const list = asArray(items)
+  // Require an explicit matching tenantId — never stamp foreign/blank rows in.
+  const list = asArray(items).filter((item) => itemTenantId(item) === tenantId)
   const ids = []
   for (const item of list) {
     const id = typeof item?.id === 'string' ? item.id.trim() : ''
     if (!id) continue
+    // Block re-copying a client id that already belongs to another agency.
+    if (await clientIdOwnedByOtherTenant(id, tenantId)) continue
     ids.push(id)
     await upsertClient(tenantId, { ...item, tenantId, id })
   }
@@ -276,7 +285,10 @@ export async function replaceClients(tenantId, items) {
 }
 
 export async function replaceTrash(tenantId, items) {
-  const list = asArray(items)
+  const list = asArray(items).filter((entry) => {
+    const tid = itemTenantId(entry?.client) || itemTenantId(entry)
+    return tid === tenantId
+  })
   const ids = []
   for (const entry of list) {
     const id = String(entry?.client?.id || entry?.id || '').trim()
@@ -298,11 +310,15 @@ export async function replaceTrash(tenantId, items) {
 }
 
 export async function replaceCases(tenantId, items) {
-  const list = asArray(items)
+  const list = asArray(items).filter((item) => {
+    const tid = itemTenantId(item)
+    return tid === tenantId
+  })
   const ids = []
   for (const item of list) {
     const id = typeof item?.id === 'string' ? item.id.trim() : ''
     if (!id) continue
+    if (await caseIdOwnedByOtherTenant(id, tenantId)) continue
     ids.push(id)
     await upsertCase(tenantId, { ...item, tenantId, id })
   }
@@ -318,11 +334,15 @@ export async function replaceCases(tenantId, items) {
 }
 
 export async function replacePayments(tenantId, items) {
-  const list = asArray(items)
+  const list = asArray(items).filter((item) => {
+    const tid = itemTenantId(item)
+    return tid === tenantId
+  })
   const ids = []
   for (const item of list) {
     const id = typeof item?.id === 'string' ? item.id.trim() : ''
     if (!id) continue
+    if (await paymentIdOwnedByOtherTenant(id, tenantId)) continue
     ids.push(id)
     await upsertPayment(tenantId, { ...item, tenantId, id })
   }
@@ -386,10 +406,12 @@ export async function writeDomainKey(key, value, auth) {
 
   const tenantId = auth?.tenantId
   if (!tenantId) throw new Error('Missing tenant')
-  if (key === CLIENTS_KV) await replaceClients(tenantId, value)
-  else if (key === TRASH_KV) await replaceTrash(tenantId, value)
-  else if (key === CASES_KV) await replaceCases(tenantId, value)
-  else if (key === PAYMENTS_KV) await replacePayments(tenantId, value)
+  // Never upsert another agency's rows into this tenant (view-as / stale cache).
+  const scoped = filterDomainItemsForTenant(key, value, tenantId)
+  if (key === CLIENTS_KV) await replaceClients(tenantId, scoped)
+  else if (key === TRASH_KV) await replaceTrash(tenantId, scoped)
+  else if (key === CASES_KV) await replaceCases(tenantId, scoped)
+  else if (key === PAYMENTS_KV) await replacePayments(tenantId, scoped)
   else throw new Error(`Unknown domain key ${key}`)
 }
 
@@ -501,19 +523,27 @@ export async function trackByPassport(passport, tenantSlug) {
 
   const clientResult = tenantIdFilter
     ? await query(
-        `select payload from platform.clients
+        `select tenant_id, id, payload from platform.clients
          where upper(coalesce(passport, '')) = $1 and tenant_id = $2
          limit 1`,
         [normalized, tenantIdFilter],
       )
     : await query(
-        `select payload from platform.clients
+        `select tenant_id, id, payload from platform.clients
          where upper(coalesce(passport, '')) = $1
          limit 1`,
         [normalized],
       )
 
-  let client = clientResult.rows[0]?.payload
+  let client = null
+  const clientRow = clientResult.rows[0]
+  if (clientRow?.payload && typeof clientRow.payload === 'object') {
+    client = {
+      ...clientRow.payload,
+      id: clientRow.payload.id || clientRow.id,
+      tenantId: clientRow.payload.tenantId || clientRow.tenant_id,
+    }
+  }
   if (!client) {
     // Fallback: legacy KV during transition
     const kvClients = asArray(await readKv(CLIENTS_KV))
@@ -531,20 +561,38 @@ export async function trackByPassport(passport, tenantSlug) {
     return { ok: false, status: 404, error: 'No file found for that passport.' }
   }
 
-  const casesResult = await query(
-    `select payload from platform.cases
-     where tenant_id = $1 and client_id = $2`,
-    [client.tenantId, client.id],
-  )
-  let cases = casesResult.rows.map((row) => row.payload)
+  const clientId = String(client.id || '').trim()
+  const clientTenantId = String(client.tenantId || '').trim()
+  let cases = []
+  if (clientId && clientTenantId) {
+    const casesResult = await query(
+      `select payload from platform.cases
+       where tenant_id = $1 and client_id = $2`,
+      [clientTenantId, clientId],
+    )
+    cases = casesResult.rows.map((row) => row.payload)
+  }
+  if (cases.length === 0 && clientId) {
+    // Payload client_id can drift from column; also match JSON body.
+    const casesByPayload = await query(
+      `select payload from platform.cases
+       where tenant_id = $1
+         and (
+           client_id = $2
+           or coalesce(payload->>'clientId', '') = $2
+         )`,
+      [clientTenantId || null, clientId],
+    )
+    cases = casesByPayload.rows.map((row) => row.payload)
+  }
   if (cases.length === 0) {
     const kvCases = asArray(await readKv(CASES_KV))
     cases = kvCases.filter(
       (item) =>
         item &&
         typeof item === 'object' &&
-        item.clientId === client.id &&
-        item.tenantId === client.tenantId,
+        item.clientId === clientId &&
+        (!clientTenantId || item.tenantId === clientTenantId),
     )
   }
 

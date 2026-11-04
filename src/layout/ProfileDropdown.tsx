@@ -18,8 +18,9 @@ import {
 import { settingsNavAlertCount } from '@/lib/agencyProfileGaps'
 import { getActiveTenantId } from '@/lib/authApi'
 import { findTenantMemberForUser } from '@/lib/tenantMembersStore'
+import { useUserAvatar } from '@/lib/userAvatarStore'
 import { useAuth } from '@/lib/useAuth'
-import { avatarKindForMemberRole, CopyableText } from '@/components/ui'
+import { Avatar, avatarKindForMemberRole, CopyableText } from '@/components/ui'
 import { useAgencyProfile } from './useAgencyProfile'
 import { useHoverMenu } from './useHoverMenu'
 
@@ -53,12 +54,14 @@ export function ProfileDropdown({
   const canSwitchWorkspace =
     !isViewingAs && (session?.workspaces?.length ?? 0) > 1
   const [exitViewAsBusy, setExitViewAsBusy] = useState(false)
+  const tenantId = getActiveTenantId()
   const member =
     user && isAgencyUser
-      ? findTenantMemberForUser(getActiveTenantId(), user.id, user.email)
+      ? findTenantMemberForUser(tenantId, user.id, user.email)
       : undefined
-  const ProfileIcon =
-    avatarKindForMemberRole(member?.role) === 'owner' ? Crown : IdCard
+  const avatarKind = avatarKindForMemberRole(member?.role)
+  const avatarUrl = useUserAvatar(tenantId, user?.id)
+  const ProfileIcon = avatarKind === 'owner' ? Crown : IdCard
   const settingsBadge =
     isPlatformAdmin ? 0 : settingsNavAlertCount(agencyProfile)
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
@@ -85,7 +88,16 @@ export function ProfileDropdown({
         aria-label="Profile menu"
         aria-expanded={open}
       >
-        <ProfileIcon size={16} strokeWidth={2} aria-hidden />
+        {avatarUrl ? (
+          <Avatar
+            name={userName ?? user?.name ?? 'User'}
+            src={avatarUrl}
+            size="sm"
+            kind={avatarKind}
+          />
+        ) : (
+          <ProfileIcon size={16} strokeWidth={2} aria-hidden />
+        )}
       </button>
       {open && (
         <div
@@ -95,7 +107,16 @@ export function ProfileDropdown({
         >
           <div className="pd-topbar__dropdown-header">
             <span className="pd-topbar__profile-avatar pd-topbar__profile-avatar--menu">
-              <ProfileIcon size={14} strokeWidth={2} aria-hidden />
+              {avatarUrl ? (
+                <Avatar
+                  name={userName ?? user?.name ?? 'User'}
+                  src={avatarUrl}
+                  size="sm"
+                  kind={avatarKind}
+                />
+              ) : (
+                <ProfileIcon size={14} strokeWidth={2} aria-hidden />
+              )}
             </span>
             <div className="pd-topbar__dropdown-header-text">
               <div className="pd-topbar__dropdown-title">

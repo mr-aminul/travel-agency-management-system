@@ -236,19 +236,21 @@ export async function assertCanSendSms(
       snapshot: snap,
     }
   }
-  if (bypassQuota || isUatUnrestricted(snap.billing)) {
-    return { ok: true, snapshot: snap, overage: false }
-  }
   const { limits, usage } = snap
-  // Soft allow overage when overage rate is set; hard block when rate is 0 and at cap.
+  // Admin-set SMS quantity is always a hard cap (including Test/UAT plan).
+  // Soft allow overage only when an overage rate is set and quantity is not 0.
   if (usage.smsSent >= limits.smsLimit && Number(limits.smsOverageBdt) <= 0) {
     return {
       ok: false,
       status: 402,
       code: 'sms_limit',
-      error: 'Monthly SMS limit reached. Upgrade your plan for more messages.',
+      error:
+        'SMS quantity limit reached. No more messages until the limit is increased.',
       snapshot: snap,
     }
+  }
+  if (bypassQuota || isUatUnrestricted(snap.billing)) {
+    return { ok: true, snapshot: snap, overage: false }
   }
   return {
     ok: true,

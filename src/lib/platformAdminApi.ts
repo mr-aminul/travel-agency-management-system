@@ -1,4 +1,25 @@
 import { apiFetch } from '@/lib/apiClient'
+import { rehydratePlatformData } from '@/lib/data/rehydrate'
+
+export type TenantIsolationRepairResult = {
+  ok: boolean
+  remappedSubAgentIds?: number
+  removedDuplicateIds?: number
+  removedDuplicatePhones?: number
+  removedDuplicateCases?: number
+  removedDuplicatePayments?: number
+  clearedOrphanSubAgentLinks?: number
+}
+
+/** Platform admin: purge clients copied into the wrong agency. */
+export async function repairTenantIsolation(): Promise<TenantIsolationRepairResult> {
+  const body = await apiFetch<TenantIsolationRepairResult>(
+    '/api/platform/admin/repair/tenant-isolation',
+    { method: 'POST', body: {} },
+  )
+  await rehydratePlatformData()
+  return body
+}
 
 export type PlatformAuditEntry = {
   id: string

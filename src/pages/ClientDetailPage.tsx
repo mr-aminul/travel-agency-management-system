@@ -1510,6 +1510,7 @@ export default function ClientDetailPage() {
           defaultClientId={client.id}
           lockClient
           defaultService={primaryServiceType(client.services)}
+          defaultCountry={client.preferredCountry}
         />
       </SideDrawer>
     </div>

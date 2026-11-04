@@ -210,33 +210,30 @@ export function SmsTemplatesSection({
                 </p>
               ) : null}
             </div>
-            <Switch
-              className="pd-sms-sending-pref__switch"
-              label={
-                !platformAllowsSms
-                  ? 'Blocked by platform'
-                  : smsSendingOn
-                    ? 'On'
-                    : 'Off'
-              }
-              checked={smsSendingOn}
-              disabled={smsBusy || !platformAllowsSms || !billingSnapshot}
-              onChange={(event) => {
-                const next = event.target.checked
-                setSmsBusy(true)
-                setSmsError(null)
-                void patchAgencySmsEnabled(next)
-                  .then(() => reloadBilling())
-                  .catch((err) => {
-                    setSmsError(
-                      err instanceof Error
-                        ? err.message
-                        : 'Could not update SMS setting.',
-                    )
-                  })
-                  .finally(() => setSmsBusy(false))
-              }}
-            />
+            {/* Super Admin (platform) must allow SMS before agency Admin can toggle. */}
+            {platformAllowsSms ? (
+              <Switch
+                className="pd-sms-sending-pref__switch"
+                label={smsSendingOn ? 'On' : 'Off'}
+                checked={smsSendingOn}
+                disabled={smsBusy || !billingSnapshot}
+                onChange={(event) => {
+                  const next = event.target.checked
+                  setSmsBusy(true)
+                  setSmsError(null)
+                  void patchAgencySmsEnabled(next)
+                    .then(() => reloadBilling())
+                    .catch((err) => {
+                      setSmsError(
+                        err instanceof Error
+                          ? err.message
+                          : 'Could not update SMS setting.',
+                      )
+                    })
+                    .finally(() => setSmsBusy(false))
+                }}
+              />
+            ) : null}
           </section>
           <section
             className="pd-sms-sending-pref"

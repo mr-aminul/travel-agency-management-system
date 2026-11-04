@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { DATA_KEYS } from '@/lib/data/keys'
 import { writeSession, clearSession } from '@/lib/authApi'
 import {
   beginApplyingApprovedChange,
@@ -8,14 +7,16 @@ import {
 } from '@/lib/subAgentScope'
 import {
   defaultSubAgentAccessSettings,
+  resetSubAgentAccessSettings,
   saveSubAgentAccessSettings,
 } from '@/lib/subAgentAccessSettings'
+import { resetPendingChanges } from '@/lib/subAgentPendingChanges'
 
 describe('queueOrApplySubAgentChange', () => {
   beforeEach(() => {
     clearSession()
-    localStorage.removeItem(DATA_KEYS.subAgentAccessSettings)
-    localStorage.removeItem(DATA_KEYS.subAgentPendingChanges)
+    resetSubAgentAccessSettings()
+    resetPendingChanges()
     endApplyingApprovedChange()
   })
 

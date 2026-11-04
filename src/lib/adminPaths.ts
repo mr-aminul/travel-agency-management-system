@@ -22,6 +22,7 @@ export function adminAgencyPath(
     | 'overview'
     | 'people'
     | 'product'
+    | 'messaging'
     | 'activity' = 'all',
 ): string {
   return `${ADMIN_AGENCIES}/${tenantId}/${section}`

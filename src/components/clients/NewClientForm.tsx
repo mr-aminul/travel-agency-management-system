@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type FocusEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type FocusEvent } from 'react'
 import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import { ClientCustomFieldControl } from '@/components/clients/ClientCustomFieldControl'
 import { Button, Input, Select } from '@/components/ui'
@@ -18,6 +18,10 @@ import {
 import { useSubAgents } from '@/lib/subAgentsStore'
 import { getClientByPhone, normalizePhone } from '@/lib/clientsStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
+import {
+  listServiceCountries,
+  useServiceTemplates,
+} from '@/lib/serviceTemplatesStore'
 import type { CreateClientInput, ServiceType } from '@/types/client'
 
 type NewClientFormProps = {
@@ -43,6 +47,7 @@ export function NewClientForm({
   const sessionCustomFields = useClientProfileFields()
   const customFieldDefs = isPublic ? tenantCustomFields : sessionCustomFields
   const subAgents = useSubAgents()
+  useServiceTemplates()
   const [name, setName] = useState('')
   const [banglaName, setBanglaName] = useState('')
   const [fatherName, setFatherName] = useState('')
@@ -63,10 +68,46 @@ export function NewClientForm({
   const [primaryService, setPrimaryService] = useState<ServiceType>(
     () => serviceOptions[0]?.value ?? 'Tour Package',
   )
+  const [serviceCountry, setServiceCountry] = useState('')
   const [touched, setTouched] = useState<Partial<Record<NewClientFormField, boolean>>>(
     {},
   )
   const [triedSubmit, setTriedSubmit] = useState(false)
+
+  const catalogCountries = useMemo(
+    () =>
+      serviceTenantId
+        ? listServiceCountries(primaryService, serviceTenantId)
+        : listServiceCountries(primaryService),
+    [primaryService, serviceTenantId],
+  )
+  const countryOptions = useMemo(
+    () => [
+      {
+        value: '',
+        label: catalogCountries.length
+          ? 'Select country'
+          : 'Default (all countries)',
+      },
+      ...catalogCountries.map((country) => ({
+        value: country,
+        label: country,
+      })),
+    ],
+    [catalogCountries],
+  )
+
+  useEffect(() => {
+    if (!serviceCountry) {
+      if (catalogCountries.length === 1) setServiceCountry(catalogCountries[0])
+      return
+    }
+    if (!catalogCountries.includes(serviceCountry)) {
+      setServiceCountry(
+        catalogCountries.length === 1 ? catalogCountries[0] : '',
+      )
+    }
+  }, [catalogCountries, serviceCountry])
 
   const phoneDigits = normalizePhone(phone)
   const existingClient = phoneDigits
@@ -173,6 +214,7 @@ export function NewClientForm({
       passportIssuedOn,
       passportPlaceOfIssue,
       primaryService,
+      preferredCountry: serviceCountry.trim() || undefined,
       idChecked: true,
     })
   }
@@ -226,6 +268,20 @@ export function NewClientForm({
               onBlur={handleBlur('primaryService')}
               options={serviceOptions}
               error={fieldError('primaryService')}
+            />
+            <Select
+              label="Country"
+              hint={
+                catalogCountries.length
+                  ? 'From Service catalog for this service'
+                  : 'Add country flows in Settings → Service catalog'
+              }
+              searchable={catalogCountries.length > 6}
+              searchPlaceholder="Search countries…"
+              value={serviceCountry}
+              onChange={(event) => setServiceCountry(event.target.value)}
+              options={countryOptions}
+              disabled={catalogCountries.length === 0}
             />
             {requiredCustomFields.map((field) => {
               const key = `custom:${field.id}` as const

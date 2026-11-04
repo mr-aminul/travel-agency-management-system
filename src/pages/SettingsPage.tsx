@@ -1,15 +1,14 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   useMatch,
   useNavigate,
   useParams,
   useSearchParams,
 } from 'react-router-dom'
-import { Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
+import { Button, ConfirmDialog, Input } from '@/components/ui'
 import {
   Briefcase,
   Building2,
-  Check,
   Contact,
   Layers,
   MessageSquareText,
@@ -26,8 +25,8 @@ import {
 import { BillingSettingsSection } from '@/components/billing/BillingSettingsSection'
 import '@/styles/layout-clients.css'
 import '@/styles/layout-settings.css'
-import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
+import { BusinessProfileSection } from '@/components/settings/BusinessProfileSection'
 import { ServiceCatalogEditor } from '@/components/settings/ServiceCatalogEditor'
 import { ServiceCatalogEditorV2 } from '@/components/settings/ServiceCatalogEditorV2'
 import { ClientProfileFieldsSection } from '@/components/settings/ClientProfileFieldsSection'
@@ -43,8 +42,6 @@ import {
   type AppearanceMode,
 } from '@/lib/brand'
 import {
-  DEFAULT_BRAND_NAME,
-  fileToProfilePictureDataUrl,
   readAgencyProfile,
   saveAgencyProfile,
   withBusinessNameFallback,
@@ -53,7 +50,6 @@ import {
 import {
   listAgencyProfileGaps,
   settingsNavAlertCount,
-  type AgencyProfileGapId,
 } from '@/lib/agencyProfileGaps'
 import { updateTenantName } from '@/lib/tenantsStore'
 import { useActiveTenant } from '@/lib/useActiveTenant'
@@ -220,6 +216,29 @@ export default function SettingsPage() {
   const [agencyError, setAgencyError] = useState<string | null>(null)
   const [editorDirty, setEditorDirty] = useState(false)
   const [pendingHref, setPendingHref] = useState<string | null>(null)
+  const settingsRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const root = settingsRef.current
+    if (!root) return
+    root.scrollTop = 0
+    root.scrollLeft = 0
+    // Scroll only the tab strip — scrollIntoView({ inline }) can shift the
+    // whole app shell horizontally even when overflow is hidden.
+    const nav = root.querySelector<HTMLElement>('.pd-settings-nav')
+    const selected = nav?.querySelector<HTMLElement>(
+      '.pd-settings-nav__item.is-selected',
+    )
+    if (!nav || !selected) return
+    const navRect = nav.getBoundingClientRect()
+    const tabRect = selected.getBoundingClientRect()
+    const delta =
+      tabRect.left +
+      tabRect.width / 2 -
+      (navRect.left + navRect.width / 2)
+    nav.scrollLeft += delta
+  }, [activeSection, serviceKey])
 
   useEffect(() => {
     setAgencyDraft(
@@ -243,7 +262,6 @@ export default function SettingsPage() {
   const agencyGaps = listAgencyProfileGaps(agencyDraft)
   const businessAlertCount = settingsNavAlertCount(agencyDraft)
   const missingGapIds = new Set(agencyGaps.map((gap) => gap.id))
-  const fieldIsMissing = (id: AgencyProfileGapId) => missingGapIds.has(id)
 
   const currentSection =
     SETTINGS_SECTIONS.find((section) => section.id === activeSection) ??
@@ -319,7 +337,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="pd-settings" aria-label="Settings">
+    <div ref={settingsRef} className="pd-settings" aria-label="Settings">
       <nav className="pd-settings-nav" aria-label="Settings sections">
         {SETTINGS_SECTIONS.map((section) => {
           const Icon = section.icon
@@ -358,6 +376,7 @@ export default function SettingsPage() {
       </nav>
 
       <section
+        ref={panelRef}
         className={cx(
           'pd-settings-panel',
           activeSection === 'servicesV2' && isEditor && 'pd-settings-panel--flow',
@@ -365,6 +384,7 @@ export default function SettingsPage() {
         aria-labelledby="settings-panel-title"
       >
         {isEditor ||
+        activeSection === 'business' ||
         activeSection === 'services' ||
         activeSection === 'servicesV2' ||
         activeSection === 'clientFields' ||
@@ -385,114 +405,16 @@ export default function SettingsPage() {
 
         <div className="pd-settings-panel__body">
           {activeSection === 'business' ? (
-            <form className="pd-settings-form" onSubmit={handleAgencySave}>
-              <div className="pd-settings-form__fields">
-                <ProfilePhotoField
-                  name={agencyDraft.businessName || DEFAULT_BRAND_NAME}
-                  fallbackName={DEFAULT_BRAND_NAME}
-                  kind="business"
-                  value={agencyDraft.profilePicture ?? undefined}
-                  encodeFile={fileToProfilePictureDataUrl}
-                  onChange={(photoUrl) =>
-                    updateAgencyField('profilePicture', photoUrl ?? null)
-                  }
-                >
-                  <div
-                    className={[
-                      'pd-settings-form__field',
-                      fieldIsMissing('businessName') && 'is-attention',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  >
-                    <Input
-                      label="Business name"
-                      name="businessName"
-                      autoComplete="organization"
-                      placeholder="Your travel agency name"
-                      required
-                      value={agencyDraft.businessName}
-                      onChange={(e) =>
-                        updateAgencyField('businessName', e.target.value)
-                      }
-                    />
-                  </div>
-                </ProfilePhotoField>
-                <div
-                  className={[
-                    'pd-settings-form__field',
-                    fieldIsMissing('address') && 'is-attention',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                >
-                  <Textarea
-                    label="Address"
-                    name="address"
-                    autoComplete="street-address"
-                    placeholder="Office address"
-                    rows={3}
-                    required
-                    value={agencyDraft.address}
-                    onChange={(e) =>
-                      updateAgencyField('address', e.target.value)
-                    }
-                  />
-                </div>
-                <div className="pd-settings-form__grid">
-                  <div
-                    className={[
-                      'pd-settings-form__field',
-                      fieldIsMissing('mobile') && 'is-attention',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  >
-                    <Input
-                      label="Mobile number"
-                      name="mobile"
-                      type="tel"
-                      autoComplete="tel"
-                      placeholder="e.g. 01700 000000"
-                      required
-                      value={agencyDraft.mobile}
-                      onChange={(e) =>
-                        updateAgencyField('mobile', e.target.value)
-                      }
-                    />
-                  </div>
-                  <Input
-                    label="Website"
-                    name="website"
-                    type="text"
-                    autoComplete="url"
-                    placeholder="e.g. rhbd.com"
-                    value={agencyDraft.website}
-                    onChange={(e) =>
-                      updateAgencyField('website', e.target.value)
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="pd-settings-form__footer">
-                <p
-                  className={[
-                    'pd-settings-form__status',
-                    agencyError && 'pd-settings-form__status--error',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  role={agencyError ? 'alert' : undefined}
-                >
-                  {agencyError ?? agencyStatus ?? ''}
-                </p>
-                <Button type="submit" size="md">
-                  <Check size={16} strokeWidth={2.25} aria-hidden />
-                  Save profile
-                </Button>
-              </div>
-            </form>
+            <BusinessProfileSection
+              title={currentSection.label}
+              info={currentSection.info ?? ''}
+              draft={agencyDraft}
+              error={agencyError}
+              status={agencyStatus}
+              missingGapIds={missingGapIds}
+              onChange={updateAgencyField}
+              onSave={handleAgencySave}
+            />
           ) : null}
 
           {activeSection === 'clientFields' ? (

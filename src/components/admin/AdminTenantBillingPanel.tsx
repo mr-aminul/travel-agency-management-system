@@ -14,26 +14,57 @@ import {
   adminListPlans,
   adminMarkInvoicePaid,
   adminPatchBilling,
+  adminSetStorageLimit,
 } from '@/lib/billing/billingApi'
+import { TENANT_BILLING_CHANGED_EVENT } from '@/lib/billing/billingEvents'
 import {
   formatBdt,
   formatDate,
+  formatStorageBytes,
   formatStorageUsage,
 } from '@/lib/billing/format'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
-import { Button, Input, Select, Switch } from '@/components/ui'
+import { useTenantById } from '@/lib/tenantsStore'
+import { Button, Input, Select } from '@/components/ui'
 import type { BillingSnapshot, PlanTemplate } from '@/types/billing'
+
+const MB = 1024 ** 2
+const GB = 1024 ** 3
+
+type StorageUnit = 'MB' | 'GB'
 
 type Props = {
   tenantId: string
 }
 
+function storageDraftFromBytes(bytes: number): {
+  value: string
+  unit: StorageUnit
+} {
+  if (Number.isFinite(bytes) && bytes > 0 && bytes < GB) {
+    return { unit: 'MB', value: String(Math.round(bytes / MB)) }
+  }
+  const gb = Number.isFinite(bytes) ? bytes / GB : 0
+  return { unit: 'GB', value: String(Math.round(gb * 100) / 100) }
+}
+
+function bytesFromStorageDraft(value: string, unit: StorageUnit): number {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n < 0) {
+    throw new Error('Storage must be 0 or more.')
+  }
+  return Math.round(n * (unit === 'MB' ? MB : GB))
+}
+
 /** Compact subscription block for the agency admin profile card. */
 export function AdminTenantBillingPanel({ tenantId }: Props) {
+  const tenant = useTenantById(tenantId)
   const [snapshot, setSnapshot] = useState<BillingSnapshot | null>(null)
   const [plans, setPlans] = useState<PlanTemplate[]>([])
   const [planId, setPlanId] = useState('growth')
   const [invoiceAmount, setInvoiceAmount] = useState('')
+  const [storageDraft, setStorageDraft] = useState('')
+  const [storageUnit, setStorageUnit] = useState<StorageUnit>('GB')
   const [billingOpen, setBillingOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -55,6 +86,9 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
       setInvoiceAmount(
         matched ? String(matched.priceBdt) : String(me.plan?.priceBdt ?? 0),
       )
+      const storage = storageDraftFromBytes(me.limits.storageLimitBytes ?? 0)
+      setStorageDraft(storage.value)
+      setStorageUnit(storage.unit)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load billing.')
     }
@@ -63,6 +97,18 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
   useEffect(() => {
     void reload()
   }, [reload])
+
+  useEffect(() => {
+    const onBillingChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ tenantId?: string }>).detail
+      if (detail?.tenantId && detail.tenantId !== tenantId) return
+      void reload()
+    }
+    window.addEventListener(TENANT_BILLING_CHANGED_EVENT, onBillingChanged)
+    return () => {
+      window.removeEventListener(TENANT_BILLING_CHANGED_EVENT, onBillingChanged)
+    }
+  }, [reload, tenantId])
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true)
@@ -101,6 +147,39 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
     (inv) => inv.status === 'pending_review' || inv.status === 'open',
   )
   const billingNotes = snapshot.billing?.billingNotes?.trim() || ''
+  const liveStorageBytes = snapshot.limits.storageLimitBytes ?? 0
+  let draftStorageBytes = liveStorageBytes
+  let storageDraftValid = true
+  try {
+    draftStorageBytes = bytesFromStorageDraft(storageDraft.trim() || '0', storageUnit)
+  } catch {
+    storageDraftValid = false
+  }
+  const storageDirty =
+    storageDraftValid && draftStorageBytes !== liveStorageBytes
+
+  const saveStorageLimit = () => {
+    const raw = storageDraft.trim()
+    if (!raw) {
+      setError('Enter a storage amount.')
+      return
+    }
+    let nextBytes: number
+    try {
+      nextBytes = bytesFromStorageDraft(raw, storageUnit)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid storage amount.')
+      return
+    }
+    void run(() =>
+      adminSetStorageLimit(
+        tenantId,
+        nextBytes,
+        snapshot,
+        tenant?.enabledModules ?? [],
+      ),
+    )
+  }
 
   return (
     <div className="pd-admin__plan" aria-label="Subscription">
@@ -153,66 +232,6 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           </dd>
         </div>
         <div className="pd-client-detail__card-field">
-          <dt>SMS allowed</dt>
-          <dd>
-            <Switch
-              label={
-                snapshot.billing?.smsEnabled === false
-                  ? 'Blocked by platform'
-                  : 'Agency may send'
-              }
-              checked={snapshot.billing?.smsEnabled !== false}
-              disabled={busy}
-              onChange={(event) => {
-                const next = event.target.checked
-                void run(() =>
-                  adminPatchBilling(tenantId, { smsEnabled: next }),
-                )
-              }}
-            />
-          </dd>
-        </div>
-        <div className="pd-client-detail__card-field">
-          <dt>Agency SMS</dt>
-          <dd>
-            {snapshot.billing?.smsEnabled === false
-              ? 'Off (platform)'
-              : snapshot.billing?.agencySmsEnabled === false
-                ? 'Off (their choice)'
-                : 'On'}
-          </dd>
-        </div>
-        <div className="pd-client-detail__card-field">
-          <dt>Email allowed</dt>
-          <dd>
-            <Switch
-              label={
-                snapshot.billing?.emailEnabled === false
-                  ? 'Blocked by platform'
-                  : 'Agency may send'
-              }
-              checked={snapshot.billing?.emailEnabled !== false}
-              disabled={busy}
-              onChange={(event) => {
-                const next = event.target.checked
-                void run(() =>
-                  adminPatchBilling(tenantId, { emailEnabled: next }),
-                )
-              }}
-            />
-          </dd>
-        </div>
-        <div className="pd-client-detail__card-field">
-          <dt>Agency email</dt>
-          <dd>
-            {snapshot.billing?.emailEnabled === false
-              ? 'Off (platform)'
-              : snapshot.billing?.agencyEmailEnabled === false
-                ? 'Off (their choice)'
-                : 'On'}
-          </dd>
-        </div>
-        <div className="pd-client-detail__card-field">
           <dt>Storage</dt>
           <dd>
             {formatStorageUsage(
@@ -222,6 +241,53 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           </dd>
         </div>
       </dl>
+
+      <div
+        className="pd-admin__plan-storage"
+        aria-label="Update storage limit"
+      >
+        <p className="pd-admin__quiet">
+          Used {formatStorageBytes(snapshot.usage.storageBytes)}. Set a custom
+          limit for this agency (does not change the plan template).
+        </p>
+        <div className="pd-admin__plan-storage-row">
+          <Input
+            aria-label="Storage limit amount"
+            type="number"
+            min={0}
+            step="any"
+            value={storageDraft}
+            disabled={busy}
+            onChange={(event) => setStorageDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                saveStorageLimit()
+              }
+            }}
+          />
+          <Select
+            aria-label="Storage unit"
+            size="sm"
+            value={storageUnit}
+            disabled={busy}
+            options={[
+              { value: 'GB', label: 'GB' },
+              { value: 'MB', label: 'MB' },
+            ]}
+            onChange={(event) =>
+              setStorageUnit(event.target.value === 'MB' ? 'MB' : 'GB')
+            }
+          />
+          <Button
+            size="sm"
+            disabled={busy || !storageDirty}
+            onClick={saveStorageLimit}
+          >
+            Save storage
+          </Button>
+        </div>
+      </div>
 
       {error ? (
         <p className="pd-field__error" role="alert">

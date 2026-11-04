@@ -3,11 +3,16 @@ import {
   findStepForDocument,
   getStepRequirement,
   type StepCompletionInput,
+  type StepFieldDef,
   type StepRequirement,
   type StepUploadDef,
   type StepUploadValue,
 } from '@/lib/caseStepRequirements'
 import { resolveServiceTemplate } from '@/lib/resolveServiceTemplate'
+import {
+  decisionFieldKey,
+  stepDecisionsSkipDocuments,
+} from '@/lib/stepDecisions'
 import type { Case, ServiceType } from '@/types/case'
 
 function catalogUploadKey(documentId: string) {
@@ -18,7 +23,7 @@ function requiredDocumentIdsForStep(
   service: ServiceType,
   stepId: string,
   country?: string,
-): { documentId: string; name: string }[] {
+): { documentId: string; name: string; required: boolean }[] {
   const template = resolveServiceTemplate(service, country)
   const step = template.steps.find((item) => item.id === stepId)
   const ids =
@@ -33,20 +38,85 @@ function requiredDocumentIdsForStep(
       const doc =
         template.documents.find((item) => item.id === documentId) ??
         undefined
-      return doc ? { documentId: doc.id, name: doc.name } : null
+      return doc
+        ? {
+            documentId: doc.id,
+            name: doc.name,
+            // Catalog Required switch only — attached ≠ required.
+            required: doc.required === true,
+          }
+        : null
     })
-    .filter((item): item is { documentId: string; name: string } => item != null)
+    .filter(
+      (
+        item,
+      ): item is { documentId: string; name: string; required: boolean } =>
+        item != null,
+    )
 }
 
-/** Step form/rules including catalog “Needs docs” for this file. */
+/** Step form/rules including catalog fields / docs / decisions. */
 export function getCaseStepRequirement(
   item: Case,
   stepId: string,
+  fieldAnswers?: Record<string, string>,
 ): StepRequirement {
   const base = getStepRequirement(item.service, stepId)
   const country = templateCountry(item)
+  const template = resolveServiceTemplate(item.service, country)
+  const step = template.steps.find((entry) => entry.id === stepId)
   const needed = requiredDocumentIdsForStep(item.service, stepId, country)
-  if (needed.length === 0) return base
+  // Saved Service catalog flow → only what the agency configured (no builtin Employer/date).
+  const catalogOnly = template.hasCatalogOverride
+
+  const decisionFields: StepFieldDef[] = (step?.decisions ?? []).map(
+    (decision) => ({
+      key: decisionFieldKey(decision.key),
+      label: decision.label,
+      type: 'select' as const,
+      required: true,
+      options: decision.options.map((option) => option.value),
+    }),
+  )
+
+  const catalogFields: StepFieldDef[] = (step?.fields ?? []).map((field) => ({
+    key: field.key,
+    label: field.label,
+    type: field.type,
+    required: field.required === true,
+    placeholder: field.placeholder,
+    options: field.options,
+  }))
+
+  const fields = catalogOnly
+    ? [...decisionFields, ...catalogFields]
+    : [...decisionFields, ...base.fields]
+
+  const help = catalogOnly
+    ? step
+      ? `Complete “${step.label || stepId}”.`
+      : 'Complete this step.'
+    : base.help
+
+  if (catalogOnly) {
+    const uploads: StepUploadDef[] = needed.map((doc) => ({
+      key: catalogUploadKey(doc.documentId),
+      label: doc.name,
+      required: doc.required,
+      documentId: doc.documentId,
+    }))
+    return applyDecisionSkipToRequirement(
+      { stepId, help, fields, uploads },
+      stepDecisionsSkipDocuments(step, fieldAnswers),
+    )
+  }
+
+  if (needed.length === 0) {
+    return applyDecisionSkipToRequirement(
+      { ...base, help, fields },
+      stepDecisionsSkipDocuments(step, fieldAnswers),
+    )
+  }
 
   const covered = new Set(
     base.uploads
@@ -54,24 +124,43 @@ export function getCaseStepRequirement(
       .filter((id): id is string => Boolean(id)),
   )
 
-  const uploads: StepUploadDef[] = base.uploads.map((upload) =>
-    upload.documentId &&
-    needed.some((item) => item.documentId === upload.documentId)
-      ? { ...upload, required: true }
-      : upload,
-  )
+  const uploads: StepUploadDef[] = base.uploads.map((upload) => {
+    const match = needed.find((entry) => entry.documentId === upload.documentId)
+    // Only block complete when the catalog doc is marked Required.
+    return match ? { ...upload, required: match.required } : upload
+  })
 
   for (const doc of needed) {
     if (covered.has(doc.documentId)) continue
     uploads.push({
       key: catalogUploadKey(doc.documentId),
       label: doc.name,
-      required: true,
+      required: doc.required,
       documentId: doc.documentId,
     })
   }
 
-  return { ...base, uploads }
+  return applyDecisionSkipToRequirement(
+    { ...base, help, fields, uploads },
+    stepDecisionsSkipDocuments(step, fieldAnswers),
+  )
+}
+
+/**
+ * Soften document uploads when a step decision says skip documents
+ * (e.g. Finger = No → complete without uploads).
+ */
+export function applyDecisionSkipToRequirement(
+  requirement: StepRequirement,
+  skipDocuments: boolean,
+): StepRequirement {
+  if (!skipDocuments) return requirement
+  return {
+    ...requirement,
+    uploads: requirement.uploads.map((upload) =>
+      upload.documentId ? { ...upload, required: false } : upload,
+    ),
+  }
 }
 
 /** Which progress step collects this catalog document (hardcoded or Needs docs). */
@@ -107,13 +196,14 @@ export function hydrateStepUploadsFromCase(
   input: StepCompletionInput,
 ): StepCompletionInput {
   const uploads: StepUploadValue[] = [...input.uploads]
+  // Keys already in the payload (even with empty fileName) were intentional —
+  // empty means the staff removed the file; do not refill from the case.
+  const keyed = new Set(uploads.map((entry) => entry.key))
 
   for (const upload of requirement.uploads) {
     if (!upload.documentId) continue
-    if (uploads.some((item) => item.key === upload.key && item.fileName.trim())) {
-      continue
-    }
-    const doc = item.documents.find((item) => item.id === upload.documentId)
+    if (keyed.has(upload.key)) continue
+    const doc = item.documents.find((entry) => entry.id === upload.documentId)
     if (!doc) continue
     const onFile =
       Boolean(doc.fileName?.trim()) ||

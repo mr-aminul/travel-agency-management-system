@@ -52,8 +52,8 @@ describe('buildAccessPageColumns', () => {
 
     expect(labels).toContain('Home')
     expect(labels).toContain('Clients')
-    expect(labels).toContain('Sub Agents - Directory')
-    expect(labels).toContain('Sub Agents - Approvals')
+    expect(labels).toContain('Sub Agents')
+    expect(labels).toContain('Approvals')
     expect(labels).toContain('HR - Employees')
     expect(labels).toContain('HR - Attendance & Leave')
     expect(labels).toContain('HR - Payroll')
