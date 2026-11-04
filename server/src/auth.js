@@ -1,6 +1,10 @@
 import crypto from 'node:crypto'
 import { query } from './db.js'
 import { hashPassword, verifyPassword } from './password.js'
+import {
+  removeTenantMemberRoster,
+  upsertTenantMemberRoster,
+} from './tenantMembersKv.js'
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 14 // 14 days
 
@@ -468,7 +472,7 @@ export async function createAgencyUser({
   }
 
   const existing = await query(
-    `select id, role, tenant_id, sub_agent_id, name
+    `select id, role, tenant_id, sub_agent_id, name, member_role, status
      from platform.users where lower(email) = $1 limit 1`,
     [normalizedEmail],
   )
@@ -501,6 +505,14 @@ export async function createAgencyUser({
           resolvedMemberRole,
         ],
       )
+      await upsertTenantMemberRoster({
+        id: row.id,
+        tenantId: resolvedTenantId,
+        email: normalizedEmail,
+        name: trimmedName,
+        role: resolvedMemberRole,
+        status: 'active',
+      }).catch(() => {})
       return {
         ok: true,
         status: 200,
@@ -548,6 +560,67 @@ export async function createAgencyUser({
         },
       }
     }
+    // Ghost login: user exists in platform.users for this agency but was
+    // missing from the People roster (client KV sync lost the row).
+    if (
+      resolvedRole === 'agency_user' &&
+      row.role === 'agency_user' &&
+      String(row.tenant_id ?? '') === resolvedTenantId
+    ) {
+      const memberRole =
+        resolvedMemberRole ||
+        (row.member_role === 'owner' ||
+        row.member_role === 'manager' ||
+        row.member_role === 'staff'
+          ? row.member_role
+          : 'staff')
+      if (trimmedName && trimmedName !== row.name) {
+        await query(
+          `update platform.users
+           set name = $2, member_role = $3, updated_at = now()
+           where id = $1`,
+          [row.id, trimmedName, memberRole],
+        )
+      } else if (memberRole && memberRole !== row.member_role) {
+        await query(
+          `update platform.users
+           set member_role = $2, updated_at = now()
+           where id = $1`,
+          [row.id, memberRole],
+        )
+      }
+      if (rawPassword && rawPassword.length >= 8) {
+        await query(
+          `update platform.users
+           set password_hash = $2, status = 'active', updated_at = now()
+           where id = $1`,
+          [row.id, hashPassword(rawPassword)],
+        )
+      }
+      await upsertTenantMemberRoster({
+        id: row.id,
+        tenantId: resolvedTenantId,
+        email: normalizedEmail,
+        name: trimmedName || row.name,
+        role: memberRole,
+        status: row.status === 'disabled' ? 'disabled' : 'active',
+      }).catch(() => {})
+      return {
+        ok: true,
+        status: 200,
+        body: {
+          user: {
+            id: row.id,
+            email: normalizedEmail,
+            name: trimmedName || row.name,
+            role: 'agency_user',
+          },
+          tenantId: resolvedTenantId,
+          memberRole,
+          repaired: true,
+        },
+      }
+    }
     return {
       ok: false,
       status: 409,
@@ -580,6 +653,17 @@ export async function createAgencyUser({
       resolvedSubAgentId || null,
     ],
   )
+
+  if (resolvedRole === 'agency_user') {
+    await upsertTenantMemberRoster({
+      id: userId,
+      tenantId: resolvedTenantId,
+      email: normalizedEmail,
+      name: trimmedName,
+      role: resolvedMemberRole,
+      status: 'active',
+    }).catch(() => {})
+  }
 
   return {
     ok: true,
@@ -851,6 +935,11 @@ export async function deleteAgencyUser({ userId, email }) {
   }
 
   await query(`delete from platform.users where id = $1`, [row.id])
+  await removeTenantMemberRoster({
+    userId: row.id,
+    email: emailLower,
+    tenantId,
+  }).catch(() => {})
 
   return {
     ok: true,

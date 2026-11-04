@@ -51,15 +51,26 @@ describe('tenant members', () => {
     })
   })
 
-  it('rejects a duplicate email in the same agency', () => {
-    expect(() =>
-      createTenantMember({
-        tenantId: TENANT_IDS.demo,
-        name: 'Copy',
-        email: ABC_OWNER_USER.email,
-        password: 'secret12',
-      }),
-    ).toThrow(/already exists/i)
+  it('upserts when the same email already exists in the agency', () => {
+    const existing = getTenantMembers(TENANT_IDS.demo).find(
+      (member) => member.email === ABC_OWNER_USER.email,
+    )
+    expect(existing).toBeTruthy()
+    const updated = createTenantMember({
+      id: 'user-restored-owner',
+      tenantId: TENANT_IDS.demo,
+      name: 'Restored Owner',
+      email: ABC_OWNER_USER.email,
+      password: 'secret12',
+      role: 'owner',
+    })
+    expect(updated.id).toBe('user-restored-owner')
+    expect(updated.name).toBe('Restored Owner')
+    expect(
+      getTenantMembers(TENANT_IDS.demo).filter(
+        (member) => member.email === ABC_OWNER_USER.email,
+      ),
+    ).toHaveLength(1)
   })
 
   it('rejects create without a password', () => {

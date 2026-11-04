@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import {
   Ban,
   CheckCircle2,
@@ -15,7 +15,11 @@ import {
   STAFF_MEMBER_ROLES,
   staffMemberCreateErrors,
 } from '@/lib/agencyUserRules'
-import { getActiveTenantId, provisionAgencyUser } from '@/lib/authApi'
+import {
+  getActiveTenantId,
+  provisionAgencyUser,
+  syncAgencyMembers,
+} from '@/lib/authApi'
 import { canManageAgencyUsers } from '@/lib/pageAccess'
 import {
   createTenantMember,
@@ -109,6 +113,18 @@ export function UserAccessSection({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { markAllTouched, showError, blur, resetTouched } =
     useTouchedFields<CreateField>()
+
+  useEffect(() => {
+    if (!tenantId || !canManage) return
+    let cancelled = false
+    void syncAgencyMembers(tenantId).catch((error) => {
+      if (cancelled) return
+      console.warn('[user-access] sync failed', error)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [tenantId, canManage])
 
   const values = { tenantId, name, email, role, password }
   const errors = staffMemberCreateErrors(values)

@@ -329,6 +329,36 @@ export type ProvisionSubAgentUserInput = {
 }
 
 /**
+ * Backfill People roster rows from platform.users for one agency.
+ * Repairs ghost logins that exist in seats/billing but not in the People list.
+ */
+export async function syncAgencyMembers(tenantId: string): Promise<number> {
+  const id = tenantId.trim()
+  if (!id) return 0
+  if (!authApiConfigured()) return 0
+  try {
+    const body = await apiFetch<{ added?: number }>(
+      '/api/platform/auth/users/sync',
+      {
+        method: 'POST',
+        body: { tenantId: id },
+      },
+    )
+    const added = Number(body.added ?? 0)
+    if (added > 0) {
+      const { rehydratePlatformData } = await import('@/lib/data/rehydrate')
+      await rehydratePlatformData()
+    }
+    return Number.isFinite(added) ? added : 0
+  } catch (error) {
+    if (!isNetworkFailure(error)) {
+      throw new Error(apiErrorMessage(error, 'Could not sync agency users.'))
+    }
+    return 0
+  }
+}
+
+/**
  * Create a real login for an agency user (admin-set initial password).
  * Uses the platform API when enabled; otherwise stores a local hashed login.
  */
@@ -353,6 +383,8 @@ export async function provisionAgencyUser(
       const body = await apiFetch<{
         user: AuthUser
         tenantId: string
+        repaired?: boolean
+        linked?: boolean
       }>('/api/platform/auth/users', {
         method: 'POST',
         body: {
@@ -372,6 +404,7 @@ export async function provisionAgencyUser(
         name: user.name,
         role: user.role,
         tenantId: body.tenantId || tenantId,
+        linkedExisting: body.linked === true || body.repaired === true,
       }
     } catch (error) {
       if (!isNetworkFailure(error)) {

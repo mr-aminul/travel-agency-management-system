@@ -95,6 +95,7 @@ import {
   assertCanUpload,
   incrementSmsUsage,
 } from './billing/quotas.js'
+import { syncTenantMembersFromUsers } from './tenantMembersKv.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -280,21 +281,56 @@ app.post('/api/platform/auth/users', requireAuth, async (req, res) => {
       res.status(result.status).json({ error: result.error })
       return
     }
+    const action = result.body.linked
+      ? 'user.link'
+      : result.body.repaired
+        ? 'user.repair'
+        : 'user.create'
+    const summary = result.body.linked
+      ? `Linked sub-agent access for ${result.body.user.email}`
+      : result.body.repaired
+        ? `Restored People roster for ${result.body.user.email}`
+        : `Created user ${result.body.user.email}`
     await appendAudit({
       tenantId,
       actorUserId: req.auth.user.id,
       actorEmail: req.auth.user.email,
-      action: result.body.linked ? 'user.link' : 'user.create',
+      action,
       entityType: 'user',
       entityId: result.body.user.id,
-      summary: result.body.linked
-        ? `Linked sub-agent access for ${result.body.user.email}`
-        : `Created user ${result.body.user.email}`,
+      summary,
     })
     res.status(result.status === 200 ? 200 : 201).json(result.body)
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'create user failed',
+    })
+  }
+})
+
+/** Backfill People roster from platform.users (repairs ghost logins). */
+app.post('/api/platform/auth/users/sync', requireAuth, async (req, res) => {
+  try {
+    const tenantId = String(req.body?.tenantId ?? '').trim()
+    if (!tenantId) {
+      res.status(400).json({ error: 'Agency is required.' })
+      return
+    }
+    const isAdmin = req.auth?.user?.role === 'platform_admin'
+    if (!isAdmin && tenantId !== req.auth?.tenantId) {
+      res.status(403).json({ error: 'You can only sync users for your agency.' })
+      return
+    }
+    const gate = await assertCanManageUsers(req.auth, tenantId)
+    if (!gate.ok) {
+      res.status(gate.status).json({ error: gate.error })
+      return
+    }
+    const result = await syncTenantMembersFromUsers(tenantId)
+    res.json({ ok: true, tenantId, added: result.added ?? 0 })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'sync users failed',
     })
   }
 })

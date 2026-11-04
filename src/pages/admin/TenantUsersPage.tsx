@@ -13,6 +13,7 @@ import {
   provisionAgencyUser,
   setAgencyUserPassword,
   setAgencyUserStatus,
+  syncAgencyMembers,
   updateAgencyUserProfile,
 } from '@/lib/authApi'
 import {
@@ -132,6 +133,18 @@ export default function TenantUsersPage() {
       return next.size === prev.size ? prev : next
     })
   }, [memberIds])
+
+  useEffect(() => {
+    if (!tenantId) return
+    let cancelled = false
+    void syncAgencyMembers(tenantId).catch((error) => {
+      if (cancelled) return
+      console.warn('[tenant-users] sync failed', error)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [tenantId])
 
   if (!tenant) {
     return <Navigate to={ADMIN_AGENCIES} replace />

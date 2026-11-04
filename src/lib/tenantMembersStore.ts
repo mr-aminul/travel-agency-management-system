@@ -175,25 +175,27 @@ export function createTenantMember(
   }
 
   const email = input.email.trim().toLowerCase()
-  const duplicate = members.find(
-    (member) =>
-      member.tenantId === input.tenantId &&
-      member.email.toLowerCase() === email,
-  )
-  if (duplicate) {
-    throw new Error('A user with this email already exists in this agency.')
-  }
-
   const id =
     (input.id?.trim() || '').length > 0
       ? input.id!.trim()
       : `member-${Date.now().toString(36)}`
-  if (members.some((member) => member.id === id)) {
-    throw new Error('A user with this id already exists.')
-  }
 
+  // Upsert by id or email so a successful login create that lost its People
+  // roster row can be restored without a false "already exists" error.
+  const existingIndex = members.findIndex(
+    (member) =>
+      member.id === id ||
+      (member.tenantId === input.tenantId &&
+        member.email.toLowerCase() === email),
+  )
+  const resolvedId =
+    (input.id?.trim() || '').length > 0
+      ? input.id!.trim()
+      : existingIndex >= 0
+        ? members[existingIndex]!.id
+        : id
   const created: TenantMember = {
-    id,
+    id: resolvedId,
     tenantId: input.tenantId,
     name: input.name.trim(),
     email,
@@ -201,9 +203,15 @@ export function createTenantMember(
     // Password was set by admin. Member can sign in immediately.
     status: input.status ?? 'active',
   }
-  members = [created, ...members]
+  if (existingIndex >= 0) {
+    members = members.map((member, index) =>
+      index === existingIndex ? { ...member, ...created } : member,
+    )
+  } else {
+    members = [created, ...members]
+  }
   emit()
-  return created
+  return existingIndex >= 0 ? members[existingIndex]! : created
 }
 
 export function getTenantMemberById(id: string): TenantMember | undefined {
