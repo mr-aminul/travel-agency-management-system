@@ -20,7 +20,6 @@ import { PayslipDownloadButton } from '@/components/hr/PayslipDownloadButton'
 import {
   buildPayrollLines,
   currentYearMonth,
-  formatYearMonthLabel,
 } from '@/lib/hrPayroll'
 import { buildEmployeePayslip } from '@/lib/payslip'
 import { useAgencyProfile } from '@/layout/useAgencyProfile'
@@ -51,7 +50,6 @@ export default function HrPayrollPage() {
     [employees, attendance, yearMonth],
   )
 
-  const monthLabel = formatYearMonthLabel(yearMonth)
   const totalNet = lines.reduce((sum, line) => sum + line.net, 0)
   const modalPayslip = payslip
     ? buildEmployeePayslip({
