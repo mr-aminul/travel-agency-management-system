@@ -51,6 +51,12 @@ const STATUS_OPTIONS: { value: TenantStatus; label: string }[] = [
   { value: 'suspended', label: 'Suspended' },
 ]
 
+function tenantStatusToneClass(status: TenantStatus): string {
+  if (status === 'active') return 'pd-select--tone-completed'
+  if (status === 'trial') return 'pd-select--tone-pending'
+  return 'pd-select--tone-danger'
+}
+
 const SECTIONS = [
   { to: 'all', label: 'All', icon: LayoutGrid },
   { to: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -161,6 +167,24 @@ export default function TenantAdminLayout() {
               <ExternalLink size={14} strokeWidth={2.25} aria-hidden />
               {supportBusy ? 'Opening…' : 'Open agency'}
             </Button>
+            <Select
+              aria-label="Status"
+              size="sm"
+              className={tenantStatusToneClass(tenant.status)}
+              value={tenant.status}
+              options={STATUS_OPTIONS}
+              onChange={(event) => {
+                const next = event.target.value as TenantStatus
+                setTenantStatus(tenant.id, next)
+                if (authApiConfigured()) {
+                  void adminPatchBilling(tenant.id, {
+                    billingStatus: next,
+                  }).catch(() => {
+                    /* local status already updated */
+                  })
+                }
+              }}
+            />
             {supportError ? (
               <p className="pd-field__error" role="alert">
                 {supportError}
@@ -169,28 +193,6 @@ export default function TenantAdminLayout() {
           </div>
 
           <dl className="pd-client-detail__card-fields">
-            <div className="pd-client-detail__card-field">
-              <dt>Status</dt>
-              <dd>
-                <Select
-                  aria-label="Status"
-                  size="sm"
-                  value={tenant.status}
-                  options={STATUS_OPTIONS}
-                  onChange={(event) => {
-                    const next = event.target.value as TenantStatus
-                    setTenantStatus(tenant.id, next)
-                    if (authApiConfigured()) {
-                      void adminPatchBilling(tenant.id, {
-                        billingStatus: next,
-                      }).catch(() => {
-                        /* local status already updated */
-                      })
-                    }
-                  }}
-                />
-              </dd>
-            </div>
             <div className="pd-client-detail__card-field">
               <dt>Usage</dt>
               <dd>
