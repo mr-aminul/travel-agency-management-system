@@ -95,11 +95,17 @@ describe('agencyProfile', () => {
     expect(readAgencyProfile()).toEqual(saved)
   })
 
-  it('rejects non-image profile picture payloads', () => {
+  it('keeps http(s) logo URLs and rejects other schemes', () => {
     expect(
       normalizeAgencyProfile({
         businessName: 'Acme',
         profilePicture: 'https://example.com/logo.png',
+      }).profilePicture,
+    ).toBe('https://example.com/logo.png')
+    expect(
+      normalizeAgencyProfile({
+        businessName: 'Acme',
+        profilePicture: 'ftp://example.com/logo.png',
       }).profilePicture,
     ).toBeNull()
   })

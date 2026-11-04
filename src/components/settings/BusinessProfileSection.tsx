@@ -41,6 +41,8 @@ type Props = {
     key: K,
     value: AgencyProfile[K],
   ) => void
+  /** Persist logo immediately (draft + store), separate from Save profile. */
+  onPictureChange: (photoUrl: string | null) => void
   onSave: (event: FormEvent) => void
 }
 
@@ -70,6 +72,7 @@ export function BusinessProfileSection({
   status,
   missingGapIds,
   onChange,
+  onPictureChange,
   onSave,
 }: Props) {
   const { snapshot, loading: billingLoading } = useBilling()
@@ -96,16 +99,15 @@ export function BusinessProfileSection({
               kind="business"
               value={draft.profilePicture ?? undefined}
               encodeFile={fileToProfilePictureDataUrl}
-              onChange={(photoUrl) =>
-                onChange('profilePicture', photoUrl ?? null)
-              }
+              onChange={(photoUrl) => onPictureChange(photoUrl ?? null)}
             />
             <div className="pd-business-profile__identity-copy">
               <h3 className="pd-business-profile__company">
                 {draft.businessName.trim() || 'Your agency'}
               </h3>
               <p className="pd-business-profile__tagline">
-                Shown on invoices, the sidebar, and client-facing pages.
+                Shown on invoices, the sidebar, and client-facing pages. Use the
+                camera to set your logo.
               </p>
             </div>
           </div>

@@ -241,29 +241,37 @@
 
 .pd-profile-photo__upload {
   position: absolute;
-  inset: 0;
+  right: -0.15rem;
+  bottom: -0.15rem;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
   margin: 0;
   padding: 0;
-  border: 0;
+  border: 0.125rem solid var(--color-surface, var(--color-bg));
   border-radius: 50%;
-  background: color-mix(in srgb, var(--color-text) 52%, transparent);
-  color: var(--color-bg);
-  opacity: 0;
+  background: var(--color-theme);
+  color: var(--color-theme-ink, var(--color-bg));
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  box-shadow: var(--shadow-low);
 }
 
-.pd-profile-photo__control:hover .pd-profile-photo__upload,
-.pd-profile-photo__control:focus-within .pd-profile-photo__upload {
-  opacity: 1;
+.pd-profile-photo__upload:hover,
+.pd-profile-photo__upload:focus-visible {
+  filter: brightness(1.06);
 }
 
 .pd-profile-photo__upload:focus-visible {
   outline: 0.125rem solid color-mix(in srgb, var(--color-theme) 55%, transparent);
   outline-offset: 0.125rem;
+}
+
+.pd-profile-photo__upload svg {
+  width: 0.8rem;
+  height: 0.8rem;
 }
 
 .pd-profile-photo__remove {
@@ -283,14 +291,7 @@
   background: var(--color-surface-raised, var(--color-bg));
   color: var(--color-text-secondary);
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s ease, color 0.15s ease;
-}
-
-.pd-profile-photo__control:hover .pd-profile-photo__remove,
-.pd-profile-photo__control:focus-within .pd-profile-photo__remove,
-.pd-profile-photo__remove:focus-visible {
-  opacity: 1;
+  transition: color 0.15s ease;
 }
 
 .pd-profile-photo__remove:hover,
@@ -301,17 +302,6 @@
 .pd-profile-photo__remove:focus-visible {
   outline: 0.125rem solid color-mix(in srgb, var(--color-theme) 55%, transparent);
   outline-offset: 0.125rem;
-}
-
-@media (hover: none) {
-  .pd-profile-photo__upload,
-  .pd-profile-photo__remove {
-    opacity: 1;
-  }
-
-  .pd-profile-photo__upload {
-    background: color-mix(in srgb, var(--color-text) 28%, transparent);
-  }
 }
 
 .pd-subAgent-grid {

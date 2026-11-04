@@ -165,11 +165,10 @@ export function ProfilePhotoField({
 
   const handleSave = (event: FormEvent) => {
     event.preventDefault()
+    event.stopPropagation()
     if (fileDraft) {
       onChange(fileDraft)
-      setPhotoUrlDraft('')
-      setError(undefined)
-      setMode('view')
+      closePicker()
       return
     }
     const trimmed = photoUrlDraft.trim()
@@ -183,9 +182,7 @@ export function ProfilePhotoField({
       return
     }
     onChange(normalized)
-    setFileDraft(normalized)
-    setError(undefined)
-    setMode('view')
+    closePicker()
   }
 
   const handleRemove = () => {

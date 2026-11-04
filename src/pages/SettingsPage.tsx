@@ -319,6 +319,25 @@ export default function SettingsPage() {
     setAgencyError(null)
   }
 
+  const handleAgencyPictureChange = (photoUrl: string | null) => {
+    setAgencyDraft((current) => {
+      const next = { ...current, profilePicture: photoUrl }
+      try {
+        const saved = saveAgencyProfile(next, tenantId)
+        setAgencyError(null)
+        setAgencyStatus(
+          photoUrl ? 'Logo updated.' : 'Logo removed.',
+        )
+        return saved
+      } catch (error) {
+        setAgencyError(
+          error instanceof Error ? error.message : 'Could not save logo.',
+        )
+        return next
+      }
+    })
+  }
+
   const handleAgencySave = (event: FormEvent) => {
     event.preventDefault()
     const nameError = validateRequiredName(
@@ -435,6 +454,7 @@ export default function SettingsPage() {
               status={agencyStatus}
               missingGapIds={missingGapIds}
               onChange={updateAgencyField}
+              onPictureChange={handleAgencyPictureChange}
               onSave={handleAgencySave}
             />
           ) : null}

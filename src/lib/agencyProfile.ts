@@ -7,7 +7,7 @@ export interface AgencyProfile {
   address: string
   mobile: string
   website: string
-  /** Data URL for the agency logo / profile picture, if set. */
+  /** Data URL or http(s) URL for the agency logo / profile picture, if set. */
   profilePicture: string | null
 }
 
@@ -116,9 +116,18 @@ function asTrimmedString(value: unknown): string {
 function asProfilePicture(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
-  if (!trimmed.startsWith('data:image/')) return null
-  if (trimmed.length > PROFILE_PICTURE_MAX_CHARS) return null
-  return trimmed
+  if (!trimmed) return null
+  if (trimmed.startsWith('data:image/')) {
+    if (trimmed.length > PROFILE_PICTURE_MAX_CHARS) return null
+    return trimmed
+  }
+  try {
+    const url = new URL(trimmed)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+    return trimmed
+  } catch {
+    return null
+  }
 }
 
 export function normalizeAgencyProfile(value: unknown): AgencyProfile {
