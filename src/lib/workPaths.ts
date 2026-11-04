@@ -32,7 +32,7 @@ export function hrPayrollPath(): string {
 /** Employee profile. Optional tab keeps Attendance, Leave, or Payroll in view. */
 export function hrEmployeePath(employeeId: string, tab?: string): string {
   const path = `/hr/employees/${encodeURIComponent(employeeId)}`
-  if (!tab || tab === 'attendance') return path
+  if (!tab || tab === 'profile') return path
   return `${path}?tab=${encodeURIComponent(tab)}`
 }
 

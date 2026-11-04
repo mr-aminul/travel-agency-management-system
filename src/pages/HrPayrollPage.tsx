@@ -2,20 +2,39 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatSalary, useEmployees } from '@/lib/employeesStore'
 import { useAttendance } from '@/lib/hrAttendance'
-import { Button, EmptyState, Input, Modal, PageHeader, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui'
+import {
+  Button,
+  EmptyState,
+  Input,
+  Modal,
+  PageHeader,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui'
+import { PayslipDocument } from '@/components/hr/PayslipDocument'
+import { PayslipDownloadButton } from '@/components/hr/PayslipDownloadButton'
 import {
   buildPayrollLines,
   currentYearMonth,
   formatYearMonthLabel,
 } from '@/lib/hrPayroll'
+import { buildEmployeePayslip } from '@/lib/payslip'
+import { useAgencyProfile } from '@/layout/useAgencyProfile'
+import { layoutConfig } from '@/config/layout'
 import { hrAttendancePath, hrEmployeePath, hrEmployeesPath } from '@/lib/workPaths'
 import type { Employee } from '@/types/employee'
 import type { PayrollLine } from '@/types/hr'
 import '@/styles/layout-ops.css'
+import '@/styles/layout-invoice.css'
 
 export default function HrPayrollPage() {
   const employees = useEmployees()
   const attendance = useAttendance()
+  const agencyProfile = useAgencyProfile()
   const [yearMonth, setYearMonth] = useState(currentYearMonth)
   const [payslip, setPayslip] = useState<{
     employee: Employee
@@ -34,6 +53,15 @@ export default function HrPayrollPage() {
 
   const monthLabel = formatYearMonthLabel(yearMonth)
   const totalNet = lines.reduce((sum, line) => sum + line.net, 0)
+  const modalPayslip = payslip
+    ? buildEmployeePayslip({
+        employee: payslip.employee,
+        line: payslip.line,
+        yearMonth,
+        profile: agencyProfile,
+        defaultLogoUrl: layoutConfig.brand.logoUrl,
+      })
+    : null
 
   return (
     <div className="pd-page pd-ops" aria-label="Payroll">
@@ -115,47 +143,22 @@ export default function HrPayrollPage() {
         open={payslip !== null}
         onClose={() => setPayslip(null)}
         title={payslip ? `Payslip · ${payslip.employee.name}` : 'Payslip'}
+        className="pd-employee-payslip-dialog"
         actions={
-          <Button variant="secondary" onClick={() => setPayslip(null)}>
-            Close
-          </Button>
+          <>
+            {modalPayslip ? (
+              <PayslipDownloadButton payslip={modalPayslip} />
+            ) : null}
+            <Button variant="secondary" onClick={() => setPayslip(null)}>
+              Close
+            </Button>
+          </>
         }
       >
-        {payslip ? (
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell>Month</TableCell>
-                <TableCell>{monthLabel}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Employee ID</TableCell>
-                <TableCell className="pd-table__code">
-                  {payslip.employee.id}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Designation</TableCell>
-                <TableCell>{payslip.employee.designation}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Basic salary</TableCell>
-                <TableCell>{formatSalary(payslip.line.salary)}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Unpaid days</TableCell>
-                <TableCell>{payslip.line.unpaidDays}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Deduction</TableCell>
-                <TableCell>{formatSalary(payslip.line.deduction)}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Net pay</TableCell>
-                <TableCell>{formatSalary(payslip.line.net)}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+        {modalPayslip ? (
+          <div className="pd-invoice-page__stage pd-employee-payslip-modal">
+            <PayslipDocument payslip={modalPayslip} />
+          </div>
         ) : null}
       </Modal>
     </div>

@@ -5,6 +5,7 @@ import {
   type ReactNode,
   type HTMLAttributes,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { cx } from '@/lib/cx'
 
 export type ModalProps = {
@@ -22,7 +23,9 @@ export type ModalProps = {
 
 /**
  * Native `<dialog>` modal: focus trap + Esc via showModal(), light-dismiss
- * via backdrop click. `closedby="any"` is progressive enhancement where supported.
+ * via backdrop click. Portaled to `document.body` so content (e.g. nested
+ * forms) is not trapped inside parent `<form>` elements. `closedby="any"` is
+ * progressive enhancement where supported.
  */
 export function Modal({
   open,
@@ -95,7 +98,7 @@ export function Modal({
     }
   }, [onClose])
 
-  return (
+  return createPortal(
     <dialog
       ref={dialogRef}
       className={cx('pd-modal', className)}
@@ -112,7 +115,8 @@ export function Modal({
       ) : null}
       {children ? <div className="pd-modal__body">{children}</div> : null}
       {actions ? <div className="pd-modal__actions">{actions}</div> : null}
-    </dialog>
+    </dialog>,
+    document.body,
   )
 }
 

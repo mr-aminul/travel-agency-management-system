@@ -21,10 +21,12 @@ import {
   MapPin,
   Pencil,
   Phone,
+  FileText,
   Table2,
   Users,
   Wallet,
 } from 'lucide-react'
+import { SubAgentClientReportPanel } from '@/components/subAgents/SubAgentClientReportPanel'
 import { SubAgentLoginSection } from '@/components/subAgents/SubAgentLoginSection'
 import { notifyIfPendingApproval } from '@/lib/notifyPendingApproval'
 import type { LucideIcon } from 'lucide-react'
@@ -71,7 +73,7 @@ import type {
 } from '@/types/client'
 import '@/styles/layout-clients.css'
 
-const SUB_AGENT_TABS = ['overview', 'profile', 'clients', 'login'] as const
+const SUB_AGENT_TABS = ['overview', 'profile', 'clients', 'report', 'login'] as const
 
 const CLIENT_STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'Pending', label: 'Pending' },
@@ -1365,6 +1367,17 @@ export default function SubAgentDetailPage() {
                       </Table>
                     )}
                   </div>
+                ),
+              },
+              {
+                id: 'report',
+                label: <TabLabel icon={FileText}>Report</TabLabel>,
+                content: (
+                  <SubAgentClientReportPanel
+                    subAgent={subAgent}
+                    clients={clients}
+                    casesByClientId={casesByClientId}
+                  />
                 ),
               },
               {

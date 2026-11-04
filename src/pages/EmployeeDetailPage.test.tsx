@@ -30,24 +30,38 @@ function renderEmployee(path: string) {
 }
 
 describe('employee profile', () => {
-  it('shows identity and Attendance, Leave, and Payroll sections', () => {
+  it('shows read-only left card and editable Profile tab first', () => {
     renderEmployee('/hr/employees/EMP-7001')
 
-    const header = screen.getByRole('banner')
-    expect(within(header).getByRole('heading', { name: 'Md. Karim Ahmed' })).toBeInTheDocument()
-    expect(within(header).getByText('01711234567')).toBeInTheDocument()
-    expect(within(header).getByText('Recruitment Manager · Recruitment')).toBeInTheDocument()
+    const profile = screen.getByLabelText('Employee profile')
+    expect(
+      within(profile).getByRole('heading', { name: 'Md. Karim Ahmed' }),
+    ).toBeInTheDocument()
+    expect(within(profile).getByText('01711234567')).toBeInTheDocument()
+    expect(within(profile).getByText('karim@abctravel.demo')).toBeInTheDocument()
+    expect(within(profile).queryByLabelText('Full name')).not.toBeInTheDocument()
+    expect(
+      within(profile).getByRole('button', { name: 'Delete' }),
+    ).toBeInTheDocument()
 
-    expect(screen.getByRole('tab', { name: 'Attendance' })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    const workspace = screen.getByLabelText('Employee workspace')
+    expect(
+      within(workspace).getByRole('tab', { name: 'Profile' }),
+    ).toHaveAttribute('aria-selected', 'true')
+    expect(
+      within(workspace).getByRole('tab', { name: 'Attendance' }),
+    ).toBeInTheDocument()
+    expect(
+      within(workspace).getByRole('tab', { name: 'Leave' }),
+    ).toBeInTheDocument()
+    expect(
+      within(workspace).getByRole('tab', { name: 'Payroll' }),
+    ).toBeInTheDocument()
+
+    expect(within(workspace).getByLabelText('Full name')).toHaveValue(
+      'Md. Karim Ahmed',
     )
-    expect(screen.getByRole('tab', { name: 'Leave' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Payroll' })).toBeInTheDocument()
-
-    const attendance = screen.getByLabelText('Md. Karim Ahmed attendance')
-    expect(within(attendance).getByText('Present')).toBeInTheDocument()
-    expect(within(attendance).getByText('Late')).toBeInTheDocument()
+    expect(within(workspace).getByLabelText('Phone')).toHaveValue('01711234567')
   })
 
   it('opens leave recorded for this person', () => {
@@ -63,7 +77,7 @@ describe('employee profile', () => {
     expect(within(leave).getByText('05-Oct-2026')).toBeInTheDocument()
   })
 
-  it('shows this month’s payroll line', () => {
+  it('shows this month’s payroll line and payslip preview', () => {
     renderEmployee('/hr/employees/EMP-7006?tab=payroll')
 
     fireEvent.change(screen.getByLabelText('Month'), {
@@ -75,6 +89,13 @@ describe('employee profile', () => {
     expect(within(payroll).getByText('৳30,000')).toBeInTheDocument()
     expect(within(payroll).getByText('Unpaid days')).toBeInTheDocument()
     expect(within(payroll).getByText('2')).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('button', { name: 'Download PDF' }),
+    ).toBeInTheDocument()
+    const preview = screen.getByLabelText('Payslip preview')
+    expect(within(preview).getByText('Payslip')).toBeInTheDocument()
+    expect(within(preview).getByText('Mehnaz Sultana')).toBeInTheDocument()
   })
 
   it('returns to the employees list when the person is missing', () => {

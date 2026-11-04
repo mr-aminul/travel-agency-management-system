@@ -9,35 +9,50 @@ import {
 } from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID, TENANT_IDS } from '@/types/tenant'
-import type { Employee, EmployeeDraft } from '@/types/employee'
+import type {
+  Employee,
+  EmployeeDraft,
+  EmployeeUpdate,
+} from '@/types/employee'
 
 type Listener = () => void
 const STORAGE_KEY = DATA_KEYS.employeesCreated
 
+function seedEmployee(
+  partial: Omit<Employee, 'email' | 'status'> &
+    Partial<Pick<Employee, 'email' | 'status'>>,
+): Employee {
+  return {
+    email: '',
+    status: 'Active',
+    ...partial,
+  }
+}
+
 const SEED_EMPLOYEES: Employee[] = [
-  {
+  seedEmployee({
     id: 'EMP-7001',
     tenantId: TENANT_IDS.demo,
     name: 'Md. Karim Ahmed',
     phone: '01711234567',
+    email: 'karim@abctravel.demo',
     department: 'Recruitment',
     designation: 'Recruitment Manager',
     joined: '2022-01-05',
     salary: 55000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-7002',
     tenantId: TENANT_IDS.demo,
     name: 'Lima Chowdhury',
     phone: '01713445566',
+    email: 'lima@abctravel.demo',
     department: 'Accounts',
     designation: 'Accounts Officer',
     joined: '2023-03-12',
     salary: 38000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-7003',
     tenantId: TENANT_IDS.demo,
     name: 'Sajid Hasan',
@@ -46,9 +61,8 @@ const SEED_EMPLOYEES: Employee[] = [
     designation: 'HR Executive',
     joined: '2024-06-01',
     salary: 32000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-7004',
     tenantId: TENANT_IDS.demo,
     name: 'Tahmina Akter',
@@ -57,9 +71,8 @@ const SEED_EMPLOYEES: Employee[] = [
     designation: 'Education Counsellor',
     joined: '2023-08-20',
     salary: 35000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-7005',
     tenantId: TENANT_IDS.demo,
     name: 'Rashidul Islam',
@@ -68,9 +81,8 @@ const SEED_EMPLOYEES: Employee[] = [
     designation: 'Hajj Coordinator',
     joined: '2021-11-10',
     salary: 42000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-7006',
     tenantId: TENANT_IDS.demo,
     name: 'Mehnaz Sultana',
@@ -79,9 +91,8 @@ const SEED_EMPLOYEES: Employee[] = [
     designation: 'Travel Consultant',
     joined: '2024-02-15',
     salary: 30000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-7007',
     tenantId: TENANT_IDS.demo,
     name: 'Farzana Islam',
@@ -90,9 +101,8 @@ const SEED_EMPLOYEES: Employee[] = [
     designation: 'Senior Ticketing Officer',
     joined: '2022-09-01',
     salary: 36000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-7008',
     tenantId: TENANT_IDS.demo,
     name: 'Mahmudul Hasan',
@@ -101,9 +111,8 @@ const SEED_EMPLOYEES: Employee[] = [
     designation: 'Documentation Officer',
     joined: '2025-01-12',
     salary: 28000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-7009',
     tenantId: TENANT_IDS.demo,
     name: 'Anwar Hossain',
@@ -113,8 +122,8 @@ const SEED_EMPLOYEES: Employee[] = [
     joined: '2020-06-18',
     salary: 40000,
     status: 'Inactive',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-M001',
     tenantId: TENANT_IDS.demo,
     name: 'Rafiqul Islam',
@@ -123,9 +132,8 @@ const SEED_EMPLOYEES: Employee[] = [
     designation: 'Recruitment Manager',
     joined: '2021-04-08',
     salary: 52000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-M002',
     tenantId: TENANT_IDS.demo,
     name: 'Sharmin Akter',
@@ -134,9 +142,8 @@ const SEED_EMPLOYEES: Employee[] = [
     designation: 'Documentation Officer',
     joined: '2023-07-19',
     salary: 28000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-M003',
     tenantId: TENANT_IDS.demo,
     name: 'Kamrul Hasan',
@@ -145,9 +152,8 @@ const SEED_EMPLOYEES: Employee[] = [
     designation: 'Accounts Officer',
     joined: '2022-11-03',
     salary: 34000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-L001',
     tenantId: TENANT_IDS.demo,
     name: 'Farzana Rahman',
@@ -156,9 +162,8 @@ const SEED_EMPLOYEES: Employee[] = [
     designation: 'Travel Consultant',
     joined: '2022-05-16',
     salary: 36000,
-    status: 'Active',
-  },
-  {
+  }),
+  seedEmployee({
     id: 'EMP-L002',
     tenantId: TENANT_IDS.demo,
     name: 'Imran Chowdhury',
@@ -167,8 +172,7 @@ const SEED_EMPLOYEES: Employee[] = [
     designation: 'Ticketing Officer',
     joined: '2024-03-04',
     salary: 28000,
-    status: 'Active',
-  },
+  }),
 ]
 
 const SEED_IDS = new Set(SEED_EMPLOYEES.map((item) => item.id))
@@ -185,11 +189,14 @@ function normalizeEmployee(value: unknown): Employee | undefined {
     typeof value.tenantId === 'string' ? value.tenantId.trim() : ''
   const name = typeof value.name === 'string' ? value.name.trim() : ''
   if (!id || !tenantId || !name) return undefined
+  const avatarUrl =
+    typeof value.avatarUrl === 'string' ? value.avatarUrl.trim() : ''
   return {
     id,
     tenantId,
     name,
     phone: typeof value.phone === 'string' ? value.phone : '',
+    email: typeof value.email === 'string' ? value.email.trim() : '',
     department: typeof value.department === 'string' ? value.department : '',
     designation:
       typeof value.designation === 'string' ? value.designation : '',
@@ -199,6 +206,7 @@ function normalizeEmployee(value: unknown): Employee | undefined {
         ? value.salary
         : 0,
     status: value.status === 'Inactive' ? 'Inactive' : 'Active',
+    ...(avatarUrl ? { avatarUrl } : {}),
   }
 }
 
@@ -313,6 +321,7 @@ export function createEmployee(draft: EmployeeDraft): Employee {
     tenantId: tenantId(),
     name: draft.name.trim(),
     phone: draft.phone.trim(),
+    email: (draft.email ?? '').trim(),
     department: draft.department.trim(),
     designation: draft.designation.trim(),
     status: draft.status ?? 'Active',
@@ -321,6 +330,63 @@ export function createEmployee(draft: EmployeeDraft): Employee {
   persist()
   emit()
   return created
+}
+
+export function updateEmployee(
+  employeeId: string,
+  patch: EmployeeUpdate,
+): Employee {
+  const id = employeeId.trim()
+  const index = employees.findIndex((item) => item.id === id)
+  if (index < 0) {
+    throw new Error('Employee not found.')
+  }
+  const current = employees[index]
+  const next: Employee = {
+    ...current,
+    name:
+      patch.name !== undefined ? patch.name.trim() : current.name,
+    phone:
+      patch.phone !== undefined ? patch.phone.trim() : current.phone,
+    email:
+      patch.email !== undefined ? patch.email.trim() : current.email,
+    department:
+      patch.department !== undefined
+        ? patch.department.trim()
+        : current.department,
+    designation:
+      patch.designation !== undefined
+        ? patch.designation.trim()
+        : current.designation,
+    joined: patch.joined !== undefined ? patch.joined : current.joined,
+    salary:
+      patch.salary !== undefined && Number.isFinite(patch.salary)
+        ? patch.salary
+        : current.salary,
+    status: patch.status ?? current.status,
+  }
+  if (patch.avatarUrl !== undefined) {
+    const avatarUrl = patch.avatarUrl?.trim()
+    if (avatarUrl) next.avatarUrl = avatarUrl
+    else delete next.avatarUrl
+  }
+  if (!next.name) {
+    throw new Error('Name is required.')
+  }
+  employees = employees.map((item, i) => (i === index ? next : item))
+  persist()
+  emit()
+  return next
+}
+
+export function deleteEmployee(employeeId: string): boolean {
+  const id = employeeId.trim()
+  const before = employees.length
+  employees = employees.filter((item) => item.id !== id)
+  if (employees.length === before) return false
+  persist()
+  emit()
+  return true
 }
 
 export function formatSalary(amount: number): string {

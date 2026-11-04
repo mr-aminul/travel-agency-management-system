@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Button, EmptyState, Input, Modal, PageHeader, SearchField, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui'
+import { Button, EmptyState, Input, Modal, PageHeader, SearchField, Select, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui'
 import {
   createEmployee,
   formatSalary,
@@ -15,10 +15,12 @@ import '@/styles/layout-ops.css'
 const emptyEmployee = (): EmployeeDraft => ({
   name: '',
   phone: '',
+  email: '',
   department: '',
   designation: '',
   joined: new Date().toISOString().slice(0, 10),
   salary: 0,
+  status: 'Active',
 })
 
 export default function HrPage() {
@@ -135,7 +137,8 @@ export default function HrPage() {
       >
         <div className="pd-ops-form pd-ops-form--2">
           <Input
-            label="Name"
+            label="Full name"
+            required
             value={draft.name}
             onChange={(event) =>
               setDraft((prev) => ({ ...prev, name: event.target.value }))
@@ -146,6 +149,28 @@ export default function HrPage() {
             value={draft.phone}
             onChange={(event) =>
               setDraft((prev) => ({ ...prev, phone: event.target.value }))
+            }
+          />
+          <Input
+            label="Email"
+            type="email"
+            value={draft.email}
+            onChange={(event) =>
+              setDraft((prev) => ({ ...prev, email: event.target.value }))
+            }
+          />
+          <Select
+            label="Status"
+            options={[
+              { value: 'Active', label: 'Active' },
+              { value: 'Inactive', label: 'Inactive' },
+            ]}
+            value={draft.status ?? 'Active'}
+            onChange={(event) =>
+              setDraft((prev) => ({
+                ...prev,
+                status: event.target.value as 'Active' | 'Inactive',
+              }))
             }
           />
           <Input
@@ -171,7 +196,7 @@ export default function HrPage() {
             }
           />
           <Input
-            label="Salary"
+            label="Basic salary"
             type="number"
             value={String(draft.salary)}
             onChange={(event) =>

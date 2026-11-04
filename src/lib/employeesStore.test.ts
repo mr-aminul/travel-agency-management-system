@@ -11,6 +11,7 @@ const inactive: Employee = {
   tenantId: 'tenant-full',
   name: 'Former Staff',
   phone: '01700000000',
+  email: '',
   department: 'HR',
   designation: 'Officer',
   joined: '2020-01-01',

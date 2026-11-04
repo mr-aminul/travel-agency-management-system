@@ -380,6 +380,155 @@
   flex-wrap: wrap;
 }
 
+.pd-employee-main {
+  min-width: 0;
+}
+
+.pd-employee-panel--payslip {
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.pd-employee-panel--payslip .pd-invoice-page__stage {
+  max-width: none;
+}
+
+.pd-employee-payslip-modal {
+  max-height: min(70vh, 48rem);
+  overflow: auto;
+}
+
+.pd-employee-payslip-dialog {
+  width: min(52rem, calc(100vw - 2rem));
+  max-width: min(52rem, calc(100vw - 2rem));
+}
+
+.pd-payslip__note {
+  margin: 0;
+  padding-top: 1rem;
+  border-top: 0.0625rem solid var(--color-border);
+}
+
+.pd-employee-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.pd-employee-panel {
+  padding: 1.4rem 1.5rem;
+}
+
+.pd-employee-panel .pd-client-detail__section-head {
+  margin-bottom: 0.95rem;
+  padding-bottom: 0.85rem;
+}
+
+.pd-employee-panel__lead {
+  margin: 0 0 1.35rem;
+  max-width: 40rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.pd-employee-panel__controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.25rem;
+  max-width: 32rem;
+  margin: 0 0 0.25rem;
+}
+
+.pd-employee-panel__note {
+  align-self: end;
+  padding-bottom: 0.55rem;
+}
+
+.pd-employee-panel__table {
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pd-employee-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.35rem;
+  padding-top: 1rem;
+  border-top: 0.0625rem solid var(--color-border);
+}
+
+.pd-employee-profile__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.45rem 1.75rem;
+  margin: 0;
+}
+
+.pd-employee-profile__field {
+  min-width: 0;
+}
+
+.pd-employee-profile__field.is-dirty .pd-field__control,
+.pd-employee-profile__field.is-dirty .pd-select__trigger {
+  border-color: var(--color-theme-ink);
+}
+
+.pd-employee-profile__field.is-dirty .pd-field--outlined .pd-field__label {
+  color: var(--color-theme-ink);
+}
+
+.pd-employee-panel .pd-field,
+.pd-employee-profile__field .pd-field {
+  --pd-field-fill: var(--color-surface-raised, var(--color-bg));
+}
+
+.pd-employee-panel .pd-field__control,
+.pd-employee-panel .pd-select__trigger {
+  min-height: 2.375rem;
+}
+
+@media (max-width: 900px) {
+  .pd-employee-panel {
+    padding: 1.1rem 1rem;
+  }
+
+  .pd-employee-profile__grid,
+  .pd-employee-panel__controls {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .pd-employee-panels {
+    gap: 0.85rem;
+  }
+
+  .pd-employee-panel {
+    padding: 1rem 0.875rem;
+  }
+
+  .pd-employee-panel__lead {
+    margin-bottom: 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .pd-employee-panel__actions {
+    margin-top: 1.1rem;
+    padding-top: 0.85rem;
+  }
+
+  .pd-employee-panel__actions .pd-btn {
+    flex: 1 1 auto;
+  }
+}
+
 .pd-profile-hero {
   display: flex;
   align-items: center;
