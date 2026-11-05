@@ -127,7 +127,7 @@ function normalizeInput(
   input: AnnouncementInput,
   { partial = false }: { partial?: boolean } = {},
 ) {
-  const next: AnnouncementInput = {}
+  const next: Partial<AnnouncementInput> = {}
 
   if (!partial || input.title !== undefined) {
     const title = String(input.title ?? '')
@@ -238,7 +238,7 @@ function toActive(item: PlatformAnnouncement): ActiveAnnouncement {
   }
 }
 
-function mergeCreateFields(fields: AnnouncementInput) {
+function mergeCreateFields(fields: Partial<AnnouncementInput>) {
   return {
     title: fields.title!,
     body: fields.body!,
