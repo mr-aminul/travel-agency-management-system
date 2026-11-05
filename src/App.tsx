@@ -53,6 +53,9 @@ const AdminPeoplePage = lazy(() => import('@/pages/admin/AdminPeoplePage'))
 const AdminActivityPage = lazy(() => import('@/pages/admin/AdminActivityPage'))
 const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'))
 const AdminAdminsPage = lazy(() => import('@/pages/admin/AdminAdminsPage'))
+const AdminAnnouncementsPage = lazy(
+  () => import('@/pages/admin/AdminAnnouncementsPage'),
+)
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'))
@@ -227,6 +230,10 @@ function ProductApp() {
             </Route>
             <Route path="admin/people" element={<AdminPeoplePage />} />
             <Route path="admin/activity" element={<AdminActivityPage />} />
+            <Route
+              path="admin/announcements"
+              element={<AdminAnnouncementsPage />}
+            />
             <Route path="admin/plans" element={<AdminPlansPage />} />
             <Route path="admin/admins" element={<AdminAdminsPage />} />
             <Route

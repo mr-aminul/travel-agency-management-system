@@ -95,6 +95,7 @@ describe('module entitlements', () => {
       '/admin/agencies',
       '/admin/people',
       '/admin/activity',
+      '/admin/announcements',
       '/admin/plans',
       '/admin/admins',
     ])
@@ -103,6 +104,7 @@ describe('module entitlements', () => {
       'Agencies',
       'Users',
       'Activity',
+      'Announcements',
       'Plans',
       'Admins',
     ])

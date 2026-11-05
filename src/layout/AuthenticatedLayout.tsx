@@ -25,6 +25,7 @@ import { queryClient } from '@/lib/queryClient'
 import { useActiveTenant } from '@/lib/useActiveTenant'
 import { fetchBillingMe } from '@/lib/billing/billingApi'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
+import { AgencyAnnouncementPopup } from '@/components/announcements/AgencyAnnouncementPopup'
 import { BillingAccessWall } from '@/components/billing/BillingAccessWall'
 import type { BillingAccess } from '@/types/billing'
 import '@/styles/layout-shell.css'
@@ -281,6 +282,7 @@ export default function AuthenticatedLayout() {
         profileSubtext={user.email}
         onSignOut={handleSignOut}
       />
+      <AgencyAnnouncementPopup />
     </QueryClientProvider>
   )
 }

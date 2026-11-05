@@ -31,6 +31,7 @@ import {
 } from '@/components/landing/landingContent'
 import { publicUrl } from '@/lib/publicUrl'
 import { appUrl } from '@/lib/siteOrigins'
+import { AnnouncementPopupHost } from '@/components/announcements/AnnouncementPopupHost'
 import '@/styles/layout-landing.css'
 
 function subscribeUrl(planId?: string): string {
@@ -459,6 +460,7 @@ export default function LandingPage() {
         <FinalCall />
       </main>
       <LandingFooter />
+      <AnnouncementPopupHost surface="landing" />
     </div>
   )
 }

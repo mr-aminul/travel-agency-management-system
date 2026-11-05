@@ -19,6 +19,9 @@ export async function ensureUploadRoot() {
   await fs.mkdir(UPLOAD_ROOT, { recursive: true })
 }
 
+/** Platform-scoped uploads (e.g. announcements) readable by any signed-in user. */
+export const PLATFORM_FILE_TENANT_ID = 'platform'
+
 export async function saveUploadedFile({
   tenantId,
   userId,
@@ -86,12 +89,9 @@ export async function getFileRecord(fileId, auth) {
   )
   const row = result.rows[0]
   if (!row) return null
-  if (
-    auth?.user?.role !== 'platform_admin' &&
-    row.tenant_id !== auth?.tenantId
-  ) {
-    return null
-  }
+  if (auth?.user?.role === 'platform_admin') return row
+  if (row.tenant_id === PLATFORM_FILE_TENANT_ID) return row
+  if (row.tenant_id !== auth?.tenantId) return null
   return row
 }
 

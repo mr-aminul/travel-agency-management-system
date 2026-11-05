@@ -23,6 +23,13 @@ import {
 } from './auth.js'
 import { appendAudit, listAudit } from './audit.js'
 import {
+  createAnnouncement,
+  deleteAnnouncement,
+  listActiveAnnouncements,
+  listAnnouncements,
+  updateAnnouncement,
+} from './announcements.js'
+import {
   ensureUploadRoot,
   getFileRecord,
   readFileBuffer,
@@ -737,8 +744,8 @@ app.delete('/api/platform/kv/:key', requireAuth, async (req, res) => {
 app.post('/api/platform/files', requireAuth, async (req, res) => {
   try {
     const tenantId =
-      req.auth.user.role === 'platform_admin' && req.body?.tenantId
-        ? String(req.body.tenantId).trim()
+      req.auth.user.role === 'platform_admin'
+        ? String(req.body?.tenantId || 'platform').trim() || 'platform'
         : req.auth.tenantId
     if (req.auth.user.role !== 'platform_admin' && tenantId) {
       const raw = String(req.body?.base64Data ?? req.body?.data ?? '')
@@ -1503,6 +1510,140 @@ app.patch(
     } catch (error) {
       res.status(500).json({
         error: error instanceof Error ? error.message : 'update admin failed',
+      })
+    }
+  },
+)
+
+app.get('/api/platform/announcements/active', requireAuth, async (_req, res) => {
+  try {
+    const announcements = await listActiveAnnouncements({ surface: 'app' })
+    res.json({ announcements })
+  } catch (error) {
+    res.status(500).json({
+      error:
+        error instanceof Error ? error.message : 'list announcements failed',
+    })
+  }
+})
+
+/** Public landing-page popups (no auth). Only live + showOnLanding items. */
+app.get('/api/platform/announcements/public', async (_req, res) => {
+  try {
+    const announcements = await listActiveAnnouncements({ surface: 'landing' })
+    res.json({ announcements })
+  } catch (error) {
+    res.status(500).json({
+      error:
+        error instanceof Error ? error.message : 'list announcements failed',
+    })
+  }
+})
+
+app.get(
+  '/api/platform/admin/announcements',
+  requirePlatformAdmin,
+  async (_req, res) => {
+    try {
+      const announcements = await listAnnouncements()
+      res.json({ announcements })
+    } catch (error) {
+      res.status(500).json({
+        error:
+          error instanceof Error ? error.message : 'list announcements failed',
+      })
+    }
+  },
+)
+
+app.post(
+  '/api/platform/admin/announcements',
+  requirePlatformAdmin,
+  async (req, res) => {
+    try {
+      const result = await createAnnouncement({
+        body: req.body,
+        actorUserId: req.auth.user.id,
+      })
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      await appendAudit({
+        tenantId: req.auth.tenantId || 'platform',
+        actorUserId: req.auth.user.id,
+        actorEmail: req.auth.user.email,
+        action: 'announcement.create',
+        entityType: 'announcement',
+        entityId: result.body.announcement.id,
+        summary: `Created announcement “${result.body.announcement.title}”`,
+      })
+      res.status(201).json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error:
+          error instanceof Error ? error.message : 'create announcement failed',
+      })
+    }
+  },
+)
+
+app.patch(
+  '/api/platform/admin/announcements/:announcementId',
+  requirePlatformAdmin,
+  async (req, res) => {
+    try {
+      const result = await updateAnnouncement({
+        id: req.params.announcementId,
+        body: req.body,
+      })
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      await appendAudit({
+        tenantId: req.auth.tenantId || 'platform',
+        actorUserId: req.auth.user.id,
+        actorEmail: req.auth.user.email,
+        action: 'announcement.update',
+        entityType: 'announcement',
+        entityId: result.body.announcement.id,
+        summary: `Updated announcement “${result.body.announcement.title}”`,
+      })
+      res.json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error:
+          error instanceof Error ? error.message : 'update announcement failed',
+      })
+    }
+  },
+)
+
+app.delete(
+  '/api/platform/admin/announcements/:announcementId',
+  requirePlatformAdmin,
+  async (req, res) => {
+    try {
+      const result = await deleteAnnouncement(req.params.announcementId)
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error })
+        return
+      }
+      await appendAudit({
+        tenantId: req.auth.tenantId || 'platform',
+        actorUserId: req.auth.user.id,
+        actorEmail: req.auth.user.email,
+        action: 'announcement.delete',
+        entityType: 'announcement',
+        entityId: String(req.params.announcementId),
+        summary: `Deleted announcement ${req.params.announcementId}`,
+      })
+      res.json(result.body)
+    } catch (error) {
+      res.status(500).json({
+        error:
+          error instanceof Error ? error.message : 'delete announcement failed',
       })
     }
   },

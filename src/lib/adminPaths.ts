@@ -15,6 +15,8 @@ export const ADMIN_PLANS = '/admin/plans'
 
 export const ADMIN_ADMINS = '/admin/admins'
 
+export const ADMIN_ANNOUNCEMENTS = '/admin/announcements'
+
 export function adminAgencyPath(
   tenantId: string,
   section:
