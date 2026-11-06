@@ -271,11 +271,6 @@ export function NewClientForm({
             />
             <Select
               label="Country"
-              hint={
-                catalogCountries.length
-                  ? 'From Service catalog for this service'
-                  : 'Add country flows in Settings → Service catalog'
-              }
               searchable={catalogCountries.length > 6}
               searchPlaceholder="Search countries…"
               value={serviceCountry}

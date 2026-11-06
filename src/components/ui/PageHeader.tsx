@@ -3,6 +3,7 @@ import { cx } from '@/lib/cx'
 
 export type PageHeaderProps = HTMLAttributes<HTMLElement> & {
   title: string
+  /** Consequence the title cannot carry. Do not use for a tagline or a restatement of the title. */
   description?: string
   /** Sits beside the title (e.g. List / Board view switch). */
   titleAside?: ReactNode

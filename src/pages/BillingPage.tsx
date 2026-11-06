@@ -68,9 +68,6 @@ export default function BillingPage() {
         <div className="pd-billing__checkout-head">
           <div>
             <h1 style={{ margin: 0, fontSize: '1.35rem' }}>Billing</h1>
-            <p className="pd-billing__meta">
-              Pick a plan and pay online to restore full access.
-            </p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => void handleSignOut()}>
             Sign out

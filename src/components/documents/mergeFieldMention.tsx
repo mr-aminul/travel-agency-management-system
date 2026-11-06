@@ -217,7 +217,6 @@ export function MergeFieldMentionMenu({
       aria-label="Insert information"
       onMouseDown={(event) => event.preventDefault()}
     >
-      <p className="pd-doc-mention__hint">Insert information</p>
       {items.length === 0 ? (
         <p className="pd-doc-mention__empty">No matching fields</p>
       ) : (

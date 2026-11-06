@@ -36,7 +36,6 @@ export function ClientServicesWorkspace({
         <EmptyState
           icon={Folder}
           title="No services yet"
-          description="Add a service on this profile to track steps, documents, and payments."
           action={
             <Button onClick={onAddService}>
               <Plus size={16} strokeWidth={2.25} aria-hidden />
@@ -102,7 +101,6 @@ export function ClientServicesWorkspace({
           <EmptyState
             icon={Folder}
             title="Open a service file"
-            description="Choose a file on the left to work its pipeline."
           />
         )}
       </div>

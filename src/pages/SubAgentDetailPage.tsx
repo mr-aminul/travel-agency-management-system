@@ -727,7 +727,6 @@ export default function SubAgentDetailPage() {
                               <EmptyState
                                 icon={Wallet}
                                 title="No commissions yet"
-                                description="Commissions appear when you collect payment on clients referred by this sub agent."
                               />
                             ) : (
                               <div className="pd-client-detail__overview">
@@ -839,7 +838,6 @@ export default function SubAgentDetailPage() {
                               <EmptyState
                                 icon={Users}
                                 title="No clients yet"
-                                description="Register a client against this sub agent to start their first case."
                                 action={
                                   <AddClientSplitButton
                                     size="md"
@@ -1218,7 +1216,6 @@ export default function SubAgentDetailPage() {
                       <EmptyState
                         icon={Users}
                         title="No customers yet"
-                        description="Register a client against this sub agent to start their first case."
                         action={
                           <AddClientSplitButton
                             size="md"
@@ -1231,7 +1228,6 @@ export default function SubAgentDetailPage() {
                       <EmptyState
                         icon={Users}
                         title="No clients match"
-                        description="Try a different name, phone number, or clear filters."
                         action={
                           <Button
                             variant="secondary"
@@ -1403,7 +1399,6 @@ export default function SubAgentDetailPage() {
         open={customerOpen}
         onClose={() => setCustomerOpen(false)}
         title="Add client"
-        description="This client will be linked to this sub agent."
         className="pd-clients-drawer"
       >
         <NewClientForm

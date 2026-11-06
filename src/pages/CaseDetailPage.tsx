@@ -472,11 +472,6 @@ export default function CaseDetailPage() {
               {editing ? (
                 <Select
                   label="Country"
-                  hint={
-                    catalogCountries.length
-                      ? 'From Service catalog for this service'
-                      : undefined
-                  }
                   searchable
                   searchPlaceholder="Search countries…"
                   value={draft.country}
@@ -664,7 +659,6 @@ export default function CaseDetailPage() {
         open={requestOpen}
         onClose={() => setRequestOpen(false)}
         title="Request status update"
-        description="Staff or a sub agent can ask to move this service to a new status."
         actions={
           <>
             <Button variant="secondary" onClick={() => setRequestOpen(false)}>
@@ -708,11 +702,10 @@ export default function CaseDetailPage() {
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
         onConfirm={confirmDelete}
-        title={`Delete ${item.service}?`}
-        description={
+        title={
           casePayments.length > 0
-            ? `This permanently removes the service file and its ${casePayments.length} payment${casePayments.length === 1 ? '' : 's'}. This cannot be undone.`
-            : 'This permanently removes the service file. This cannot be undone.'
+            ? `Delete ${item.service} and its ${casePayments.length} payment${casePayments.length === 1 ? '' : 's'}? This cannot be undone.`
+            : `Delete ${item.service}? This cannot be undone.`
         }
         confirmLabel="Delete"
         confirmVariant="danger"

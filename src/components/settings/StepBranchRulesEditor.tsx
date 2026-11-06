@@ -160,11 +160,6 @@ export function StepBranchRulesEditor({
         open={draft != null}
         onClose={() => setDraft(null)}
         title="Wire branch"
-        description={
-          draft
-            ? `When ${draft.fieldLabel} is “${draft.equals}”, go to…`
-            : undefined
-        }
         className="pd-settings-branch-drawer"
         footer={
           <div className="pd-settings-template__branch-drawer-actions">

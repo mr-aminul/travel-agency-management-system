@@ -21,16 +21,10 @@ export default function MySubmissionsPage() {
 
   return (
     <div className="pd-page">
-      <PageHeader
-        title="My submissions"
-        description="Changes you sent for agency approval. Pending items go live after an approver accepts them."
-      />
+      <PageHeader title="My submissions" />
 
       {mine.length === 0 ? (
-        <EmptyState
-          title="No submissions yet"
-          description="When the agency requires approval, your client and service edits appear here."
-        />
+        <EmptyState title="No submissions yet" />
       ) : (
         <ul className="pd-approval-list">
           {mine.map((change) => (

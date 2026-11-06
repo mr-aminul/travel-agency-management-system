@@ -201,11 +201,6 @@ export function PaymentsList({
         <EmptyState
           icon={Wallet}
           title="No payments yet"
-          description={
-            dueTotal > 0
-              ? 'Collect a payment against a service to reduce the balance due.'
-              : 'Record a payment against a service when money comes in.'
-          }
         />
       ) : (
         <Table>
@@ -259,9 +254,7 @@ export function PaymentsList({
         onClose={endRecording}
         title="Collect payment"
         description={
-          dueTotal > 0
-            ? `${formatPaymentAmount(dueTotal)} still due`
-            : 'Record what you received against a service.'
+          dueTotal > 0 ? `${formatPaymentAmount(dueTotal)} still due` : undefined
         }
         className="pd-payments-drawer"
       >

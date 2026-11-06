@@ -139,13 +139,6 @@ export function ModuleEntitlementsEditor({
             ? `${pending.next ? 'Enable' : 'Disable'} ${pending.label}?`
             : 'Change product?'
         }
-        description={
-          pending
-            ? pending.next
-              ? `Are you sure you want to enable ${pending.label} for this agency?`
-              : `Are you sure you want to disable ${pending.label} for this agency?`
-            : undefined
-        }
         confirmLabel={pending?.next ? 'Enable' : 'Disable'}
         confirmVariant={pending?.next ? 'primary' : 'danger'}
       />

@@ -358,11 +358,6 @@ export function ClientMessagesPanel({
               disabled={!address || isBusy}
               rows={useBrandedEmail ? 5 : 8}
               error={error}
-              hint={
-                useBrandedEmail
-                  ? 'Branded email layout — edit the text; preview updates below.'
-                  : undefined
-              }
             />
             {brandedPreviewHtml ? (
               <div className="pd-client-messages__email-preview">

@@ -45,16 +45,6 @@
   min-height: 15rem;
 }
 
-.pd-dash-note {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-}
-
-.pd-dash-note--solo {
-  margin: 0;
-}
-
 .pd-ops-metric-link__delta {
   margin-left: auto;
   padding: 0.12rem 0.45rem;

@@ -120,7 +120,6 @@ export type CasesListProps = {
   /** Hide search, filters, and the add-service control (overview summaries). */
   showToolbar?: boolean
   emptyTitle?: string
-  emptyDescription?: string
   emptyAction?: ReactNode
   /** Highlight the open service on a client profile. */
   selectedId?: string
@@ -147,7 +146,6 @@ export function CasesList({
   embedded = false,
   showToolbar = true,
   emptyTitle = 'No services yet',
-  emptyDescription = 'Add a service to start tracking steps, documents, and payments.',
   emptyAction,
   selectedId,
   serviceFeeHighlightToken = 0,
@@ -378,11 +376,6 @@ export function CasesList({
       <EmptyState
         icon={Folder}
         title={cases.length === 0 && !hasQuery ? emptyTitle : 'No services match'}
-        description={
-          cases.length === 0 && !hasQuery
-            ? emptyDescription
-            : 'Try a different search or clear filters.'
-        }
         action={
           cases.length === 0 && !hasQuery ? (
             (emptyAction ?? newCaseButton)
@@ -693,13 +686,6 @@ export function CasesList({
         open={newCaseOpen}
         onClose={closeNewCaseModal}
         title="Add service"
-        description={
-          lockClient
-            ? 'What does this client need? Progress starts at the first step of that service.'
-            : lockService
-              ? `Add a ${resolvedService} service for a client.`
-              : 'Pick the client and the service they need.'
-        }
         className="pd-cases-drawer"
       >
         <NewCaseForm
@@ -729,20 +715,13 @@ export function CasesList({
               throw error
             }
           }}
-          title={
-            pendingDelete
-              ? `Delete ${pendingDelete.service}?`
-              : 'Delete service?'
-          }
-          description={(() => {
-            if (!pendingDelete) {
-              return 'This permanently removes the service file. This cannot be undone.'
-            }
+          title={(() => {
+            if (!pendingDelete) return 'Delete this service? This cannot be undone.'
             const paymentCount = getPaymentsByCaseId(pendingDelete.id).length
             if (paymentCount === 0) {
-              return 'This permanently removes the service file. This cannot be undone.'
+              return `Delete ${pendingDelete.service}? This cannot be undone.`
             }
-            return `This permanently removes the service file and its ${paymentCount} payment${paymentCount === 1 ? '' : 's'}. This cannot be undone.`
+            return `Delete ${pendingDelete.service} and its ${paymentCount} payment${paymentCount === 1 ? '' : 's'}? This cannot be undone.`
           })()}
           confirmLabel="Delete"
           confirmVariant="danger"

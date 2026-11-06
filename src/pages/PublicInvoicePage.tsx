@@ -76,10 +76,7 @@ export default function PublicInvoicePage() {
     return (
       <div className="pd-invoice-page-frame pd-invoice-page-frame--public">
         <div className="pd-page pd-invoice-page" aria-busy="true">
-          <EmptyState
-            title="Loading invoice…"
-            description="Fetching the shared document."
-          />
+          <EmptyState title="Loading invoice…" />
         </div>
       </div>
     )
@@ -89,10 +86,7 @@ export default function PublicInvoicePage() {
     return (
       <div className="pd-invoice-page-frame pd-invoice-page-frame--public">
         <div className="pd-page pd-invoice-page">
-          <EmptyState
-            title="Invoice not found"
-            description="This share link is invalid or incomplete."
-          />
+          <EmptyState title="Invoice not found" />
         </div>
       </div>
     )
@@ -117,7 +111,6 @@ export default function PublicInvoicePage() {
       }
       toolbar={
         <>
-          <p className="pd-invoice-page__public-label">Shared invoice</p>
           <div className="pd-invoice-page__actions">
             <InvoicePrintActions invoiceNumber={displayInvoice.invoiceNumber} />
           </div>

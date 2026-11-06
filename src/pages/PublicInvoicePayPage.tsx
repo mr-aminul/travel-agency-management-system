@@ -58,10 +58,7 @@ export default function PublicInvoicePayPage() {
   if (loading) {
     return (
       <div className="pd-invoice-checkout">
-        <EmptyState
-          title="Loading payment…"
-          description="Fetching the invoice balance."
-        />
+        <EmptyState title="Loading payment…" />
       </div>
     )
   }
@@ -69,10 +66,7 @@ export default function PublicInvoicePayPage() {
   if (!invoice) {
     return (
       <div className="pd-invoice-checkout">
-        <EmptyState
-          title="Invoice not found"
-          description="This share link is invalid or incomplete."
-        />
+        <EmptyState title="Invoice not found" />
       </div>
     )
   }
@@ -110,7 +104,6 @@ export default function PublicInvoicePayPage() {
     <div className="pd-invoice-checkout">
       <form className="pd-invoice-checkout__card" onSubmit={handleSubmit}>
         <header>
-          <p className="pd-invoice-checkout__kicker">Secure checkout</p>
           <h1 className="pd-invoice-checkout__title">Pay {invoice.agencyName}</h1>
           <p className="pd-invoice-checkout__lede">
             {invoice.invoiceNumber} · {invoice.clientName}

@@ -333,7 +333,6 @@ export function ClientDocumentsPanel({
             document={selectedIdentity}
             clientId={client.id}
             identityKind={selectedIdentityKind}
-            hint="Identity lives here and is reused on every service. Profile shows a read-only copy."
             canEdit
           />
         ) : selectedPaper && selectedGroup ? (
@@ -349,7 +348,6 @@ export function ClientDocumentsPanel({
           <EmptyState
             icon={IdCard}
             title="Choose a document"
-            description="Pick a paper from the list to view or record it."
           />
         )}
       </div>

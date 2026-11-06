@@ -137,11 +137,7 @@ export default function DashboardPage() {
             }
             to="/services?due=1"
           >
-            {collect.length === 0 ? (
-              <p className="pd-dash-note pd-dash-note--solo">
-                No open balances right now.
-              </p>
-            ) : (
+            {collect.length === 0 ? null : (
               <ul className="pd-dash-bars">
                 {collect.map((row) => {
                   const width = Math.max(
@@ -243,11 +239,6 @@ export default function DashboardPage() {
             ]}
           />
 
-          <p className="pd-dash-note">
-            Cash period filters collected and the trend. Due and overdue are
-            stock as of {asOfLabel}.
-          </p>
-
           {showTrend ? (
             <BentoTile
               className="pd-dash__trend"
@@ -258,11 +249,7 @@ export default function DashboardPage() {
             >
               <TrendChart buckets={trend} />
             </BentoTile>
-          ) : (
-            <p className="pd-dash-note">
-              No collections in this cash period yet.
-            </p>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

@@ -902,13 +902,12 @@ export function ServiceTemplateEditor({
         open={resetOpen}
         onClose={() => setResetOpen(false)}
         onConfirm={applyReset}
-        title={country ? `Reset ${country}?` : 'Reset this checklist?'}
-        description={
+        title={
           country
-            ? `Remove the ${country} variation so those files use the all-countries checklist.`
+            ? `Reset ${country}? Files use the all-countries checklist.`
             : isCustom
-              ? 'Restore the generic checklist for this custom service.'
-              : 'Restore the default checklist for this service.'
+              ? 'Reset this checklist to the generic one?'
+              : 'Reset this checklist to the default?'
         }
         confirmLabel="Reset"
         confirmVariant="danger"
@@ -922,7 +921,6 @@ export function ServiceTemplateEditor({
           setPendingCountry(null)
         }}
         title="Discard unsaved changes?"
-        description="The checklist you were editing has not been saved."
         confirmLabel="Discard"
         confirmVariant="danger"
       />
@@ -930,8 +928,7 @@ export function ServiceTemplateEditor({
         open={removeCountry != null}
         onClose={() => setRemoveCountry(null)}
         onConfirm={confirmRemoveCountry}
-        title={`Remove ${removeCountry ?? 'this country'}?`}
-        description="New files for this destination will use the all-countries checklist. Existing files stay as they are."
+        title={`Remove ${removeCountry ?? 'this country'}? New files use the all-countries checklist.`}
         confirmLabel="Remove"
         confirmVariant="danger"
       />

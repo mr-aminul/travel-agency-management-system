@@ -155,11 +155,6 @@ export function PwaChrome() {
           />
           <div className="pd-card__text">
             <h2 className="pd-card__title">Install OneTrack</h2>
-            <p className="pd-card__description">
-              {installKind === 'ios'
-                ? 'Add it to your Home Screen so it opens like an app, even on a weak connection.'
-                : 'Keep it on your home screen. Faster than a browser tab, and it still opens when the signal drops.'}
-            </p>
           </div>
         </header>
         <div className="pd-card__body">
@@ -214,9 +209,6 @@ export function PwaChrome() {
           </span>
           <div className="pd-card__text">
             <h2 className="pd-card__title">A new version is ready</h2>
-            <p className="pd-card__description">
-              Reload to pick up the latest OneTrack screens.
-            </p>
           </div>
         </header>
         <div className="pd-card__body">

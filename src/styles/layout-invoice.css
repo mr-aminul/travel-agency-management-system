@@ -106,11 +106,8 @@
   }
 }
 
-.pd-invoice-page__public-label {
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: color-mix(in srgb, white 78%, transparent);
+.pd-invoice-page-frame--public .pd-invoice-page__actions {
+  margin-left: auto;
 }
 
 .pd-invoice-page-frame--public .pd-empty__title {

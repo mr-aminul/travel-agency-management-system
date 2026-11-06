@@ -434,12 +434,7 @@ export default function PaymentsPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title={book.length === 0 ? 'Your money book is empty' : 'Nothing here'}
-          description={
-            book.length === 0
-              ? 'When a client pays, it shows up here. Use Money out when you pay a supplier or other bill.'
-              : 'Try another filter to see more movements.'
-          }
+          title={book.length === 0 ? 'No payments yet' : 'Nothing here'}
           action={
             book.length === 0 ? (
               <Button
@@ -519,7 +514,6 @@ export default function PaymentsPage() {
         open={drawer === 'payment'}
         onClose={closeDrawer}
         title="Client paid"
-        description="Money that came in for a client service. It updates their balance too."
         className="pd-payments-drawer"
       >
         <form
@@ -624,7 +618,6 @@ export default function PaymentsPage() {
         open={drawer === 'payout'}
         onClose={closeDrawer}
         title="Money out"
-        description="Pay a supplier, vendor, or other bill from a wallet."
         className="pd-payments-drawer"
       >
         <form

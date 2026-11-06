@@ -236,13 +236,6 @@
   color: var(--color-text);
 }
 
-.pd-cases-form__hint {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  line-height: 1.4;
-}
-
 .pd-cases-form__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1371,13 +1364,6 @@
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--color-text);
-}
-
-.pd-pipeline__hint {
-  margin: -0.35rem 0 0;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  color: var(--color-text-muted, var(--color-text-sec));
 }
 
 @media (max-width: 767px) {

@@ -430,13 +430,30 @@
 }
 
 .pd-admin__panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   margin: 0;
   font-size: 1.05rem;
   font-weight: 800;
   color: var(--color-theme-ink);
 }
 
-.pd-admin__panel-desc,
+.pd-admin__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-theme) 14%, transparent);
+  color: var(--color-theme-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 .pd-admin__quiet {
   margin: 0.25rem 0 0;
   color: var(--color-text-secondary);
@@ -491,18 +508,20 @@
 
 .pd-admin__shortcuts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--spacing-3, 0.75rem);
 }
 
 .pd-admin__shortcut {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 0.9rem 1rem;
+  padding: 1rem;
   border: 0.0625rem solid var(--color-border);
   border-radius: 0.85rem;
-  color: inherit;
+  color: var(--color-text);
+  font-weight: 750;
   text-decoration: none;
   background: color-mix(in srgb, var(--color-surface) 92%, transparent);
 }
@@ -511,16 +530,15 @@
   border-color: color-mix(in srgb, var(--color-theme) 40%, var(--color-border));
 }
 
-.pd-admin__shortcut strong {
-  display: block;
-  font-weight: 750;
-}
-
-.pd-admin__shortcut span span {
-  display: block;
-  margin-top: 0.2rem;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
+.pd-admin__shortcut-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--color-theme) 12%, transparent);
+  color: var(--color-theme-ink);
 }
 
 .pd-admin__form-grid {
@@ -534,11 +552,6 @@
   display: flex;
   flex-direction: column;
   gap: 1.125rem;
-}
-
-.pd-admin__modules-intro {
-  margin: 0 0 var(--spacing-4);
-  color: var(--color-text-secondary);
 }
 
 .pd-admin__modules {
@@ -834,6 +847,12 @@
   font-weight: 800;
   background: transparent;
   border-bottom-color: var(--color-theme-ink);
+}
+
+@media (max-width: 960px) {
+  .pd-admin__shortcuts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 767px) {

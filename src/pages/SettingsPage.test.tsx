@@ -210,7 +210,7 @@ describe('settings service catalog', () => {
       screen.getByLabelText('Mobile number').closest('.pd-settings-form__field'),
     ).toHaveClass('is-attention')
     expect(
-      screen.getByLabelText('Business name').closest('.pd-settings-form__field'),
+      screen.getByLabelText('Company name').closest('.pd-settings-form__field'),
     ).not.toHaveClass('is-attention')
   }, 15000)
 

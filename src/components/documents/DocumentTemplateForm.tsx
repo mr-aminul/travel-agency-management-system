@@ -245,14 +245,14 @@ export function DocumentTemplateForm({
             value={letterIntro}
             onChange={(event) => setLetterIntro(event.target.value)}
             onBlur={blur('letterIntro')}
-            hint="Use {{agency}}, {{license}}, {{date}}, {{country}}"
+            placeholder="{{agency}}, {{license}}, {{date}}, {{country}}"
             error={showError('letterIntro') ? letterIntroError : undefined}
           />
           <Textarea
             label="Checklist lines"
             value={letterItems}
             onChange={(event) => setLetterItems(event.target.value)}
-            hint="One item per line"
+            placeholder="One item per line"
           />
         </>
       ) : (

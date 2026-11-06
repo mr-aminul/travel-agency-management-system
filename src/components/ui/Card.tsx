@@ -3,6 +3,7 @@ import { cx } from '@/lib/cx'
 
 export type CardProps = HTMLAttributes<HTMLDivElement> & {
   title?: string
+  /** Consequence the title cannot carry. Do not use for a tagline under the card title. */
   description?: string
   actions?: ReactNode
   children?: ReactNode

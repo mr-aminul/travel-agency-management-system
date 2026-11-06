@@ -20,7 +20,6 @@ export function PublicInvoicePayPanel({
       <aside className="pd-invoice-pay" aria-label="Invoice payment">
         <div className="pd-invoice-pay__card pd-invoice-pay__card--paid">
           <div className="pd-invoice-pay__copy">
-            <p className="pd-invoice-pay__kicker">Payment</p>
             <p className="pd-invoice-pay__paid">Paid in full</p>
             <p className="pd-invoice-pay__hint">
               {formatInvoiceAmount(invoice.paidTotal)} received for{' '}
@@ -36,12 +35,8 @@ export function PublicInvoicePayPanel({
     <aside className="pd-invoice-pay" aria-label="Pay this invoice">
       <div className="pd-invoice-pay__card">
         <div className="pd-invoice-pay__copy">
-          <p className="pd-invoice-pay__kicker">Balance due</p>
           <p className="pd-invoice-pay__amount">
             {formatInvoiceAmount(invoice.balanceDue)}
-          </p>
-          <p className="pd-invoice-pay__hint">
-            Pay {invoice.agencyName} with bKash, Nagad, or card.
           </p>
           <ul className="pd-invoice-pay__methods">
             {INVOICE_PAY_METHODS.map((method) => (

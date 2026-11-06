@@ -5,6 +5,7 @@ import { cx } from '@/lib/cx'
 export type EmptyStateProps = HTMLAttributes<HTMLDivElement> & {
   icon?: LucideIcon
   title: string
+  /** Consequence the title cannot carry. Do not use for a second sentence that repeats the title or the button. */
   description?: string
   action?: ReactNode
 }

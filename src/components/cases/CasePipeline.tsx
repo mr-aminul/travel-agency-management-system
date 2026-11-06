@@ -36,10 +36,6 @@ export function CasePipeline({ item }: CasePipelineProps) {
   return (
     <section className="pd-pipeline" aria-label="Pipeline">
       <h2 className="pd-pipeline__title">Pipeline</h2>
-      <p className="pd-pipeline__hint">
-        Completed steps show a tick. Open the current step to mark complete, or
-        a finished step to move back if something was marked by mistake.
-      </p>
       <ServiceJourney
         item={live}
         interactive

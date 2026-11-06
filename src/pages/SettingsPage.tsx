@@ -689,7 +689,6 @@ export default function SettingsPage() {
           if (href) goToHref(href)
         }}
         title="Discard unsaved changes?"
-        description="The checklist or name you were editing has not been saved."
         confirmLabel="Discard"
         confirmVariant="danger"
       />

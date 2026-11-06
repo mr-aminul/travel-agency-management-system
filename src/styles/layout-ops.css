@@ -415,14 +415,6 @@
   padding-bottom: 0.85rem;
 }
 
-.pd-employee-panel__lead {
-  margin: 0 0 1.35rem;
-  max-width: 40rem;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--color-text-secondary);
-}
-
 .pd-employee-panel__controls {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -502,11 +494,6 @@
 
   .pd-employee-panel {
     padding: 1rem 0.875rem;
-  }
-
-  .pd-employee-panel__lead {
-    margin-bottom: 1rem;
-    font-size: 0.8125rem;
   }
 
   .pd-employee-panel__actions {

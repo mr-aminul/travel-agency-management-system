@@ -52,7 +52,6 @@ export function DocumentUploadModal({
       open={open}
       onClose={onClose}
       title={document.name}
-      description={isView ? 'Document details' : 'Enter document details'}
       className="pd-doc-drawer"
       footer={
         <div className="pd-step-drawer__footer">

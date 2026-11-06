@@ -105,10 +105,6 @@ export function BusinessProfileSection({
               <h3 className="pd-business-profile__company">
                 {draft.businessName.trim() || 'Your agency'}
               </h3>
-              <p className="pd-business-profile__tagline">
-                Shown on invoices, the sidebar, and client-facing pages. Use the
-                camera to set your logo.
-              </p>
             </div>
           </div>
 

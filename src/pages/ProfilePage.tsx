@@ -130,10 +130,7 @@ export default function ProfilePage() {
 
   return (
     <div className="pd-page pd-ops pd-profile-page" aria-label="My profile">
-      <PageHeader
-        title="My profile"
-        description="Your staff account for this workspace — name, email, and photo."
-      />
+      <PageHeader title="My profile" />
 
       <div className="pd-profile-layout">
         <section className="pd-profile-card" aria-label="Profile details">
@@ -210,7 +207,6 @@ export default function ProfilePage() {
                       setEmail(event.target.value)
                       setSuccess(undefined)
                     }}
-                    hint="Used to sign in to this workspace."
                   />
                 </div>
 

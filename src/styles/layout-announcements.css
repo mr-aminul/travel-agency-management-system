@@ -48,12 +48,6 @@
   flex-wrap: wrap;
 }
 
-.pd-announce-kind-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
 .pd-announce-kind-chip {
   display: inline-flex;
   align-items: center;
@@ -277,21 +271,6 @@
   letter-spacing: -0.01em;
 }
 
-.pd-announce-template__desc {
-  font-size: 0.8rem;
-  line-height: 1.4;
-  color: var(--color-text-secondary);
-}
-
-.pd-announce-template__kind {
-  margin-top: 0.15rem;
-  font-size: 0.7rem;
-  font-weight: 650;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
 .pd-announce-kind-picker {
   display: flex;
   flex-direction: column;
@@ -324,20 +303,6 @@
 
 .pd-announce-kind-option.is-selected {
   font-weight: 750;
-}
-
-.pd-announce-template-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.45rem;
-  margin: 0;
-  padding: 0.65rem 0.75rem;
-  border-radius: 0.65rem;
-  border: 0.0625rem dashed var(--color-border);
-  font-size: 0.8rem;
-  line-height: 1.4;
-  color: var(--color-text-secondary);
-  background: var(--color-surface-muted, transparent);
 }
 
 .pd-announce-popup__icon {
@@ -648,13 +613,6 @@
 .pd-announce-preview__card .pd-announce-dialog__body {
   padding: 0.85rem 0.9rem 1rem;
   max-height: none;
-}
-
-.pd-announce-format-hint {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: var(--color-text-muted);
 }
 
 .pd-announce-where {

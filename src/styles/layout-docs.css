@@ -351,16 +351,6 @@
   padding-inline-start: 1.25rem;
 }
 
-.pd-docs__fill-hint {
-  margin: 0;
-  padding: 0.65rem 0.85rem;
-  border: 1px dashed var(--color-border);
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--color-theme) 6%, var(--color-surface));
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-}
-
 /* ── Document canvas editor (Word-like) ───────────────────────────── */
 
 .pd-doc-canvas {
@@ -396,14 +386,6 @@
 
 .pd-doc-canvas__identity .pd-field {
   max-width: 28rem;
-}
-
-.pd-doc-canvas__hint {
-  margin: 0;
-  max-width: 40rem;
-  color: var(--color-text-secondary);
-  font-size: 0.8125rem;
-  line-height: 1.45;
 }
 
 .pd-doc-canvas__top-actions {
@@ -822,16 +804,6 @@
   box-shadow: 0 0.75rem 1.75rem color-mix(in srgb, #101828 16%, transparent);
 }
 
-.pd-doc-mention__hint {
-  margin: 0;
-  padding: 0.35rem 0.55rem 0.25rem;
-  color: #667085;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
 .pd-doc-mention__empty {
   margin: 0;
   padding: 0.65rem 0.55rem;
@@ -911,7 +883,6 @@
   .pd-docs__toolbar,
   .pd-docs__hits,
   .pd-docs__people,
-  .pd-docs__fill-hint,
   .pd-doc-canvas__no-print,
   .pd-doc-canvas__screen-only {
     display: none !important;

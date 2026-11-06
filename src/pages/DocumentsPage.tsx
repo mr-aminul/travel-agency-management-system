@@ -160,7 +160,6 @@ export default function DocumentsPage() {
     <div className="pd-page pd-docs" aria-label="Documents">
       <PageHeader
         title="Documents"
-        description="Craft document templates on a page canvas, insert client and agency fields, then print."
         actions={
           <Button onClick={() => setComposer({ mode: 'create' })}>
             <Plus size={16} /> New template
@@ -171,7 +170,6 @@ export default function DocumentsPage() {
       {templates.length === 0 ? (
         <EmptyState
           title="No document templates"
-          description="Create a letter or form on a document canvas, with auto-fill fields from client profiles."
           action={
             <Button onClick={() => setComposer({ mode: 'create' })}>
               New template
@@ -294,12 +292,6 @@ export default function DocumentsPage() {
                 />
               ) : null}
 
-              {selected?.format === 'canvas' && !primaryClient ? (
-                <p className="pd-docs__fill-hint">
-                  Add a client above to preview auto-filled name, passport,
-                  address, and other fields.
-                </p>
-              ) : null}
 
               {hits.length > 0 ? (
                 <ul className="pd-docs__hits">
@@ -367,7 +359,6 @@ export default function DocumentsPage() {
         open={composer?.mode === 'edit-legacy'}
         onClose={closeComposer}
         title="Edit print template"
-        description="This is a fixed embassy/manpower sheet. For a freeform Word-style document, create a custom template instead."
       >
         {composer?.mode === 'edit-legacy' ? (
           <DocumentTemplateForm
@@ -391,8 +382,7 @@ export default function DocumentsPage() {
           }
           setPendingDelete(null)
         }}
-        title={`Delete ${pendingDelete?.name ?? 'this template'}?`}
-        description="The print layout is removed. Client records stay as they are."
+        title={`Delete ${pendingDelete?.name ?? 'this template'}? Client records stay.`}
         confirmLabel="Delete"
         confirmVariant="danger"
       />

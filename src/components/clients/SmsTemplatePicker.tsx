@@ -58,7 +58,6 @@ export function SmsTemplatePicker({
         open={open}
         onClose={() => setOpen(false)}
         title={label}
-        description="Open a folder and pick a template. Attributes fill from this client."
         className="pd-settings-drawer"
       >
         {folders.length === 0 ? (

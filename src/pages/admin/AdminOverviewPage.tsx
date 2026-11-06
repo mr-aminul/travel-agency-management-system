@@ -1,8 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  Activity,
+  AlertTriangle,
   Building2,
+  CreditCard,
   PauseCircle,
+  Receipt,
+  ScrollText,
+  Shield,
   Timer,
   Users,
 } from 'lucide-react'
@@ -90,7 +94,6 @@ export default function AdminOverviewPage() {
 
   if (user?.role !== 'platform_admin') return null
 
-  const active = tenants.filter((t) => t.status === 'active').length
   const trial = tenants.filter((t) => t.status === 'trial').length
   const suspended = tenants.filter((t) => t.status === 'suspended').length
   const activePeople = members.filter((m) => m.status === 'active').length
@@ -100,7 +103,6 @@ export default function AdminOverviewPage() {
       id: 'agencies',
       label: 'Agencies',
       value: String(tenants.length),
-      hint: `${active} active`,
       icon: Building2,
       tone: 'brand',
     },
@@ -108,7 +110,6 @@ export default function AdminOverviewPage() {
       id: 'trial',
       label: 'On trial',
       value: String(trial),
-      hint: 'Needs attention soon',
       icon: Timer,
       tone: trial > 0 ? 'warning' : 'muted',
     },
@@ -116,7 +117,6 @@ export default function AdminOverviewPage() {
       id: 'suspended',
       label: 'Suspended',
       value: String(suspended),
-      hint: 'Cannot sign in',
       icon: PauseCircle,
       tone: suspended > 0 ? 'warning' : 'muted',
     },
@@ -124,7 +124,6 @@ export default function AdminOverviewPage() {
       id: 'people',
       label: 'Active people',
       value: String(activePeople),
-      hint: 'Agency users',
       icon: Users,
       tone: 'info',
     },
@@ -181,7 +180,6 @@ export default function AdminOverviewPage() {
     <div className="pd-page pd-admin" aria-label="Platform overview">
       <PageHeader
         title="Platform"
-        description="Platform pulse: agencies that need attention and shortcuts into daily ops."
         actions={
           <>
             <Button
@@ -211,30 +209,24 @@ export default function AdminOverviewPage() {
 
       <StatCards label="Platform metrics" cards={cards} />
 
+      {billingError || pendingInvoices.length > 0 ? (
       <section
         className="pd-admin__panel"
         aria-labelledby="admin-billing-queue-title"
       >
         <header className="pd-admin__panel-header">
-          <div>
-            <h2 id="admin-billing-queue-title" className="pd-admin__panel-title">
-              Billing queue
-            </h2>
-            <p className="pd-admin__panel-desc">
-              Self-serve checkouts and payments waiting for confirmation. Paid
-              Paymently invoices activate automatically; mark paid only for
-              manual settlements.
-            </p>
-          </div>
+          <h2 id="admin-billing-queue-title" className="pd-admin__panel-title">
+            <Receipt size={16} strokeWidth={2.25} aria-hidden />
+            Billing queue
+            <span className="pd-admin__count">{pendingInvoices.length}</span>
+          </h2>
         </header>
         {billingError ? (
           <p className="pd-admin__quiet" role="alert">
             {billingError}
           </p>
         ) : null}
-        {pendingInvoices.length === 0 ? (
-          <p className="pd-admin__quiet">No open or pending invoices.</p>
-        ) : (
+        {pendingInvoices.length === 0 ? null : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -299,22 +291,17 @@ export default function AdminOverviewPage() {
           </Table>
         )}
       </section>
+      ) : null}
 
+      {attention.length === 0 ? null : (
       <section className="pd-admin__panel" aria-labelledby="admin-attention-title">
         <header className="pd-admin__panel-header">
-          <div>
-            <h2 id="admin-attention-title" className="pd-admin__panel-title">
-              Needs attention
-            </h2>
-            <p className="pd-admin__panel-desc">
-              Trials and suspended agencies. Open an agency to manage status or
-              enter Support Mode.
-            </p>
-          </div>
+          <h2 id="admin-attention-title" className="pd-admin__panel-title">
+            <AlertTriangle size={16} strokeWidth={2.25} aria-hidden />
+            Needs attention
+            <span className="pd-admin__count">{attention.length}</span>
+          </h2>
         </header>
-        {attention.length === 0 ? (
-          <p className="pd-admin__quiet">All agencies look healthy.</p>
-        ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -352,39 +339,35 @@ export default function AdminOverviewPage() {
               ))}
             </TableBody>
           </Table>
-        )}
       </section>
+      )}
 
-      <section className="pd-admin__shortcuts" aria-label="Shortcuts">
+      <nav className="pd-admin__shortcuts" aria-label="Shortcuts">
         <Link className="pd-admin__shortcut" to={ADMIN_PEOPLE}>
-          <Users size={18} aria-hidden />
-          <span>
-            <strong>People</strong>
-            <span>Find any login across agencies</span>
+          <span className="pd-admin__shortcut-icon" aria-hidden>
+            <Users size={22} strokeWidth={1.75} />
           </span>
+          People
         </Link>
         <Link className="pd-admin__shortcut" to={ADMIN_ACTIVITY}>
-          <Activity size={18} aria-hidden />
-          <span>
-            <strong>Activity</strong>
-            <span>Audit log</span>
+          <span className="pd-admin__shortcut-icon" aria-hidden>
+            <ScrollText size={22} strokeWidth={1.75} />
           </span>
+          Activity
         </Link>
         <Link className="pd-admin__shortcut" to={ADMIN_PLANS}>
-          <Building2 size={18} aria-hidden />
-          <span>
-            <strong>Plans</strong>
-            <span>Subscription catalog</span>
+          <span className="pd-admin__shortcut-icon" aria-hidden>
+            <CreditCard size={22} strokeWidth={1.75} />
           </span>
+          Plans
         </Link>
         <Link className="pd-admin__shortcut" to={ADMIN_ADMINS}>
-          <Users size={18} aria-hidden />
-          <span>
-            <strong>Admins</strong>
-            <span>Platform operators</span>
+          <span className="pd-admin__shortcut-icon" aria-hidden>
+            <Shield size={22} strokeWidth={1.75} />
           </span>
+          Admins
         </Link>
-      </section>
+      </nav>
     </div>
   )
 }

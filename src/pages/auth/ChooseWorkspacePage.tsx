@@ -63,11 +63,8 @@ export default function ChooseWorkspacePage() {
       <div className="pd-workspace-pick__card" role="dialog" aria-labelledby="workspace-pick-title">
         <header className="pd-workspace-pick__header">
           <h1 id="workspace-pick-title" className="pd-workspace-pick__title">
-            How would you like to continue?
+            Choose a workspace
           </h1>
-          <p className="pd-workspace-pick__subtitle">
-            This login has more than one workspace. Choose one for this session.
-          </p>
         </header>
 
         <div className="pd-workspace-pick__options" role="list">
@@ -87,9 +84,6 @@ export default function ChooseWorkspacePage() {
                 <span className="pd-workspace-pick__copy">
                   <span className="pd-workspace-pick__option-title">
                     {workspace.title}
-                  </span>
-                  <span className="pd-workspace-pick__option-desc">
-                    {workspace.description}
                   </span>
                 </span>
               </button>

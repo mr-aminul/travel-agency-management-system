@@ -28,59 +28,18 @@ import '@/styles/layout-home.css'
 type QuickLink = {
   path: string
   label: string
-  description: string
   icon: LucideIcon
 }
 
 const QUICK_LINKS: QuickLink[] = [
-  {
-    path: '/clients',
-    label: 'Clients',
-    description: 'People & organizations',
-    icon: Users,
-  },
-  {
-    path: '/services',
-    label: 'Services',
-    description: 'List or board of open files',
-    icon: ClipboardList,
-  },
-  {
-    path: '/dashboard',
-    label: 'Insights',
-    description: 'Today’s chase, cash & overdue',
-    icon: LayoutDashboard,
-  },
-  {
-    path: '/payments',
-    label: 'Payments',
-    description: 'Money book & balances',
-    icon: Wallet,
-  },
-  {
-    path: '/documents',
-    label: 'Documents',
-    description: 'Files & records',
-    icon: FileText,
-  },
-  {
-    path: '/hr',
-    label: 'HR',
-    description: 'Employees, attendance & payroll',
-    icon: UsersRound,
-  },
-  {
-    path: '/sub-agents',
-    label: 'Sub Agents',
-    description: 'Referring agencies',
-    icon: Handshake,
-  },
-  {
-    path: '/track',
-    label: 'Track client',
-    description: 'Public passport lookup',
-    icon: UserRoundSearch,
-  },
+  { path: '/clients', label: 'Clients', icon: Users },
+  { path: '/services', label: 'Services', icon: ClipboardList },
+  { path: '/dashboard', label: 'Insights', icon: LayoutDashboard },
+  { path: '/payments', label: 'Payments', icon: Wallet },
+  { path: '/documents', label: 'Documents', icon: FileText },
+  { path: '/hr', label: 'HR', icon: UsersRound },
+  { path: '/sub-agents', label: 'Sub Agents', icon: Handshake },
+  { path: '/track', label: 'Track client', icon: UserRoundSearch },
 ]
 
 export default function HomePage() {
@@ -105,14 +64,6 @@ export default function HomePage() {
 
   return (
     <div className="pd-page pd-home" aria-label="Home">
-      <header className="pd-home__header">
-        <p className="pd-home__eyebrow">Quick access</p>
-        <h1 className="pd-home__title">Select a workspace</h1>
-        <p className="pd-home__subtitle">
-          Jump into a frequently used area to continue your work.
-        </p>
-      </header>
-
       {showProfileNudge ? (
         <BusinessProfileSetupNotice
           profile={agencyProfile}
@@ -147,9 +98,6 @@ export default function HomePage() {
                 <Icon size={26} strokeWidth={1.6} />
               </span>
               <span className="pd-home-quick__label">{item.label}</span>
-              <span className="pd-home-quick__description">
-                {item.description}
-              </span>
             </Link>
           )
         })}

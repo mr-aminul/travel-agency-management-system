@@ -408,7 +408,6 @@ export default function SubAgentsPage() {
         <EmptyState
           icon={Handshake}
           title="No sub agents match"
-          description="Try a different name, phone number, or clear filters."
           action={
             <Button
               variant="secondary"
@@ -535,7 +534,6 @@ export default function SubAgentsPage() {
         open={newSubAgentOpen}
         onClose={closeNewSubAgentModal}
         title="New sub agent"
-        description="Register the sub agent once, then attach the clients they send."
         className="pd-clients-drawer"
       >
         <NewSubAgentForm

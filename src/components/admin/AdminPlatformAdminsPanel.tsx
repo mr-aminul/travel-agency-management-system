@@ -215,7 +215,6 @@ export function AdminPlatformAdminsPanel() {
         <EmptyState
           icon={Shield}
           title="No platform admins"
-          description="Add the first operator login for Inventivelab."
           action={
             <Button disabled={!apiReady} onClick={() => setCreateOpen(true)}>
               <Plus size={16} aria-hidden />
@@ -227,7 +226,6 @@ export function AdminPlatformAdminsPanel() {
         <EmptyState
           icon={Shield}
           title="No matching admins"
-          description="Try a different search."
           action={
             <Button variant="secondary" onClick={() => setSearch('')}>
               Clear search
@@ -357,7 +355,6 @@ export function AdminPlatformAdminsPanel() {
                 ? 'Password must be at least 8 characters.'
                 : undefined
             }
-            hint="Share it securely. It is only shown once after create."
           />
           {formError ? (
             <p className="pd-field__error" role="alert">
@@ -370,8 +367,7 @@ export function AdminPlatformAdminsPanel() {
       <Modal
         open={createdCredentials != null}
         onClose={() => setCreatedCredentials(null)}
-        title="Admin created"
-        description="Share the login now. The password will not be shown again."
+        title="Copy this password. It will not be shown again."
         actions={
           <Button onClick={() => setCreatedCredentials(null)}>Done</Button>
         }

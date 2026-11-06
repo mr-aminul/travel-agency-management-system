@@ -70,10 +70,6 @@ export function StepAutoNotifyEditor({
       <span className="pd-settings-template__panel-label">
         Auto send on this status
       </span>
-      <p className="pd-step-auto-notify__hint">
-        When a file reaches {statusName}, auto-send SMS and/or email. Pick a
-        template, or leave Default for the built-in status message.
-      </p>
 
       <div className="pd-step-auto-notify__row">
         <Switch

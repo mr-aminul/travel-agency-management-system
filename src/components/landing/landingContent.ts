@@ -43,42 +43,20 @@ export const SERVICE_TYPES = [
 export type JourneyStop = {
   code: string
   title: string
-  body: string
 }
 
 export const JOURNEY_STOPS: readonly JourneyStop[] = [
-  {
-    code: 'INT',
-    title: 'Intake',
-    body: 'Add the client, or send them a link.',
-  },
-  {
-    code: 'DOC',
-    title: 'Documents',
-    body: 'Checklist per service. Nothing missing.',
-  },
-  {
-    code: 'SUB',
-    title: 'Submitted',
-    body: 'File moves. Client gets an SMS.',
-  },
-  {
-    code: 'DEC',
-    title: 'Decision',
-    body: 'Approved, refused or on hold.',
-  },
-  {
-    code: 'DLV',
-    title: 'Delivered',
-    body: 'Passport back. Invoice settled.',
-  },
+  { code: 'INT', title: 'Intake' },
+  { code: 'DOC', title: 'Documents' },
+  { code: 'SUB', title: 'Submitted' },
+  { code: 'DEC', title: 'Decision' },
+  { code: 'DLV', title: 'Delivered' },
 ]
 
 export type PricingPlan = {
   id: string
   name: string
   priceBdt: number
-  tagline: string
   seatCode: string
   perks: readonly string[]
   isFeatured?: boolean
@@ -90,7 +68,6 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     id: 'starter',
     name: 'Starter',
     priceBdt: 3000,
-    tagline: 'Small desk, own files.',
     seatCode: '05A',
     perks: [
       '5 team seats',
@@ -104,7 +81,6 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     id: 'growth',
     name: 'Growth',
     priceBdt: 6500,
-    tagline: 'Scale with sub agents.',
     seatCode: '20K',
     isFeatured: true,
     perks: [
@@ -119,7 +95,6 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     id: 'business',
     name: 'Business',
     priceBdt: 14000,
-    tagline: 'Ops and HR together.',
     seatCode: '60F',
     perks: [
       '60 team seats',

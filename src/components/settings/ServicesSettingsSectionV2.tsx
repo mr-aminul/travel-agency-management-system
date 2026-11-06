@@ -265,7 +265,6 @@ export function ServicesSettingsSectionV2({
         open={composerOpen}
         onClose={closeComposer}
         title="Add service"
-        description="Name the line you sell. You can set the status journey and documents right after."
         className="pd-settings-drawer"
       >
         <form
@@ -326,13 +325,8 @@ export function ServicesSettingsSectionV2({
         onConfirm={confirmDelete}
         title={
           pendingDelete?.kind === 'custom'
-            ? `Delete ${pendingDelete.label}?`
-            : `Remove ${pendingDelete?.label ?? 'this service'}?`
-        }
-        description={
-          pendingDelete?.kind === 'custom'
-            ? 'New files will no longer offer it. Existing files stay.'
-            : 'Hide it from new files. Existing files stay, and you can restore it later.'
+            ? `Delete ${pendingDelete.label}? Existing files stay.`
+            : `Remove ${pendingDelete?.label ?? 'this service'}? Existing files stay.`
         }
         confirmLabel={pendingDelete?.kind === 'custom' ? 'Delete' : 'Remove'}
         confirmVariant="danger"

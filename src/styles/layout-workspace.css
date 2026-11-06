@@ -24,13 +24,6 @@
   color: var(--pd-fg, #0f172a);
 }
 
-.pd-workspace-pick__subtitle {
-  margin: 0.45rem 0 0;
-  font-size: 0.9375rem;
-  line-height: 1.45;
-  color: var(--pd-muted, #64748b);
-}
-
 .pd-workspace-pick__options {
   display: grid;
   gap: 0.75rem;
@@ -98,12 +91,6 @@
   font-weight: 650;
   font-size: 0.9875rem;
   color: var(--pd-fg, #0f172a);
-}
-
-.pd-workspace-pick__option-desc {
-  font-size: 0.875rem;
-  line-height: 1.4;
-  color: var(--pd-muted, #64748b);
 }
 
 .pd-workspace-pick__footer {

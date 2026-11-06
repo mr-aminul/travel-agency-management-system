@@ -304,12 +304,6 @@ export default function TrackClientPage() {
           <h1 className="pd-track__title">
             {clientName ? 'Application status' : 'Track an application'}
           </h1>
-          {clientName ? null : (
-            <p className="pd-track__lede">
-              Enter the client passport number to see where their service is in the
-              journey.
-            </p>
-          )}
         </header>
 
         <form className="pd-track__form" onSubmit={handleSubmit}>
@@ -412,10 +406,6 @@ export default function TrackClientPage() {
           </section>
         ) : null}
 
-        <p className="pd-track__privacy">
-          Only the passport number is required. Personal contact details are not
-          shown on this page.
-        </p>
       </main>
     </div>
   )

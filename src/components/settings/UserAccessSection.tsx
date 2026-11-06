@@ -209,7 +209,6 @@ export function UserAccessSection({
       open={createOpen}
       onClose={closeCreate}
       title="Add user"
-      description="Create a login for your agency. Share the password securely."
       actions={
         <>
           <Button variant="secondary" onClick={closeCreate} disabled={isSubmitting}>
@@ -274,11 +273,6 @@ export function UserAccessSection({
         <EmptyState
           icon={Users}
           title="No users yet"
-          description={
-            canManage
-              ? 'Add your first staff login to manage page access.'
-              : 'Ask an owner or manager to add users for this agency.'
-          }
           action={
             canManage ? (
               <Button onClick={() => setCreateOpen(true)}>

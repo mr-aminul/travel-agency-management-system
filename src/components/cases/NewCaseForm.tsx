@@ -162,10 +162,6 @@ export function NewCaseForm({
       <div className="pd-cases-form__scroll">
         <div className="pd-cases-form__block">
           <p className="pd-cases-form__heading">Service</p>
-          <p className="pd-cases-form__hint">
-            Only client and service type are required. Country, fee, and
-            assignment can be filled in later.
-          </p>
 
           <div className="pd-cases-form__grid">
             <Select
@@ -207,11 +203,6 @@ export function NewCaseForm({
             />
             <Select
               label="Country"
-              hint={
-                catalogCountries.length
-                  ? 'From Service catalog for this service'
-                  : 'Optional. Helps pick the right checklist'
-              }
               searchable
               searchPlaceholder="Search countries…"
               placeholder="Select country"
@@ -229,7 +220,6 @@ export function NewCaseForm({
             />
             <Select
               label="Assigned to"
-              hint="Optional. Who owns this file"
               searchable
               searchPlaceholder="Search employees…"
               placeholder="Select employee"
@@ -247,7 +237,6 @@ export function NewCaseForm({
             />
             <Input
               label="Service fee (৳)"
-              hint="Optional. You can set this when quoting"
               inputMode="numeric"
               value={serviceFee}
               onChange={(event) => setServiceFee(event.target.value)}

@@ -146,10 +146,7 @@ export function ClientProfileFieldsSection({
             </TableBody>
           </Table>
         ) : (
-          <EmptyState
-            title="No custom fields yet"
-            description="Add fields this agency needs on client profiles, such as profession or preferred country."
-          />
+          <EmptyState title="No custom fields yet" />
         )}
       </div>
 
@@ -157,7 +154,6 @@ export function ClientProfileFieldsSection({
         open={composerOpen}
         onClose={closeComposer}
         title="Add field"
-        description="Fields you add here show on new client profiles for this agency."
         className="pd-settings-drawer"
       >
         <form
@@ -193,7 +189,6 @@ export function ClientProfileFieldsSection({
               name="customFieldOptions"
               required
               rows={3}
-              hint="One choice per line"
               placeholder={'Mason\nElectrician\nDriver'}
               value={optionsText}
               onChange={(event) => setOptionsText(event.target.value)}
@@ -237,8 +232,7 @@ export function ClientProfileFieldsSection({
           if (pendingDelete) deleteClientProfileField(pendingDelete.id)
           setPendingDeleteId(null)
         }}
-        title={`Remove ${pendingDelete?.label ?? 'this field'}?`}
-        description="It will no longer appear on client profiles. Existing values stay stored."
+        title={`Remove ${pendingDelete?.label ?? 'this field'}? Existing values stay stored.`}
         confirmLabel="Remove"
         confirmVariant="danger"
       />

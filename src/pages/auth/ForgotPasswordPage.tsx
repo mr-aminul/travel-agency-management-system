@@ -52,9 +52,6 @@ export default function ForgotPasswordPage() {
               <Check size={36} strokeWidth={2.75} />
             </div>
             <h1 className="pd-login__title">Check your email</h1>
-            <p className="pd-login__subtitle">
-              We sent a reset link if that account exists.
-            </p>
             <Link to="/login" className="pd-login__text-link">
               Back to login
             </Link>
@@ -63,9 +60,6 @@ export default function ForgotPasswordPage() {
           <>
             <div className="pd-login__brand">
               <h1 className="pd-login__title">Reset password</h1>
-              <p className="pd-login__subtitle">
-                Enter your email and we’ll send a reset link.
-              </p>
             </div>
             <form className="pd-login__form" onSubmit={handleSubmit} noValidate>
               <Input

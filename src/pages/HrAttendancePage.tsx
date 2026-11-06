@@ -80,7 +80,6 @@ export default function HrAttendancePage() {
     <div className="pd-page pd-ops" aria-label="Attendance and leave">
       <PageHeader
         title="Attendance & Leave"
-        description="Mark the day for each person. Leave ranges stay visible so payroll can skip unpaid days."
         actions={
           <Button
             onClick={() => {
@@ -109,7 +108,6 @@ export default function HrAttendancePage() {
       {activeEmployees.length === 0 ? (
         <EmptyState
           title="No active employees"
-          description="Add staff on Employees before marking attendance."
           action={<Link to={hrEmployeesPath()}>Go to Employees</Link>}
         />
       ) : (
@@ -168,10 +166,7 @@ export default function HrAttendancePage() {
       <section className="pd-ops__section" aria-label="Leave">
         <h2 className="pd-ops__section-title">Leave</h2>
         {leaveRecords.length === 0 ? (
-          <EmptyState
-            title="No leave recorded"
-            description="Record a range when someone will be away."
-          />
+          <EmptyState title="No leave recorded" />
         ) : (
           <Table>
             <TableHeader>
@@ -292,8 +287,7 @@ export default function HrAttendancePage() {
       <ConfirmDialog
         open={pendingLeaveId !== null}
         onClose={() => setPendingLeaveId(null)}
-        title="Remove this leave?"
-        description="The days will no longer count as leave on the attendance sheet."
+        title="Remove this leave from the attendance sheet?"
         confirmLabel="Remove"
         confirmVariant="danger"
         onConfirm={() => {

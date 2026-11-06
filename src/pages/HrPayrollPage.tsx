@@ -63,10 +63,7 @@ export default function HrPayrollPage() {
 
   return (
     <div className="pd-page pd-ops" aria-label="Payroll">
-      <PageHeader
-        title="Payroll"
-        description="One month at a time. Unpaid leave and absences from Attendance & Leave reduce net pay."
-      />
+      <PageHeader title="Payroll" />
 
       <div className="pd-ops__toolbar">
         <Input
@@ -83,7 +80,6 @@ export default function HrPayrollPage() {
       {lines.length === 0 ? (
         <EmptyState
           title="No active employees"
-          description="Add staff on Employees before running payroll."
           action={<Link to={hrEmployeesPath()}>Go to Employees</Link>}
         />
       ) : (

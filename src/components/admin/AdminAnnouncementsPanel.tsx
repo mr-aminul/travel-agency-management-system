@@ -373,34 +373,11 @@ export function AdminAnnouncementsPanel() {
       <div className="pd-admin__panel-header">
         <div>
           <h2 className="pd-admin__panel-title">Announcements</h2>
-          <p className="pd-admin__panel-desc">
-            Pick a template, edit the copy, and every agency sees a popup while
-            it is live — policy, security, promo, maintenance, and more.
-          </p>
         </div>
         <Button size="sm" onClick={openCreate}>
           <Plus size={16} strokeWidth={2.2} aria-hidden />
           New announcement
         </Button>
-      </div>
-
-      <div className="pd-announce-kind-strip" aria-hidden>
-        {ANNOUNCEMENT_KINDS.map((kind) => {
-          const meta = ANNOUNCEMENT_KIND_META[kind]
-          const Icon = meta.icon
-          return (
-            <span
-              key={kind}
-              className={cx(
-                'pd-announce-kind-chip',
-                `pd-announce-kind-chip--${kind}`,
-              )}
-            >
-              <Icon size={13} strokeWidth={2.2} aria-hidden />
-              {meta.shortLabel}
-            </span>
-          )
-        })}
       </div>
 
       <div className="pd-clients__toolbar">
@@ -433,7 +410,6 @@ export function AdminAnnouncementsPanel() {
         <EmptyState
           icon={Megaphone}
           title="No announcements yet"
-          description="Start from a template — policy, security, promo, or a blank message."
           action={
             <Button onClick={openCreate}>
               <LayoutTemplate size={16} aria-hidden />
@@ -445,7 +421,6 @@ export function AdminAnnouncementsPanel() {
         <EmptyState
           icon={Megaphone}
           title="No matching announcements"
-          description="Try a different search."
           action={
             <Button variant="secondary" onClick={() => setSearch('')}>
               Clear search
@@ -570,13 +545,6 @@ export function AdminAnnouncementsPanel() {
               ? 'Choose a template'
               : 'Compose announcement'
         }
-        description={
-          editorMode === 'edit'
-            ? 'Update the message every agency will see while it is live.'
-            : createStep === 'templates'
-              ? 'Start from a ready-made notice, then tweak the wording.'
-              : 'Edit the copy, schedule when it shows, then publish.'
-        }
         footer={
           showCompose ? (
             <>
@@ -644,12 +612,6 @@ export function AdminAnnouncementsPanel() {
                     <span className="pd-announce-template__label">
                       {template.label}
                     </span>
-                    <span className="pd-announce-template__desc">
-                      {template.description}
-                    </span>
-                    <span className="pd-announce-template__kind">
-                      {ANNOUNCEMENT_KIND_META[template.kind].label}
-                    </span>
                   </span>
                 </button>
               )
@@ -693,14 +655,6 @@ export function AdminAnnouncementsPanel() {
               </div>
             </div>
 
-            {draft.templateId ? (
-              <p className="pd-announce-template-hint">
-                <KindIcon size={14} aria-hidden />
-                Started from template — edit the bracketed placeholders before
-                publishing.
-              </p>
-            ) : null}
-
             <Input
               label="Title"
               value={draft.title}
@@ -717,7 +671,6 @@ export function AdminAnnouncementsPanel() {
               rows={8}
               maxLength={4000}
               required
-              hint="Tip: lines like “How it works:”, “• bullet”, and “1. step” become colored boxes in the popup."
             />
 
             <div className="pd-announce-preview">
@@ -771,30 +724,24 @@ export function AdminAnnouncementsPanel() {
                   />
                 </div>
               </div>
-              <p className="pd-announce-format-hint">
-                Change Type above to restyle colors for every agency. Publish when
-                the preview looks right.
-              </p>
             </div>
 
             <div className="pd-announce-schedule">
               <Input
-                label="Starts (optional)"
+                label="Starts"
                 type="datetime-local"
                 value={draft.startsAtLocal}
                 onChange={(event) =>
                   patchDraft('startsAtLocal', event.target.value)
                 }
-                hint="Blank = show as soon as it is published."
               />
               <Input
-                label="Ends (optional)"
+                label="Ends"
                 type="datetime-local"
                 value={draft.endsAtLocal}
                 onChange={(event) =>
                   patchDraft('endsAtLocal', event.target.value)
                 }
-                hint="Blank = stay live until you unpublish or delete."
               />
             </div>
 
@@ -806,9 +753,6 @@ export function AdminAnnouncementsPanel() {
                 }
                 label="On (published)"
               />
-              <p className="pd-admin__quiet">
-                Turn off anytime from the list — Off announcements never pop up.
-              </p>
             </div>
 
             <div className="pd-announce-publish">
@@ -827,10 +771,6 @@ export function AdminAnnouncementsPanel() {
                 }
                 label="Main landing page popup"
               />
-              <p className="pd-admin__quiet">
-                Landing page is the public marketing site. Leave off unless you
-                want guests to see this too.
-              </p>
             </div>
 
             <div className="pd-announce-publish">
@@ -848,39 +788,30 @@ export function AdminAnnouncementsPanel() {
               {draft.repeatMode === 'continuous' ? (
                 <div className="pd-announce-schedule">
                   <Input
-                    label="Max times per day"
+                    label="Max per day, 0 = no cap"
                     type="number"
                     min={0}
                     value={draft.maxShowsPerDay}
                     onChange={(event) =>
                       patchDraft('maxShowsPerDay', event.target.value)
                     }
-                    hint="0 = unlimited (standard)."
                   />
                   <Input
-                    label="Minutes between shows"
+                    label="Minutes between shows, 0 = every visit"
                     type="number"
                     min={0}
                     value={draft.intervalMinutes}
                     onChange={(event) =>
                       patchDraft('intervalMinutes', event.target.value)
                     }
-                    hint="0 = every visit. 60 = once per hour."
                   />
                 </div>
-              ) : (
-                <p className="pd-admin__quiet">
-                  After Got it, this stays hidden until you edit and save it
-                  again.
-                </p>
-              )}
+              ) : null}
             </div>
 
             <div className="pd-announce-image">
               <div className="pd-announce-image__header">
-                <span className="pd-announce-image__label">
-                  Image (optional)
-                </span>
+                <span className="pd-announce-image__label">Image</span>
                 <div className="pd-announce-actions">
                   <Button
                     type="button"
@@ -939,11 +870,10 @@ export function AdminAnnouncementsPanel() {
         onClose={() => {
           if (!deleting) setPendingDelete(null)
         }}
-        title="Delete announcement?"
-        description={
+        title={
           pendingDelete
-            ? `“${pendingDelete.title}” will stop showing for all agencies.`
-            : undefined
+            ? `Delete “${pendingDelete.title}”? It stops showing.`
+            : 'Delete announcement?'
         }
         confirmLabel={deleting ? 'Deleting…' : 'Delete'}
         confirmVariant="danger"

@@ -51,7 +51,6 @@ export default function HrPage() {
     <div className="pd-page pd-ops" aria-label="HR">
       <PageHeader
         title="Employees"
-        description="Staff directory for case assignment. Salary is the starting number for Payroll."
         actions={
           <Button onClick={() => setOpen(true)}>
             <Plus size={16} /> New employee
@@ -71,14 +70,7 @@ export default function HrPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState
-          title="No employees found"
-          description={
-            query.trim()
-              ? 'Try a different name or department.'
-              : 'Add the first employee to start the staff list.'
-          }
-        />
+        <EmptyState title="No employees found" />
       ) : (
         <Table>
           <TableHeader>

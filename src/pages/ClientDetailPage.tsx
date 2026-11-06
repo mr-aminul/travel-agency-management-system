@@ -1200,7 +1200,6 @@ export default function ClientDetailPage() {
                               showToolbar={false}
                               allowDelete
                               emptyTitle="No services yet"
-                              emptyDescription="Add a service on this profile to track steps, documents, and payments."
                             />
                           ),
                         },
@@ -1501,7 +1500,6 @@ export default function ClientDetailPage() {
         open={newCaseOpen}
         onClose={closeNewCase}
         title="Add service"
-        description="What does this client need? Progress starts at the first step of that service."
         className="pd-cases-drawer"
       >
         <NewCaseForm

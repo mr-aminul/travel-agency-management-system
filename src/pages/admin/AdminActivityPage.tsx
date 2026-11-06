@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ScrollText } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
-import { ADMIN_AGENCIES } from '@/lib/adminPaths'
 import { formatDisplayDateTime } from '@/lib/formatDate'
 import {
   listPlatformAudit,
@@ -73,10 +71,7 @@ export default function AdminActivityPage({
       aria-label="Activity"
     >
       {lockedTenantId ? null : (
-        <PageHeader
-          title="Activity"
-          description="Cross-tenant audit trail for support."
-        />
+        <PageHeader title="Activity" />
       )}
 
       {lockedTenantId ? null : (
@@ -95,11 +90,8 @@ export default function AdminActivityPage({
       ) : audit.length === 0 ? (
         <EmptyState
           icon={ScrollText}
-          title="No audit entries"
-          description={
-            tenantFilter === 'all'
-              ? 'Entries appear when the API is connected and actions are logged.'
-              : 'No entries for this agency yet.'
+          title={
+            tenantFilter === 'all' ? 'No audit entries' : 'No entries for this agency'
           }
         />
       ) : (
@@ -133,12 +125,6 @@ export default function AdminActivityPage({
         </Table>
       )}
 
-      {lockedTenantId ? null : (
-        <p className="pd-admin__quiet">
-          Tip: open an agency from{' '}
-          <Link to={ADMIN_AGENCIES}>Agencies</Link> for tenant-scoped activity.
-        </p>
-      )}
     </div>
   )
 }

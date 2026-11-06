@@ -81,9 +81,6 @@ export default function LoginPage() {
             </div>
           ) : null}
           <h1 className="pd-login__title">{layoutConfig.brand.name}</h1>
-          <p className="pd-login__subtitle">
-            Welcome back. Sign in to continue.
-          </p>
         </div>
 
         <div className="pd-login__actions">

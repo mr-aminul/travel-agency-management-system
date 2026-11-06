@@ -479,11 +479,6 @@ export function ServiceBoardView({ viewToggle }: ServiceBoardViewProps) {
       {boards.length === 0 ? (
         <EmptyState
           title={serviceFilters.length ? 'No matching files' : 'No open services'}
-          description={
-            serviceFilters.length
-              ? 'Clear the service filter to see everyone.'
-              : 'Open files appear on each service board.'
-          }
         />
       ) : (
         <>

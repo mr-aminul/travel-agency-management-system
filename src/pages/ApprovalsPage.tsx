@@ -86,10 +86,7 @@ export default function ApprovalsPage() {
 
   return (
     <div className="pd-page">
-      <PageHeader
-        title="Approvals"
-        description="Sub-agent registration links land here as partial approval. Agency admin links create clients directly. Sub-agents can also approve their own submissions."
-      />
+      <PageHeader title="Approvals" />
 
       <div className="pd-toolbar" role="group" aria-label="Filter">
         <Button
@@ -115,7 +112,6 @@ export default function ApprovalsPage() {
       {visible.length === 0 ? (
         <EmptyState
           title={filter === 'pending' ? 'Nothing to approve' : 'No submissions yet'}
-          description="Public registrations from a sub-agent link, and other sub-agent changes that need review, appear here."
         />
       ) : (
         <ul className="pd-approval-list">

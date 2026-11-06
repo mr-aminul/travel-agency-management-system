@@ -413,10 +413,6 @@ export function DocumentCanvasEditor({
               onChange={(event) => setName(event.target.value)}
               placeholder="Template name"
             />
-            <p className="pd-doc-canvas__hint">
-              Craft the page like a Word document. Type @ to insert an auto-fill
-              field, or pick one from the list.
-            </p>
           </div>
         </div>
         <div className="pd-doc-canvas__top-actions">

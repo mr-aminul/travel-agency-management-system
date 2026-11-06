@@ -805,13 +805,12 @@ export function ServiceFlowEditorV2({
         open={resetOpen}
         onClose={() => setResetOpen(false)}
         onConfirm={applyReset}
-        title={country ? `Reset ${country} flow?` : 'Reset this flow?'}
-        description={
+        title={
           country
-            ? 'Removes this country variation so files use All countries again.'
+            ? `Reset ${country}? Files use the All countries flow.`
             : isCustom
-              ? 'Restores the generic custom-service checklist.'
-              : 'Restores the default checklist for this service.'
+              ? 'Reset this flow to the generic checklist?'
+              : 'Reset this flow to the default?'
         }
         confirmLabel="Reset"
         confirmVariant="danger"
@@ -826,7 +825,6 @@ export function ServiceFlowEditorV2({
           if (next != null) setCountry(next)
         }}
         title="Discard unsaved changes?"
-        description="Switching country will drop edits you have not saved."
         confirmLabel="Discard"
         confirmVariant="danger"
       />
@@ -834,8 +832,7 @@ export function ServiceFlowEditorV2({
         open={removeCountry != null}
         onClose={() => setRemoveCountry(null)}
         onConfirm={confirmRemoveCountry}
-        title={`Remove ${removeCountry ?? 'this country'}?`}
-        description="Files for that destination will use the All countries flow."
+        title={`Remove ${removeCountry ?? 'this country'}? Files use the All countries flow.`}
         confirmLabel="Remove"
         confirmVariant="danger"
       />

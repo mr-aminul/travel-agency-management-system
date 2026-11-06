@@ -122,7 +122,7 @@ function TodayChasePanel({
   return (
     <section
       className="pd-today pd-today--compact"
-      aria-label="Today follow-ups"
+      aria-label={`Today. ${todayFollowUpsHeadline(summary)}`}
     >
       <header className="pd-today__head">
         <div className="pd-today__title-row">
@@ -138,7 +138,6 @@ function TodayChasePanel({
             </span>
           )}
         </div>
-        <p className="pd-today__headline">{todayFollowUpsHeadline(summary)}</p>
       </header>
 
       {total === 0 ? null : (

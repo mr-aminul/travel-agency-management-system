@@ -381,9 +381,6 @@ export default function EmployeeDetailPage() {
             </button>
           </div>
 
-          <p className="pd-client-detail__card-footer">
-            Staff directory · case assignment · payroll
-          </p>
         </aside>
 
         <div
@@ -410,10 +407,6 @@ export default function EmployeeDetailPage() {
                           Personal &amp; job details
                         </SectionTitle>
                       </div>
-                      <p className="pd-employee-panel__lead">
-                        Edit basics used for the staff directory, case
-                        assignment, and payroll.
-                      </p>
                       <div className="pd-employee-profile__grid">
                         <div
                           className={cx(
@@ -588,9 +581,6 @@ export default function EmployeeDetailPage() {
                           Mark attendance
                         </SectionTitle>
                       </div>
-                      <p className="pd-employee-panel__lead">
-                        Pick a day and set Present, Late, or Absent.
-                      </p>
                       <div className="pd-employee-panel__controls">
                         <Input
                           label="Day"
@@ -637,10 +627,7 @@ export default function EmployeeDetailPage() {
                         </SectionTitle>
                       </div>
                       {dayMarks.length === 0 ? (
-                        <EmptyState
-                          title="No attendance marked"
-                          description="Marked days will show up here."
-                        />
+                        <EmptyState title="No attendance marked" />
                       ) : (
                         <div className="pd-employee-panel__table">
                           <Table aria-label={`${employee.name} attendance`}>
@@ -699,14 +686,8 @@ export default function EmployeeDetailPage() {
                           Record leave
                         </Button>
                       </div>
-                      <p className="pd-employee-panel__lead">
-                        Record a range when this person will be away.
-                      </p>
                       {leaveRecords.length === 0 ? (
-                        <EmptyState
-                          title="No leave recorded"
-                          description="Leave ranges will show up here."
-                        />
+                        <EmptyState title="No leave recorded" />
                       ) : (
                         <div className="pd-employee-panel__table">
                           <Table aria-label={`${employee.name} leave`}>
@@ -767,10 +748,6 @@ export default function EmployeeDetailPage() {
                         </SectionTitle>
                         <PayslipDownloadButton payslip={payslip} />
                       </div>
-                      <p className="pd-employee-panel__lead">
-                        Company-branded payslip for the selected month. Download
-                        as PDF with logo and agency details.
-                      </p>
                       <div className="pd-employee-panel__controls">
                         <Input
                           label="Month"
@@ -910,8 +887,7 @@ export default function EmployeeDetailPage() {
       <ConfirmDialog
         open={pendingLeaveId !== null}
         onClose={() => setPendingLeaveId(null)}
-        title="Remove this leave?"
-        description="The days will no longer count as leave on the attendance sheet."
+        title="Remove this leave from the attendance sheet?"
         confirmLabel="Remove"
         confirmVariant="danger"
         onConfirm={() => {
@@ -923,8 +899,7 @@ export default function EmployeeDetailPage() {
       <ConfirmDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        title={`Delete ${employee.name}?`}
-        description="Removes this employee from the staff directory."
+        title={`Delete ${employee.name} from the staff directory?`}
         confirmLabel="Delete employee"
         confirmVariant="danger"
         onConfirm={() => {

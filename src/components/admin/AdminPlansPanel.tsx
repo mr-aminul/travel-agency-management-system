@@ -626,7 +626,6 @@ export function AdminPlansPanel() {
                 setIdTouched(true)
                 patchDraft('id', slugifyPlanId(e.target.value))
               }}
-              hint="Used in APIs and invoices. Cannot change later."
             />
           ) : (
             <Input label="Plan id" value={draft.id} readOnly disabled />
@@ -658,7 +657,7 @@ export function AdminPlansPanel() {
             rows={4}
             value={draft.marketingBullets}
             onChange={(e) => patchDraft('marketingBullets', e.target.value)}
-            hint="One per line. Leave blank to auto-generate from limits."
+            placeholder="One per line"
           />
 
           <div className="pd-admin__form-grid">
@@ -803,13 +802,8 @@ export function AdminPlansPanel() {
         onConfirm={() => void confirmDelete()}
         title={
           pendingDelete?.isActive === false
-            ? `Delete ${pendingDelete.name}?`
-            : `Hide ${pendingDelete?.name ?? 'plan'}?`
-        }
-        description={
-          pendingDelete?.isActive === false
-            ? 'Permanently removes this plan from the catalog. Agencies already on these limits keep them. Fails if any agency still references it.'
-            : 'Hides this plan from checkout. Agencies already on it keep their limits. Delete again after hiding to remove it permanently.'
+            ? `Delete ${pendingDelete.name}? Agencies on it keep their limits.`
+            : `Hide ${pendingDelete?.name ?? 'plan'} from checkout?`
         }
         confirmLabel={
           pendingDelete?.isActive === false ? 'Delete' : 'Hide'

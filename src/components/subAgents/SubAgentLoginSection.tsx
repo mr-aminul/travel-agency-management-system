@@ -206,7 +206,6 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            hint="At least 8 characters"
             required
             autoComplete="new-password"
           />

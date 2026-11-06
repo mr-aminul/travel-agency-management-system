@@ -423,7 +423,6 @@ export default function ClientsPage() {
         <EmptyState
           icon={Users}
           title="No clients match"
-          description="Try a different name, phone number, or clear filters."
           action={
             <Button
               variant="secondary"
@@ -586,7 +585,6 @@ export default function ClientsPage() {
         open={newClientOpen}
         onClose={closeNewClientModal}
         title="New client"
-        description="Register the person once, then add the service they need."
         className="pd-clients-drawer"
       >
         <NewClientForm
@@ -599,11 +597,10 @@ export default function ClientsPage() {
         open={deleteTarget != null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}
-        title="Delete client?"
-        description={
+        title={
           deleteTarget
-            ? `${deleteTarget.name} will move to Trash for 30 days. Type the client name to confirm.`
-            : undefined
+            ? `Move ${deleteTarget.name} to Trash for 30 days?`
+            : 'Move this client to Trash?'
         }
         confirmPhrase={deleteTarget?.name ?? ''}
         phraseLabel="Client name"

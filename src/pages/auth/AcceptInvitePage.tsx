@@ -118,15 +118,8 @@ export default function AcceptInvitePage() {
       <div className="pd-login__card">
         <div className="pd-login__brand">
           <h1 className="pd-login__title">
-            {invite?.role === 'sub_agent' || invite?.subAgentId
-              ? 'Join as sub agent'
-              : 'Join your agency'}
+            {invite?.agencyName ?? 'Join'}
           </h1>
-          <p className="pd-login__subtitle">
-            {invite
-              ? `${invite.agencyName} · ${invite.email}`
-              : 'Loading invite…'}
-          </p>
         </div>
         {loadError ? (
           <div className="pd-login__actions">
@@ -143,6 +136,13 @@ export default function AcceptInvitePage() {
               label="Your name"
               labelVariant="default"
               value={invite?.name ?? ''}
+              readOnly
+            />
+            <Input
+              label="Email"
+              labelVariant="default"
+              type="email"
+              value={invite?.email ?? ''}
               readOnly
             />
             <Input

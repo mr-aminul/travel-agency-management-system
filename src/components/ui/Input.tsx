@@ -5,6 +5,7 @@ export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label?: string
   /** `outlined` (default) = notched label on the control border. */
   labelVariant?: 'default' | 'outlined'
+  /** Format the label cannot show. Do not use to say "Optional" or to restate the label. */
   hint?: string
   error?: string
 }

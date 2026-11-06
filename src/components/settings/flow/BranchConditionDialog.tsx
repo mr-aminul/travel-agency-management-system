@@ -73,11 +73,10 @@ export function BranchConditionDialog({
     <SideDrawer
       open={open && pending != null}
       onClose={onClose}
-      title="Branch condition"
-      description={
+      title={
         fromStep && toStep
-          ? `When this matches, go from “${fromStep.label || 'Untitled'}” to “${toStep.label || 'Untitled'}”.`
-          : 'Choose the document dropdown that picks this path.'
+          ? `${fromStep.label || 'Untitled'} → ${toStep.label || 'Untitled'}`
+          : 'Branch condition'
       }
       className="pd-service-flow-branch-drawer"
       footer={

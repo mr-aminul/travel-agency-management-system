@@ -340,10 +340,7 @@ export default function AdminPeoplePage() {
 
   return (
     <div className="pd-page pd-admin pd-clients" aria-label="Users">
-      <PageHeader
-        title="Users"
-        description="Every agency user and sub-agent login across the platform."
-      />
+      <PageHeader title="Users" />
 
       <div className="pd-admin__tabs" role="tablist" aria-label="User tabs">
         <button
@@ -394,11 +391,7 @@ export default function AdminPeoplePage() {
 
       {tab === 'agency' ? (
         filteredMembers.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="No users found"
-            description="Try another search or clear the agency filter."
-          />
+          <EmptyState icon={Users} title="No users found" />
         ) : (
           <Table>
             <TableHeader>
@@ -495,11 +488,7 @@ export default function AdminPeoplePage() {
           </Table>
         )
       ) : filteredLogins.length === 0 ? (
-        <EmptyState
-          icon={Handshake}
-          title="No sub-agent logins"
-          description="Sub-agent logins appear when agencies enable portal access."
-        />
+        <EmptyState icon={Handshake} title="No sub-agent logins" />
       ) : (
         <Table>
           <TableHeader>
@@ -575,12 +564,9 @@ export default function AdminPeoplePage() {
         onClose={() => (isDeleting ? undefined : setConfirmDelete(false))}
         onConfirm={() => void handleConfirmDelete()}
         title={
-          tab === 'agency' ? 'Delete selected users?' : 'Delete selected logins?'
-        }
-        description={
           tab === 'agency'
-            ? `Permanently remove ${selectedCount} agency user${selectedCount === 1 ? '' : 's'} and their logins. This cannot be undone.`
-            : `Permanently remove ${selectedCount} sub-agent login${selectedCount === 1 ? '' : 's'}. This cannot be undone.`
+            ? `Permanently delete ${selectedCount} user${selectedCount === 1 ? '' : 's'}? This cannot be undone.`
+            : `Permanently delete ${selectedCount} sub-agent login${selectedCount === 1 ? '' : 's'}? This cannot be undone.`
         }
         confirmLabel={isDeleting ? 'Deleting…' : 'Delete'}
         confirmVariant="danger"

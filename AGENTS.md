@@ -2,6 +2,15 @@
 
 Project-specific guidance for AI coding agents.
 
+## Copy
+
+One line per thing. The title, field label, or button is that line.
+
+- Do not add page subtitles, eyebrows, kickers, or helper text that restates the title or the label.
+- `description` and `hint` stay on the components. Pass them only for a consequence the title cannot carry (an irreversible action, or a secret shown once). Prefer putting that fact in the title and leaving `description` empty.
+- Errors and format placeholders stay. Sidebar “Platform” and “Sub agent portal” stay — they name a different shell.
+- If a screen only makes sense with the extra sentence, change the layout so the control or the row shows the fact.
+
 ## Terminology
 
 - Use **sub agent** / **sub-agent** / `sub_agent` for referring agents who send clients.

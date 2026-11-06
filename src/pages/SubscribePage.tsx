@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { layoutConfig } from '@/config/layout'
@@ -104,11 +104,6 @@ export default function SubscribePage() {
     }
   }, [])
 
-  const selectedPlan = useMemo(
-    () => plans.find((plan) => plan.id === planId) ?? null,
-    [plans, planId],
-  )
-
   if (status === 'authenticated' && session) {
     return <Navigate to={postLoginPath(session)} replace />
   }
@@ -181,10 +176,6 @@ export default function SubscribePage() {
             </div>
           ) : null}
           <h1 className="pd-login__title">Start OneTrack</h1>
-          <p className="pd-login__subtitle">
-            Create your agency, then pay securely with Paymently (bKash, Nagad,
-            and more). Access activates after payment.
-          </p>
         </div>
 
         <div className="pd-login__actions">
@@ -206,13 +197,6 @@ export default function SubscribePage() {
               }))}
               onChange={(e) => setPlanId(e.target.value)}
             />
-
-            {selectedPlan ? (
-              <p className="pd-login__subtitle" style={{ margin: 0 }}>
-                {selectedPlan.description || selectedPlan.name}. First month{' '}
-                {formatBdt(selectedPlan.priceBdt)}.
-              </p>
-            ) : null}
 
             <Input
               label="Agency name"

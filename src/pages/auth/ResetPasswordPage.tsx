@@ -75,10 +75,9 @@ export default function ResetPasswordPage() {
       />
       <div className="pd-login__card">
         <div className="pd-login__brand">
-          <h1 className="pd-login__title">Choose a new password</h1>
-          <p className="pd-login__subtitle">
-            {emailMasked ? `For ${emailMasked}` : 'Loading…'}
-          </p>
+          <h1 className="pd-login__title">
+            {emailMasked ? `New password for ${emailMasked}` : 'Choose a new password'}
+          </h1>
         </div>
         {loadError ? (
           <div className="pd-login__actions">

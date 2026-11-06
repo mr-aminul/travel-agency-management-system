@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArchiveRestore, Trash2 } from 'lucide-react'
 import { Avatar, Button, ConfirmDialog, EmptyState, PageHeader, SearchField, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TypeConfirmDialog } from '@/components/ui'
 import {
-  CLIENT_TRASH_RETENTION_DAYS,
   emptyClientTrash,
   formatBalance,
   permanentlyDeleteFromTrash,
@@ -74,7 +73,6 @@ export default function TrashPage() {
     <div className="pd-page pd-clients pd-trash" aria-label="Trash">
       <PageHeader
         title="Trash"
-        description={`Deleted clients stay here for ${CLIENT_TRASH_RETENTION_DAYS} days, then are removed permanently.`}
         actions={
           trashed.length > 0 ? (
             <Button variant="danger" size="sm" onClick={() => setEmptyOpen(true)}>
@@ -101,11 +99,6 @@ export default function TrashPage() {
         <EmptyState
           icon={Trash2}
           title={trashed.length === 0 ? 'Trash is empty' : 'No matches'}
-          description={
-            trashed.length === 0
-              ? 'Deleted clients will appear here for 30 days.'
-              : 'Try a different name or phone number.'
-          }
         />
       ) : (
         <Table>
@@ -179,14 +172,12 @@ export default function TrashPage() {
           setRestoreError(null)
         }}
         onConfirm={handleRestore}
-        title="Restore client?"
-        description={
-          restoreError
-            ? restoreError
-            : restoreTarget
-              ? `${restoreTarget.client.name} will return to your active clients list.`
-              : undefined
+        title={
+          restoreTarget
+            ? `Restore ${restoreTarget.client.name}?`
+            : 'Restore client?'
         }
+        description={restoreError ?? undefined}
         confirmLabel="Restore"
         confirmVariant="primary"
       />
@@ -195,11 +186,10 @@ export default function TrashPage() {
         open={deleteTarget != null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handlePermanentDelete}
-        title="Delete forever?"
-        description={
+        title={
           deleteTarget
-            ? `This permanently removes ${deleteTarget.client.name}. Type the client name to confirm.`
-            : undefined
+            ? `Permanently delete ${deleteTarget.client.name}?`
+            : 'Delete forever?'
         }
         confirmPhrase={deleteTarget?.client.name ?? ''}
         phraseLabel="Client name"
@@ -210,8 +200,7 @@ export default function TrashPage() {
         open={emptyOpen}
         onClose={() => setEmptyOpen(false)}
         onConfirm={handleEmptyTrash}
-        title="Empty trash?"
-        description={`Permanently delete all ${trashed.length} client${trashed.length === 1 ? '' : 's'} in trash. Type EMPTY TRASH to confirm.`}
+        title={`Permanently delete ${trashed.length} client${trashed.length === 1 ? '' : 's'}?`}
         confirmPhrase="EMPTY TRASH"
         phraseLabel="Confirmation"
         confirmLabel="Empty trash"

@@ -184,11 +184,6 @@ export function DocumentFieldsEditor({
                   <Textarea
                     aria-label={`Choices for ${field.label || `field ${index + 1}`}`}
                     label={isCompact ? undefined : 'Choices'}
-                    hint={
-                      isCompact
-                        ? undefined
-                        : 'One choice per line. Used for dropdowns and next-step branches.'
-                    }
                     rows={isCompact ? 2 : 2}
                     placeholder={'Fit\nUnfit'}
                     value={optionsText(field)}
@@ -207,12 +202,6 @@ export function DocumentFieldsEditor({
           })}
         </ul>
       )}
-      {!isCompact && lockedKeys.size > 0 ? (
-        <p className="pd-field-hint">
-          Some fields stay linked to the client profile. You can rename them,
-          but not remove them.
-        </p>
-      ) : null}
     </div>
   )
 }

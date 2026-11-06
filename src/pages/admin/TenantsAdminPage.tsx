@@ -210,7 +210,6 @@ export default function TenantsAdminPage() {
     <div className="pd-page pd-admin pd-clients" aria-label="Agencies">
       <PageHeader
         title="Agencies"
-        description="Customer businesses on OneTrack. Open one to manage people, product, or enter Support Mode."
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <Plus size={16} strokeWidth={2.25} aria-hidden />
@@ -253,7 +252,6 @@ export default function TenantsAdminPage() {
         <EmptyState
           icon={Building2}
           title="No agencies yet"
-          description="Add the first agency and its owner login to get started."
           action={
             <Button onClick={() => setCreateOpen(true)}>
               <Plus size={16} aria-hidden />
@@ -265,7 +263,6 @@ export default function TenantsAdminPage() {
         <EmptyState
           icon={Building2}
           title="No matching agencies"
-          description="Try a different search or clear filters."
           action={
             <Button
               variant="secondary"
@@ -354,7 +351,6 @@ export default function TenantsAdminPage() {
         open={createOpen}
         onClose={closeCreate}
         title="Add agency"
-        description="Create the agency and its first owner login. Product starts fully off. You turn on what they need next."
         footer={
           <>
             <Button
@@ -418,7 +414,6 @@ export default function TenantsAdminPage() {
             error={
               showError('ownerPassword') ? errors.ownerPassword : undefined
             }
-            hint="Owner signs in with this password. Share it securely. It is only shown once."
           />
           {formError ? (
             <p className="pd-field__error" role="alert">
@@ -435,8 +430,7 @@ export default function TenantsAdminPage() {
           setCreatedCredentials(null)
           if (tenantId) navigate(adminAgencyPath(tenantId, 'product'))
         }}
-        title="Agency created"
-        description="Share the owner login now. The password will not be shown again."
+        title="Copy the owner password. It will not be shown again."
         actions={
           <Button
             onClick={() => {

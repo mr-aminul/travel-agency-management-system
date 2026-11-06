@@ -312,7 +312,6 @@ export function ServiceCatalogEditorV2({
           if (href) navigate(href)
         }}
         title="Discard unsaved changes?"
-        description="The checklist or name you were editing has not been saved."
         confirmLabel="Discard"
         confirmVariant="danger"
       />
@@ -320,11 +319,10 @@ export function ServiceCatalogEditorV2({
         open={pendingDelete}
         onClose={() => setPendingDelete(false)}
         onConfirm={confirmDelete}
-        title={`Delete ${item.label}?`}
-        description={
+        title={
           item.kind === 'custom'
-            ? 'New files will no longer offer it. Existing files stay.'
-            : 'Hide it from new files. Existing files stay, and you can restore it later.'
+            ? `Delete ${item.label}? Existing files stay.`
+            : `Hide ${item.label} from new files? Existing files stay.`
         }
         confirmLabel="Delete"
         confirmVariant="danger"

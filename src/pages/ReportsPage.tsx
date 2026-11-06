@@ -126,10 +126,7 @@ export default function ReportsPage() {
 
   return (
     <div className="pd-page pd-ops" aria-label="Reports">
-      <PageHeader
-        title="Reports"
-        description="Collections, outstanding balances, and sub-agent pipeline."
-      />
+      <PageHeader title="Reports" />
 
       <div className="pd-ops__toolbar">
         <Input
@@ -179,10 +176,7 @@ export default function ReportsPage() {
           </Button>
         </div>
         {collections.length === 0 ? (
-          <EmptyState
-            title="No collections in this range"
-            description="Adjust the dates or record a payment."
-          />
+          <EmptyState title="No collections in this range" />
         ) : (
           <Table>
             <TableHeader>
@@ -236,10 +230,7 @@ export default function ReportsPage() {
           </Button>
         </div>
         {outstandingByService.length === 0 ? (
-          <EmptyState
-            title="Nothing outstanding"
-            description="Open service balances will appear here."
-          />
+          <EmptyState title="Nothing outstanding" />
         ) : (
           <Table>
             <TableHeader>
@@ -287,10 +278,7 @@ export default function ReportsPage() {
           </Button>
         </div>
         {subAgentPipeline.length === 0 ? (
-          <EmptyState
-            title="No sub-agent activity"
-            description="Pipeline appears once clients are linked to sub agents."
-          />
+          <EmptyState title="No sub-agent activity" />
         ) : (
           <Table>
             <TableHeader>

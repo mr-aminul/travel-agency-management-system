@@ -431,13 +431,6 @@
   overflow-wrap: anywhere;
 }
 
-.pd-business-profile__tagline {
-  margin: 0;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  color: var(--color-text-sec, var(--color-text-secondary));
-}
-
 .pd-business-profile__fields {
   display: flex;
   flex-direction: column;
@@ -907,13 +900,6 @@
     0 0.0625rem 0.25rem color-mix(in srgb, var(--color-text) 6%, transparent);
 }
 
-.pd-service-icon-picker__panel-hint {
-  margin: 0;
-  color: var(--color-text-sec, var(--color-text));
-  font-size: 0.75rem;
-  line-height: 1.35;
-}
-
 .pd-service-icon-picker__preview {
   display: inline-flex;
   align-items: center;
@@ -1371,13 +1357,6 @@
   border-top: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
 }
 
-.pd-step-auto-notify__hint {
-  margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--color-text-muted, var(--color-text));
-}
-
 .pd-step-auto-notify__row {
   display: grid;
   grid-template-columns: minmax(5rem, auto) minmax(0, 1fr);
@@ -1547,8 +1526,7 @@
   min-width: 0;
 }
 
-.pd-settings-doc-fields--compact .pd-settings-doc-fields__row .pd-field__label,
-.pd-settings-doc-fields--compact .pd-field-hint {
+.pd-settings-doc-fields--compact .pd-settings-doc-fields__row .pd-field__label {
   display: none;
 }
 

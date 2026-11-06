@@ -211,9 +211,6 @@ export function ServiceIconPicker({
           className="pd-service-icon-picker__panel"
           style={panelStyle}
         >
-          <p className="pd-service-icon-picker__panel-hint">
-            Optional. Leave on Auto to use the default for this service name.
-          </p>
           <IconGrid selected={selected} onChange={pick} disabled={disabled} />
         </div>
       ) : null
@@ -259,7 +256,6 @@ export function ServiceIconPicker({
   return (
     <Field
       label="Icon"
-      hint="Optional. Leave unset to use the default for this service name."
       className="pd-service-icon-picker"
     >
       <div className="pd-service-icon-picker__preview" aria-hidden>

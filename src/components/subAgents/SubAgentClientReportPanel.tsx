@@ -170,7 +170,6 @@ export function SubAgentClientReportPanel({
       <EmptyState
         icon={Users}
         title="No clients to report"
-        description="Add clients for this sub agent before generating a report."
       />
     )
   }
@@ -307,7 +306,6 @@ export function SubAgentClientReportPanel({
           <EmptyState
             icon={Users}
             title="No clients match"
-            description="Try a different name, phone, or passport."
             action={
               <Button
                 variant="secondary"
@@ -429,7 +427,6 @@ export function SubAgentClientReportPanel({
           <EmptyState
             icon={FileText}
             title="Select clients to preview"
-            description="Pick PDF fields and tick one or more clients. Preview updates before you download."
           />
         </section>
       )}

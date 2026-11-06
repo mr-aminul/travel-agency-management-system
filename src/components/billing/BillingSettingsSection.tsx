@@ -448,7 +448,7 @@ export function BillingSettingsSection({ title, info }: Props) {
                       />
                     </div>
                     <Input
-                      label="Note (optional)"
+                      label="Note"
                       value={paymentNote}
                       onChange={(e) => setPaymentNote(e.target.value)}
                       placeholder="Sender name or account"

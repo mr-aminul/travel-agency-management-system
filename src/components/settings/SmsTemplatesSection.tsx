@@ -199,11 +199,11 @@ export function SmsTemplatesSection({
           >
             <div className="pd-sms-sending-pref__copy">
               <h3 className="pd-sms-sending-pref__title">SMS sending</h3>
-              <p className="pd-sms-sending-pref__hint">
-                {platformAllowsSms
-                  ? 'When off, staff and auto-status messages cannot send SMS.'
-                  : 'The platform has blocked SMS for this agency. Contact support to allow it again.'}
-              </p>
+              {platformAllowsSms ? null : (
+                <p className="pd-sms-sending-pref__hint">
+                  SMS is blocked for this agency.
+                </p>
+              )}
               {smsError ? (
                 <p className="pd-field__error" role="alert">
                   {smsError}
@@ -241,11 +241,11 @@ export function SmsTemplatesSection({
           >
             <div className="pd-sms-sending-pref__copy">
               <h3 className="pd-sms-sending-pref__title">Email sending</h3>
-              <p className="pd-sms-sending-pref__hint">
-                {platformAllowsEmail
-                  ? 'When off, staff and auto-status messages cannot send email.'
-                  : 'The platform has blocked email for this agency. Contact support to allow it again.'}
-              </p>
+              {platformAllowsEmail ? null : (
+                <p className="pd-sms-sending-pref__hint">
+                  Email is blocked for this agency.
+                </p>
+              )}
               {emailError ? (
                 <p className="pd-field__error" role="alert">
                   {emailError}
@@ -420,7 +420,6 @@ export function SmsTemplatesSection({
                 ? 'No SMS templates yet'
                 : 'No email templates yet'
             }
-            description="Create folders and templates with attributes such as Client ID and passport tracking link."
             action={
               <Button type="button" size="sm" onClick={() => openCreate()}>
                 <Plus size={14} />
@@ -435,7 +434,6 @@ export function SmsTemplatesSection({
         open={composerOpen}
         onClose={closeComposer}
         title={editing ? 'Edit template' : 'New template'}
-        description="Choose SMS or email, put it in a folder, then staff pick it under SMS/Email template."
         className="pd-settings-drawer"
       >
         <form
@@ -501,7 +499,6 @@ export function SmsTemplatesSection({
             error={showError('body') ? bodyError : undefined}
             rows={5}
             required
-            hint="Tap an attribute chip to insert it into the message."
           />
           <div className="pd-sms-template-attrs" aria-label="Insert attribute">
             {SMS_TEMPLATE_ATTRIBUTES.map((attr) => (
@@ -548,7 +545,6 @@ export function SmsTemplatesSection({
           setRenameError(null)
         }}
         title="Rename folder"
-        description="All templates in this folder move with the new name."
         className="pd-settings-drawer"
       >
         <form
@@ -611,7 +607,6 @@ export function SmsTemplatesSection({
           setPendingDeleteId(null)
         }}
         title={`Remove ${pendingDelete?.name ?? 'this template'}?`}
-        description="Staff will no longer see it under SMS/Email template on the client Messages screen."
         confirmLabel="Remove"
         confirmVariant="danger"
       />

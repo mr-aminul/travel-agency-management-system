@@ -436,11 +436,6 @@ export default function TenantUsersPage() {
       open={createOpen}
       onClose={closeCreate}
       title="Add user"
-      description={
-        inviteOnly
-          ? `Invite someone to ${tenant.name}. They set their own password via the link.`
-          : `Create a login for ${tenant.name}. Set an initial password and share it with them.`
-      }
       actions={
         <>
           <Button variant="secondary" onClick={closeCreate} disabled={isSubmitting}>
@@ -509,7 +504,6 @@ export default function TenantUsersPage() {
             onChange={(event) => setPassword(event.target.value)}
             onBlur={blur('password')}
             error={showError('password') ? errors.password : undefined}
-            hint="They sign in with this password. Share it securely. It is only shown once."
           />
         )}
         {formError ? (
@@ -525,11 +519,10 @@ export default function TenantUsersPage() {
     <Modal
       open={createdCredentials != null}
       onClose={() => setCreatedCredentials(null)}
-      title={createdCredentials?.inviteLink ? 'Invite ready' : 'Login ready'}
-      description={
+      title={
         createdCredentials?.inviteLink
-          ? 'Copy the invite link and send it to them. It expires in 7 days.'
-          : 'Share these credentials now. The password will not be shown again.'
+          ? 'Copy the invite link. It expires in 7 days.'
+          : 'Copy this password. It will not be shown again.'
       }
       actions={
         <Button onClick={() => setCreatedCredentials(null)}>Done</Button>
@@ -572,11 +565,8 @@ export default function TenantUsersPage() {
         setResetPassword('')
         setActionError(undefined)
       }}
-      title="Reset password"
-      description={
-        resetMember
-          ? `Set a new password for ${resetMember.name}.`
-          : undefined
+      title={
+        resetMember ? `New password for ${resetMember.name}` : 'Reset password'
       }
       actions={
         <>
@@ -617,12 +607,7 @@ export default function TenantUsersPage() {
     <Modal
       open={editMember != null}
       onClose={closeEdit}
-      title="Edit user"
-      description={
-        editMember
-          ? `Update name or email for ${editMember.name}.`
-          : undefined
-      }
+      title={editMember ? editMember.name : 'Edit user'}
       actions={
         <>
           <Button variant="secondary" onClick={closeEdit} disabled={isEditing}>
@@ -678,7 +663,6 @@ export default function TenantUsersPage() {
           <EmptyState
             icon={Users}
             title="No users yet"
-            description={`Add the first login for ${tenant.name}.`}
             action={addButton}
           />
         </section>
@@ -837,8 +821,7 @@ export default function TenantUsersPage() {
         open={confirmDelete}
         onClose={() => (isDeleting ? undefined : setConfirmDelete(false))}
         onConfirm={() => void handleConfirmDelete()}
-        title="Delete selected users?"
-        description={`Permanently remove ${selectedCount} user${selectedCount === 1 ? '' : 's'} from ${tenant.name}. This cannot be undone.`}
+        title={`Permanently delete ${selectedCount} user${selectedCount === 1 ? '' : 's'} from ${tenant.name}?`}
         confirmLabel={isDeleting ? 'Deleting…' : 'Delete'}
         confirmVariant="danger"
       />
