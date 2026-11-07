@@ -3773,3 +3773,342 @@ html:has(.lp2) {
   letter-spacing: 0.08em;
   color: var(--lp-paper-muted);
 }
+
+/* ------------------------------------------------------------------ */
+/* Mobile polish — max-width only. Desktop (≥768px) stays untouched. */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 767px) {
+  .lp2 {
+    --lp2-s-300: 16px;
+    --lp2-s-400: 24px;
+    --lp2-s-500: 28px;
+    --lp2-s-600: 32px;
+    --lp2-s-700: 48px;
+    --lp2-s-800: 56px;
+  }
+
+  .lp2 section[id] {
+    scroll-margin-top: calc(env(safe-area-inset-top) + 72px);
+  }
+
+  .lp2-wrap {
+    padding-inline: max(16px, env(safe-area-inset-left));
+    padding-inline-end: max(16px, env(safe-area-inset-right));
+  }
+
+  /* Floating nav: safe area + less crowding */
+  .lp2-nav {
+    top: max(12px, env(safe-area-inset-top));
+    gap: 10px;
+    max-width: calc(100vw - 24px);
+    padding: 6px 6px 6px 12px;
+  }
+
+  .lp2-nav__brand {
+    gap: 6px;
+  }
+
+  .lp2-nav__brand img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .lp2-nav__actions .lp2-btn {
+    min-height: 40px;
+    padding-inline: 12px;
+    font-size: 13px;
+  }
+
+  .lp2-nav__panel {
+    padding:
+      max(96px, calc(env(safe-area-inset-top) + 88px))
+      max(24px, env(safe-area-inset-right))
+      max(32px, env(safe-area-inset-bottom))
+      max(24px, env(safe-area-inset-left));
+    gap: 20px;
+  }
+
+  .lp2-nav__panel .lp2-btn {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  /* Hero */
+  .lp2-hero {
+    min-height: 100svh;
+    padding:
+      max(96px, calc(env(safe-area-inset-top) + 76px))
+      16px
+      max(56px, env(safe-area-inset-bottom));
+  }
+
+  .lp2-hero__title {
+    font-size: clamp(30px, 8.2vw, 40px);
+  }
+
+  .lp2-hero__sub {
+    margin-top: 16px;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .lp2-hero__ctas {
+    justify-content: center;
+    width: 100%;
+    margin-top: 36px;
+  }
+
+  .lp2-hero__ctas .lp2-btn {
+    width: 100%;
+    max-width: 320px;
+    min-height: 48px;
+  }
+
+  /* Section heads */
+  .lp2-display-head {
+    margin-bottom: 36px;
+  }
+
+  .lp2-display-head__title {
+    font-size: clamp(28px, 7.5vw, 40px);
+  }
+
+  .lp2-section-head {
+    margin-bottom: 36px;
+  }
+
+  .lp2-section-head__title {
+    font-size: clamp(30px, 8vw, 42px);
+  }
+
+  .lp2-audiences,
+  .lp2-problem,
+  .lp2-features,
+  .lp2-customize {
+    padding-block: 64px;
+  }
+
+  /* Audience tabs: swipe row instead of a tall wrap stack */
+  .lp2-audiences__tabs {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 8px;
+    margin-bottom: 20px;
+    margin-inline: -16px;
+    padding-inline: 16px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .lp2-audiences__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lp2-audiences__tab {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding-inline: 14px;
+  }
+
+  .lp2-audiences__panel {
+    gap: 20px;
+    padding: 20px 16px 16px;
+    border-radius: 1.25rem;
+  }
+
+  .lp2-audiences__title {
+    font-size: 22px;
+  }
+
+  .lp2-audiences__copy .lp2-btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .lp2-audiences__stage {
+    min-height: 0;
+    padding: 4px 0 0;
+  }
+
+  .lp2-audiences__stage .lp-vg-chrome {
+    width: 100%;
+    max-width: 100%;
+    transform: scale(0.92);
+    transform-origin: top center;
+    margin-bottom: -6%;
+  }
+
+  /* Problem comparison */
+  .lp2-problem__grid {
+    gap: 20px;
+  }
+
+  .lp2-problem__visual {
+    aspect-ratio: 16 / 11;
+    border-radius: 0.875rem;
+  }
+
+  .lp2-problem__caption {
+    font-size: 18px;
+  }
+
+  .lp2-problem__bridge {
+    min-height: 20px;
+  }
+
+  /* Features + customize cards */
+  .lp2-features__grid,
+  .lp2-customize__grid {
+    gap: 16px;
+  }
+
+  .lp2-feature,
+  .lp2-customize__card {
+    padding: 16px;
+    border-radius: 1rem;
+  }
+
+  .lp2-feature__title,
+  .lp2-customize__title {
+    font-size: 18px;
+  }
+
+  .lp2-customize__stage {
+    min-height: 112px;
+    padding: 12px;
+  }
+
+  /* How it works */
+  .lp2-howto {
+    padding-block: 72px;
+  }
+
+  .lp2-howto__title {
+    font-size: clamp(30px, 8vw, 40px);
+  }
+
+  .lp2-howto__layout {
+    gap: 28px;
+  }
+
+  .lp2-howto__photo {
+    aspect-ratio: 4 / 3;
+    border-radius: 1.25rem;
+  }
+
+  .lp2-howto__step {
+    min-height: 52px;
+  }
+
+  /* Pricing tickets */
+  .lp2-pricing {
+    padding-block: 72px;
+  }
+
+  .lp2-ticket__name {
+    font-size: 30px;
+  }
+
+  .lp2-ticket__main {
+    padding: 20px 16px 18px;
+  }
+
+  .lp2-ticket__stub {
+    padding: 14px 16px;
+  }
+
+  .lp2-ticket__board {
+    min-height: 48px;
+    height: 48px;
+  }
+
+  /* FAQ */
+  .lp2-faq {
+    padding-block: 64px;
+  }
+
+  .lp2-faq__item {
+    padding: 14px 16px;
+  }
+
+  .lp2-faq__item summary {
+    gap: 12px;
+    min-height: 44px;
+  }
+
+  /* Final CTA */
+  .lp2-final {
+    padding-block: 72px;
+  }
+
+  .lp2-final__title {
+    font-size: clamp(28px, 8vw, 40px);
+  }
+
+  .lp2-final__actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lp2-final__actions .lp2-btn {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  /* Footer */
+  .lp2-footer {
+    padding:
+      36px 0
+      max(36px, calc(env(safe-area-inset-bottom) + 72px));
+  }
+
+  .lp2-footer__links {
+    gap: 12px 16px;
+  }
+
+  /* Ask + chat sit above the home indicator */
+  .lp2-ask {
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .lp2-chat {
+    right: max(12px, env(safe-area-inset-right));
+    left: max(12px, env(safe-area-inset-left));
+    width: auto;
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 56px);
+    max-height: min(560px, calc(100dvh - 120px - env(safe-area-inset-bottom)));
+  }
+}
+
+@media (max-width: 480px) {
+  .lp2-nav__brand {
+    font-size: 14px;
+  }
+
+  /* Keep logo + CTA + menu from wrapping on very narrow phones */
+  .lp2-nav__actions .lp2-btn {
+    padding-inline: 10px;
+  }
+
+  .lp2-hero__title {
+    font-size: clamp(28px, 9vw, 34px);
+  }
+
+  .lp2-audiences__stage .lp-vg-chrome {
+    transform: scale(0.86);
+    margin-bottom: -10%;
+  }
+
+  .lp2-ticket__name {
+    font-size: 28px;
+  }
+
+  .lp2-ticket__price {
+    font-size: 28px;
+  }
+}
