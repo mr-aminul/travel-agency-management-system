@@ -5,14 +5,25 @@ import {
   getStepDefsForCase,
   templateCountry,
 } from '@/lib/caseChecklist'
+import { floatingSheetClass } from '@/components/clients/shadcnChrome'
+import { Input, Select, Textarea } from '@/components/clients/clientShadcnFields'
+import { Button } from '@/components/shadcn/button'
 import {
-  Button,
-  FileDropzone,
-  Input,
-  Select,
-  SideDrawer,
-  Textarea,
-} from '@/components/ui'
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/shadcn/dialog'
+import { FileDropzone } from '@/components/shadcn/file-dropzone'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
 import {
   getCaseStepRequirement,
   splitStepUploads,
@@ -48,6 +59,8 @@ export type StepCompletionDrawerProps = {
   onClose: () => void
 }
 
+const STEP_COMPLETE_FORM_ID = 'step-complete-form'
+
 function ReadOnlyField({
   label,
   value,
@@ -58,9 +71,11 @@ function ReadOnlyField({
   isDate?: boolean
 }) {
   return (
-    <div className="pd-step-view__field">
-      <dt>{label}</dt>
-      <dd>{isDate ? formatDisplayDate(value) : value || '-'}</dd>
+    <div className="flex min-w-0 flex-col gap-1">
+      <dt className="text-xs font-semibold text-muted-foreground">{label}</dt>
+      <dd className="m-0 text-sm">
+        {isDate ? formatDisplayDate(value) : value || '-'}
+      </dd>
     </div>
   )
 }
@@ -113,16 +128,18 @@ function UploadBlocks({
 
   if (readOnly) {
     return (
-      <div className="pd-step-view__files-block">
-        <p className="pd-step-panel__uploads-title">{title}</p>
+      <div className="flex flex-col gap-3">
+        <p className="m-0 text-sm font-medium">{title}</p>
         {uploads.map((upload) => {
           const draft = drafts[upload.key]
           const hasFile = Boolean(
             draft?.fileId || draft?.fileName?.trim(),
           )
           return (
-            <div key={upload.key} className="pd-step-view__attachment">
-              <p className="pd-step-view__attachment-label">{upload.label}</p>
+            <div key={upload.key} className="flex flex-col gap-2">
+              <p className="m-0 text-xs font-semibold text-muted-foreground">
+                {upload.label}
+              </p>
               {hasFile ? (
                 <FileViewer
                   fileId={draft?.fileId}
@@ -134,7 +151,9 @@ function UploadBlocks({
                   }
                 />
               ) : (
-                <p className="pd-step-view__empty">No file attached.</p>
+                <p className="m-0 text-sm text-muted-foreground">
+                  No file attached.
+                </p>
               )}
             </div>
           )
@@ -144,16 +163,16 @@ function UploadBlocks({
   }
 
   return (
-    <div className="pd-step-panel__uploads">
-      <p className="pd-step-panel__uploads-title">{title}</p>
+    <div className="flex flex-col gap-3">
+      <p className="m-0 text-sm font-medium">{title}</p>
       {uploads.map((upload) => {
         const errorKey = `upload:${upload.key}`
         const draft = drafts[upload.key]
         const hasFile = Boolean(draft?.fileId || draft?.fileName?.trim())
         return (
-          <div key={upload.key} className="pd-step-panel__upload-block">
-            <div className="pd-step-panel__upload">
-              <span className="pd-step-panel__upload-label">
+          <div key={upload.key} className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">
                 {upload.label}
                 {upload.required ? ' *' : ''}
               </span>
@@ -194,7 +213,7 @@ function UploadBlocks({
                 />
               )}
               {triedSubmit && errors[errorKey] ? (
-                <span className="pd-field__error" role="alert">
+                <span className="text-sm text-destructive" role="alert">
                   {errors[errorKey]}
                 </span>
               ) : null}
@@ -266,6 +285,10 @@ export function StepCompletionDrawer({
       ? progressBlockedMessage(profileBlockers)
       : ''
 
+  const description = isView
+    ? item.steps[activeStepId]?.detail || 'Saved step details'
+    : requirement.help
+
   const clearError = (key: string) => {
     setErrors((current) => {
       if (!current[key]) return current
@@ -310,8 +333,7 @@ export function StepCompletionDrawer({
     if (!result.ok) setErrors(result.errors)
   }
 
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault()
+  const submitStep = () => {
     setTriedSubmit(true)
     const input = buildInput()
 
@@ -326,6 +348,11 @@ export function StepCompletionDrawer({
 
     if (isComplete) onClose()
     else onModeChange?.('view')
+  }
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
+    submitStep()
   }
 
   const handleMoveBack = () => {
@@ -407,31 +434,224 @@ export function StepCompletionDrawer({
     </>
   )
 
+  const needsDetails =
+    requirement.fields.length > 0 || requirement.uploads.length > 0
+
+  if (isComplete && !needsDetails) {
+    return (
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) onClose()
+        }}
+      >
+        <DialogContent className="border border-border bg-card shadow-[var(--shadow-deep)] ring-0 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+          {profileBlockedMessage ? (
+            <p className="m-0 text-sm text-destructive" role="alert">
+              {profileBlockedMessage}
+            </p>
+          ) : null}
+          {errors.form ? (
+            <p className="m-0 text-sm text-destructive" role="alert">
+              {errors.form}
+            </p>
+          ) : null}
+          <DialogFooter className="border-0 bg-transparent">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 rounded-lg"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            {previousCatalogStep ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 rounded-lg"
+                onClick={handleBackOneStep}
+              >
+                Back to {previousCatalogStep.label}
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              className="h-9 rounded-lg"
+              onClick={submitStep}
+            >
+              Mark Complete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
   return (
-    <SideDrawer
+    <Sheet
       open={open}
-      onClose={onClose}
-      title={title}
-      description={
-        isView
-          ? item.steps[activeStepId]?.detail || 'Saved step details'
-          : requirement.help
-      }
-      className="pd-step-drawer"
-      footer={
-        <div className="pd-step-drawer__footer">
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+    >
+      <SheetContent className={floatingSheetClass}>
+        <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+          <SheetTitle className="text-base font-semibold">{title}</SheetTitle>
+          {description ? (
+            <SheetDescription className="text-left">{description}</SheetDescription>
+          ) : null}
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {isView ? (
+            <div className="flex flex-col gap-4">
+              {item.steps[activeStepId]?.completedAt ? (
+                <p className="m-0 text-sm text-muted-foreground">
+                  Completed{' '}
+                  {formatDisplayDateTime(item.steps[activeStepId].completedAt)}
+                </p>
+              ) : null}
+
+              <dl className="m-0 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {requirement.fields.map((field) => (
+                  <ReadOnlyField
+                    key={field.key}
+                    label={field.label}
+                    value={fields[field.key] ?? ''}
+                    isDate={field.type === 'date'}
+                  />
+                ))}
+              </dl>
+
+              {uploadSection(true)}
+
+              {!requirement.fields.length && !requirement.uploads.length ? (
+                <p className="m-0 text-sm text-muted-foreground">
+                  No details recorded.
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <form
+              id={STEP_COMPLETE_FORM_ID}
+              className="flex flex-col gap-3"
+              onSubmit={handleSubmit}
+              noValidate
+            >
+              {profileBlockedMessage ? (
+                <p className="m-0 text-sm text-destructive" role="alert">
+                  {profileBlockedMessage}
+                </p>
+              ) : null}
+
+              {errors.form ? (
+                <p className="m-0 text-sm text-destructive" role="alert">
+                  {errors.form}
+                </p>
+              ) : null}
+
+              {requirement.fields.map((field) =>
+                field.type === 'textarea' ? (
+                  <Textarea
+                    key={field.key}
+                    className="w-full"
+                    label={field.label}
+                    required={field.required}
+                    rows={3}
+                    value={fields[field.key] ?? ''}
+                    placeholder={field.placeholder}
+                    onChange={(event) => {
+                      setFields((current) => ({
+                        ...current,
+                        [field.key]: event.target.value,
+                      }))
+                      clearError(field.key)
+                    }}
+                    error={triedSubmit ? errors[field.key] : undefined}
+                  />
+                ) : field.type === 'select' ? (
+                  <Select
+                    key={field.key}
+                    label={field.label}
+                    required={field.required}
+                    value={fields[field.key] ?? ''}
+                    placeholder="Choose…"
+                    options={(field.options ?? []).map((option) => ({
+                      value: option,
+                      label: option,
+                    }))}
+                    onChange={(event) => {
+                      setFields((current) => ({
+                        ...current,
+                        [field.key]: event.target.value,
+                      }))
+                      clearError(field.key)
+                    }}
+                    error={triedSubmit ? errors[field.key] : undefined}
+                  />
+                ) : (
+                  <Input
+                    key={field.key}
+                    label={field.label}
+                    required={field.required}
+                    type={
+                      field.type === 'date'
+                        ? 'date'
+                        : field.type === 'number'
+                          ? 'number'
+                          : 'text'
+                    }
+                    inputMode={field.type === 'number' ? 'decimal' : undefined}
+                    value={fields[field.key] ?? ''}
+                    placeholder={field.placeholder}
+                    onChange={(event) => {
+                      setFields((current) => ({
+                        ...current,
+                        [field.key]: event.target.value,
+                      }))
+                      clearError(field.key)
+                    }}
+                    error={triedSubmit ? errors[field.key] : undefined}
+                  />
+                ),
+              )}
+
+              {uploadSection(false)}
+            </form>
+          )}
+        </div>
+
+        <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
           {isView ? (
             <>
-              <Button type="button" variant="secondary" onClick={onClose}>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 rounded-lg"
+                onClick={onClose}
+              >
                 Close
               </Button>
               {canMoveBackHere ? (
-                <Button type="button" variant="secondary" onClick={handleMoveBack}>
-                  Move back here
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 rounded-lg"
+                  onClick={handleMoveBack}
+                >
+                  Move Back Here
                 </Button>
               ) : null}
               {canEditCase ? (
-                <Button type="button" onClick={() => onModeChange?.('edit')}>
+                <Button
+                  type="button"
+                  className="h-9 rounded-lg"
+                  onClick={() => onModeChange?.('edit')}
+                >
                   Edit
                 </Button>
               ) : null}
@@ -440,7 +660,8 @@ export function StepCompletionDrawer({
             <>
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
+                className="h-9 rounded-lg"
                 onClick={() => {
                   if (mode === 'edit') onModeChange?.('view')
                   else onClose()
@@ -451,133 +672,24 @@ export function StepCompletionDrawer({
               {previousCatalogStep ? (
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="outline"
+                  className="h-9 rounded-lg"
                   onClick={handleBackOneStep}
                 >
                   Back to {previousCatalogStep.label}
                 </Button>
               ) : null}
-              <Button type="submit" form="pd-step-complete-form">
-                {isComplete ? 'Mark complete' : 'Save changes'}
+              <Button
+                type="submit"
+                form={STEP_COMPLETE_FORM_ID}
+                className="h-9 rounded-lg"
+              >
+                {isComplete ? 'Mark Complete' : 'Save Changes'}
               </Button>
             </>
           )}
-        </div>
-      }
-    >
-      {isView ? (
-        <div className="pd-step-view">
-          {item.steps[activeStepId]?.completedAt ? (
-            <p className="pd-step-view__meta">
-              Completed {formatDisplayDateTime(item.steps[activeStepId].completedAt)}
-            </p>
-          ) : null}
-
-          <dl className="pd-step-view__fields">
-            {requirement.fields.map((field) => (
-              <ReadOnlyField
-                key={field.key}
-                label={field.label}
-                value={fields[field.key] ?? ''}
-                isDate={field.type === 'date'}
-              />
-            ))}
-          </dl>
-
-          {uploadSection(true)}
-
-          {!requirement.fields.length && !requirement.uploads.length ? (
-            <p className="pd-step-view__empty">No details recorded.</p>
-          ) : null}
-        </div>
-      ) : (
-        <form
-          id="pd-step-complete-form"
-          className="pd-step-panel__form"
-          onSubmit={handleSubmit}
-          noValidate
-        >
-          {profileBlockedMessage ? (
-            <p className="pd-field__error" role="alert">
-              {profileBlockedMessage}
-            </p>
-          ) : null}
-
-          {errors.form ? (
-            <p className="pd-field__error" role="alert">
-              {errors.form}
-            </p>
-          ) : null}
-
-          {requirement.fields.map((field) =>
-            field.type === 'textarea' ? (
-              <Textarea
-                key={field.key}
-                className="pd-step-panel__full"
-                label={field.label}
-                required={field.required}
-                rows={3}
-                value={fields[field.key] ?? ''}
-                placeholder={field.placeholder}
-                onChange={(event) => {
-                  setFields((current) => ({
-                    ...current,
-                    [field.key]: event.target.value,
-                  }))
-                  clearError(field.key)
-                }}
-                error={triedSubmit ? errors[field.key] : undefined}
-              />
-            ) : field.type === 'select' ? (
-              <Select
-                key={field.key}
-                label={field.label}
-                required={field.required}
-                value={fields[field.key] ?? ''}
-                placeholder="Choose…"
-                options={(field.options ?? []).map((option) => ({
-                  value: option,
-                  label: option,
-                }))}
-                onChange={(event) => {
-                  setFields((current) => ({
-                    ...current,
-                    [field.key]: event.target.value,
-                  }))
-                  clearError(field.key)
-                }}
-                error={triedSubmit ? errors[field.key] : undefined}
-              />
-            ) : (
-              <Input
-                key={field.key}
-                label={field.label}
-                required={field.required}
-                type={
-                  field.type === 'date'
-                    ? 'date'
-                    : field.type === 'number'
-                      ? 'number'
-                      : 'text'
-                }
-                inputMode={field.type === 'number' ? 'decimal' : undefined}
-                value={fields[field.key] ?? ''}
-                placeholder={field.placeholder}
-                onChange={(event) => {
-                  setFields((current) => ({
-                    ...current,
-                    [field.key]: event.target.value,
-                  }))
-                  clearError(field.key)
-                }}
-                error={triedSubmit ? errors[field.key] : undefined}
-              />
-            ),
-          )}
-
-          {uploadSection(false)}
-        </form>
-      )}
-    </SideDrawer>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }

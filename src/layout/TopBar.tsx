@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom'
 import {
   Breadcrumbs,
   type BreadcrumbItem,
-} from '@/components/ui'
+} from '@/components/shadcn/breadcrumbs'
 import { TopBarDarkMode } from './TopBarDarkMode'
 import { TopBarSearch } from './TopBarSearch'
 import { ProfileDropdown } from './ProfileDropdown'

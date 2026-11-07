@@ -25,8 +25,25 @@ import {
 } from '@/lib/billing/format'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
 import { useTenantById } from '@/lib/tenantsStore'
-import { Button, Input, Select } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import { Input } from '@/components/shadcn/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
 import type { BillingSnapshot, PlanTemplate } from '@/types/billing'
+import {
+  adminBillingCardPendingClass,
+  adminPlanBillClass,
+  adminPlanClass,
+  adminPlanOpsClass,
+  adminPlanStorageClass,
+  adminPlanStorageRowClass,
+  adminQuietClass,
+} from '@/components/admin/adminChrome'
 
 const MB = 1024 ** 2
 const GB = 1024 ** 3
@@ -125,11 +142,11 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
   }
 
   if (!authApiConfigured()) {
-    return <p className="pd-admin__quiet">Billing needs the platform API.</p>
+    return <p className={adminQuietClass}>Billing needs the platform API.</p>
   }
 
   if (!snapshot) {
-    return <p className="pd-admin__quiet">Loading billing…</p>
+    return <p className={adminQuietClass}>Loading billing…</p>
   }
 
   const livePlanId = snapshot.billing?.planId || null
@@ -182,33 +199,35 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
   }
 
   return (
-    <div className="pd-admin__plan" aria-label="Subscription">
+    <div className={adminPlanClass} aria-label="Subscription">
       {billingNotes ? (
-        <p className="pd-admin__quiet" style={{ marginBottom: '0.75rem' }}>
-          {billingNotes}
-        </p>
+        <p className={`${adminQuietClass} mb-3`}>{billingNotes}</p>
       ) : null}
       <dl className="pd-client-detail__card-fields">
         <div className="pd-client-detail__card-field">
           <dt>Plan</dt>
           <dd>
             <Select
-              aria-label="Plan"
-              size="sm"
               value={planId}
               disabled={busy}
-              options={plans.map((plan) => ({
-                value: plan.id,
-                label: `${plan.name} · ${formatBdt(plan.priceBdt)}`,
-              }))}
-              onChange={(e) => {
-                const next = e.target.value
+              onValueChange={(next) => {
                 setPlanId(next)
                 const matched = plans.find((p) => p.id === next)
                 if (matched) setInvoiceAmount(String(matched.priceBdt))
                 setBillingOpen(false)
               }}
-            />
+            >
+              <SelectTrigger aria-label="Plan" className="h-8 w-full min-w-[12rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {plans.map((plan) => (
+                  <SelectItem key={plan.id} value={plan.id}>
+                    {`${plan.name} · ${formatBdt(plan.priceBdt)}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </dd>
         </div>
         <div className="pd-client-detail__card-field">
@@ -243,14 +262,14 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
       </dl>
 
       <div
-        className="pd-admin__plan-storage"
+        className={adminPlanStorageClass}
         aria-label="Update storage limit"
       >
-        <p className="pd-admin__quiet">
+        <p className={adminQuietClass}>
           Used {formatStorageBytes(snapshot.usage.storageBytes)}. Set a custom
           limit for this agency (does not change the plan template).
         </p>
-        <div className="pd-admin__plan-storage-row">
+        <div className={adminPlanStorageRowClass}>
           <Input
             aria-label="Storage limit amount"
             type="number"
@@ -267,18 +286,20 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
             }}
           />
           <Select
-            aria-label="Storage unit"
-            size="sm"
             value={storageUnit}
             disabled={busy}
-            options={[
-              { value: 'GB', label: 'GB' },
-              { value: 'MB', label: 'MB' },
-            ]}
-            onChange={(event) =>
-              setStorageUnit(event.target.value === 'MB' ? 'MB' : 'GB')
+            onValueChange={(next) =>
+              setStorageUnit(next === 'MB' ? 'MB' : 'GB')
             }
-          />
+          >
+            <SelectTrigger aria-label="Storage unit" className="h-8 w-[5.5rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="GB">GB</SelectItem>
+              <SelectItem value="MB">MB</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             size="sm"
             disabled={busy || !storageDirty}
@@ -290,7 +311,7 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
       </div>
 
       {error ? (
-        <p className="pd-field__error" role="alert">
+        <p className="m-0 text-sm text-destructive" role="alert">
           {error}
         </p>
       ) : null}
@@ -313,7 +334,7 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           Switch to {draftPlan?.name}
         </Button>
       ) : billingOpen ? (
-        <div className="pd-admin__plan-bill">
+        <div className={adminPlanBillClass}>
           <Input
             aria-label="Invoice amount BDT"
             type="number"
@@ -352,10 +373,10 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           </Button>
         </div>
       ) : (
-        <div className="pd-admin__plan-ops" role="group" aria-label="Billing ops">
+        <div className={adminPlanOpsClass} role="group" aria-label="Billing ops">
           <Button
             size="sm"
-            className="pd-admin__plan-ops-btn pd-admin__plan-ops-btn--bill"
+            className="w-full justify-center bg-[#0f6e56] border-[#0f6e56] text-white hover:bg-[#0b5a46] hover:border-[#0b5a46] hover:text-white"
             disabled={busy}
             onClick={() => setBillingOpen(true)}
           >
@@ -364,7 +385,7 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           </Button>
           <Button
             size="sm"
-            className="pd-admin__plan-ops-btn pd-admin__plan-ops-btn--trial"
+            className="w-full justify-center bg-[#185fa5] border-[#185fa5] text-white hover:bg-[#0f4d8a] hover:border-[#0f4d8a] hover:text-white"
             disabled={busy}
             onClick={() => void run(() => adminExtendTrial(tenantId, 14))}
           >
@@ -373,8 +394,8 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           </Button>
           <Button
             size="sm"
-            variant="danger"
-            className="pd-admin__plan-ops-btn"
+            variant="destructive"
+            className="w-full justify-center"
             disabled={busy || billingStatus === 'suspended'}
             onClick={() =>
               void run(() =>
@@ -387,7 +408,7 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           </Button>
           <Button
             size="sm"
-            className="pd-admin__plan-ops-btn pd-admin__plan-ops-btn--activate"
+            className="w-full justify-center bg-[var(--color-theme)] border-[var(--color-theme)] text-[var(--color-on-theme,#fff)] hover:bg-[color-mix(in_srgb,var(--color-theme)_88%,black)] hover:border-[color-mix(in_srgb,var(--color-theme)_88%,black)]"
             disabled={busy || billingStatus !== 'suspended'}
             onClick={() =>
               void run(() =>
@@ -402,7 +423,7 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
       )}
 
       {pending.length > 0 ? (
-        <ul className="pd-admin__billing-card-pending">
+        <ul className={adminBillingCardPendingClass}>
           {pending.slice(0, 2).map((inv) => (
             <li key={inv.id}>
               <span>

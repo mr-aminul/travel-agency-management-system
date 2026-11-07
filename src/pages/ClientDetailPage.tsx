@@ -1,5 +1,27 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Accordion, Badge, Button, Input, Select, SideDrawer, Tabs } from '@/components/ui'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/shadcn/accordion'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/shadcn/card'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
+import { cn } from '@/lib/utils'
 import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import {
   Link,
@@ -36,7 +58,6 @@ import { ClientCustomFieldControl } from '@/components/clients/ClientCustomField
 import { ClientDocumentsPanel } from '@/components/clients/ClientDocumentsPanel'
 import { ClientMessagesPanel } from '@/components/clients/ClientMessagesPanel'
 import { PaymentsList } from '@/components/payments/PaymentsList'
-import { caseStatusBadgeVariant } from '@/components/cases/CasesList'
 import {
   createCase,
   getEnabledServiceOptions,
@@ -90,7 +111,10 @@ import type {
   ClientMaritalStatus,
 } from '@/types/client'
 import type { ClientProfileField } from '@/types/clientProfileField'
-import '@/styles/layout-clients.css'
+import {
+  elevatedPageClass,
+  floatingSheetClass,
+} from '@/components/clients/shadcnChrome'
 
 const CLIENT_TABS = [
   'overview',
@@ -192,11 +216,11 @@ type ProfileFieldDef = {
 }
 
 function profileFieldLayoutClass(field: Pick<ProfileFieldDef, 'span' | 'wide'>): string {
-  if (field.wide) return 'is-wide'
-  if (field.span === 1) return 'is-span-1'
-  if (field.span === 3) return 'is-span-3'
-  if (field.span === 6) return 'is-span-6'
-  return ''
+  if (field.wide) return 'col-span-4'
+  if (field.span === 1) return 'col-span-1'
+  if (field.span === 3) return 'col-span-3'
+  if (field.span === 6) return 'col-span-6'
+  return 'col-span-2'
 }
 
 /** Profile draft keys that map to missing-info gap ids. */
@@ -218,16 +242,16 @@ const PROFILE_GROUPS: {
     title: 'Person',
     icon: UserRound,
     fields: [
-      { key: 'name', label: 'Full name' },
-      { key: 'banglaName', label: 'Bangla name' },
-      { key: 'dateOfBirth', label: 'Date of birth', kind: 'date', span: 1 },
+      { key: 'name', label: 'Full Name' },
+      { key: 'banglaName', label: 'Bangla Name' },
+      { key: 'dateOfBirth', label: 'Date of Birth', kind: 'date', span: 1 },
       { key: 'gender', label: 'Gender', kind: 'gender', span: 1 },
-      { key: 'placeOfBirth', label: 'Place of birth' },
-      { key: 'maritalStatus', label: 'Marital status', kind: 'marital', span: 1 },
-      { key: 'spouseName', label: 'Spouse name' },
-      { key: 'bloodGroup', label: 'Blood group', kind: 'blood', span: 1 },
-      { key: 'fatherName', label: 'Father name' },
-      { key: 'motherName', label: 'Mother name' },
+      { key: 'placeOfBirth', label: 'Place of Birth' },
+      { key: 'maritalStatus', label: 'Marital Status', kind: 'marital', span: 1 },
+      { key: 'spouseName', label: 'Spouse Name' },
+      { key: 'bloodGroup', label: 'Blood Group', kind: 'blood', span: 1 },
+      { key: 'fatherName', label: 'Father Name' },
+      { key: 'motherName', label: 'Mother Name' },
       { key: 'nationality', label: 'Nationality' },
     ],
   },
@@ -235,7 +259,7 @@ const PROFILE_GROUPS: {
     title: 'Contact',
     icon: Phone,
     fields: [
-      { key: 'phone', label: 'Mobile number' },
+      { key: 'phone', label: 'Mobile Number' },
       { key: 'email', label: 'Email' },
       { key: 'subAgentId', label: 'Sub Agent', kind: 'subAgent' },
       { key: 'address', label: 'Address', span: 6 },
@@ -245,11 +269,11 @@ const PROFILE_GROUPS: {
     title: 'Identity',
     icon: IdCard,
     fields: [
-      { key: 'passport', label: 'Passport number' },
-      { key: 'nid', label: 'NID number', span: 1 },
-      { key: 'passportPlaceOfIssue', label: 'Place of issue', span: 1 },
-      { key: 'passportIssuedOn', label: 'Date of issue', kind: 'date', span: 1 },
-      { key: 'passportExpiry', label: 'Date of expiry', kind: 'date', span: 1 },
+      { key: 'passport', label: 'Passport Number' },
+      { key: 'nid', label: 'NID Number', span: 1 },
+      { key: 'passportPlaceOfIssue', label: 'Place of Issue', span: 1 },
+      { key: 'passportIssuedOn', label: 'Date of Issue', kind: 'date', span: 1 },
+      { key: 'passportExpiry', label: 'Date of Expiry', kind: 'date', span: 1 },
     ],
   },
 ]
@@ -310,9 +334,9 @@ const IDENTITY_READOUT: {
 }[] = [
   { key: 'passport', label: 'Passport', icon: BookUser },
   { key: 'nid', label: 'NID', icon: IdCard },
-  { key: 'passportPlaceOfIssue', label: 'Place of issue', icon: MapPin },
-  { key: 'passportIssuedOn', label: 'Date of issue', icon: Calendar, date: true },
-  { key: 'passportExpiry', label: 'Date of expiry', icon: Calendar, date: true },
+  { key: 'passportPlaceOfIssue', label: 'Place of Issue', icon: MapPin },
+  { key: 'passportIssuedOn', label: 'Date of Issue', icon: Calendar, date: true },
+  { key: 'passportExpiry', label: 'Date of Expiry', icon: Calendar, date: true },
 ]
 
 function ProfileFieldControl({
@@ -428,17 +452,17 @@ function profileFieldError(
     case 'email':
       return validateOptionalEmail(draft.email)
     case 'banglaName':
-      return validateOptionalPersonName(draft.banglaName, 'Bangla name')
+      return validateOptionalPersonName(draft.banglaName, 'Bangla Name')
     case 'fatherName':
-      return validateOptionalPersonName(draft.fatherName, 'Father name')
+      return validateOptionalPersonName(draft.fatherName, 'Father Name')
     case 'motherName':
-      return validateOptionalPersonName(draft.motherName, 'Mother name')
+      return validateOptionalPersonName(draft.motherName, 'Mother Name')
     case 'spouseName':
-      return validateOptionalPersonName(draft.spouseName, 'Spouse name')
+      return validateOptionalPersonName(draft.spouseName, 'Spouse Name')
     case 'dateOfBirth':
       return validateOptionalDateOfBirth(draft.dateOfBirth)
     case 'placeOfBirth':
-      return validateOptionalText(draft.placeOfBirth, 'Place of birth')
+      return validateOptionalText(draft.placeOfBirth, 'Place of Birth')
     case 'nationality':
       return validateOptionalText(draft.nationality, 'Nationality')
     case 'address':
@@ -446,7 +470,7 @@ function profileFieldError(
     case 'passport':
       return validateOptionalPassport(draft.passport)
     case 'passportPlaceOfIssue':
-      return validateOptionalText(draft.passportPlaceOfIssue, 'Place of issue')
+      return validateOptionalText(draft.passportPlaceOfIssue, 'Place of Issue')
     case 'passportIssuedOn':
       return validatePassportDates(
         draft.passportIssuedOn,
@@ -474,8 +498,11 @@ function FieldLabel({
   children: ReactNode
 }) {
   return (
-    <dt>
-      <span className="pd-client-detail__field-icon" aria-hidden>
+    <dt className="mb-1.5 flex items-center gap-1.5 text-[0.6875rem] font-medium tracking-wide text-muted-foreground">
+      <span
+        className="inline-flex size-5 shrink-0 items-center justify-center rounded-[0.35rem] bg-muted text-muted-foreground"
+        aria-hidden
+      >
         <Icon size={13} strokeWidth={2.25} />
       </span>
       {children}
@@ -499,7 +526,11 @@ function TabLabel({
       <Icon size={15} strokeWidth={2.25} aria-hidden />
       {children}
       {count > 0 ? (
-        <span className="pd-tabs__alert" aria-hidden title={`${count} needing attention`}>
+        <span
+          className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[0.625rem] font-bold text-white"
+          aria-hidden
+          title={`${count} needing attention`}
+        >
           {count > 99 ? '99+' : count}
         </span>
       ) : null}
@@ -515,12 +546,15 @@ function SectionTitle({
   children: ReactNode
 }) {
   return (
-    <h2 className="pd-client-detail__section-title">
-      <span className="pd-client-detail__section-icon" aria-hidden>
+    <span className="inline-flex items-center gap-2">
+      <span
+        className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-theme-subtle)] text-[var(--color-theme-ink)]"
+        aria-hidden
+      >
         <Icon size={15} strokeWidth={2.25} />
       </span>
       {children}
-    </h2>
+    </span>
   )
 }
 
@@ -529,12 +563,14 @@ function ContactChip({
   to,
   value,
   label,
+  variant = 'identity',
 }: {
   href?: string
   /** In-app route; preferred over `href` for SPA navigation. */
   to?: string
   value: string
   label: string
+  variant?: 'identity' | 'cardField'
 }) {
   const [copied, setCopied] = useState(false)
 
@@ -553,24 +589,42 @@ function ContactChip({
     }
   }
 
+  const valueClass = cn(
+    'break-words',
+    variant === 'cardField' && 'block min-w-0 max-w-full pe-5',
+    (to || href) && 'text-primary underline-offset-2 hover:underline',
+  )
+
   const valueNode = to ? (
-    <Link to={to} className="pd-client-detail__contact-value">
+    <Link to={to} className={valueClass}>
       {value}
     </Link>
   ) : href ? (
-    <a href={href} className="pd-client-detail__contact-value">
+    <a href={href} className={valueClass}>
       {value}
     </a>
   ) : (
-    <span className="pd-client-detail__contact-value">{value}</span>
+    <span className={valueClass}>{value}</span>
   )
 
   return (
-    <span className="pd-client-detail__contact">
+    <span
+      className={cn(
+        'group relative overflow-visible',
+        variant === 'cardField'
+          ? 'flex w-full min-w-0 items-start'
+          : 'inline-flex max-w-full items-center justify-center',
+      )}
+    >
       {valueNode}
       <button
         type="button"
-        className="pd-client-detail__contact-copy"
+        className={cn(
+          'absolute size-5 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100',
+          variant === 'cardField'
+            ? 'end-0 top-0'
+            : 'start-full top-1/2 -translate-y-1/2',
+        )}
         onClick={handleCopy}
         aria-label={copied ? `${label} copied` : `Copy ${label}`}
         title={copied ? 'Copied' : `Copy ${label}`}
@@ -874,10 +928,13 @@ export default function ClientDetailPage() {
   const servicesAlertCount = servicesAttentionCases + pendingStatusRequests
 
   return (
-    <div className="pd-page pd-client-detail" aria-label={client.name}>
-      <div className="pd-client-detail__layout">
-        <aside className="pd-client-detail__card" aria-label="Client profile">
-          <div className="pd-client-detail__card-identity">
+    <div className={cn(elevatedPageClass, 'gap-5')} data-elevated-canvas aria-label={client.name}>
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
+        <aside
+          className="flex min-w-0 flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm lg:sticky lg:top-0 lg:z-[1] lg:max-h-[calc(100dvh-8.5rem)] lg:overflow-y-auto"
+          aria-label="Client profile"
+        >
+          <div className="flex shrink-0 flex-col items-center gap-2 text-center">
             <ProfilePhotoField
               name={displayName}
               fallbackName="Client"
@@ -891,53 +948,48 @@ export default function ClientDetailPage() {
                 }
               }}
             />
-            <div className="pd-client-detail__title-row">
-              <h1 className="pd-client-detail__name">
-                <ContactChip value={displayName} label="client name" />
+            <div className="flex flex-col items-center justify-center gap-1">
+              <h1 className="m-0 text-[1.0625rem] font-semibold leading-tight tracking-tight">
+                <ContactChip value={displayName} label="Client Name" />
               </h1>
               {profileDraft.banglaName ? (
-                <p className="pd-client-detail__card-subtitle">
+                <p className="m-0 text-xs font-medium leading-snug text-muted-foreground">
                   <ContactChip
                     value={profileDraft.banglaName}
-                    label="Bangla name"
+                    label="Bangla Name"
                   />
                 </p>
               ) : null}
             </div>
           </div>
 
-          <div className="pd-client-detail__card-actions">
-            <Button size="sm" onClick={openNewCase}>
-              <Folder size={14} strokeWidth={2.25} aria-hidden />
-              Add service
+          <div className="flex w-full shrink-0 flex-col gap-1.5">
+            <Button className="h-9 w-full rounded-lg" onClick={openNewCase}>
+              <Folder data-icon="inline-start" />
+              Add Service
             </Button>
-            <div className="pd-client-detail__card-quick">
+            <div className="grid grid-cols-4 gap-1.5">
               <a
-                className="pd-btn pd-btn--secondary pd-btn--sm pd-btn--icon"
+                className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-[color-mix(in_srgb,var(--color-text)_6%,transparent)]"
                 href={`tel:${displayPhone}`}
                 aria-label={`Call ${displayName}`}
                 title="Call"
               >
-                <span className="pd-btn__label">
-                  <Phone size={14} strokeWidth={2.25} aria-hidden />
-                </span>
+                <Phone size={14} strokeWidth={2.25} aria-hidden />
               </a>
               <a
-                className="pd-btn pd-btn--secondary pd-btn--sm pd-btn--icon pd-client-detail__whatsapp"
+                className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-[color-mix(in_srgb,var(--color-text)_6%,transparent)]"
                 href={whatsappHref(displayWhatsapp)}
                 target="_blank"
                 rel="noreferrer"
                 aria-label={`WhatsApp ${displayName}`}
                 title="WhatsApp"
               >
-                <span className="pd-btn__label">
-                  <WhatsAppIcon size={14} />
-                </span>
+                <WhatsAppIcon size={14} />
               </a>
               <Button
-                size="sm"
-                variant="secondary"
-                className="pd-btn--icon"
+                variant="outline"
+                size="icon"
                 onClick={() => selectTab('messages')}
                 aria-label="Open messages"
                 title="Messages"
@@ -945,9 +997,8 @@ export default function ClientDetailPage() {
                 <MessageSquare size={14} strokeWidth={2.25} aria-hidden />
               </Button>
               <Button
-                size="sm"
-                variant="secondary"
-                className="pd-btn--icon"
+                variant="outline"
+                size="icon"
                 onClick={() => selectTab('email')}
                 aria-label="Open email"
                 title="Email"
@@ -957,138 +1008,160 @@ export default function ClientDetailPage() {
             </div>
           </div>
 
-          <dl className="pd-client-detail__card-fields">
-            <div className="pd-client-detail__card-field">
-              <dt>Status</dt>
-              <dd>
+          <dl className="m-0 flex shrink-0 flex-col overflow-hidden rounded-[0.625rem] border border-border bg-background">
+            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
+              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
+                Status
+              </dt>
+              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
                 {displayStatus ? (
-                  <Badge variant={caseStatusBadgeVariant(displayStatus)}>
+                  <Badge variant={displayStatus === 'Completed' ? 'default' : 'secondary'}>
                     {displayStatus}
                   </Badge>
                 ) : (
-                  <span className="pd-client-detail__empty">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </dd>
             </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Phone</dt>
-              <dd>
+            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
+              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
+                Phone
+              </dt>
+              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
                 <ContactChip
+                  variant="cardField"
                   value={displayPhone}
-                  label="phone number"
+                  label="Phone Number"
                 />
               </dd>
             </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Email</dt>
-              <dd>
+            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
+              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
+                Email
+              </dt>
+              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
                 {displayEmail ? (
                   <ContactChip
+                    variant="cardField"
                     value={displayEmail}
-                    label="email address"
+                    label="Email Address"
                   />
                 ) : (
-                  <span className="pd-client-detail__empty">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </dd>
             </div>
-            <div className="pd-client-detail__card-field">
-              <dt>NID</dt>
-              <dd>
+            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
+              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
+                NID
+              </dt>
+              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
                 {displayNid ? (
-                  <ContactChip value={displayNid} label="NID number" />
+                  <ContactChip variant="cardField" value={displayNid} label="NID Number" />
                 ) : (
-                  <span className="pd-client-detail__empty">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </dd>
             </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Passport</dt>
-              <dd>
+            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
+              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
+                Passport
+              </dt>
+              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
                 {displayPassport ? (
                   <ContactChip
+                    variant="cardField"
                     value={displayPassport}
-                    label="passport number"
+                    label="Passport Number"
                   />
                 ) : (
-                  <span className="pd-client-detail__empty">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </dd>
             </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Gender</dt>
-              <dd>{profileDraft.gender}</dd>
+            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
+              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
+                Gender
+              </dt>
+              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
+                {profileDraft.gender}
+              </dd>
             </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Address</dt>
-              <dd>
+            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
+              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
+                Address
+              </dt>
+              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
                 {profileDraft.address || client.address ? (
                   <ContactChip
+                    variant="cardField"
                     value={profileDraft.address || client.address || ''}
-                    label="address"
+                    label="Address"
                   />
                 ) : (
-                  <span className="pd-client-detail__empty">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </dd>
             </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Sub agent</dt>
-              <dd>
+            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
+              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
+                Sub Agent
+              </dt>
+              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
                 {subAgent ? (
                   <ContactChip
+                    variant="cardField"
                     to={`/sub-agents/${subAgent.id}`}
                     value={subAgent.name}
-                    label="sub agent"
+                    label="Sub Agent"
                   />
                 ) : (
-                  <span className="pd-client-detail__empty">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </dd>
             </div>
           </dl>
 
-          <div className="pd-client-detail__card-snapshot" aria-label="Snapshot">
+          <div className="grid shrink-0 grid-cols-2 gap-1.5" aria-label="Snapshot">
             <button
               type="button"
-              className="pd-client-detail__card-snap"
+              className="m-0 flex min-w-0 cursor-pointer flex-col gap-0.5 rounded-[0.625rem] border border-border bg-background px-2.5 py-1.5 text-start font-inherit text-inherit transition-colors hover:border-[color-mix(in_srgb,var(--color-theme)_35%,var(--color-border))] hover:bg-[color-mix(in_srgb,var(--color-theme)_6%,var(--color-surface))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-theme)]"
               onClick={() => selectTab('services')}
             >
-              <span className="pd-client-detail__card-snap-label">Services</span>
-              <span className="pd-client-detail__card-snap-value">
+              <span className="text-[0.625rem] font-semibold tracking-wide text-muted-foreground">
+                Services
+              </span>
+              <span className="text-sm font-medium leading-tight text-foreground">
                 {openCases.length}
               </span>
             </button>
             <button
               type="button"
-              className="pd-client-detail__card-snap"
+              className="m-0 flex min-w-0 cursor-pointer flex-col gap-0.5 rounded-[0.625rem] border border-border bg-background px-2.5 py-1.5 text-start font-inherit text-inherit transition-colors hover:border-[color-mix(in_srgb,var(--color-theme)_35%,var(--color-border))] hover:bg-[color-mix(in_srgb,var(--color-theme)_6%,var(--color-surface))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-theme)]"
               onClick={() => selectTab('payments')}
             >
-              <span className="pd-client-detail__card-snap-label">
-                Due balance
+              <span className="text-[0.625rem] font-semibold tracking-wide text-muted-foreground">
+                Due Balance
               </span>
               <span
-                className={[
-                  'pd-client-detail__card-snap-value',
-                  dueBalance > 0 ? 'is-due' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
+                className={cn(
+                  'text-sm font-medium leading-tight text-foreground',
+                  dueBalance > 0 && 'text-destructive',
+                )}
               >
                 {formatBalance(dueBalance)}
               </span>
             </button>
           </div>
 
-          <p className="pd-client-detail__card-footer">
+          <p className="m-0 inline-flex items-center justify-center gap-1.5 text-[0.6875rem] font-medium text-muted-foreground">
             <Calendar size={12} strokeWidth={2.25} aria-hidden />
-            Member since {formatDate(client.createdAt)}
+            Member Since {formatDate(client.createdAt)}
           </p>
         </aside>
 
-        <div className="pd-client-detail__main">
-          <Tabs
-            className="pd-client-detail__tabs"
+        <div className="flex min-w-0 flex-col gap-3">
+          <DetailTabs
             value={activeTab}
             onValueChange={selectTab}
             items={[
@@ -1096,115 +1169,126 @@ export default function ClientDetailPage() {
                 id: 'overview',
                 label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
                 content: (
-                  <div className="pd-client-detail__overview">
+                  <div className="flex flex-col gap-4">
                     <ClientActionItems clientId={client.id} />
 
-                    <section className="pd-client-detail__section pd-client-detail__section--compact">
-                      <div className="pd-client-detail__section-head">
-                        <SectionTitle icon={Contact}>Profile Information</SectionTitle>
-                      </div>
-                      <dl className="pd-client-detail__fields">
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={Phone}>Phone</FieldLabel>
-                          <dd>
-                            {displayPhone}
-                          </dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={Mail}>Email</FieldLabel>
-                          <dd>
-                            {displayEmail ? (
-                              displayEmail
-                            ) : (
-                              <span className="pd-client-detail__empty">-</span>
-                            )}
-                          </dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={MapPin}>Address</FieldLabel>
-                          <dd>
-                            {client.address || (
-                              <span className="pd-client-detail__empty">-</span>
-                            )}
-                          </dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={IdCard}>NID</FieldLabel>
-                          <dd>
-                            {client.nid || (
-                              <span className="pd-client-detail__empty">-</span>
-                            )}
-                          </dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={BookUser}>Passport</FieldLabel>
-                          <dd>
-                            {client.passport || (
-                              <span className="pd-client-detail__empty">-</span>
-                            )}
-                          </dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={Calendar}>Member since</FieldLabel>
-                          <dd>{formatDate(client.createdAt)}</dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={UserRound}>Sub Agent</FieldLabel>
-                          <dd>
-                            {subAgent ? (
-                              <Link
-                                to={`/sub-agents/${subAgent.id}`}
-                                className="pd-client-detail__link"
-                              >
-                                {subAgent.name}
-                              </Link>
-                            ) : (
-                              <span className="pd-client-detail__empty">-</span>
-                            )}
-                          </dd>
-                        </div>
-                      </dl>
-                    </section>
+                    <Card size="sm" className="shadow-sm">
+                      <CardHeader>
+                        <CardTitle>
+                          <SectionTitle icon={Contact}>Profile Information</SectionTitle>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div className="min-w-0">
+                            <FieldLabel icon={Phone}>Phone</FieldLabel>
+                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
+                              {displayPhone}
+                            </dd>
+                          </div>
+                          <div className="min-w-0">
+                            <FieldLabel icon={Mail}>Email</FieldLabel>
+                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
+                              {displayEmail ? (
+                                displayEmail
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </dd>
+                          </div>
+                          <div className="min-w-0">
+                            <FieldLabel icon={MapPin}>Address</FieldLabel>
+                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
+                              {client.address || (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </dd>
+                          </div>
+                          <div className="min-w-0">
+                            <FieldLabel icon={IdCard}>NID</FieldLabel>
+                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
+                              {client.nid || (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </dd>
+                          </div>
+                          <div className="min-w-0">
+                            <FieldLabel icon={BookUser}>Passport</FieldLabel>
+                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
+                              {client.passport || (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </dd>
+                          </div>
+                          <div className="min-w-0">
+                            <FieldLabel icon={Calendar}>Member Since</FieldLabel>
+                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
+                              {formatDate(client.createdAt)}
+                            </dd>
+                          </div>
+                          <div className="min-w-0">
+                            <FieldLabel icon={UserRound}>Sub Agent</FieldLabel>
+                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
+                              {subAgent ? (
+                                <Link
+                                  to={`/sub-agents/${subAgent.id}`}
+                                  className="text-primary underline-offset-2 hover:underline"
+                                >
+                                  {subAgent.name}
+                                </Link>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </dd>
+                          </div>
+                        </dl>
+                      </CardContent>
+                    </Card>
 
                     <Accordion
-                      className="pd-accordion--cards pd-client-detail__services-accordion"
-                      defaultOpenIds={['services']}
-                      items={[
-                        {
-                          id: 'services',
-                          title: (
-                            <span className="pd-client-detail__services-accordion-title">
-                              <span
-                                className="pd-client-detail__section-icon"
-                                aria-hidden
-                              >
-                                <Folder size={15} strokeWidth={2.25} />
-                              </span>
-                              Services
+                      type="single"
+                      collapsible
+                      defaultValue="services"
+                      className="rounded-xl border border-border bg-card px-4 shadow-sm"
+                    >
+                      <AccordionItem value="services" className="border-0">
+                        <AccordionTrigger className="hover:no-underline">
+                          <span className="inline-flex items-center gap-2">
+                            <span
+                              className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-theme-subtle)] text-[var(--color-theme-ink)]"
+                              aria-hidden
+                            >
+                              <Folder size={15} strokeWidth={2.25} />
                             </span>
-                          ),
-                          meta:
-                            clientCases.length > 0
-                              ? String(clientCases.length)
-                              : undefined,
-                          content: (
-                            <CasesList
-                              cases={clientCases}
-                              label={`${client.name} services`}
-                              showClientColumn={false}
-                              showServiceColumn
-                              defaultClientId={client.id}
-                              lockClient
-                              defaultService={primaryServiceType(client.services)}
-                              embedded
-                              showToolbar={false}
-                              allowDelete
-                              emptyTitle="No services yet"
-                            />
-                          ),
-                        },
-                      ]}
-                    />
+                            Services
+                            {clientCases.length > 0 ? (
+                              <span className="text-muted-foreground">{clientCases.length}</span>
+                            ) : null}
+                          </span>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <CasesList
+                            cases={clientCases}
+                            label={`${client.name} services`}
+                            showClientColumn={false}
+                            showServiceColumn
+                            defaultClientId={client.id}
+                            lockClient
+                            defaultService={primaryServiceType(client.services)}
+                            embedded
+                            showToolbar={false}
+                            allowDelete
+                            emptyTitle="No Services Yet"
+                            emptyAction={
+                              <Button className="h-9 rounded-lg" onClick={openNewCase}>
+                                <Folder data-icon="inline-start" />
+                                Add Service
+                              </Button>
+                            }
+                          />
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
                   </div>
                 ),
               },
@@ -1216,201 +1300,203 @@ export default function ClientDetailPage() {
                   </TabLabel>
                 ),
                 content: (
-                  <div className="pd-client-detail__profile">
-                    <div className="pd-client-profile">
+                  <div className="flex min-w-0 flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                       {PROFILE_GROUPS.map((group) => (
-                        <div
+                        <Card
                           key={group.title}
                           id={
                             group.title === 'Identity'
                               ? 'client-profile-identity'
                               : undefined
                           }
-                          className={[
-                            'pd-client-detail__section',
-                            'pd-client-detail__section--compact',
-                            'pd-client-profile__group',
-                          ]
-                            .filter(Boolean)
-                            .join(' ')}
+                          size="sm"
+                          className="min-w-0 shadow-sm"
                         >
-                          <div className="pd-client-detail__section-head">
-                            <SectionTitle icon={group.icon}>
-                              {group.title}
-                            </SectionTitle>
+                          <CardHeader>
+                            <CardTitle>
+                              <SectionTitle icon={group.icon}>
+                                {group.title}
+                              </SectionTitle>
+                            </CardTitle>
                             {group.title === 'Identity' ? (
-                              <Link
-                                to={`/clients/${client.id}?tab=documents&focus=passport`}
-                                className="pd-btn pd-btn--secondary pd-btn--sm"
-                              >
-                                <FileText size={14} strokeWidth={2.25} aria-hidden />
-                                Edit in Documents
-                              </Link>
+                              <CardAction>
+                                <Button variant="outline" size="sm" className="h-8" asChild>
+                                  <Link to={`/clients/${client.id}?tab=documents&focus=passport`}>
+                                    <FileText size={14} strokeWidth={2.25} aria-hidden />
+                                    Edit In Documents
+                                  </Link>
+                                </Button>
+                              </CardAction>
                             ) : null}
-                          </div>
-                          {group.title === 'Identity' ? (
-                            <dl className="pd-client-detail__fields">
-                              {IDENTITY_READOUT.map((row) => {
-                                const raw = String(
-                                  profileDraft[row.key] ?? '',
-                                ).trim()
-                                const gap = gapForProfileField(
-                                  profileGaps,
-                                  row.key,
-                                )
-                                const display = raw
-                                  ? row.date
-                                    ? formatDate(raw)
-                                    : raw
-                                  : null
+                          </CardHeader>
+                          <CardContent>
+                            {group.title === 'Identity' ? (
+                              <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                {IDENTITY_READOUT.map((row) => {
+                                  const raw = String(
+                                    profileDraft[row.key] ?? '',
+                                  ).trim()
+                                  const gap = gapForProfileField(
+                                    profileGaps,
+                                    row.key,
+                                  )
+                                  const display = raw
+                                    ? row.date
+                                      ? formatDate(raw)
+                                      : raw
+                                    : null
+                                  return (
+                                    <div
+                                      key={row.key}
+                                      className={cn(
+                                        'min-w-0',
+                                        gap && '[&_dd]:text-destructive',
+                                        gap?.blocksProgress &&
+                                          '[&_dd]:font-semibold [&_dd]:text-destructive',
+                                      )}
+                                    >
+                                      <FieldLabel icon={row.icon}>
+                                        {row.label}
+                                      </FieldLabel>
+                                      <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
+                                        {display ? (
+                                          display
+                                        ) : (
+                                          <span className="text-muted-foreground">-</span>
+                                        )}
+                                      </dd>
+                                    </div>
+                                  )
+                                })}
+                              </dl>
+                            ) : (
+                              <div className="m-0 grid grid-cols-6 gap-x-3 gap-y-[0.95rem]">
+                                {group.fields.map((field) => {
+                                  const gap = gapForProfileField(
+                                    profileGaps,
+                                    field.key,
+                                  )
+                                  return (
+                                    <div
+                                      key={field.key}
+                                      className={cn(
+                                        'min-w-0',
+                                        profileFieldLayoutClass(field),
+                                        String(profileDraft[field.key] ?? '') !==
+                                          String(savedDraft[field.key] ?? '') &&
+                                          '[&_input]:border-[var(--color-theme-ink)] [&_button]:border-[var(--color-theme-ink)]',
+                                        gap &&
+                                          '[&_input]:border-[color-mix(in_srgb,var(--color-danger)_55%,var(--color-border))] [&_input]:bg-[color-mix(in_srgb,var(--color-danger)_5%,var(--color-surface))]',
+                                        gap?.blocksProgress &&
+                                          '[&_input]:border-[var(--color-danger)]',
+                                      )}
+                                    >
+                                      <ProfileFieldControl
+                                        field={field}
+                                        value={String(profileDraft[field.key] ?? '')}
+                                        required={
+                                          field.key === 'name' ||
+                                          field.key === 'phone'
+                                        }
+                                        subAgentOptions={
+                                          field.kind === 'subAgent'
+                                            ? subAgentOptions
+                                            : undefined
+                                        }
+                                        error={
+                                          showError(field.key)
+                                            ? profileFieldError(
+                                              field.key,
+                                              profileDraft,
+                                              duplicatePhoneOwner,
+                                            )
+                                            : undefined
+                                        }
+                                        onBlur={blur(field.key)}
+                                        onChange={(value) => {
+                                          setDraft((current) => ({
+                                            ...(current ?? savedDraft),
+                                            [field.key]:
+                                              field.kind === 'gender'
+                                                ? (value as ClientGender)
+                                                : value,
+                                          }))
+                                        }}
+                                      />
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {customFieldDefs.length ? (
+                        <Card size="sm" className="min-w-0 shadow-sm">
+                          <CardHeader>
+                            <CardTitle>
+                              <SectionTitle icon={FileText}>
+                                Additional Information
+                              </SectionTitle>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="m-0 grid grid-cols-6 gap-x-3 gap-y-[0.95rem]">
+                              {customFieldDefs.map((field) => {
+                                const key = `custom:${field.id}`
                                 return (
                                   <div
-                                    key={row.key}
-                                    className={[
-                                      'pd-client-detail__field',
-                                      gap ? 'is-attention' : '',
-                                      gap?.blocksProgress ? 'is-blocking' : '',
-                                    ]
-                                      .filter(Boolean)
-                                      .join(' ')}
+                                    key={field.id}
+                                    className={cn(
+                                      'col-span-2 min-w-0',
+                                      (profileDraft.customFields[field.id] ?? '') !==
+                                        (savedDraft.customFields[field.id] ?? '') &&
+                                        '[&_input]:border-[var(--color-theme-ink)] [&_button]:border-[var(--color-theme-ink)]',
+                                    )}
                                   >
-                                    <FieldLabel icon={row.icon}>
-                                      {row.label}
-                                    </FieldLabel>
-                                    <dd>
-                                      {display ? (
-                                        display
-                                      ) : (
-                                        <span className="pd-client-detail__empty">-</span>
-                                      )}
-                                    </dd>
+                                    <ClientCustomFieldControl
+                                      field={field}
+                                      value={
+                                        profileDraft.customFields[field.id] ?? ''
+                                      }
+                                      error={
+                                        showError(key)
+                                          ? validateCustomFieldValue(
+                                            field,
+                                            profileDraft.customFields[field.id] ??
+                                            '',
+                                          )
+                                          : undefined
+                                      }
+                                      onBlur={blur(key)}
+                                      onChange={(value) =>
+                                        setDraft((current) => {
+                                          const base = current ?? savedDraft
+                                          return {
+                                            ...base,
+                                            customFields: {
+                                              ...base.customFields,
+                                              [field.id]: value,
+                                            },
+                                          }
+                                        })
+                                      }
+                                    />
                                   </div>
                                 )
                               })}
-                            </dl>
-                          ) : (
-                          <div className="pd-client-profile__grid">
-                            {group.fields.map((field) => {
-                              const gap = gapForProfileField(
-                                profileGaps,
-                                field.key,
-                              )
-                              return (
-                                <div
-                                  key={field.key}
-                                  className={[
-                                    'pd-client-profile__field',
-                                    profileFieldLayoutClass(field),
-                                    String(profileDraft[field.key] ?? '') !==
-                                      String(savedDraft[field.key] ?? '')
-                                      ? 'is-dirty'
-                                      : '',
-                                    gap ? 'is-attention' : '',
-                                    gap?.blocksProgress ? 'is-blocking' : '',
-                                  ]
-                                    .filter(Boolean)
-                                    .join(' ')}
-                                >
-                                  <ProfileFieldControl
-                                    field={field}
-                                    value={String(profileDraft[field.key] ?? '')}
-                                    required={
-                                      field.key === 'name' ||
-                                      field.key === 'phone'
-                                    }
-                                    subAgentOptions={
-                                      field.kind === 'subAgent'
-                                        ? subAgentOptions
-                                        : undefined
-                                    }
-                                    error={
-                                      showError(field.key)
-                                        ? profileFieldError(
-                                          field.key,
-                                          profileDraft,
-                                          duplicatePhoneOwner,
-                                        )
-                                        : undefined
-                                    }
-                                    onBlur={blur(field.key)}
-                                    onChange={(value) => {
-                                      setDraft((current) => ({
-                                        ...(current ?? savedDraft),
-                                        [field.key]:
-                                          field.kind === 'gender'
-                                            ? (value as ClientGender)
-                                            : value,
-                                      }))
-                                    }}
-                                  />
-                                </div>
-                              )
-                            })}
-                          </div>
-                          )}
-                        </div>
-                      ))}
-                      {customFieldDefs.length ? (
-                        <div className="pd-client-detail__section pd-client-detail__section--compact pd-client-profile__group">
-                          <div className="pd-client-detail__section-head">
-                            <SectionTitle icon={FileText}>
-                              Additional information
-                            </SectionTitle>
-                          </div>
-                          <div className="pd-client-profile__grid">
-                            {customFieldDefs.map((field) => {
-                              const key = `custom:${field.id}`
-                              return (
-                                <div
-                                  key={field.id}
-                                  className={
-                                    (profileDraft.customFields[field.id] ?? '') !==
-                                      (savedDraft.customFields[field.id] ?? '')
-                                      ? 'pd-client-profile__field is-dirty'
-                                      : 'pd-client-profile__field'
-                                  }
-                                >
-                                  <ClientCustomFieldControl
-                                    field={field}
-                                    value={
-                                      profileDraft.customFields[field.id] ?? ''
-                                    }
-                                    error={
-                                      showError(key)
-                                        ? validateCustomFieldValue(
-                                          field,
-                                          profileDraft.customFields[field.id] ??
-                                          '',
-                                        )
-                                        : undefined
-                                    }
-                                    onBlur={blur(key)}
-                                    onChange={(value) =>
-                                      setDraft((current) => {
-                                        const base = current ?? savedDraft
-                                        return {
-                                          ...base,
-                                          customFields: {
-                                            ...base.customFields,
-                                            [field.id]: value,
-                                          },
-                                        }
-                                      })
-                                    }
-                                  />
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
+                            </div>
+                          </CardContent>
+                        </Card>
                       ) : null}
                     </div>
                     {isDirty ? (
-                      <div className="pd-client-detail__profile-actions">
-                        <Button variant="secondary" onClick={discardChanges}>
-                          Discard changes
+                      <div className="flex items-center justify-start gap-3 pt-0.5">
+                        <Button variant="outline" className="h-9 rounded-lg" onClick={discardChanges}>
+                          Discard Changes
                         </Button>
-                        <Button onClick={saveProfile}>
+                        <Button className="h-9 rounded-lg" onClick={saveProfile}>
                           <Check size={16} strokeWidth={2.25} aria-hidden />
                           Save
                         </Button>
@@ -1496,21 +1582,104 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      <SideDrawer
-        open={newCaseOpen}
-        onClose={closeNewCase}
-        title="Add service"
-        className="pd-cases-drawer"
+      <Sheet open={newCaseOpen} onOpenChange={(open) => { if (!open) closeNewCase() }}>
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">Add Service</SheetTitle>
+          </SheetHeader>
+          <NewCaseForm
+            onSubmit={handleCreateCase}
+            onCancel={closeNewCase}
+            defaultClientId={client.id}
+            lockClient
+            defaultService={primaryServiceType(client.services)}
+            defaultCountry={client.preferredCountry}
+          />
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
+
+function DetailTabs({
+  value,
+  onValueChange,
+  items,
+}: {
+  value: string
+  onValueChange: (value: string) => void
+  items: { id: string; label: ReactNode; content: ReactNode }[]
+}) {
+  const rootRef = useRef<HTMLDivElement>(null)
+  const buttonRefs = useRef(new Map<string, HTMLButtonElement>())
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null)
+
+  const updateIndicator = useCallback(() => {
+    const button = buttonRefs.current.get(value)
+    if (!button) return
+    setIndicator({ left: button.offsetLeft, width: button.offsetWidth })
+  }, [value])
+
+  useLayoutEffect(() => {
+    updateIndicator()
+  }, [updateIndicator, items.length])
+
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const observer = new ResizeObserver(() => updateIndicator())
+    observer.observe(root)
+    window.addEventListener('resize', updateIndicator)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateIndicator)
+    }
+  }, [updateIndicator])
+
+  const active = items.find((item) => item.id === value) ?? items[0]
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div
+        ref={rootRef}
+        role="tablist"
+        aria-label="Client sections"
+        className="relative inline-flex h-9 max-w-full items-stretch self-start overflow-x-auto rounded-lg border border-input bg-card p-0.5"
       >
-        <NewCaseForm
-          onSubmit={handleCreateCase}
-          onCancel={closeNewCase}
-          defaultClientId={client.id}
-          lockClient
-          defaultService={primaryServiceType(client.services)}
-          defaultCountry={client.preferredCountry}
-        />
-      </SideDrawer>
+        {indicator ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-0.5 bottom-0.5 z-0 rounded-md bg-primary transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ left: indicator.left, width: indicator.width } as CSSProperties}
+          />
+        ) : null}
+        {items.map((item) => {
+          const isActive = item.id === value
+          return (
+            <Button
+              key={item.id}
+              ref={(node) => {
+                if (node) buttonRefs.current.set(item.id, node)
+                else buttonRefs.current.delete(item.id)
+              }}
+              type="button"
+              variant="ghost"
+              role="tab"
+              aria-selected={isActive}
+              className={cn(
+                'relative z-[1] h-full min-h-0 shrink-0 rounded-md px-3 text-sm font-medium shadow-none',
+                isActive
+                  ? 'text-primary-foreground hover:!bg-transparent hover:text-primary-foreground'
+                  : 'text-muted-foreground hover:!bg-[color-mix(in_srgb,var(--color-text)_6%,transparent)] hover:text-foreground',
+              )}
+              onClick={() => onValueChange(item.id)}
+            >
+              {item.label}
+            </Button>
+          )
+        })}
+      </div>
+      <div role="tabpanel">{active?.content}</div>
     </div>
   )
 }

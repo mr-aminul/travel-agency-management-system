@@ -1,4 +1,4 @@
-import { Input, Select } from '@/components/ui'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
 import {
   countrySelectOptions,
 } from '@/lib/clientCustomFields'

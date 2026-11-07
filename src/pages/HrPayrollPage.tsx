@@ -1,20 +1,37 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Banknote } from 'lucide-react'
 import { formatSalary, useEmployees } from '@/lib/employeesStore'
 import { useAttendance } from '@/lib/hrAttendance'
+import { Button } from '@/components/shadcn/button'
 import {
-  Button,
-  EmptyState,
-  Input,
-  Modal,
-  PageHeader,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/shadcn/dialog'
+import {
+  Empty,
+  EmptyContent,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/shadcn/empty'
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui'
+} from '@/components/shadcn/table'
+import { Input } from '@/components/clients/clientShadcnFields'
+import {
+  chromeHeadClass,
+  elevatedPageClass,
+} from '@/components/clients/shadcnChrome'
+import { cn } from '@/lib/utils'
 import { PayslipDocument } from '@/components/hr/PayslipDocument'
 import { PayslipDownloadButton } from '@/components/hr/PayslipDownloadButton'
 import {
@@ -27,7 +44,6 @@ import { layoutConfig } from '@/config/layout'
 import { hrAttendancePath, hrEmployeePath, hrEmployeesPath } from '@/lib/workPaths'
 import type { Employee } from '@/types/employee'
 import type { PayrollLine } from '@/types/hr'
-import '@/styles/layout-ops.css'
 import '@/styles/layout-invoice.css'
 
 export default function HrPayrollPage() {
@@ -62,99 +78,126 @@ export default function HrPayrollPage() {
     : null
 
   return (
-    <div className="pd-page pd-ops" aria-label="Payroll">
-      <PageHeader title="Payroll" />
+    <div className={cn(elevatedPageClass, 'gap-5')} data-elevated-canvas aria-label="Payroll">
+      <h1 className="m-0 text-xl font-semibold tracking-tight">Payroll</h1>
 
-      <div className="pd-ops__toolbar">
+      <div className="flex flex-wrap items-end gap-3">
         <Input
           label="Month"
           type="month"
           value={yearMonth}
           onChange={(event) => setYearMonth(event.target.value)}
         />
-        <p className="pd-ops__meta">
+        <p className="m-0 pb-2 text-sm text-muted-foreground">
           {lines.length} people · {formatSalary(totalNet)} net
         </p>
       </div>
 
       {lines.length === 0 ? (
-        <EmptyState
-          title="No active employees"
-          action={<Link to={hrEmployeesPath()}>Go to Employees</Link>}
-        />
+        <Empty className="bg-card shadow-sm">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Banknote />
+            </EmptyMedia>
+            <EmptyTitle>No Active Employees</EmptyTitle>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button variant="outline" className="h-9 rounded-lg" asChild>
+              <Link to={hrEmployeesPath()}>Go to Employees</Link>
+            </Button>
+          </EmptyContent>
+        </Empty>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Salary</TableHead>
-              <TableHead>Unpaid days</TableHead>
-              <TableHead>Deduction</TableHead>
-              <TableHead>Net</TableHead>
-              <TableHead> </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {lines.map((line) => {
-              const employee = employeeById.get(line.employeeId)
-              if (!employee) return null
-              return (
-                <TableRow key={line.employeeId}>
-                  <TableCell>
-                    <Link to={hrEmployeePath(employee.id, 'payroll')}>
-                      {employee.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{formatSalary(line.salary)}</TableCell>
-                  <TableCell>
-                    {line.unpaidDays === 0 ? (
-                      '-'
-                    ) : (
-                      <Link to={hrAttendancePath()}>{line.unpaidDays}</Link>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {line.deduction ? formatSalary(line.deduction) : '-'}
-                  </TableCell>
-                  <TableCell>{formatSalary(line.net)}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setPayslip({ employee, line })}
-                    >
-                      Payslip
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+        <div className="overflow-auto rounded-xl border bg-card shadow-md">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={chromeHeadClass}>Name</TableHead>
+                <TableHead className={chromeHeadClass}>Salary</TableHead>
+                <TableHead className={chromeHeadClass}>Unpaid Days</TableHead>
+                <TableHead className={chromeHeadClass}>Deduction</TableHead>
+                <TableHead className={chromeHeadClass}>Net</TableHead>
+                <TableHead className={chromeHeadClass}> </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lines.map((line) => {
+                const employee = employeeById.get(line.employeeId)
+                if (!employee) return null
+                return (
+                  <TableRow key={line.employeeId}>
+                    <TableCell>
+                      <Link
+                        className="text-primary underline-offset-2 hover:underline"
+                        to={hrEmployeePath(employee.id, 'payroll')}
+                      >
+                        {employee.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{formatSalary(line.salary)}</TableCell>
+                    <TableCell>
+                      {line.unpaidDays === 0 ? (
+                        '-'
+                      ) : (
+                        <Link
+                          className="text-primary underline-offset-2 hover:underline"
+                          to={hrAttendancePath()}
+                        >
+                          {line.unpaidDays}
+                        </Link>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {line.deduction ? formatSalary(line.deduction) : '-'}
+                    </TableCell>
+                    <TableCell>{formatSalary(line.net)}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-lg"
+                        onClick={() => setPayslip({ employee, line })}
+                      >
+                        Payslip
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
-      <Modal
+      <Dialog
         open={payslip !== null}
-        onClose={() => setPayslip(null)}
-        title={payslip ? `Payslip · ${payslip.employee.name}` : 'Payslip'}
-        className="pd-employee-payslip-dialog"
-        actions={
-          <>
-            {modalPayslip ? (
-              <PayslipDownloadButton payslip={modalPayslip} />
-            ) : null}
-            <Button variant="secondary" onClick={() => setPayslip(null)}>
+        onOpenChange={(next) => {
+          if (!next) setPayslip(null)
+        }}
+      >
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border border-border bg-card shadow-[var(--shadow-deep)] ring-0">
+          <DialogHeader>
+            <DialogTitle>
+              {payslip ? `Payslip · ${payslip.employee.name}` : 'Payslip'}
+            </DialogTitle>
+          </DialogHeader>
+          {modalPayslip ? (
+            <div className="pd-invoice-page__stage overflow-auto">
+              <PayslipDocument payslip={modalPayslip} />
+            </div>
+          ) : null}
+          <DialogFooter className="border-0 bg-transparent">
+            {modalPayslip ? <PayslipDownloadButton payslip={modalPayslip} /> : null}
+            <Button
+              variant="outline"
+              className="h-9 rounded-lg"
+              onClick={() => setPayslip(null)}
+            >
               Close
             </Button>
-          </>
-        }
-      >
-        {modalPayslip ? (
-          <div className="pd-invoice-page__stage pd-employee-payslip-modal">
-            <PayslipDocument payslip={modalPayslip} />
-          </div>
-        ) : null}
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

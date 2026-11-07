@@ -1,6 +1,12 @@
 import { Archive, MoreHorizontal, RotateCcw, Trash2 } from 'lucide-react'
+import { Button } from '@/components/shadcn/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/shadcn/dropdown-menu'
 import type { Client } from '@/types/client'
-import { DropdownMenu } from '@/components/ui'
 
 export type ClientRowActionsProps = {
   client: Client
@@ -20,41 +26,37 @@ export function ClientRowActions({
   const isArchived = Boolean(client.archivedAt)
 
   return (
-    <DropdownMenu
-      label={`Actions for ${client.name}`}
-      align="end"
-      variant="icon"
-      className={className}
-      trigger={
-        <MoreHorizontal size={16} strokeWidth={2} aria-hidden />
-      }
-      triggerProps={{
-        'aria-label': `Actions for ${client.name}`,
-        onClick: (event) => event.stopPropagation(),
-        onPointerDown: (event) => event.stopPropagation(),
-      }}
-      items={[
-        isArchived
-          ? {
-              id: 'unarchive',
-              label: 'Unarchive client',
-              icon: <RotateCcw size={14} strokeWidth={2} aria-hidden />,
-              onSelect: () => onUnarchive(client),
-            }
-          : {
-              id: 'archive',
-              label: 'Archive client',
-              icon: <Archive size={14} strokeWidth={2} aria-hidden />,
-              onSelect: () => onArchive(client),
-            },
-        {
-          id: 'delete',
-          label: 'Delete client',
-          danger: true,
-          icon: <Trash2 size={14} strokeWidth={2} aria-hidden />,
-          onSelect: () => onDelete(client),
-        },
-      ]}
-    />
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className={className}
+          aria-label={`Actions for ${client.name}`}
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <MoreHorizontal />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {isArchived ? (
+          <DropdownMenuItem onSelect={() => onUnarchive(client)}>
+            <RotateCcw />
+            Unarchive Client
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onSelect={() => onArchive(client)}>
+            <Archive />
+            Archive Client
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem variant="destructive" onSelect={() => onDelete(client)}>
+          <Trash2 />
+          Delete Client
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

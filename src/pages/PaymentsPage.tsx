@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowDownLeft,
@@ -8,6 +8,38 @@ import {
   Wallet,
 } from 'lucide-react'
 import { StatCards } from '@/components/StatCards'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/shadcn/empty'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
+import {
+  chromeHeadClass,
+  elevatedPageClass,
+  floatingSheetClass,
+  tableShellClass,
+  filterChipClass,
+} from '@/components/clients/shadcnChrome'
+import { cn } from '@/lib/utils'
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/shadcn/table'
 import { useCases } from '@/lib/casesStore'
 import { getClientById, useClients } from '@/lib/clientsStore'
 import { useAllCommissionSettlements } from '@/lib/commissionsStore'
@@ -37,22 +69,6 @@ import { getSubAgentById } from '@/lib/subAgentsStore'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import type { LedgerWallet, ManualLedgerKind } from '@/types/ledger'
 import { LEDGER_WALLETS } from '@/types/ledger'
-import {
-  Badge,
-  Button,
-  EmptyState,
-  FilterChip,
-  FilterChips,
-  Input,
-  Select,
-  SideDrawer,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui'
 import '@/styles/layout-ops.css'
 import '@/styles/layout-clients.css'
 
@@ -79,6 +95,30 @@ function moneyStatFromSearch(value: string | null): MoneyStatId | 'all' | null {
   }
   if (value === 'all') return 'all'
   return null
+}
+
+function FilterChipButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      className={cn(
+        filterChipClass(active),
+        'inline-flex items-center justify-center text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-theme)]/40',
+      )}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  )
 }
 
 export default function PaymentsPage() {
@@ -307,7 +347,11 @@ export default function PaymentsPage() {
   }, [summary.byWallet])
 
   return (
-    <div className="pd-page pd-ops pd-money" aria-label="Payments">
+    <div
+      className={cn(elevatedPageClass, 'pd-page pd-page--elevated pd-ops pd-money')}
+      data-elevated-canvas
+      aria-label="Payments"
+    >
       <div className="pd-ops__toolbar">
         <div className="pd-money__intro">
           <h1 className="pd-money__title">Money book</h1>
@@ -319,24 +363,26 @@ export default function PaymentsPage() {
         <div className="pd-money__actions">
           <Button
             size="sm"
-            variant="secondary"
+            variant="outline"
+            className="h-9 rounded-lg"
             onClick={() => {
               setError(undefined)
               setDrawer('payout')
             }}
           >
             <ArrowUpRight size={14} strokeWidth={2.25} aria-hidden />
-            Money out
+            Money Out
           </Button>
           <Button
             size="sm"
+            className="h-9 rounded-lg"
             onClick={() => {
               setError(undefined)
               setDrawer('payment')
             }}
           >
             <Plus size={14} strokeWidth={2.25} aria-hidden />
-            Client paid
+            Client Paid
           </Button>
         </div>
       </div>
@@ -352,35 +398,31 @@ export default function PaymentsPage() {
             value: formatBdt(summary.inHand),
             hint: pocketHint,
             icon: Wallet,
-            tone: 'brand',
           },
           {
             id: 'in',
             label: 'Today in',
             value: formatBdt(summary.todayIn),
             icon: ArrowDownLeft,
-            tone: 'success',
           },
           {
             id: 'out',
             label: 'Today out',
             value: formatBdt(summary.todayOut),
             icon: ArrowUpRight,
-            tone: 'info',
           },
           {
             id: 'due',
             label: 'Clients still owe',
             value: formatBdt(outstanding),
             icon: Banknote,
-            tone: 'warning',
           },
         ]}
       />
 
       <div className="pd-money__filters">
-        <FilterChips label="Show">
-          <FilterChip
+        <nav className="flex flex-wrap items-center gap-2" aria-label="Show">
+          <FilterChipButton
             active={directionFilter === 'all' && selectedStat === 'all'}
             onClick={() => {
               setDirectionFilter('all')
@@ -389,8 +431,8 @@ export default function PaymentsPage() {
             }}
           >
             All
-          </FilterChip>
-          <FilterChip
+          </FilterChipButton>
+          <FilterChipButton
             active={directionFilter === 'in' || selectedStat === 'in'}
             onClick={() => {
               setDirectionFilter('in')
@@ -398,9 +440,9 @@ export default function PaymentsPage() {
               writeStatQuery('in')
             }}
           >
-            Money in
-          </FilterChip>
-          <FilterChip
+            Money In
+          </FilterChipButton>
+          <FilterChipButton
             active={directionFilter === 'out' || selectedStat === 'out'}
             onClick={() => {
               setDirectionFilter('out')
@@ -408,298 +450,342 @@ export default function PaymentsPage() {
               writeStatQuery('out')
             }}
           >
-            Money out
-          </FilterChip>
-        </FilterChips>
-        <FilterChips label="Wallet">
-          <FilterChip
+            Money Out
+          </FilterChipButton>
+        </nav>
+        <nav className="flex flex-wrap items-center gap-2" aria-label="Wallet">
+          <FilterChipButton
             active={walletFilter === 'all'}
             onClick={() => setWalletFilter('all')}
           >
-            Every wallet
-          </FilterChip>
+            Every Wallet
+          </FilterChipButton>
           {(['Cash', 'bKash', 'Nagad', 'Bank'] as LedgerWallet[]).map(
             (wallet) => (
-              <FilterChip
+              <FilterChipButton
                 key={wallet}
                 active={walletFilter === wallet}
                 onClick={() => setWalletFilter(wallet)}
               >
                 {wallet}
-              </FilterChip>
+              </FilterChipButton>
             ),
           )}
-        </FilterChips>
+        </nav>
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState
-          title={book.length === 0 ? 'No payments yet' : 'Nothing here'}
-          action={
-            book.length === 0 ? (
+        <Empty className="bg-card shadow-sm">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Wallet aria-hidden />
+            </EmptyMedia>
+            <EmptyTitle>
+              {book.length === 0 ? 'No Payments Yet' : 'Nothing Here'}
+            </EmptyTitle>
+          </EmptyHeader>
+          {book.length === 0 ? (
+            <div className="mt-2">
               <Button
+                className="h-9 rounded-lg"
                 onClick={() => {
                   setError(undefined)
                   setDrawer('payment')
                 }}
               >
                 <Plus size={14} strokeWidth={2.25} aria-hidden />
-                Client paid
+                Client Paid
               </Button>
-            ) : undefined
-          }
-        />
+            </div>
+          ) : null}
+        </Empty>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>When</TableHead>
-              <TableHead>What happened</TableHead>
-              <TableHead>Wallet</TableHead>
-              <TableHead>In</TableHead>
-              <TableHead>Out</TableHead>
-              <TableHead>Balance</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell>{formatDisplayDate(row.createdAt)}</TableCell>
-                <TableCell>
-                  <div className="pd-money__what">
-                    <span className="pd-money__what-title">{row.title}</span>
-                    {row.party ? (
-                      row.partyHref ? (
-                        <Link
-                          className="pd-money__what-party"
-                          to={row.partyHref}
-                        >
-                          {row.party}
-                        </Link>
-                      ) : (
-                        <span className="pd-money__what-party">{row.party}</span>
-                      )
-                    ) : null}
-                    {row.note ? (
-                      <span className="pd-money__what-note">{row.note}</span>
-                    ) : null}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="neutral">{row.wallet}</Badge>
-                  {row.txnId ? (
-                    <span className="pd-money__txn">{row.txnId}</span>
-                  ) : null}
-                </TableCell>
-                <TableCell className="pd-money__amount pd-money__amount--in">
-                  {row.direction === 'in'
-                    ? formatPaymentAmount(row.amount)
-                    : '—'}
-                </TableCell>
-                <TableCell className="pd-money__amount pd-money__amount--out">
-                  {row.direction === 'out'
-                    ? formatPaymentAmount(row.amount)
-                    : '—'}
-                </TableCell>
-                <TableCell className="pd-money__balance">
-                  {formatPaymentAmount(row.balanceAfter)}
-                </TableCell>
+        <div className={tableShellClass}>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent border-0">
+                <TableHead className={chromeHeadClass}>When</TableHead>
+                <TableHead className={chromeHeadClass}>What Happened</TableHead>
+                <TableHead className={chromeHeadClass}>Wallet</TableHead>
+                <TableHead className={chromeHeadClass}>In</TableHead>
+                <TableHead className={chromeHeadClass}>Out</TableHead>
+                <TableHead className={chromeHeadClass}>Balance</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>{formatDisplayDate(row.createdAt)}</TableCell>
+                  <TableCell>
+                    <div className="pd-money__what">
+                      <span className="pd-money__what-title">{row.title}</span>
+                      {row.party ? (
+                        row.partyHref ? (
+                          <Link
+                            className="pd-money__what-party"
+                            to={row.partyHref}
+                          >
+                            {row.party}
+                          </Link>
+                        ) : (
+                          <span className="pd-money__what-party">{row.party}</span>
+                        )
+                      ) : null}
+                      {row.note ? (
+                        <span className="pd-money__what-note">{row.note}</span>
+                      ) : null}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{row.wallet}</Badge>
+                    {row.txnId ? (
+                      <span className="pd-money__txn">{row.txnId}</span>
+                    ) : null}
+                  </TableCell>
+                  <TableCell className="pd-money__amount pd-money__amount--in">
+                    {row.direction === 'in'
+                      ? formatPaymentAmount(row.amount)
+                      : '—'}
+                  </TableCell>
+                  <TableCell className="pd-money__amount pd-money__amount--out">
+                    {row.direction === 'out'
+                      ? formatPaymentAmount(row.amount)
+                      : '—'}
+                  </TableCell>
+                  <TableCell className="pd-money__balance">
+                    {formatPaymentAmount(row.balanceAfter)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
-      <SideDrawer
+      <Sheet
         open={drawer === 'payment'}
-        onClose={closeDrawer}
-        title="Client paid"
-        className="pd-payments-drawer"
+        onOpenChange={(open) => {
+          if (!open) closeDrawer()
+        }}
       >
-        <form
-          className="pd-payments__form"
-          onSubmit={handlePaymentSubmit}
-          noValidate
-        >
-          <Select
-            label="Client"
-            required
-            value={clientId}
-            onChange={(event) => {
-              setClientId(event.target.value)
-              setCaseId('')
-              paymentFields.markTouched('clientId')
-            }}
-            onBlur={paymentFields.blur('clientId')}
-            options={clientOptions}
-            placeholder="Select client"
-            error={
-              paymentFields.showError('clientId')
-                ? clientFieldError
-                : undefined
-            }
-          />
-          <Select
-            label="Service"
-            required
-            value={caseId}
-            onChange={(event) => {
-              setCaseId(event.target.value)
-              paymentFields.markTouched('caseId')
-            }}
-            onBlur={paymentFields.blur('caseId')}
-            options={caseOptions}
-            placeholder={clientId ? 'Select service' : 'Choose a client first'}
-            disabled={!clientId}
-            error={
-              paymentFields.showError('caseId') ? caseFieldError : undefined
-            }
-          />
-          <Input
-            label="Amount (৳)"
-            required
-            inputMode="decimal"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            onBlur={paymentFields.blur('amount')}
-            placeholder="e.g. 10000"
-            error={
-              paymentFields.showError('amount') ? amountError : undefined
-            }
-          />
-          <Select
-            label="Received in"
-            value={method}
-            onChange={(event) => setMethod(event.target.value)}
-            options={[
-              { value: 'Cash', label: 'Cash' },
-              { value: 'bKash', label: 'bKash' },
-              { value: 'Nagad', label: 'Nagad' },
-              { value: 'Bank transfer', label: 'Bank' },
-              { value: 'Card', label: 'Card' },
-            ]}
-          />
-          {needsTxnId ? (
-            <Input
-              label="Transaction ID"
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">Client Paid</SheetTitle>
+          </SheetHeader>
+          <form
+            id="money-book-payment-form"
+            className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4"
+            onSubmit={handlePaymentSubmit}
+            noValidate
+          >
+            <Select
+              label="Client"
               required
-              value={txnId}
-              onChange={(event) => setTxnId(event.target.value)}
-              onBlur={paymentFields.blur('txnId')}
-              placeholder="TrxID from the receipt"
+              value={clientId}
+              onChange={(event) => {
+                setClientId(event.target.value)
+                setCaseId('')
+                paymentFields.markTouched('clientId')
+              }}
+              onBlur={paymentFields.blur('clientId')}
+              options={clientOptions}
+              placeholder="Select client"
               error={
-                paymentFields.showError('txnId') ? txnError : undefined
+                paymentFields.showError('clientId')
+                  ? clientFieldError
+                  : undefined
               }
             />
-          ) : null}
-          <Input
-            label="Note"
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            onBlur={paymentFields.blur('note')}
-            placeholder="Optional"
-            error={paymentFields.showError('note') ? noteError : undefined}
-          />
-          {error ? (
-            <p className="pd-field__error" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <div className="pd-payments__form-actions">
-            <Button type="submit">Save</Button>
-            <Button type="button" variant="secondary" onClick={closeDrawer}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </SideDrawer>
-
-      <SideDrawer
-        open={drawer === 'payout'}
-        onClose={closeDrawer}
-        title="Money out"
-        className="pd-payments-drawer"
-      >
-        <form
-          className="pd-payments__form"
-          onSubmit={handlePayoutSubmit}
-          noValidate
-        >
-          <Select
-            label="What is this?"
-            value={payoutKind}
-            onChange={(event) =>
-              setPayoutKind(event.target.value as ManualLedgerKind)
-            }
-            options={[
-              { value: 'supplier', label: 'Supplier / vendor payment' },
-              { value: 'expense', label: 'Office or travel expense' },
-              { value: 'other_out', label: 'Other money out' },
-            ]}
-          />
-          <Input
-            label={payoutKind === 'supplier' ? 'Supplier name' : 'Who / what'}
-            required={payoutKind === 'supplier'}
-            value={party}
-            onChange={(event) => setParty(event.target.value)}
-            onBlur={payoutFields.blur('party')}
-            placeholder={
-              payoutKind === 'supplier'
-                ? 'e.g. Biman Bangladesh'
-                : 'Optional'
-            }
-            error={payoutFields.showError('party') ? partyError : undefined}
-          />
-          <Input
-            label="Amount (৳)"
-            required
-            inputMode="decimal"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            onBlur={payoutFields.blur('amount')}
-            placeholder="e.g. 40000"
-            error={payoutFields.showError('amount') ? amountError : undefined}
-          />
-          <Select
-            label="Paid from"
-            value={payoutWallet}
-            onChange={(event) =>
-              setPayoutWallet(event.target.value as LedgerWallet)
-            }
-            options={walletOptions()}
-          />
-          {needsTxnId ? (
-            <Input
-              label="Transaction ID"
+            <Select
+              label="Service"
               required
-              value={txnId}
-              onChange={(event) => setTxnId(event.target.value)}
-              onBlur={payoutFields.blur('txnId')}
-              placeholder="TrxID from the receipt"
-              error={payoutFields.showError('txnId') ? txnError : undefined}
+              value={caseId}
+              onChange={(event) => {
+                setCaseId(event.target.value)
+                paymentFields.markTouched('caseId')
+              }}
+              onBlur={paymentFields.blur('caseId')}
+              options={caseOptions}
+              placeholder={clientId ? 'Select service' : 'Choose a client first'}
+              disabled={!clientId}
+              error={
+                paymentFields.showError('caseId') ? caseFieldError : undefined
+              }
             />
-          ) : null}
-          <Input
-            label="Note"
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            onBlur={payoutFields.blur('note')}
-            placeholder="Optional"
-            error={payoutFields.showError('note') ? noteError : undefined}
-          />
-          {error ? (
-            <p className="pd-field__error" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <div className="pd-payments__form-actions">
-            <Button type="submit">Save</Button>
-            <Button type="button" variant="secondary" onClick={closeDrawer}>
+            <Input
+              label="Amount (৳)"
+              required
+              inputMode="decimal"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              onBlur={paymentFields.blur('amount')}
+              placeholder="e.g. 10000"
+              error={
+                paymentFields.showError('amount') ? amountError : undefined
+              }
+            />
+            <Select
+              label="Received In"
+              value={method}
+              onChange={(event) => setMethod(event.target.value)}
+              options={[
+                { value: 'Cash', label: 'Cash' },
+                { value: 'bKash', label: 'bKash' },
+                { value: 'Nagad', label: 'Nagad' },
+                { value: 'Bank transfer', label: 'Bank' },
+                { value: 'Card', label: 'Card' },
+              ]}
+            />
+            {needsTxnId ? (
+              <Input
+                label="Transaction ID"
+                required
+                value={txnId}
+                onChange={(event) => setTxnId(event.target.value)}
+                onBlur={paymentFields.blur('txnId')}
+                placeholder="TrxID from the receipt"
+                error={
+                  paymentFields.showError('txnId') ? txnError : undefined
+                }
+              />
+            ) : null}
+            <Input
+              label="Note"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              onBlur={paymentFields.blur('note')}
+              placeholder="Optional"
+              error={paymentFields.showError('note') ? noteError : undefined}
+            />
+            {error ? (
+              <p className="m-0 text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+          </form>
+          <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 rounded-lg"
+              onClick={closeDrawer}
+            >
               Cancel
             </Button>
-          </div>
-        </form>
-      </SideDrawer>
+            <Button
+              type="submit"
+              form="money-book-payment-form"
+              className="h-9 rounded-lg"
+            >
+              Save
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet
+        open={drawer === 'payout'}
+        onOpenChange={(open) => {
+          if (!open) closeDrawer()
+        }}
+      >
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">Money Out</SheetTitle>
+          </SheetHeader>
+          <form
+            id="money-book-payout-form"
+            className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4"
+            onSubmit={handlePayoutSubmit}
+            noValidate
+          >
+            <Select
+              label="What Is This?"
+              value={payoutKind}
+              onChange={(event) =>
+                setPayoutKind(event.target.value as ManualLedgerKind)
+              }
+              options={[
+                { value: 'supplier', label: 'Supplier / vendor payment' },
+                { value: 'expense', label: 'Office or travel expense' },
+                { value: 'other_out', label: 'Other money out' },
+              ]}
+            />
+            <Input
+              label={payoutKind === 'supplier' ? 'Supplier Name' : 'Who / What'}
+              required={payoutKind === 'supplier'}
+              value={party}
+              onChange={(event) => setParty(event.target.value)}
+              onBlur={payoutFields.blur('party')}
+              placeholder={
+                payoutKind === 'supplier'
+                  ? 'e.g. Biman Bangladesh'
+                  : 'Optional'
+              }
+              error={payoutFields.showError('party') ? partyError : undefined}
+            />
+            <Input
+              label="Amount (৳)"
+              required
+              inputMode="decimal"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              onBlur={payoutFields.blur('amount')}
+              placeholder="e.g. 40000"
+              error={payoutFields.showError('amount') ? amountError : undefined}
+            />
+            <Select
+              label="Paid From"
+              value={payoutWallet}
+              onChange={(event) =>
+                setPayoutWallet(event.target.value as LedgerWallet)
+              }
+              options={walletOptions()}
+            />
+            {needsTxnId ? (
+              <Input
+                label="Transaction ID"
+                required
+                value={txnId}
+                onChange={(event) => setTxnId(event.target.value)}
+                onBlur={payoutFields.blur('txnId')}
+                placeholder="TrxID from the receipt"
+                error={payoutFields.showError('txnId') ? txnError : undefined}
+              />
+            ) : null}
+            <Input
+              label="Note"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              onBlur={payoutFields.blur('note')}
+              placeholder="Optional"
+              error={payoutFields.showError('note') ? noteError : undefined}
+            />
+            {error ? (
+              <p className="m-0 text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+          </form>
+          <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 rounded-lg"
+              onClick={closeDrawer}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="money-book-payout-form"
+              className="h-9 rounded-lg"
+            >
+              Save
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

@@ -8,8 +8,19 @@ import {
 import { publicUrl } from '@/lib/publicUrl'
 import { validateRequiredPassword } from '@/lib/fieldValidation'
 import { useTouchedFields } from '@/lib/useTouchedFields'
-import { Button, Input } from '@/components/ui'
-import '@/styles/layout-login.css'
+import { Button } from '@/components/shadcn/button'
+import { Input } from '@/components/clients/clientShadcnFields'
+import {
+  authActionsClass,
+  authBrandClass,
+  authCardClass,
+  authCornerLogoClass,
+  authFormClass,
+  authPageBackgroundStyle,
+  authShellClass,
+  authTextLinkClass,
+  authTitleClass,
+} from './authShell'
 
 export default function ResetPasswordPage() {
   const { token = '' } = useParams()
@@ -64,35 +75,34 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="pd-login">
+    <div className={authShellClass} style={authPageBackgroundStyle}>
       <img
         src={publicUrl('images/logo.svg')}
         alt={layoutConfig.brand.name}
-        className="pd-login__corner-logo"
+        className={authCornerLogoClass}
         width={86}
         height={44}
         decoding="async"
       />
-      <div className="pd-login__card">
-        <div className="pd-login__brand">
-          <h1 className="pd-login__title">
+      <div className={authCardClass}>
+        <div className={authBrandClass}>
+          <h1 className={authTitleClass}>
             {emailMasked ? `New password for ${emailMasked}` : 'Choose a new password'}
           </h1>
         </div>
         {loadError ? (
-          <div className="pd-login__actions">
-            <p className="pd-field__error" role="alert">
+          <div className={authActionsClass}>
+            <p className="m-0 text-sm text-destructive" role="alert">
               {loadError}
             </p>
-            <Link to="/forgot-password" className="pd-login__text-link">
+            <Link to="/forgot-password" className={authTextLinkClass}>
               Request a new link
             </Link>
           </div>
         ) : (
-          <form className="pd-login__form" onSubmit={handleSubmit} noValidate>
+          <form className={authFormClass} onSubmit={handleSubmit} noValidate>
             <Input
-              label="New password"
-              labelVariant="default"
+              label="New Password"
               type="password"
               autoComplete="new-password"
               value={password}
@@ -102,8 +112,7 @@ export default function ResetPasswordPage() {
               error={showError('password') ? passwordError : undefined}
             />
             <Input
-              label="Confirm password"
-              labelVariant="default"
+              label="Confirm Password"
               type="password"
               autoComplete="new-password"
               value={confirm}
@@ -113,12 +122,17 @@ export default function ResetPasswordPage() {
               error={showError('confirm') ? confirmError : undefined}
             />
             {error ? (
-              <p className="pd-field__error" role="alert">
+              <p className="m-0 text-sm text-destructive" role="alert">
                 {error}
               </p>
             ) : null}
-            <Button type="submit" size="lg" loading={isSubmitting}>
-              Save password
+            <Button
+              type="submit"
+              size="lg"
+              className="h-[2.875rem] w-full rounded-lg font-semibold"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Saving…' : 'Save Password'}
             </Button>
           </form>
         )}

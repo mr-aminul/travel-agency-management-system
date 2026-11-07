@@ -30,7 +30,7 @@
   gap: var(--spacing-4, 1rem);
 }
 
-.pd-dash__kpis.pd-ops__metrics {
+.pd-dash__kpis {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -294,7 +294,7 @@ a.pd-dash-bars__row:hover .pd-dash-bars__label {
     grid-template-columns: 1fr;
   }
 
-  .pd-dash__kpis.pd-ops__metrics {
+  .pd-dash__kpis {
     grid-template-columns: 1fr;
   }
 }

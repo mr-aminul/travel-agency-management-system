@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Download, Printer } from 'lucide-react'
 import { downloadInvoicePdf } from '@/lib/downloadInvoicePdf'
-import { Button } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
 
 type InvoicePrintActionsProps = {
   invoiceNumber: string
@@ -23,16 +23,18 @@ export function InvoicePrintActions({ invoiceNumber }: InvoicePrintActionsProps)
     <>
       <Button
         size="sm"
-        variant="secondary"
+        variant="outline"
+        className="h-9 rounded-lg"
         onClick={() => window.print()}
       >
         <Printer size={14} strokeWidth={2.25} aria-hidden />
-        Print invoice
+        Print Invoice
       </Button>
       <Button
         size="sm"
-        variant="secondary"
-        loading={isDownloading}
+        variant="outline"
+        className="h-9 rounded-lg"
+        disabled={isDownloading}
         onClick={() => void handleDownload()}
       >
         <Download size={14} strokeWidth={2.25} aria-hidden />

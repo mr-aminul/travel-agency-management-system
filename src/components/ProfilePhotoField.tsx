@@ -6,16 +6,61 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react'
-import { Camera } from 'lucide-react'
-import { Avatar, type AvatarKind } from '@/components/ui'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Modal } from '@/components/ui/Modal'
-import { cx } from '@/lib/cx'
+import {
+  Building2,
+  Camera,
+  Crown,
+  Handshake,
+  IdCard,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@/components/shadcn/avatar'
+import { Button } from '@/components/shadcn/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/shadcn/dialog'
+import { Field, FieldLabel } from '@/components/shadcn/field'
+import { Input } from '@/components/shadcn/input'
+import { cn } from '@/lib/utils'
+
+export type AvatarKind =
+  | 'business'
+  | 'owner'
+  | 'staff'
+  | 'client'
+  | 'subAgent'
+
+const AVATAR_KIND_ICON: Record<AvatarKind, LucideIcon> = {
+  business: Building2,
+  owner: Crown,
+  staff: IdCard,
+  client: UserRound,
+  subAgent: Handshake,
+}
 
 export const PROFILE_PHOTO_MAX_BYTES = 10 * 1024 * 1024
 export const PROFILE_PHOTO_ACCEPT = 'image/png,image/jpeg,image/webp'
 const PROFILE_PHOTO_HINT = 'JPG, PNG or WebP · max 10 MB'
+
+const previewImageClass =
+  'block size-[min(14rem,64vw)] rounded-full object-cover bg-[var(--color-bg-muted,var(--color-bg))] shadow-[inset_0_0_0_0.0625rem_var(--color-border)]'
+
+const cameraBadgeClass = cn(
+  'absolute -right-[0.1rem] -bottom-[0.1rem] z-[2] inline-flex size-6 items-center justify-center',
+  'rounded-full border-2 border-[var(--color-surface,#fff)]',
+  'bg-[var(--color-theme)] text-white shadow-[var(--shadow-low)]',
+  'hover:brightness-[1.06] focus-visible:outline focus-visible:outline-2',
+  'focus-visible:outline-offset-1 focus-visible:outline-[color-mix(in_srgb,var(--color-theme)_55%,transparent)]',
+)
 
 type PickerMode = 'view' | 'edit'
 
@@ -88,6 +133,7 @@ export function ProfilePhotoField({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dragDepth = useRef(0)
   const displayName = name || fallbackName
+  const KindIcon = AVATAR_KIND_ICON[kind]
   const [pickerOpen, setPickerOpen] = useState(false)
   const [mode, setMode] = useState<PickerMode>('edit')
   const [photoUrlDraft, setPhotoUrlDraft] = useState('')
@@ -222,145 +268,198 @@ export function ProfilePhotoField({
   }
 
   return (
-    <div className="pd-profile-photo">
-      <div className="pd-profile-photo__control">
-        <Avatar name={displayName} src={value} size="xl" kind={kind} />
+    <div
+      className={cn(
+        children
+          ? 'grid w-full grid-cols-[4rem_minmax(0,1fr)] items-center gap-x-4 pt-2.5'
+          : 'flex w-auto justify-center',
+      )}
+    >
+      <div className="relative size-16 shrink-0">
+        <Avatar
+          className={cn(
+            'size-16 overflow-hidden after:hidden',
+            'bg-[color-mix(in_srgb,var(--color-theme)_14%,var(--color-bg-muted,var(--color-bg)))]',
+            'text-[var(--color-theme)]',
+          )}
+        >
+          {value ? <AvatarImage src={value} alt="" /> : null}
+          <AvatarFallback
+            className={cn(
+              'bg-[color-mix(in_srgb,var(--color-theme)_14%,var(--color-bg-muted,var(--color-bg)))]',
+              'text-[var(--color-theme)]',
+            )}
+          >
+            <KindIcon className="size-7" strokeWidth={1.75} aria-hidden />
+          </AvatarFallback>
+        </Avatar>
         <button
           type="button"
-          className="pd-profile-photo__upload"
+          className={cameraBadgeClass}
           aria-label={openLabel}
-          title={value ? 'View or update photo' : PROFILE_PHOTO_HINT}
           onClick={openPicker}
         >
-          <Camera size={18} strokeWidth={2} aria-hidden />
+          <Camera size={13} strokeWidth={2.25} className="text-white" aria-hidden />
         </button>
       </div>
       {children ? (
-        <div className="pd-profile-photo__name">{children}</div>
+        <div className="min-w-0 w-full [&>*]:max-w-full [&>*]:w-full">
+          {children}
+        </div>
       ) : null}
 
-      <Modal
+      <Dialog
         open={pickerOpen}
-        onClose={closePicker}
-        title={modalTitle}
-        className="pd-profile-photo-picker"
-        actions={
-          mode === 'view' ? (
-            <>
-              <Button
-                type="button"
-                variant="danger"
-                className="pd-profile-photo-picker__remove-action"
-                onClick={handleRemove}
-              >
-                Remove
-              </Button>
-              <Button type="button" variant="secondary" onClick={closePicker}>
-                Close
-              </Button>
-              <Button type="button" onClick={startEdit}>
-                Update
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button type="button" variant="secondary" onClick={cancelEdit}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                form={formId}
-                disabled={busy || !canSave}
-              >
-                Save
-              </Button>
-            </>
-          )
-        }
+        onOpenChange={(open) => {
+          if (!open) closePicker()
+        }}
       >
-        {mode === 'view' && shownPhoto ? (
-          <div className="pd-profile-photo-picker__view">
-            <img
-              className="pd-profile-photo-picker__preview"
-              src={shownPhoto}
-              alt={`${displayName} profile photo`}
-            />
-            <p className="pd-profile-photo-picker__caption">{displayName}</p>
-          </div>
-        ) : (
-          <form
-            id={formId}
-            className="pd-profile-photo-picker__body"
-            onSubmit={handleSave}
-          >
-            <div
-              className={cx(
-                'pd-profile-photo-picker__stage',
-                dragging && 'is-dragging',
-              )}
-              onDragEnter={onDragEnter}
-              onDragOver={onDragOver}
-              onDragLeave={onDragLeave}
-              onDrop={onDrop}
-            >
-              {shownPhoto ? (
-                <img
-                  className="pd-profile-photo-picker__preview"
-                  src={shownPhoto}
-                  alt=""
-                />
-              ) : (
-                <span className="pd-profile-photo-picker__placeholder" aria-hidden>
-                  <Camera size={28} strokeWidth={1.75} />
-                </span>
-              )}
-              <p className="pd-profile-photo-picker__hint">{PROFILE_PHOTO_HINT}</p>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={busy}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Choose photo
-              </Button>
-              <input
-                ref={fileInputRef}
-                id={fileInputId}
-                className="pd-profile-photo-picker__file"
-                type="file"
-                accept={PROFILE_PHOTO_ACCEPT}
-                onChange={(event) => {
-                  takeFile(event.target.files?.[0])
-                  event.target.value = ''
-                }}
+        <DialogContent
+          className={cn(
+            'w-[min(22rem,calc(100vw-2rem))] max-w-[min(22rem,calc(100vw-2rem))] gap-0 p-5',
+            'border border-[var(--color-border)] bg-[var(--color-surface-raised,var(--color-surface))]',
+            'shadow-[var(--shadow-deep)] ring-0',
+          )}
+        >
+          <DialogHeader className="text-center">
+            <DialogTitle>{modalTitle}</DialogTitle>
+          </DialogHeader>
+          {mode === 'view' && shownPhoto ? (
+            <div className="mt-4 grid justify-items-center gap-3">
+              <img
+                className={previewImageClass}
+                src={shownPhoto}
+                alt={`${displayName} profile photo`}
               />
-            </div>
-            {error ? (
-              <p className="pd-profile-photo-picker__error" role="alert">
-                {error}
+              <p className="m-0 text-center text-sm font-semibold text-[var(--color-text)]">
+                {displayName}
               </p>
-            ) : null}
-            <div className="pd-profile-photo-picker__divider" role="separator">
-              <span>or use a photo URL</span>
             </div>
-            <Input
-              id={urlFieldId}
-              label="Photo URL"
-              type="url"
-              inputMode="url"
-              placeholder="https://…"
-              value={photoUrlDraft}
-              disabled={busy}
-              onChange={(event) => {
-                setPhotoUrlDraft(event.target.value)
-                setFileDraft(undefined)
-                if (error) setError(undefined)
-              }}
-            />
-          </form>
-        )}
-      </Modal>
+          ) : (
+            <form
+              id={formId}
+              className="mt-4 grid gap-4"
+              onSubmit={handleSave}
+            >
+              <div
+                className={cn(
+                  'grid justify-items-center gap-3 rounded-xl py-1 transition-colors duration-150',
+                  dragging &&
+                    'bg-[color-mix(in_srgb,var(--color-theme)_7%,transparent)]',
+                )}
+                onDragEnter={onDragEnter}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={onDrop}
+              >
+                {shownPhoto ? (
+                  <img className={previewImageClass} src={shownPhoto} alt="" />
+                ) : (
+                  <span
+                    className={cn(
+                      previewImageClass,
+                      'inline-flex items-center justify-center text-[var(--color-text-muted)]',
+                    )}
+                    aria-hidden
+                  >
+                    <Camera size={28} strokeWidth={1.75} />
+                  </span>
+                )}
+                <p className="m-0 text-center text-xs font-medium text-[var(--color-text-muted)]">
+                  {PROFILE_PHOTO_HINT}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Choose photo
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  id={fileInputId}
+                  className="sr-only"
+                  type="file"
+                  accept={PROFILE_PHOTO_ACCEPT}
+                  onChange={(event) => {
+                    takeFile(event.target.files?.[0])
+                    event.target.value = ''
+                  }}
+                />
+              </div>
+              {error ? (
+                <p
+                  className="-mt-1 m-0 text-center text-[0.8125rem] text-[var(--color-danger,#b42318)]"
+                  role="alert"
+                >
+                  {error}
+                </p>
+              ) : null}
+              <div
+                className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-center text-xs font-medium text-[var(--color-text-muted)]"
+                role="separator"
+              >
+                <span
+                  className="h-px bg-[var(--color-border)]"
+                  aria-hidden
+                />
+                <span className="whitespace-nowrap">or use a photo URL</span>
+                <span
+                  className="h-px bg-[var(--color-border)]"
+                  aria-hidden
+                />
+              </div>
+              <Field className="w-full min-w-0">
+                <FieldLabel htmlFor={urlFieldId}>Photo URL</FieldLabel>
+                <Input
+                  id={urlFieldId}
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://…"
+                  value={photoUrlDraft}
+                  disabled={busy}
+                  onChange={(event) => {
+                    setPhotoUrlDraft(event.target.value)
+                    setFileDraft(undefined)
+                    if (error) setError(undefined)
+                  }}
+                />
+              </Field>
+            </form>
+          )}
+          <DialogFooter className="mt-4 justify-end border-0 bg-transparent">
+            {mode === 'view' ? (
+              <>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="sm:mr-auto"
+                  onClick={handleRemove}
+                >
+                  Remove
+                </Button>
+                <Button type="button" variant="outline" onClick={closePicker}>
+                  Close
+                </Button>
+                <Button type="button" onClick={startEdit}>
+                  Update
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button type="button" variant="outline" onClick={cancelEdit}>
+                  Cancel
+                </Button>
+                <Button type="submit" form={formId} disabled={busy || !canSave}>
+                  Save
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

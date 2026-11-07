@@ -1,4 +1,3 @@
-import { Avatar } from '@/components/ui'
 import {
   forwardRef,
   useEffect,
@@ -11,7 +10,16 @@ import {
   type ReactNode,
 } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, X } from 'lucide-react'
+import {
+  Handshake,
+  IdCard,
+  Search,
+  UserRound,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
+import type { AvatarKind } from '@/components/ProfilePhotoField'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/shadcn/avatar'
 import { cx } from '@/lib/cx'
 import {
   avatarKindForSearchKind,
@@ -27,6 +35,36 @@ import {
   type SearchItem,
   type SearchScope,
 } from '@/lib/search'
+
+const SEARCH_AVATAR_ICON: Record<AvatarKind, LucideIcon> = {
+  business: UserRound,
+  owner: IdCard,
+  staff: IdCard,
+  client: UserRound,
+  subAgent: Handshake,
+}
+
+function SearchAvatar({
+  name,
+  src,
+  kind = 'client',
+  className,
+}: {
+  name: string
+  src?: string | null
+  kind?: AvatarKind
+  className?: string
+}) {
+  const Icon = SEARCH_AVATAR_ICON[kind]
+  return (
+    <Avatar size="sm" className={className} aria-label={name}>
+      {src ? <AvatarImage src={src} alt="" /> : null}
+      <AvatarFallback>
+        <Icon size={14} strokeWidth={1.85} aria-hidden />
+      </AvatarFallback>
+    </Avatar>
+  )
+}
 
 export type GlobalSearchHandle = {
   show: () => void
@@ -274,10 +312,9 @@ export const GlobalSearchPalette = forwardRef<
           {showHint ? (
             <span className="pd-topbar__search-hint" aria-hidden>
               {typewriter.hint?.avatarName ? (
-                <Avatar
+                <SearchAvatar
                   name={typewriter.hint.avatarName}
                   src={typewriter.hint.avatarUrl}
-                  size="sm"
                   kind={typewriter.hint.avatarKind}
                   className="pd-topbar__search-hint-avatar"
                 />
@@ -378,10 +415,9 @@ export const GlobalSearchPalette = forwardRef<
                             onMouseEnter={() => setActiveIndex(index)}
                           >
                             {item.avatarName ? (
-                              <Avatar
+                              <SearchAvatar
                                 name={item.avatarName}
                                 src={item.avatarUrl}
-                                size="sm"
                                 kind={avatarKindForSearchKind(item.kind)}
                                 className="pd-global-search__avatar"
                               />

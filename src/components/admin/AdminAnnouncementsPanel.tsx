@@ -14,6 +14,7 @@ import {
   Megaphone,
   Pencil,
   Plus,
+  Search,
   Trash2,
   X,
 } from 'lucide-react'
@@ -36,30 +37,49 @@ import {
 } from '@/lib/announcementTemplates'
 import { cx } from '@/lib/cx'
 import {
-  Badge,
-  Button,
-  ConfirmDialog,
-  EmptyState,
-  Input,
-  SearchField,
-  Select,
-  SideDrawer,
-  Switch,
+  floatingSheetClass,
+  floatingSheetWideClass,
+} from '@/components/clients/shadcnChrome'
+import { Input, Select, Textarea } from '@/components/clients/clientShadcnFields'
+import { cn } from '@/lib/utils'
+import { LabeledSwitch } from '@/components/clients/LabeledSwitch'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import { Empty, EmptyHeader, EmptyTitle } from '@/components/shadcn/empty'
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Textarea,
-  type SelectOption,
-} from '@/components/ui'
+} from '@/components/shadcn/table'
+import { Input as SearchInput } from '@/components/shadcn/input'
 import { AnnouncementRichBody } from '@/components/announcements/AnnouncementRichBody'
 import type {
   AnnouncementKind,
   AnnouncementRepeatMode,
   PlatformAnnouncement,
 } from '@/types/announcement'
+import {
+  adminClientsToolbarClass,
+  adminPanelClass,
+  adminPanelHeaderClass,
+  adminPanelTitleClass,
+  adminQuietClass,
+  adminUserNameClass,
+  chromeHeadClass,
+  tableShellClass,
+  whiteControlClass,
+} from '@/components/admin/adminChrome'
 import '@/styles/layout-clients.css'
 import '@/styles/layout-announcements.css'
 
@@ -83,7 +103,7 @@ type Draft = {
   templateId: string | null
 }
 
-const REPEAT_OPTIONS: SelectOption[] = [
+const REPEAT_OPTIONS = [
   {
     value: 'continuous',
     label: 'Continuous (standard) — can show again',
@@ -369,25 +389,28 @@ export function AdminAnnouncementsPanel() {
   const KindIcon = announcementKindIcon(draft.kind)
 
   return (
-    <section className="pd-admin__panel" aria-label="Announcements">
-      <div className="pd-admin__panel-header">
+    <section className={adminPanelClass} aria-label="Announcements">
+      <div className={adminPanelHeaderClass}>
         <div>
-          <h2 className="pd-admin__panel-title">Announcements</h2>
+          <h2 className={adminPanelTitleClass}>Announcements</h2>
         </div>
-        <Button size="sm" onClick={openCreate}>
+        <Button size="sm" className="h-9 rounded-lg" onClick={openCreate}>
           <Plus size={16} strokeWidth={2.2} aria-hidden />
-          New announcement
+          New Announcement
         </Button>
       </div>
 
-      <div className="pd-clients__toolbar">
-        <SearchField
-          className="pd-clients__search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          onClear={() => setSearch('')}
-          placeholder="Search announcements…"
-        />
+      <div className={adminClientsToolbarClass}>
+        <div className="relative min-w-56 flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <SearchInput
+            className={cn('pl-8', whiteControlClass)}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search Announcements…"
+            aria-label="Search Announcements"
+          />
+        </div>
       </div>
 
       {error ? (
@@ -405,42 +428,45 @@ export function AdminAnnouncementsPanel() {
       ) : null}
 
       {loading ? (
-        <p className="pd-admin__quiet">Loading announcements…</p>
+        <p className={adminQuietClass}>Loading announcements…</p>
       ) : items.length === 0 ? (
-        <EmptyState
-          icon={Megaphone}
-          title="No announcements yet"
-          action={
-            <Button onClick={openCreate}>
-              <LayoutTemplate size={16} aria-hidden />
-              Choose a template
-            </Button>
-          }
-        />
+        <Empty className="bg-card shadow-sm">
+          <EmptyHeader>
+            <Megaphone size={20} aria-hidden />
+            <EmptyTitle>No Announcements Yet</EmptyTitle>
+          </EmptyHeader>
+          <Button className="h-9 rounded-lg" onClick={openCreate}>
+            <LayoutTemplate size={16} aria-hidden />
+            Choose A Template
+          </Button>
+        </Empty>
       ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={Megaphone}
-          title="No matching announcements"
-          action={
-            <Button variant="secondary" onClick={() => setSearch('')}>
-              Clear search
-            </Button>
-          }
-        />
+        <Empty className="bg-card shadow-sm">
+          <EmptyHeader>
+            <Megaphone size={20} aria-hidden />
+            <EmptyTitle>No Matching Announcements</EmptyTitle>
+          </EmptyHeader>
+          <Button variant="outline" className="h-9 rounded-lg" onClick={() => setSearch('')}>
+            Clear Search
+          </Button>
+        </Empty>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Announcement</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>On</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Where</TableHead>
-              <TableHead>Starts</TableHead>
-              <TableHead>Ends</TableHead>
-              <TableHead className="pd-table__actions-col">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+        <div className={tableShellClass}>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent border-0">
+                <TableHead className={chromeHeadClass}>Announcement</TableHead>
+                <TableHead className={chromeHeadClass}>Type</TableHead>
+                <TableHead className={chromeHeadClass}>On</TableHead>
+                <TableHead className={chromeHeadClass}>Status</TableHead>
+                <TableHead className={chromeHeadClass}>Where</TableHead>
+                <TableHead className={chromeHeadClass}>Starts</TableHead>
+                <TableHead className={chromeHeadClass}>Ends</TableHead>
+                <TableHead className={cn(chromeHeadClass, 'pd-table__actions-col')}>
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {filtered.map((item) => {
               const RowIcon = announcementKindIcon(item.kind)
@@ -466,7 +492,7 @@ export function AdminAnnouncementsPanel() {
                         </span>
                       )}
                       <span className="pd-announce-row__text">
-                        <span className="pd-admin__user-name">{item.title}</span>
+                        <span className={adminUserNameClass}>{item.title}</span>
                         <span className="pd-announce-row__preview">
                           {item.body}
                         </span>
@@ -484,7 +510,7 @@ export function AdminAnnouncementsPanel() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Switch
+                    <LabeledSwitch
                       label={item.published ? 'On' : 'Off'}
                       checked={item.published}
                       disabled={togglingId === item.id}
@@ -492,7 +518,18 @@ export function AdminAnnouncementsPanel() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Badge variant={announcementStatusVariant(item.status)}>
+                    <Badge
+                      variant={
+                        (
+                          {
+                            completed: 'default',
+                            'in-progress': 'secondary',
+                            neutral: 'secondary',
+                            pending: 'outline',
+                          } as const
+                        )[announcementStatusVariant(item.status)]
+                      }
+                    >
                       {announcementStatusLabel(item.status)}
                     </Badge>
                   </TableCell>
@@ -512,7 +549,8 @@ export function AdminAnnouncementsPanel() {
                     <div className="pd-announce-actions">
                       <Button
                         size="sm"
-                        variant="secondary"
+                        variant="outline"
+                        className="h-9 rounded-lg"
                         onClick={() => openEdit(item)}
                       >
                         <Pencil size={14} aria-hidden />
@@ -521,6 +559,7 @@ export function AdminAnnouncementsPanel() {
                       <Button
                         size="sm"
                         variant="ghost"
+                        className="h-9 rounded-lg"
                         onClick={() => setPendingDelete(item)}
                         aria-label={`Delete ${item.title}`}
                       >
@@ -533,57 +572,26 @@ export function AdminAnnouncementsPanel() {
             })}
           </TableBody>
         </Table>
+        </div>
       )}
 
-      <SideDrawer
+      <Sheet
         open={editorOpen}
-        onClose={closeEditor}
-        title={
-          editorMode === 'edit'
-            ? 'Edit announcement'
-            : createStep === 'templates'
-              ? 'Choose a template'
-              : 'Compose announcement'
-        }
-        footer={
-          showCompose ? (
-            <>
-              {editorMode === 'create' ? (
-                <Button
-                  variant="secondary"
-                  disabled={saving || uploading}
-                  onClick={() => setCreateStep('templates')}
-                >
-                  Templates
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  disabled={saving || uploading}
-                  onClick={closeEditor}
-                >
-                  Cancel
-                </Button>
-              )}
-              <Button
-                type="submit"
-                form={formId}
-                disabled={saving || uploading}
-              >
-                {saving
-                  ? 'Saving…'
-                  : editorMode === 'create'
-                    ? 'Publish'
-                    : 'Save changes'}
-              </Button>
-            </>
-          ) : (
-            <Button variant="secondary" onClick={closeEditor}>
-              Cancel
-            </Button>
-          )
-        }
+        onOpenChange={(next) => {
+          if (!next) closeEditor()
+        }}
       >
+        <SheetContent className={`${floatingSheetClass} ${floatingSheetWideClass}`}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">
+              {editorMode === 'edit'
+                ? 'Edit Announcement'
+                : createStep === 'templates'
+                  ? 'Choose A Template'
+                  : 'Compose Announcement'}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
         {editorMode === 'create' && createStep === 'templates' ? (
           <div className="pd-announce-templates" role="list">
             {ANNOUNCEMENT_TEMPLATES.map((template) => {
@@ -746,7 +754,7 @@ export function AdminAnnouncementsPanel() {
             </div>
 
             <div className="pd-announce-publish">
-              <Switch
+              <LabeledSwitch
                 checked={draft.published}
                 onChange={(event) =>
                   patchDraft('published', event.target.checked)
@@ -757,14 +765,14 @@ export function AdminAnnouncementsPanel() {
 
             <div className="pd-announce-publish">
               <span className="pd-announce-image__label">Where it shows</span>
-              <Switch
+              <LabeledSwitch
                 checked={draft.showInApp}
                 onChange={(event) =>
                   patchDraft('showInApp', event.target.checked)
                 }
                 label="Agency app popup"
               />
-              <Switch
+              <LabeledSwitch
                 checked={draft.showOnLanding}
                 onChange={(event) =>
                   patchDraft('showOnLanding', event.target.checked)
@@ -816,7 +824,7 @@ export function AdminAnnouncementsPanel() {
                   <Button
                     type="button"
                     size="sm"
-                    variant="secondary"
+                    variant="outline"
                     disabled={uploading}
                     onClick={() => fileInputRef.current?.click()}
                   >
@@ -855,7 +863,7 @@ export function AdminAnnouncementsPanel() {
                   alt="Announcement preview"
                 />
               ) : (
-                <p className="pd-admin__quiet">
+                <p className={adminQuietClass}>
                   PNG, JPG, or WebP up to 1.5 MB. Shown above the message in the
                   popup.
                 </p>
@@ -863,7 +871,50 @@ export function AdminAnnouncementsPanel() {
             </div>
           </form>
         )}
-      </SideDrawer>
+          </div>
+          <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
+            {showCompose ? (
+              <>
+                {editorMode === 'create' ? (
+                  <Button
+                    variant="outline"
+                    className="h-9 rounded-lg"
+                    disabled={saving || uploading}
+                    onClick={() => setCreateStep('templates')}
+                  >
+                    Templates
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="h-9 rounded-lg"
+                    disabled={saving || uploading}
+                    onClick={closeEditor}
+                  >
+                    Cancel
+                  </Button>
+                )}
+                <Button
+                  type="submit"
+                  form={formId}
+                  className="h-9 rounded-lg"
+                  disabled={saving || uploading}
+                >
+                  {saving
+                    ? 'Saving…'
+                    : editorMode === 'create'
+                      ? 'Publish'
+                      : 'Save Changes'}
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" className="h-9 rounded-lg" onClick={closeEditor}>
+                Cancel
+              </Button>
+            )}
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}

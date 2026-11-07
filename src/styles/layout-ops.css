@@ -58,7 +58,7 @@
 
 .pd-ops-metric-link {
   --metric-fill: var(--color-theme);
-  --metric-ink: oklch(from var(--metric-fill) round(1.21 - l) 0 0);
+  --metric-ink: var(--color-on-theme);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -68,8 +68,8 @@
   min-width: 0;
   width: 100%;
   padding: 0.85rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--metric-fill) 82%, black);
-  border-radius: var(--radius-card, 1rem);
+  border: 0;
+  border-radius: 0.65rem;
   background: var(--metric-fill);
   appearance: none;
   font: inherit;
@@ -79,32 +79,18 @@
   cursor: pointer;
 }
 
-/* Solid KPI fills: categorical SaaS set (indigo / blue / green / orange).
-   Deep enough for white ink (WCAG), hues kept distinct for colorblind safety. */
-.pd-ops-metric-link--brand {
-  --metric-fill: #3730a3; /* indigo-800: primary / total */
-}
-
-.pd-ops-metric-link--info {
-  --metric-fill: #1d4ed8; /* blue-700: open / in-progress */
-}
-
-.pd-ops-metric-link--success {
-  --metric-fill: #15803d; /* green-700: completed */
-}
-
-.pd-ops-metric-link--warning {
-  --metric-fill: #c2410c; /* orange-700: outstanding / attention */
-}
-
+/* Same brand blue as Clients / Services summary stats + primary buttons. */
+.pd-ops-metric-link--brand,
+.pd-ops-metric-link--info,
+.pd-ops-metric-link--success,
+.pd-ops-metric-link--warning,
 .pd-ops-metric-link--muted {
-  --metric-fill: #334155; /* slate-700 */
+  --metric-fill: var(--color-theme);
 }
 
 .pd-ops-metric-link:hover,
 .pd-ops-metric-link.is-selected {
-  background: color-mix(in srgb, var(--metric-fill) 88%, black);
-  border-color: color-mix(in srgb, var(--metric-fill) 72%, black);
+  filter: brightness(1.08);
 }
 
 .pd-ops-metric-link.is-selected {
@@ -241,9 +227,9 @@
 
 .pd-profile-photo__upload {
   position: absolute;
-  right: -0.15rem;
-  bottom: -0.15rem;
-  z-index: 1;
+  right: -0.1rem;
+  bottom: -0.1rem;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -251,10 +237,10 @@
   height: 1.5rem;
   margin: 0;
   padding: 0;
-  border: 0.125rem solid var(--color-surface, var(--color-bg));
+  border: 0.125rem solid var(--color-surface, #fff);
   border-radius: 50%;
   background: var(--color-theme);
-  color: var(--color-theme-ink, var(--color-bg));
+  color: #fff;
   cursor: pointer;
   box-shadow: var(--shadow-low);
 }
@@ -272,6 +258,7 @@
 .pd-profile-photo__upload svg {
   width: 0.8rem;
   height: 0.8rem;
+  stroke: #fff;
 }
 
 .pd-profile-photo__remove {
@@ -897,7 +884,7 @@ a.pd-money__what-party:hover {
 }
 
 .pd-money__amount--in {
-  color: var(--color-status-completed, #15803d);
+  color: var(--color-text);
   font-weight: 650;
 }
 

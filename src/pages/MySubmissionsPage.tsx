@@ -1,10 +1,25 @@
 import { useMemo } from 'react'
-import { Badge, EmptyState, PageHeader } from '@/components/ui'
+import { Inbox } from 'lucide-react'
+import { Badge } from '@/components/shadcn/badge'
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/shadcn/empty'
 import { useAuth } from '@/lib/auth'
 import { getActiveTenantId } from '@/lib/authApi'
 import { usePendingChanges } from '@/lib/subAgentPendingChanges'
 import { formatDisplayDate } from '@/lib/formatDate'
 import '@/styles/layout-ops.css'
+
+function statusBadgeVariant(
+  status: string,
+): 'secondary' | 'default' | 'outline' {
+  if (status === 'pending') return 'secondary'
+  if (status === 'approved') return 'default'
+  return 'outline'
+}
 
 export default function MySubmissionsPage() {
   const { user } = useAuth()
@@ -21,10 +36,21 @@ export default function MySubmissionsPage() {
 
   return (
     <div className="pd-page">
-      <PageHeader title="My submissions" />
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="m-0 text-xl font-semibold tracking-tight">
+          My Submissions
+        </h1>
+      </header>
 
       {mine.length === 0 ? (
-        <EmptyState title="No submissions yet" />
+        <Empty className="bg-card shadow-sm">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Inbox aria-hidden />
+            </EmptyMedia>
+            <EmptyTitle>No Submissions Yet</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <ul className="pd-approval-list">
           {mine.map((change) => (
@@ -32,15 +58,7 @@ export default function MySubmissionsPage() {
               <div className="pd-approval-card__main">
                 <div className="pd-approval-card__title-row">
                   <strong>{change.summary}</strong>
-                  <Badge
-                    variant={
-                      change.status === 'pending'
-                        ? 'pending'
-                        : change.status === 'approved'
-                          ? 'completed'
-                          : 'neutral'
-                    }
-                  >
+                  <Badge variant={statusBadgeVariant(change.status)}>
                     {change.status}
                   </Badge>
                 </div>

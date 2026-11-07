@@ -8,7 +8,40 @@ import {
   Plus,
   Users,
 } from 'lucide-react'
+import {
+  chromeHeadClass,
+  floatingSheetClass,
+  tableShellClass,
+} from '@/components/clients/shadcnChrome'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
+import { SubAgentAccessSection } from '@/components/settings/SubAgentAccessSection'
+import { Avatar, AvatarFallback } from '@/components/shadcn/avatar'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { Empty, EmptyHeader, EmptyTitle } from '@/components/shadcn/empty'
+import {
+  Select as AccessSelect,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/shadcn/table'
 import { layoutConfig } from '@/config/layout'
 import { buildAccessPageColumns } from '@/lib/accessPages'
 import {
@@ -32,32 +65,18 @@ import {
 import { useAuth } from '@/lib/useAuth'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import {
-  Avatar,
-  avatarKindForMemberRole,
-  Badge,
-  Button,
-  EmptyState,
-  Input,
-  Modal,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  type SelectOption,
-} from '@/components/ui'
-import {
   getPageAccessLevel,
   setPageAccessLevel,
   useUserPageAccess,
 } from '@/lib/userAccessStore'
-import { SubAgentAccessSection } from '@/components/settings/SubAgentAccessSection'
 import type { TenantMemberRole, TenantMemberStatus } from '@/types/tenant'
 import type { PageAccessLevel } from '@/types/userAccess'
 
-const ACCESS_OPTIONS: SelectOption[] = [
+const ACCESS_OPTIONS: {
+  value: PageAccessLevel
+  label: string
+  icon: typeof Ban
+}[] = [
   { value: 'none', label: 'None', icon: Ban },
   { value: 'view', label: 'View', icon: Eye },
   { value: 'edit', label: 'Edit', icon: Pencil },
@@ -75,18 +94,25 @@ function roleLabel(role: TenantMemberRole): string {
   return 'Staff'
 }
 
-function statusBadge(status: TenantMemberStatus): {
-  variant: 'completed' | 'pending' | 'on-hold'
+function statusMeta(status: TenantMemberStatus): {
+  variant: 'default' | 'secondary' | 'outline'
   icon: typeof CheckCircle2
   label: string
 } {
   if (status === 'active') {
-    return { variant: 'completed', icon: CheckCircle2, label: 'Active' }
+    return { variant: 'default', icon: CheckCircle2, label: 'Active' }
   }
   if (status === 'invited') {
-    return { variant: 'pending', icon: CircleOff, label: 'Invited' }
+    return { variant: 'secondary', icon: CircleOff, label: 'Invited' }
   }
-  return { variant: 'on-hold', icon: CircleOff, label: 'Disabled' }
+  return { variant: 'outline', icon: CircleOff, label: 'Disabled' }
+}
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
 }
 
 type CreateField = 'name' | 'email' | 'role' | 'password'
@@ -195,95 +221,114 @@ export function UserAccessSection({
       <SettingsInfo title={title} body={info} />
       {canManage ? (
         <div className="pd-settings-panel__actions">
-          <Button onClick={() => setCreateOpen(true)}>
+          <Button className="h-9 rounded-lg" onClick={() => setCreateOpen(true)}>
             <Plus size={16} strokeWidth={2.25} aria-hidden />
-            Add user
+            Add User
           </Button>
         </div>
       ) : null}
     </header>
   )
 
-  const createModal = (
-    <Modal
+  const createSheet = (
+    <Sheet
       open={createOpen}
-      onClose={closeCreate}
-      title="Add user"
-      actions={
-        <>
-          <Button variant="secondary" onClick={closeCreate} disabled={isSubmitting}>
+      onOpenChange={(next) => {
+        if (!next) closeCreate()
+      }}
+    >
+      <SheetContent className={floatingSheetClass}>
+        <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+          <SheetTitle className="text-base font-semibold">Add User</SheetTitle>
+        </SheetHeader>
+        <form
+          id="pd-settings-create-user"
+          className="flex flex-col gap-4 p-5"
+          onSubmit={(event) => void handleCreate(event)}
+          noValidate
+        >
+          <Input
+            label="Full Name"
+            required
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onBlur={blur('name')}
+            error={showError('name') ? errors.name : undefined}
+          />
+          <Input
+            label="Email"
+            required
+            type="email"
+            autoComplete="off"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            onBlur={blur('email')}
+            error={showError('email') ? errors.email : undefined}
+          />
+          <Select
+            label="Role"
+            required
+            value={role}
+            onChange={(event) => setRole(event.target.value as TenantMemberRole)}
+            options={STAFF_MEMBER_ROLES.filter((option) => option.value !== 'owner')}
+            error={showError('role') ? errors.role : undefined}
+          />
+          <Input
+            label="Initial Password"
+            required
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            onBlur={blur('password')}
+            error={showError('password') ? errors.password : undefined}
+          />
+          {formError ? (
+            <p className="m-0 text-sm text-destructive" role="alert">
+              {formError}
+            </p>
+          ) : null}
+        </form>
+        <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
+          <Button
+            variant="outline"
+            className="h-9 rounded-lg"
+            onClick={closeCreate}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
-          <Button type="submit" form="pd-settings-create-user" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating…' : 'Add user'}
+          <Button
+            type="submit"
+            form="pd-settings-create-user"
+            className="h-9 rounded-lg"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Creating…' : 'Add User'}
           </Button>
-        </>
-      }
-    >
-      <form id="pd-settings-create-user" onSubmit={handleCreate} noValidate>
-        <Input
-          label="Full name"
-          required
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onBlur={blur('name')}
-          error={showError('name') ? errors.name : undefined}
-        />
-        <Input
-          label="Email"
-          required
-          type="email"
-          autoComplete="off"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          onBlur={blur('email')}
-          error={showError('email') ? errors.email : undefined}
-        />
-        <Select
-          label="Role"
-          required
-          value={role}
-          onChange={(event) => setRole(event.target.value as TenantMemberRole)}
-          options={STAFF_MEMBER_ROLES.filter((option) => option.value !== 'owner')}
-          error={showError('role') ? errors.role : undefined}
-        />
-        <Input
-          label="Initial password"
-          required
-          type="password"
-          autoComplete="new-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          onBlur={blur('password')}
-          error={showError('password') ? errors.password : undefined}
-        />
-        {formError ? (
-          <p className="pd-field__error" role="alert">
-            {formError}
-          </p>
-        ) : null}
-      </form>
-    </Modal>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 
   if (members.length === 0) {
     return (
       <div className="pd-settings-section">
         {header}
-        <EmptyState
-          icon={Users}
-          title="No users yet"
-          action={
-            canManage ? (
-              <Button onClick={() => setCreateOpen(true)}>
-                <Plus size={16} strokeWidth={2.25} aria-hidden />
-                Add user
-              </Button>
-            ) : undefined
-          }
-        />
+        <Empty className="bg-card shadow-sm">
+          <EmptyHeader>
+            <Users size={20} aria-hidden />
+            <EmptyTitle>No Users Yet</EmptyTitle>
+          </EmptyHeader>
+          {canManage ? (
+            <Button className="h-9 rounded-lg" onClick={() => setCreateOpen(true)}>
+              <Plus size={16} strokeWidth={2.25} aria-hidden />
+              Add User
+            </Button>
+          ) : null}
+        </Empty>
         <SubAgentAccessSection />
-        {createModal}
+        {createSheet}
       </div>
     )
   }
@@ -292,13 +337,18 @@ export function UserAccessSection({
     <div className="pd-settings-section">
       {header}
       <div className="pd-user-access">
+        <div className={tableShellClass}>
         <Table aria-label={title}>
           <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Status</TableHead>
+            <TableRow className="hover:bg-transparent border-0">
+              <TableHead className={chromeHeadClass}>User</TableHead>
+              <TableHead className={chromeHeadClass}>Status</TableHead>
               {PAGE_COLUMNS.map((page) => (
-                <TableHead key={page.id} title={page.path}>
+                <TableHead
+                  key={page.id}
+                  title={page.path}
+                  className={chromeHeadClass}
+                >
                   {page.label}
                 </TableHead>
               ))}
@@ -306,16 +356,15 @@ export function UserAccessSection({
           </TableHeader>
           <TableBody>
             {members.map((member) => {
-              const status = statusBadge(member.status)
+              const status = statusMeta(member.status)
+              const StatusIcon = status.icon
               return (
                 <TableRow key={member.id}>
                   <TableCell data-label="User">
                     <span className="pd-user-access__person">
-                      <Avatar
-                        name={member.name}
-                        size="sm"
-                        kind={avatarKindForMemberRole(member.role)}
-                      />
+                      <Avatar size="sm">
+                        <AvatarFallback>{initials(member.name)}</AvatarFallback>
+                      </Avatar>
                       <span className="pd-user-access__person-meta">
                         <span className="pd-user-access__name">
                           {member.name}
@@ -328,7 +377,8 @@ export function UserAccessSection({
                     </span>
                   </TableCell>
                   <TableCell data-label="Status">
-                    <Badge variant={status.variant} icon={status.icon}>
+                    <Badge variant={status.variant}>
+                      <StatusIcon data-icon="inline-start" aria-hidden />
                       {status.label}
                     </Badge>
                   </TableCell>
@@ -338,26 +388,47 @@ export function UserAccessSection({
                       page.path,
                       accessEntries,
                     )
+                    const LevelIcon =
+                      ACCESS_OPTIONS.find((option) => option.value === level)
+                        ?.icon ?? Ban
                     return (
                       <TableCell
                         key={page.id}
                         className="pd-user-access__cell"
                         data-label={page.label}
                       >
-                        <Select
-                          size="sm"
-                          aria-label={`${page.label} access for ${member.name}`}
-                          className={`pd-user-access__select is-${level}`}
+                        <AccessSelect
                           value={level}
-                          options={ACCESS_OPTIONS}
                           disabled={!canManage || member.role === 'owner'}
-                          onChange={(event) => {
+                          onValueChange={(next) => {
                             if (!canManage) return
-                            const next = event.target.value
                             if (!isPageAccessLevel(next)) return
                             setPageAccessLevel(member.id, page.path, next)
                           }}
-                        />
+                        >
+                          <SelectTrigger
+                            aria-label={`${page.label} access for ${member.name}`}
+                            className={`pd-user-access__select is-${level} h-8 w-[6.5rem] rounded-lg`}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ACCESS_OPTIONS.map((option) => {
+                              const Icon = option.icon
+                              return (
+                                <SelectItem key={option.value} value={option.value}>
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <Icon size={14} aria-hidden />
+                                    {option.label}
+                                  </span>
+                                </SelectItem>
+                              )
+                            })}
+                          </SelectContent>
+                        </AccessSelect>
+                        <span className="sr-only">
+                          <LevelIcon aria-hidden />
+                        </span>
                       </TableCell>
                     )
                   })}
@@ -366,9 +437,10 @@ export function UserAccessSection({
             })}
           </TableBody>
         </Table>
+        </div>
       </div>
       <SubAgentAccessSection />
-      {createModal}
+      {createSheet}
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { CASE_SERVICE_OPTIONS } from '@/lib/casesStore'
 import { parseMoneyInput } from '@/lib/caseMoney'
-import { Button, Input, Select, Textarea } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import { Input, Select, Textarea } from '@/components/clients/clientShadcnFields'
 import {
   employeeAssignmentOptions,
   useEmployees,
@@ -158,29 +159,30 @@ export function NewCaseForm({
   }
 
   return (
-    <form className="pd-cases-form" onSubmit={handleSubmit} noValidate>
-      <div className="pd-cases-form__scroll">
-        <div className="pd-cases-form__block">
-          <p className="pd-cases-form__heading">Service</p>
+    <form className="flex h-full min-h-0 flex-col" onSubmit={handleSubmit} noValidate>
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex flex-col gap-4">
+          <p className="m-0 text-sm font-semibold text-foreground">Service</p>
 
-          <div className="pd-cases-form__grid">
-            <Select
-              className="pd-cases-form__full"
-              label="Client"
-              required
-              searchable
-              searchPlaceholder="Search clients…"
-              placeholder="Select client"
-              value={resolvedClientId}
-              onChange={(event) => {
-                setClientId(event.target.value)
-                markTouched('clientId')
-              }}
-              onBlur={blur('clientId')}
-              options={clientOptions}
-              error={fieldError('clientId')}
-              disabled={lockClient}
-            />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Select
+                label="Client"
+                required
+                searchable
+                searchPlaceholder="Search clients…"
+                placeholder="Select client"
+                value={resolvedClientId}
+                onChange={(event) => {
+                  setClientId(event.target.value)
+                  markTouched('clientId')
+                }}
+                onBlur={blur('clientId')}
+                options={clientOptions}
+                error={fieldError('clientId')}
+                disabled={lockClient}
+              />
+            </div>
             <Select
               label="Service"
               required
@@ -244,25 +246,26 @@ export function NewCaseForm({
               placeholder="0"
               error={fieldError('serviceFee')}
             />
-            <Textarea
-              className="pd-cases-form__full"
-              label="Notes"
-              rows={3}
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              onBlur={blur('description')}
-              placeholder="Package, employer, university, or booking notes"
-              error={fieldError('description')}
-            />
+            <div className="sm:col-span-2">
+              <Textarea
+                label="Notes"
+                rows={3}
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                onBlur={blur('description')}
+                placeholder="Package, employer, university, or booking notes"
+                error={fieldError('description')}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="pd-cases-form__footer">
-        <Button type="button" variant="secondary" onClick={onCancel}>
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border px-5 py-4">
+        <Button type="button" variant="outline" className="h-9 rounded-lg" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit">Add service</Button>
+        <Button type="submit" className="h-9 rounded-lg">Add Service</Button>
       </div>
     </form>
   )

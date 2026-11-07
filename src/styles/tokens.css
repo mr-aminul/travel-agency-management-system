@@ -1,15 +1,15 @@
 @import './theme.css';
 
 :root {
-  /* Bridge: primary chrome = darkest (readable on neon seeds) */
-  --primary: var(--color-sidebar);
-  --primary-foreground: var(--color-on-sidebar);
+  /* Bridge: all filled chrome (buttons, stats, table heads) = --color-theme */
+  --primary: var(--color-theme);
+  --primary-foreground: var(--color-on-theme);
   --secondary: var(--color-theme-subtle);
   --secondary-foreground: var(--color-text-primary);
   --accent: var(--color-brand-light);
   --accent-foreground: var(--color-brand);
   --destructive: var(--color-red);
-  --ring: var(--color-sidebar);
+  --ring: var(--color-theme);
   --background: var(--color-surface);
   --foreground: var(--color-text-primary);
 
@@ -21,10 +21,10 @@
   --color-border: var(--color-divider);
   --color-danger: var(--color-red);
 
-  /* Legacy primary names → active-nav accent (seed) */
-  --color-primary: var(--color-active-nav);
-  --color-primary-dark: var(--color-theme-darker);
-  --color-primary-contrast: var(--color-on-active-nav);
+  /* Legacy primary names → same brand blue */
+  --color-primary: var(--color-theme);
+  --color-primary-dark: var(--color-theme);
+  --color-primary-contrast: var(--color-on-theme);
 
   --font-heading: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Inter', sans-serif;

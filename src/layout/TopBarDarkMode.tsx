@@ -5,7 +5,12 @@ import {
   saveAgencyAppearance,
 } from '@/lib/agencyAppearance'
 import { getActiveTenantId } from '@/lib/authApi'
-import { Tooltip } from '@/components/ui'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/shadcn/tooltip'
 
 const THEME_TRANSITION_MS = 450
 
@@ -103,21 +108,28 @@ export function TopBarDarkMode() {
   )
 
   return (
-    <Tooltip content={isDark ? 'Light mode' : 'Dark mode'} side="bottom">
-      <button
-        ref={buttonRef}
-        type="button"
-        className="pd-topbar__icon-btn pd-topbar__dark-btn"
-        onClick={handleToggle}
-        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-        aria-pressed={isDark}
-      >
-        {isDark ? (
-          <Sun size={16} strokeWidth={2} aria-hidden />
-        ) : (
-          <Moon size={16} strokeWidth={2} aria-hidden />
-        )}
-      </button>
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            ref={buttonRef}
+            type="button"
+            className="pd-topbar__icon-btn pd-topbar__dark-btn"
+            onClick={handleToggle}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-pressed={isDark}
+          >
+            {isDark ? (
+              <Sun size={16} strokeWidth={2} aria-hidden />
+            ) : (
+              <Moon size={16} strokeWidth={2} aria-hidden />
+            )}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {isDark ? 'Light Mode' : 'Dark Mode'}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }

@@ -8,8 +8,19 @@ import { publicUrl } from '@/lib/publicUrl'
 import { validateRequiredPassword } from '@/lib/fieldValidation'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import type { TenantMemberRole, UserRole } from '@/types/tenant'
-import { Button, Input } from '@/components/ui'
-import '@/styles/layout-login.css'
+import { Button } from '@/components/shadcn/button'
+import { Input } from '@/components/clients/clientShadcnFields'
+import {
+  authActionsClass,
+  authBrandClass,
+  authCardClass,
+  authCornerLogoClass,
+  authFormClass,
+  authPageBackgroundStyle,
+  authShellClass,
+  authTextLinkClass,
+  authTitleClass,
+} from './authShell'
 
 export default function AcceptInvitePage() {
   const { token = '' } = useParams()
@@ -106,48 +117,45 @@ export default function AcceptInvitePage() {
   }
 
   return (
-    <div className="pd-login">
+    <div className={authShellClass} style={authPageBackgroundStyle}>
       <img
         src={publicUrl('images/logo.svg')}
         alt={layoutConfig.brand.name}
-        className="pd-login__corner-logo"
+        className={authCornerLogoClass}
         width={86}
         height={44}
         decoding="async"
       />
-      <div className="pd-login__card">
-        <div className="pd-login__brand">
-          <h1 className="pd-login__title">
+      <div className={authCardClass}>
+        <div className={authBrandClass}>
+          <h1 className={authTitleClass}>
             {invite?.agencyName ?? 'Join'}
           </h1>
         </div>
         {loadError ? (
-          <div className="pd-login__actions">
-            <p className="pd-field__error" role="alert">
+          <div className={authActionsClass}>
+            <p className="m-0 text-sm text-destructive" role="alert">
               {loadError}
             </p>
-            <Link to="/login" className="pd-login__text-link">
+            <Link to="/login" className={authTextLinkClass}>
               Go to login
             </Link>
           </div>
         ) : (
-          <form className="pd-login__form" onSubmit={handleSubmit} noValidate>
+          <form className={authFormClass} onSubmit={handleSubmit} noValidate>
             <Input
               label="Your name"
-              labelVariant="default"
               value={invite?.name ?? ''}
               readOnly
             />
             <Input
               label="Email"
-              labelVariant="default"
               type="email"
               value={invite?.email ?? ''}
               readOnly
             />
             <Input
               label="Password"
-              labelVariant="default"
               type="password"
               autoComplete="new-password"
               value={password}
@@ -158,7 +166,6 @@ export default function AcceptInvitePage() {
             />
             <Input
               label="Confirm password"
-              labelVariant="default"
               type="password"
               autoComplete="new-password"
               value={confirm}
@@ -168,12 +175,17 @@ export default function AcceptInvitePage() {
               error={showError('confirm') ? confirmError : undefined}
             />
             {error ? (
-              <p className="pd-field__error" role="alert">
+              <p className="m-0 text-sm text-destructive" role="alert">
                 {error}
               </p>
             ) : null}
-            <Button type="submit" size="lg" loading={isSubmitting}>
-              Create account
+            <Button
+              type="submit"
+              size="lg"
+              className="h-[2.875rem] w-full rounded-lg font-semibold"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Creating…' : 'Create Account'}
             </Button>
           </form>
         )}

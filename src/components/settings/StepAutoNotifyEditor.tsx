@@ -1,4 +1,5 @@
-import { Select, Switch } from '@/components/ui'
+import { Select } from '@/components/clients/clientShadcnFields'
+import { LabeledSwitch } from '@/components/clients/LabeledSwitch'
 import { useSmsTemplates } from '@/lib/smsTemplatesStore'
 import type { ServiceStepAutoNotify } from '@/types/serviceTemplate'
 
@@ -72,7 +73,7 @@ export function StepAutoNotifyEditor({
       </span>
 
       <div className="pd-step-auto-notify__row">
-        <Switch
+        <LabeledSwitch
           className="pd-step-auto-notify__switch"
           label="SMS"
           checked={smsOn}
@@ -80,8 +81,7 @@ export function StepAutoNotifyEditor({
         />
         {smsOn ? (
           <Select
-            label="SMS template"
-            size="sm"
+            label="SMS Template"
             options={smsOptions}
             value={value?.smsTemplateId ?? ''}
             onChange={(event) =>
@@ -92,7 +92,7 @@ export function StepAutoNotifyEditor({
       </div>
 
       <div className="pd-step-auto-notify__row">
-        <Switch
+        <LabeledSwitch
           className="pd-step-auto-notify__switch"
           label="Email"
           checked={emailOn}
@@ -100,8 +100,7 @@ export function StepAutoNotifyEditor({
         />
         {emailOn ? (
           <Select
-            label="Email template"
-            size="sm"
+            label="Email Template"
             options={emailOptions}
             value={value?.emailTemplateId ?? ''}
             onChange={(event) =>

@@ -19,9 +19,15 @@ import {
 } from '@/lib/billing/planCatalog'
 import { useBilling } from '@/lib/billing/useBilling'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
-import { Badge, Button, Input, Progress, Select } from '@/components/ui'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
 import { cx } from '@/lib/cx'
 import type { BillingInvoice, PlanTemplate } from '@/types/billing'
+import {
+  adminQuietClass,
+  adminRowActionsClass,
+} from '@/components/admin/adminChrome'
 import '@/styles/layout-billing.css'
 
 type Props = {
@@ -31,20 +37,37 @@ type Props = {
 
 function badgeVariant(
   status: string,
-): 'neutral' | 'completed' | 'pending' | 'in-progress' | 'danger' {
-  if (status === 'active' || status === 'paid') return 'completed'
-  if (status === 'trial' || status === 'open') return 'in-progress'
-  if (status === 'past_due' || status === 'pending_review') return 'pending'
+): 'default' | 'secondary' | 'outline' | 'destructive' {
+  if (status === 'active' || status === 'paid') return 'default'
+  if (status === 'trial' || status === 'open') return 'secondary'
+  if (status === 'past_due' || status === 'pending_review') return 'outline'
   if (status === 'suspended' || status === 'canceled' || status === 'failed') {
-    return 'danger'
+    return 'destructive'
   }
-  return 'neutral'
+  return 'secondary'
 }
 
 function meterClass(tone: string): string {
   if (tone === 'full') return 'is-full'
   if (tone === 'warn') return 'is-warn'
   return ''
+}
+
+function MeterProgress({ value, max = 100 }: { value: number; max?: number }) {
+  const safeMax = max <= 0 ? 100 : max
+  const clamped = Math.min(safeMax, Math.max(0, value))
+  const percent = Math.round((clamped / safeMax) * 100)
+  return (
+    <div
+      className="h-1.5 overflow-hidden rounded-full bg-muted"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={safeMax}
+      aria-valuenow={clamped}
+    >
+      <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
+    </div>
+  )
 }
 
 export function BillingSettingsSection({ title, info }: Props) {
@@ -189,7 +212,7 @@ export function BillingSettingsSection({ title, info }: Props) {
           <h2 className="pd-settings-panel__title">{title}</h2>
           <SettingsInfo title={title} body={info} />
         </div>
-        <p className="pd-admin__quiet" role="status">
+        <p className={adminQuietClass} role="status">
           Billing runs on the live platform API. Plans below are for reference.
         </p>
         <div className="pd-billing__plans">
@@ -222,7 +245,7 @@ export function BillingSettingsSection({ title, info }: Props) {
       </div>
 
       {loading ? (
-        <p className="pd-admin__quiet">Loading billing…</p>
+        <p className={adminQuietClass}>Loading billing…</p>
       ) : null}
       {error ? (
         <p className="pd-settings-form__status pd-settings-form__status--error" role="alert">
@@ -285,7 +308,7 @@ export function BillingSettingsSection({ title, info }: Props) {
                     {snapshot.usage.seatCommit}/{snapshot.limits.userLimit}
                   </span>
                 </div>
-                <Progress
+                <MeterProgress
                   value={snapshot.usage.seatCommit}
                   max={Math.max(1, snapshot.limits.userLimit)}
                 />
@@ -308,7 +331,7 @@ export function BillingSettingsSection({ title, info }: Props) {
                     {snapshot.usage.subAgents}/{snapshot.limits.subAgentLimit}
                   </span>
                 </div>
-                <Progress
+                <MeterProgress
                   value={snapshot.usage.subAgents}
                   max={Math.max(1, snapshot.limits.subAgentLimit)}
                 />
@@ -322,7 +345,7 @@ export function BillingSettingsSection({ title, info }: Props) {
                 <div className="pd-billing__meter-label">
                   <span>Storage</span>
                 </div>
-                <Progress
+                <MeterProgress
                   value={snapshot.usage.storageBytes}
                   max={Math.max(1, snapshot.limits.storageLimitBytes)}
                 />
@@ -348,7 +371,7 @@ export function BillingSettingsSection({ title, info }: Props) {
                       : `${snapshot.usage.smsSent}/${snapshot.limits.smsLimit}`}
                   </span>
                 </div>
-                <Progress
+                <MeterProgress
                   value={
                     snapshot.billing?.smsEnabled === false ||
                     snapshot.billing?.agencySmsEnabled === false
@@ -415,26 +438,27 @@ export function BillingSettingsSection({ title, info }: Props) {
 
               {openInvoice.status === 'open' ? (
                 onlineCheckout ? (
-                  <div className="pd-admin__row-actions">
+                  <div className={adminRowActionsClass}>
                     <Button
+                      className="h-9 rounded-lg"
                       onClick={() => void handlePayOnline()}
                       disabled={busyPlanId === 'pay-online'}
                     >
                       {busyPlanId === 'pay-online'
                         ? 'Opening Paymently…'
-                        : 'Pay online'}
+                        : 'Pay Online'}
                     </Button>
                   </div>
                 ) : (
                   <>
                     <div className="pd-billing__pay-grid">
                       <Select
-                        label="Payment method"
+                        label="Payment Method"
                         value={paymentMethod}
                         options={[
                           { value: 'bkash', label: 'bKash' },
                           { value: 'nagad', label: 'Nagad' },
-                          { value: 'bank', label: 'Bank transfer' },
+                          { value: 'bank', label: 'Bank Transfer' },
                           { value: 'other', label: 'Other' },
                         ]}
                         onChange={(e) => setPaymentMethod(e.target.value)}
@@ -453,8 +477,9 @@ export function BillingSettingsSection({ title, info }: Props) {
                       onChange={(e) => setPaymentNote(e.target.value)}
                       placeholder="Sender name or account"
                     />
-                    <div className="pd-admin__row-actions">
+                    <div className={adminRowActionsClass}>
                       <Button
+                        className="h-9 rounded-lg"
                         onClick={() => void handleSubmitPayment()}
                         disabled={
                           busyPlanId === 'pay' || !paymentReference.trim()
@@ -462,7 +487,7 @@ export function BillingSettingsSection({ title, info }: Props) {
                       >
                         {busyPlanId === 'pay'
                           ? 'Submitting…'
-                          : 'Submit payment'}
+                          : 'Submit Payment'}
                       </Button>
                     </div>
                   </>
@@ -503,13 +528,13 @@ export function BillingSettingsSection({ title, info }: Props) {
                         {badge ? (
                           <>
                             {' '}
-                            <Badge variant="completed">{badge}</Badge>
+                            <Badge variant="default">{badge}</Badge>
                           </>
                         ) : null}
                         {isTest ? (
                           <>
                             {' '}
-                            <Badge variant="pending">Test</Badge>
+                            <Badge variant="outline">Test</Badge>
                           </>
                         ) : null}
                       </h3>
@@ -527,22 +552,23 @@ export function BillingSettingsSection({ title, info }: Props) {
                       ))}
                     </ul>
                     <Button
-                      variant={isCurrent ? 'ghost' : 'primary'}
+                      variant={isCurrent ? 'ghost' : 'default'}
+                      className="h-9 rounded-lg"
                       disabled={isCurrent || busyPlanId === plan.id}
                       onClick={() => void handleChoosePlan(plan)}
                     >
                       {isCurrent
-                        ? 'Current plan'
+                        ? 'Current Plan'
                         : busyPlanId === plan.id
                           ? onlineCheckout
                             ? 'Opening Paymently…'
                             : 'Starting…'
                           : (cta ??
                             (onlineCheckout
-                              ? 'Pay with Paymently'
+                              ? 'Pay With Paymently'
                               : billing?.billingStatus === 'trial'
-                                ? 'Choose plan'
-                                : 'Switch plan'))}
+                                ? 'Choose Plan'
+                                : 'Switch Plan'))}
                     </Button>
                   </article>
                 )
@@ -579,10 +605,11 @@ export function BillingSettingsSection({ title, info }: Props) {
               <Button
                 variant="ghost"
                 size="sm"
+                className="h-9 rounded-lg"
                 disabled={cancelBusy}
                 onClick={() => void handleCancel()}
               >
-                Cancel subscription
+                Cancel Subscription
               </Button>
             </div>
           ) : null}

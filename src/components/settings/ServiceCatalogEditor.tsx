@@ -1,12 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Trash2 } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Trash2 } from 'lucide-react'
+import { Input, Textarea } from '@/components/clients/clientShadcnFields'
 import { ServiceIconPicker } from '@/components/settings/ServiceIconPicker'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { ServiceTemplateEditor } from '@/components/settings/ServiceTemplateEditor'
+import { Button } from '@/components/shadcn/button'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
 import { renameServiceOnCases } from '@/lib/casesStore'
 import { renameServiceOnClients } from '@/lib/clientsStore'
-import { BackButton, Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
 import {
   deleteCustomService,
   updateCustomService,
@@ -154,7 +156,18 @@ export function ServiceCatalogEditor({
         <p className="pd-settings-service-empty">
           That service is not in the catalog.
         </p>
-        <BackButton to={serviceCatalogPath()} label="Catalog" />
+        <Link
+          to={serviceCatalogPath()}
+          className="pd-back"
+          aria-label="Back to Catalog"
+        >
+          <span
+            className="inline-flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+            aria-hidden
+          >
+            <ArrowLeft size={18} strokeWidth={2.25} />
+          </span>
+        </Link>
       </div>
     )
   }
@@ -184,10 +197,19 @@ export function ServiceCatalogEditor({
     <>
       <div className="pd-settings-catalog-editor">
         <header className="pd-settings-catalog-editor__head">
-          <BackButton
-            label="Catalog"
+          <button
+            type="button"
+            className="pd-back"
+            aria-label="Back to Catalog"
             onClick={() => requestLeave(serviceCatalogPath())}
-          />
+          >
+            <span
+              className="inline-flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+              aria-hidden
+            >
+              <ArrowLeft size={18} strokeWidth={2.25} />
+            </span>
+          </button>
           <div className="pd-settings-catalog-editor__title-row">
             <ServiceIconPicker
               variant="popover"
@@ -245,7 +267,7 @@ export function ServiceCatalogEditor({
             onSubmit={saveIdentity}
           >
             <Input
-              label="Service name"
+              label="Service Name"
               name="customServiceName"
               required
               value={name}
@@ -283,7 +305,7 @@ export function ServiceCatalogEditor({
                 {identityError ?? identityStatus ?? ''}
               </p>
               <Button type="submit" size="sm" disabled={!identityDirty}>
-                Save details
+                Save Details
               </Button>
             </div>
           </form>

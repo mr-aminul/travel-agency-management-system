@@ -8,21 +8,29 @@ import {
 import { authApiConfigured } from '@/lib/billing/platformFlag'
 import { useBilling } from '@/lib/billing/useBilling'
 import {
-  Button,
-  ConfirmDialog,
-  EmptyState,
-  Input,
-  Select,
-  SideDrawer,
-  Switch,
+  chromeHeadClass,
+  floatingSheetClass,
+  tableShellClass,
+} from '@/components/clients/shadcnChrome'
+import { Input, Select, Textarea } from '@/components/clients/clientShadcnFields'
+import { LabeledSwitch } from '@/components/clients/LabeledSwitch'
+import { Button } from '@/components/shadcn/button'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import { Empty, EmptyHeader, EmptyTitle } from '@/components/shadcn/empty'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Textarea,
-} from '@/components/ui'
+} from '@/components/shadcn/table'
 import {
   createSmsTemplate,
   deleteSmsTemplate,
@@ -205,14 +213,14 @@ export function SmsTemplatesSection({
                 </p>
               )}
               {smsError ? (
-                <p className="pd-field__error" role="alert">
+                <p className="m-0 text-sm text-destructive" role="alert">
                   {smsError}
                 </p>
               ) : null}
             </div>
             {/* Super Admin (platform) must allow SMS before agency Admin can toggle. */}
             {platformAllowsSms ? (
-              <Switch
+              <LabeledSwitch
                 className="pd-sms-sending-pref__switch"
                 label={smsSendingOn ? 'On' : 'Off'}
                 checked={smsSendingOn}
@@ -247,12 +255,12 @@ export function SmsTemplatesSection({
                 </p>
               )}
               {emailError ? (
-                <p className="pd-field__error" role="alert">
+                <p className="m-0 text-sm text-destructive" role="alert">
                   {emailError}
                 </p>
               ) : null}
             </div>
-            <Switch
+            <LabeledSwitch
               className="pd-sms-sending-pref__switch"
               label={
                 !platformAllowsEmail
@@ -291,7 +299,7 @@ export function SmsTemplatesSection({
         </h2>
         <SettingsInfo title={title} body={info} />
         <div className="pd-settings-panel__actions">
-          <Button type="button" size="sm" onClick={() => openCreate()}>
+          <Button type="button" className="h-9 rounded-lg" onClick={() => openCreate()}>
             <Plus size={14} />
             Add template
           </Button>
@@ -366,12 +374,13 @@ export function SmsTemplatesSection({
                   </Button>
                 </div>
               </div>
+              <div className={tableShellClass}>
               <Table aria-label={`${group.folder} templates`}>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Template</TableHead>
-                    <TableHead>Preview</TableHead>
-                    <TableHead aria-label="Actions" />
+                  <TableRow className="hover:bg-transparent border-0">
+                    <TableHead className={chromeHeadClass}>Template</TableHead>
+                    <TableHead className={chromeHeadClass}>Preview</TableHead>
+                    <TableHead className={chromeHeadClass} aria-label="Actions" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -411,193 +420,196 @@ export function SmsTemplatesSection({
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </section>
           ))
         ) : (
-          <EmptyState
-            title={
-              channelTab === 'sms'
-                ? 'No SMS templates yet'
-                : 'No email templates yet'
-            }
-            action={
-              <Button type="button" size="sm" onClick={() => openCreate()}>
-                <Plus size={14} />
-                Add template
-              </Button>
-            }
-          />
+          <Empty className="bg-card shadow-sm">
+            <EmptyHeader>
+              <EmptyTitle>
+                {channelTab === 'sms'
+                  ? 'No SMS Templates Yet'
+                  : 'No Email Templates Yet'}
+              </EmptyTitle>
+            </EmptyHeader>
+            <Button type="button" className="h-9 rounded-lg" onClick={() => openCreate()}>
+              <Plus size={14} />
+              Add Template
+            </Button>
+          </Empty>
         )}
       </div>
 
-      <SideDrawer
+      <Sheet
         open={composerOpen}
-        onClose={closeComposer}
-        title={editing ? 'Edit template' : 'New template'}
-        className="pd-settings-drawer"
+        onOpenChange={(next) => {
+          if (!next) closeComposer()
+        }}
       >
-        <form
-          className="pd-settings-catalog__composer"
-          onSubmit={handleSubmit}
-        >
-          <Select
-            label="Type"
-            name="smsTemplateChannel"
-            value={channel}
-            onChange={(event) =>
-              setChannel(event.target.value as MessageTemplateChannel)
-            }
-            options={[
-              { value: 'sms', label: 'SMS template' },
-              { value: 'email', label: 'Email template' },
-            ]}
-          />
-          <Select
-            label="Folder"
-            name="smsTemplateFolder"
-            value={folderChoice}
-            onChange={(event) => setFolderChoice(event.target.value)}
-            options={folderOptions}
-          />
-          {folderChoice === NEW_FOLDER_VALUE ? (
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">
+              {editing ? 'Edit template' : 'New template'}
+            </SheetTitle>
+          </SheetHeader>
+          <form className="flex flex-col gap-4 p-5" onSubmit={handleSubmit}>
+            <Select
+              label="Type"
+              value={channel}
+              onChange={(event) =>
+                setChannel(event.target.value as MessageTemplateChannel)
+              }
+              options={[
+                { value: 'sms', label: 'SMS template' },
+                { value: 'email', label: 'Email template' },
+              ]}
+            />
+            <Select
+              label="Folder"
+              value={folderChoice}
+              onChange={(event) => setFolderChoice(event.target.value)}
+              options={folderOptions}
+            />
+            {folderChoice === NEW_FOLDER_VALUE ? (
+              <Input
+                label="New folder name"
+                name="smsTemplateCustomFolder"
+                value={customFolder}
+                onChange={(event) => {
+                  setCustomFolder(event.target.value)
+                  setError(null)
+                }}
+                onBlur={blur('folder')}
+                error={showError('folder') ? folderError : undefined}
+                required
+                placeholder="e.g. Visa"
+              />
+            ) : null}
             <Input
-              label="New folder name"
-              name="smsTemplateCustomFolder"
-              value={customFolder}
+              label="Template name"
+              name="smsTemplateName"
+              value={name}
               onChange={(event) => {
-                setCustomFolder(event.target.value)
+                setName(event.target.value)
                 setError(null)
               }}
-              onBlur={blur('folder')}
-              error={showError('folder') ? folderError : undefined}
+              onBlur={blur('name')}
+              error={showError('name') ? nameError : undefined}
               required
-              placeholder="e.g. Visa"
+              autoFocus
             />
-          ) : null}
-          <Input
-            label="Template name"
-            name="smsTemplateName"
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value)
-              setError(null)
-            }}
-            onBlur={blur('name')}
-            error={showError('name') ? nameError : undefined}
-            required
-            autoFocus
-          />
-          <Textarea
-            label="Message"
-            name="smsTemplateBody"
-            value={body}
-            onChange={(event) => {
-              setBody(event.target.value)
-              setError(null)
-            }}
-            onBlur={blur('body')}
-            error={showError('body') ? bodyError : undefined}
-            rows={5}
-            required
-          />
-          <div className="pd-sms-template-attrs" aria-label="Insert attribute">
-            {SMS_TEMPLATE_ATTRIBUTES.map((attr) => (
+            <Textarea
+              label="Message"
+              name="smsTemplateBody"
+              value={body}
+              onChange={(event) => {
+                setBody(event.target.value)
+                setError(null)
+              }}
+              onBlur={blur('body')}
+              error={showError('body') ? bodyError : undefined}
+              rows={5}
+              required
+            />
+            <div className="pd-sms-template-attrs" aria-label="Insert attribute">
+              {SMS_TEMPLATE_ATTRIBUTES.map((attr) => (
+                <Button
+                  key={attr.key}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 rounded-lg"
+                  onClick={() => insertAttribute(attr.token)}
+                >
+                  {attr.label}
+                </Button>
+              ))}
+            </div>
+            {error ? (
+              <p className="m-0 text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <div className="mt-1 flex flex-wrap items-center gap-2">
               <Button
-                key={attr.key}
                 type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() => insertAttribute(attr.token)}
+                variant="outline"
+                className="h-9 rounded-lg"
+                onClick={closeComposer}
               >
-                {attr.label}
+                Cancel
               </Button>
-            ))}
-          </div>
-          {error ? (
-            <p
-              className="pd-settings-form__status pd-settings-form__status--error"
-              role="alert"
-            >
-              {error}
-            </p>
-          ) : null}
-          <div className="pd-settings-catalog__composer-actions">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={closeComposer}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" size="sm">
-              {editing ? 'Save template' : 'Add template'}
-            </Button>
-          </div>
-        </form>
-      </SideDrawer>
+              <Button type="submit" className="h-9 rounded-lg">
+                {editing ? 'Save template' : 'Add template'}
+              </Button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
 
-      <SideDrawer
+      <Sheet
         open={renameFrom != null}
-        onClose={() => {
-          setRenameFrom(null)
-          setRenameTo('')
-          setRenameError(null)
+        onOpenChange={(next) => {
+          if (!next) {
+            setRenameFrom(null)
+            setRenameTo('')
+            setRenameError(null)
+          }
         }}
-        title="Rename folder"
-        className="pd-settings-drawer"
       >
-        <form
-          className="pd-settings-catalog__composer"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (!renameFrom) return
-            try {
-              renameSmsTemplateFolder(renameFrom, renameTo, undefined, channelTab)
-              setRenameFrom(null)
-              setRenameTo('')
-              setRenameError(null)
-            } catch (caught) {
-              setRenameError(
-                caught instanceof Error
-                  ? caught.message
-                  : 'Could not rename that folder.',
-              )
-            }
-          }}
-        >
-          <Input
-            label="Folder name"
-            value={renameTo}
-            onChange={(event) => {
-              setRenameTo(event.target.value)
-              setRenameError(null)
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">Rename folder</SheetTitle>
+          </SheetHeader>
+          <form
+            className="flex flex-col gap-4 p-5"
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (!renameFrom) return
+              try {
+                renameSmsTemplateFolder(renameFrom, renameTo, undefined, channelTab)
+                setRenameFrom(null)
+                setRenameTo('')
+                setRenameError(null)
+              } catch (caught) {
+                setRenameError(
+                  caught instanceof Error
+                    ? caught.message
+                    : 'Could not rename that folder.',
+                )
+              }
             }}
-            required
-          />
-          {renameError ? (
-            <p
-              className="pd-settings-form__status pd-settings-form__status--error"
-              role="alert"
-            >
-              {renameError}
-            </p>
-          ) : null}
-          <div className="pd-settings-catalog__composer-actions">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => setRenameFrom(null)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" size="sm">
-              Save folder name
-            </Button>
-          </div>
-        </form>
-      </SideDrawer>
+          >
+            <Input
+              label="Folder name"
+              value={renameTo}
+              onChange={(event) => {
+                setRenameTo(event.target.value)
+                setRenameError(null)
+              }}
+              required
+            />
+            {renameError ? (
+              <p className="m-0 text-sm text-destructive" role="alert">
+                {renameError}
+              </p>
+            ) : null}
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 rounded-lg"
+                onClick={() => setRenameFrom(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" className="h-9 rounded-lg">
+                Save folder name
+              </Button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={pendingDelete != null}

@@ -1,8 +1,16 @@
 import type { LucideIcon } from 'lucide-react'
 import { Sparkline } from '@/components/dashboard/Sparkline'
-import { cx } from '@/lib/cx'
-import '@/styles/layout-ops.css'
+import { Button } from '@/components/shadcn/button'
+import {
+  summaryStatClass,
+  summaryStatGroupClass,
+  summaryStatLabelClass,
+  summaryStatPeekClass,
+  summaryStatValueClass,
+} from '@/components/clients/shadcnChrome'
+import { cn } from '@/lib/utils'
 
+/** @deprecated Tone is ignored; all cards use theme chrome like Clients/Services. */
 export type StatCardTone = 'brand' | 'info' | 'success' | 'warning' | 'muted'
 
 export type StatCardItem = {
@@ -33,71 +41,68 @@ export function StatCards({
   className,
 }: StatCardsProps) {
   return (
-    <div className={cx('pd-ops__metrics', className)} aria-label={label}>
+    <div
+      className={cn(summaryStatGroupClass, className)}
+      role="group"
+      aria-label={label}
+    >
       {cards.map((card) => {
         const Icon = card.icon
         const isSelected = selectedId === card.id
-        const tone = card.tone ?? 'brand'
-        const deltaTone = card.deltaTone ?? 'flat'
-        const className = [
-          'pd-ops-metric-link',
-          `pd-ops-metric-link--${tone}`,
-          isSelected ? 'is-selected' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')
         const body = (
           <>
-            <span className="pd-ops-metric-link__watermark" aria-hidden="true">
-              <Icon size={92} strokeWidth={1.15} />
-            </span>
-            <span className="pd-ops-metric-link__head">
-              <span className="pd-ops-metric-link__icon" aria-hidden>
-                <Icon size={18} />
-              </span>
-              <span className="pd-ops-metric-link__label">{card.label}</span>
+            <Icon
+              className={summaryStatPeekClass}
+              size={76}
+              strokeWidth={1.25}
+              aria-hidden
+            />
+            <span className={summaryStatLabelClass}>
+              <Icon size={14} strokeWidth={1.75} aria-hidden />
+              {card.label}
               {card.delta ? (
-                <span
-                  className={`pd-ops-metric-link__delta pd-ops-metric-link__delta--${deltaTone}`}
-                >
+                <span className="ml-1 text-[0.7rem] font-semibold text-white/70">
                   {card.delta}
                 </span>
               ) : null}
             </span>
-            <span className="pd-ops-metric-link__value-row">
-              <span className="pd-ops-metric-link__value">{card.value}</span>
+            <span className="relative z-[1] flex w-full items-end justify-between gap-2">
+              <span className={summaryStatValueClass}>{card.value}</span>
               {card.sparkline && card.sparkline.length > 1 ? (
                 <Sparkline
                   values={card.sparkline}
-                  tone={deltaTone}
+                  tone={card.deltaTone ?? 'flat'}
                   label={`${card.label} trend`}
                 />
               ) : null}
             </span>
             {card.hint ? (
-              <span className="pd-ops-metric-link__hint">{card.hint}</span>
+              <span className="relative z-[1] text-[0.72rem] font-medium text-white/70">
+                {card.hint}
+              </span>
             ) : null}
           </>
         )
 
         if (!onSelect) {
           return (
-            <div key={card.id} className={className}>
+            <div key={card.id} className={summaryStatClass}>
               {body}
             </div>
           )
         }
 
         return (
-          <button
+          <Button
             key={card.id}
             type="button"
-            className={className}
+            variant="ghost"
+            className={summaryStatClass}
             aria-pressed={isSelected}
             onClick={() => onSelect(card.id)}
           >
             {body}
-          </button>
+          </Button>
         )
       })}
     </div>

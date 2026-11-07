@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import { Check, ChevronDown, Link2, Plus, UserPlus } from 'lucide-react'
 import { getActiveTenantId } from '@/lib/authApi'
 import { agencyClientFormUrl, subAgentClientFormUrl } from '@/lib/publicUrl'
-import { Button, DropdownMenu } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/shadcn/dropdown-menu'
 
 async function copyText(value: string) {
   try {
@@ -22,7 +28,6 @@ async function copyText(value: string) {
 
 type AddClientSplitButtonProps = {
   onAddClient: () => void
-  /** When set, the copied form onboards clients under this sub agent. */
   subAgentId?: string
   size?: 'sm' | 'md'
   label?: string
@@ -31,12 +36,10 @@ type AddClientSplitButtonProps = {
 export function AddClientSplitButton({
   onAddClient,
   subAgentId,
-  size = 'sm',
   label = 'Add Client',
 }: AddClientSplitButtonProps) {
   const [copied, setCopied] = useState(false)
-  const Icon = label === 'New client' ? Plus : UserPlus
-  const iconSize = size === 'sm' ? 14 : 16
+  const Icon = label === 'New client' || label === 'New Client' ? Plus : UserPlus
 
   useEffect(() => {
     if (!copied) return
@@ -53,40 +56,34 @@ export function AddClientSplitButton({
   }
 
   return (
-    <div className={`pd-split-btn pd-split-btn--${size}`}>
-      <Button size={size} className="pd-split-btn__main" onClick={onAddClient}>
-        <Icon size={iconSize} strokeWidth={2.25} aria-hidden />
+    <div className="inline-flex rounded-lg shadow-xs">
+      <Button
+        type="button"
+        size="lg"
+        className="rounded-l-lg rounded-r-none border-r-0 shadow-none"
+        onClick={onAddClient}
+      >
+        <Icon data-icon="inline-start" />
         {label}
       </Button>
-      <DropdownMenu
-        label="More client actions"
-        align="end"
-        items={[
-          {
-            id: 'copy-form',
-            label: copied ? 'Copied' : 'Copy Form Link',
-            icon: copied ? (
-              <Check size={14} strokeWidth={2.25} />
-            ) : (
-              <Link2 size={14} strokeWidth={2.25} />
-            ),
-            onSelect: () => {
-              void copyFormLink()
-            },
-          },
-        ]}
-        trigger={
-          <ChevronDown
-            size={iconSize}
-            strokeWidth={2.25}
-            aria-hidden
-          />
-        }
-        triggerProps={{
-          'aria-label': 'Copy Form Link',
-          title: 'Copy Form Link',
-        }}
-      />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            size="lg"
+            className="-ml-px w-9 rounded-l-none rounded-r-lg border-l border-l-white/25 px-0 shadow-none"
+            aria-label="Copy Form Link"
+          >
+            <ChevronDown />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-auto min-w-40">
+          <DropdownMenuItem className="whitespace-nowrap" onSelect={() => void copyFormLink()}>
+            {copied ? <Check /> : <Link2 />}
+            {copied ? 'Copied' : 'Copy Form Link'}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

@@ -8,7 +8,8 @@ import {
   FileWarning,
   ListTodo,
 } from 'lucide-react'
-import { FilterChip, FilterChips } from '@/components/ui'
+import { filterChipClass } from '@/components/clients/shadcnChrome'
+import { cn } from '@/lib/utils'
 import { useCases } from '@/lib/casesStore'
 import { useClients } from '@/lib/clientsStore'
 import { useRequests } from '@/lib/requestsStore'
@@ -142,22 +143,30 @@ function TodayChasePanel({
 
       {total === 0 ? null : (
         <>
-          <FilterChips label="Follow-up type" className="pd-today__chips">
+          <nav
+            className="pd-today__chips flex flex-wrap items-center gap-2"
+            aria-label="Follow-up type"
+          >
             {TODAY_BUCKETS.map((item) => {
               const count = summary[item.id].items.length
               if (count === 0) return null
               return (
-                <FilterChip
+                <button
                   key={item.id}
-                  active={activeBucket === item.id}
+                  type="button"
+                  aria-pressed={activeBucket === item.id}
+                  className={cn(
+                    filterChipClass(activeBucket === item.id),
+                    'inline-flex items-center',
+                  )}
                   onClick={() => setBucket(item.id)}
                 >
                   {item.label}
                   <span className="pd-today__chip-count">{count}</span>
-                </FilterChip>
+                </button>
               )
             })}
-          </FilterChips>
+          </nav>
 
           {rows.length === 0 ? (
             <p className="pd-today__empty">{emptyCopy}</p>

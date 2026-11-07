@@ -1,5 +1,4 @@
 import type { LucideIcon } from 'lucide-react'
-import { type BadgeVariant } from '@/components/ui'
 import {
   BookOpen,
   Briefcase,
@@ -39,12 +38,12 @@ export type ComplianceDocument = CaseDocument & {
 
 const STATUS_BADGE: Record<
   CaseDocumentStatus,
-  { label: string; variant: BadgeVariant }
+  { label: string; variant: 'secondary' }
 > = {
-  approved: { label: 'On file', variant: 'neutral' },
-  under_review: { label: 'Saved', variant: 'neutral' },
-  missing: { label: 'Open', variant: 'neutral' },
-  not_due: { label: 'Later', variant: 'neutral' },
+  approved: { label: 'On File', variant: 'secondary' },
+  under_review: { label: 'Saved', variant: 'secondary' },
+  missing: { label: 'Open', variant: 'secondary' },
+  not_due: { label: 'Later', variant: 'secondary' },
 }
 
 const ICON_MAP: Record<CaseDocumentIcon, LucideIcon> = {

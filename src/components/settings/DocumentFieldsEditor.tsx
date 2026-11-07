@@ -1,5 +1,16 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { Button, Checkbox, Input, Select, Textarea } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import { Checkbox } from '@/components/shadcn/checkbox'
+import { Field, FieldLabel } from '@/components/shadcn/field'
+import { Input } from '@/components/shadcn/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
+import { Textarea } from '@/components/shadcn/textarea'
 import { cx } from '@/lib/cx'
 import { requiredKeysForDocument } from '@/lib/documentFormFieldsStore'
 import type {
@@ -89,13 +100,16 @@ export function DocumentFieldsEditor({
     const key = keyFromLabel('New field', used)
     onChange([
       ...fields,
-      { key, label: 'New field', type: 'text', required: false },
+      {
+        key,
+        label: 'New field',
+        type: 'text',
+        required: false,
+      },
     ])
   }
 
   const removeField = (index: number) => {
-    const target = fields[index]
-    if (!target || lockedKeys.has(target.key)) return
     onChange(fields.filter((_, i) => i !== index))
   }
 
@@ -108,11 +122,11 @@ export function DocumentFieldsEditor({
     >
       <div className="pd-settings-doc-fields__head">
         <span className="pd-settings-doc-fields__title">
-          {isCompact ? `Fields (${fields.length})` : 'Fields to fill in'}
+          {isCompact ? `Fields (${fields.length})` : 'Fields To Fill In'}
         </span>
         <Button type="button" variant="ghost" size="sm" onClick={addField}>
           <Plus size={14} />
-          {isCompact ? 'Add' : 'Add field'}
+          {isCompact ? 'Add' : 'Add Field'}
         </Button>
       </div>
       {fields.length === 0 ? (
@@ -125,6 +139,7 @@ export function DocumentFieldsEditor({
         <ul className="pd-settings-doc-fields__list">
           {fields.map((field, index) => {
             const locked = lockedKeys.has(field.key)
+            const reqId = `doc-field-req-${index}`
             return (
               <li
                 key={`${field.key}-${index}`}
@@ -140,30 +155,48 @@ export function DocumentFieldsEditor({
                     }
                   />
                   <Select
-                    aria-label={`Type for ${field.label || `field ${index + 1}`}`}
                     value={field.type}
-                    onChange={(event) => {
-                      const type = event.target.value as DocumentFormFieldType
+                    onValueChange={(type) => {
                       updateField(index, {
-                        type,
+                        type: type as DocumentFormFieldType,
                         ...(type === 'select' && !(field.options?.length)
                           ? { options: ['Fit', 'Unfit'] }
                           : {}),
                       })
                     }}
-                    options={TYPE_OPTIONS}
-                  />
-                  <Checkbox
+                  >
+                    <SelectTrigger
+                      aria-label={`Type for ${field.label || `field ${index + 1}`}`}
+                      className="h-9"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Field
+                    orientation="horizontal"
                     className={
                       isCompact ? 'pd-settings-doc-fields__req' : undefined
                     }
-                    label={isCompact ? 'Req' : 'Required'}
-                    title={locked ? 'Linked to client profile' : undefined}
-                    checked={Boolean(field.required)}
-                    onChange={(event) =>
-                      updateField(index, { required: event.target.checked })
-                    }
-                  />
+                  >
+                    <Checkbox
+                      id={reqId}
+                      title={locked ? 'Linked to client profile' : undefined}
+                      checked={Boolean(field.required)}
+                      onCheckedChange={(checked) =>
+                        updateField(index, { required: checked === true })
+                      }
+                    />
+                    <FieldLabel htmlFor={reqId}>
+                      {isCompact ? 'Req' : 'Required'}
+                    </FieldLabel>
+                  </Field>
                   <Button
                     type="button"
                     variant="ghost"
@@ -183,8 +216,7 @@ export function DocumentFieldsEditor({
                 {field.type === 'select' ? (
                   <Textarea
                     aria-label={`Choices for ${field.label || `field ${index + 1}`}`}
-                    label={isCompact ? undefined : 'Choices'}
-                    rows={isCompact ? 2 : 2}
+                    rows={2}
                     placeholder={'Fit\nUnfit'}
                     value={optionsText(field)}
                     onChange={(event) =>

@@ -12,7 +12,8 @@ import { useAuth } from '@/lib/auth'
 import { postLoginPath } from '@/lib/authWorkspaces'
 import { publicUrl } from '@/lib/publicUrl'
 import { marketingHomeUrl } from '@/lib/siteOrigins'
-import { Button, Input, Select } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
 import {
   validateRequiredEmail,
   validateRequiredName,
@@ -20,7 +21,18 @@ import {
 } from '@/lib/fieldValidation'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import type { PlanTemplate } from '@/types/billing'
-import '@/styles/layout-login.css'
+import {
+  authActionsClass,
+  authBrandClass,
+  authBrandLogoClass,
+  authCardClass,
+  authCornerLogoClass,
+  authFormClass,
+  authPageBackgroundStyle,
+  authShellClass,
+  authTextLinkClass,
+  authTitleClass,
+} from '@/pages/auth/authShell'
 
 function sessionFromSubscribe(result: {
   accessToken: string | null
@@ -152,43 +164,43 @@ export default function SubscribePage() {
   }
 
   return (
-    <div className="pd-login">
+    <div className={authShellClass} style={authPageBackgroundStyle}>
       <img
         src={publicUrl('images/logo.svg')}
         alt={layoutConfig.brand.name}
-        className="pd-login__corner-logo"
+        className={authCornerLogoClass}
         width={86}
         height={44}
         decoding="async"
       />
 
-      <div className="pd-login__card">
-        <div className="pd-login__brand">
+      <div className={authCardClass}>
+        <div className={authBrandClass}>
           {layoutConfig.brand.logoUrl ? (
-            <div className="pd-app-logo pd-login__brand-logo">
+            <div className={authBrandLogoClass}>
               <img
                 src={layoutConfig.brand.logoUrl}
                 alt=""
                 width={48}
                 height={48}
                 decoding="async"
+                className="block size-full object-contain"
               />
             </div>
           ) : null}
-          <h1 className="pd-login__title">Start OneTrack</h1>
+          <h1 className={authTitleClass}>Start OneTrack</h1>
         </div>
 
-        <div className="pd-login__actions">
-          <form className="pd-login__form" onSubmit={handleSubmit}>
+        <div className={authActionsClass}>
+          <form className={authFormClass} onSubmit={handleSubmit}>
             {plansError ? (
-              <p className="pd-field__error" role="alert">
+              <p className="m-0 text-sm text-destructive" role="alert">
                 {plansError}
               </p>
             ) : null}
 
             <Select
               label="Plan"
-              labelVariant="default"
               value={planId}
               disabled={isSubmitting || plans.length === 0}
               options={plans.map((plan) => ({
@@ -199,8 +211,7 @@ export default function SubscribePage() {
             />
 
             <Input
-              label="Agency name"
-              labelVariant="default"
+              label="Agency Name"
               autoComplete="organization"
               value={agencyName}
               disabled={isSubmitting}
@@ -210,8 +221,7 @@ export default function SubscribePage() {
               required
             />
             <Input
-              label="Your name"
-              labelVariant="default"
+              label="Your Name"
               autoComplete="name"
               value={ownerName}
               disabled={isSubmitting}
@@ -221,8 +231,7 @@ export default function SubscribePage() {
               required
             />
             <Input
-              label="Work email"
-              labelVariant="default"
+              label="Work Email"
               type="email"
               autoComplete="email"
               value={ownerEmail}
@@ -234,7 +243,6 @@ export default function SubscribePage() {
             />
             <Input
               label="Password"
-              labelVariant="default"
               type="password"
               autoComplete="new-password"
               value={ownerPassword}
@@ -246,20 +254,25 @@ export default function SubscribePage() {
             />
 
             {error ? (
-              <p className="pd-field__error" role="alert">
+              <p className="m-0 text-sm text-destructive" role="alert">
                 {error}
               </p>
             ) : null}
 
-            <Button type="submit" size="lg" loading={isSubmitting}>
-              Continue to payment
+            <Button
+              type="submit"
+              size="lg"
+              className="h-9 rounded-lg"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Starting…' : 'Continue To Payment'}
               <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
             </Button>
 
-            <Link to="/login" className="pd-login__text-link">
+            <Link to="/login" className={authTextLinkClass}>
               Already have an account? Sign in
             </Link>
-            <a href={marketingHomeUrl()} className="pd-login__text-link">
+            <a href={marketingHomeUrl()} className={authTextLinkClass}>
               Back to OneTrack
             </a>
           </form>

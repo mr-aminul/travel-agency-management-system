@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Tooltip } from '@/components/ui'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/shadcn/tooltip'
 import {
   ChevronDown,
   PanelLeftClose,
@@ -116,15 +121,15 @@ function NavItemLink({
 
   if (!collapsed) return link
 
+  // Wrapper trigger: Radix asChild + NavLink's function className drops nav classes.
   return (
-    <Tooltip
-      content={
-        badgeCount > 0 ? `${label} (${badgeCount} needing attention)` : label
-      }
-      side="right"
-      className="pd-sidebar-nav__tooltip"
-    >
-      {link}
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="pd-sidebar-nav__tooltip-trigger">{link}</span>
+      </TooltipTrigger>
+      <TooltipContent side="right">
+        {badgeCount > 0 ? `${label} (${badgeCount} needing attention)` : label}
+      </TooltipContent>
     </Tooltip>
   )
 }
@@ -180,16 +185,15 @@ function NavItemGroup({
     )
 
     return (
-      <Tooltip
-        content={
-          badgeCount > 0
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="pd-sidebar-nav__tooltip-trigger">{link}</span>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          {badgeCount > 0
             ? `${item.label} (${badgeCount} needing attention)`
-            : item.label
-        }
-        side="right"
-        className="pd-sidebar-nav__tooltip"
-      >
-        {link}
+            : item.label}
+        </TooltipContent>
       </Tooltip>
     )
   }
@@ -470,7 +474,7 @@ export function Sidebar({
 
   if (isMobile) {
     return (
-      <>
+      <TooltipProvider delayDuration={120}>
         <div
           className={`pd-app-sidebar__backdrop${isMobileOpen ? ' is-open' : ''}`}
           onClick={onMobileClose}
@@ -481,37 +485,39 @@ export function Sidebar({
         >
           <div className="pd-app-sidebar__inner">{inner}</div>
         </aside>
-      </>
+      </TooltipProvider>
     )
   }
 
   return (
-    <aside
-      className={`pd-app-sidebar${collapsed ? ' pd-app-sidebar--collapsed' : ''}`}
-      style={{
-        width: collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED,
-      }}
-      onMouseEnter={
-        isManual
-          ? undefined
-          : () => {
-            clearHoverClose()
-            setHovered(true)
-          }
-      }
-      onMouseLeave={
-        isManual
-          ? undefined
-          : () => {
-            clearHoverClose()
-            hoverCloseRef.current = setTimeout(
-              () => setHovered(false),
-              HOVER_CLOSE_DELAY_MS,
-            )
-          }
-      }
-    >
-      <div className="pd-app-sidebar__inner">{inner}</div>
-    </aside>
+    <TooltipProvider delayDuration={120}>
+      <aside
+        className={`pd-app-sidebar${collapsed ? ' pd-app-sidebar--collapsed' : ''}`}
+        style={{
+          width: collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED,
+        }}
+        onMouseEnter={
+          isManual
+            ? undefined
+            : () => {
+              clearHoverClose()
+              setHovered(true)
+            }
+        }
+        onMouseLeave={
+          isManual
+            ? undefined
+            : () => {
+              clearHoverClose()
+              hoverCloseRef.current = setTimeout(
+                () => setHovered(false),
+                HOVER_CLOSE_DELAY_MS,
+              )
+            }
+        }
+      >
+        <div className="pd-app-sidebar__inner">{inner}</div>
+      </aside>
+    </TooltipProvider>
   )
 }

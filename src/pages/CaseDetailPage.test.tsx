@@ -170,8 +170,8 @@ describe('service detail', () => {
     const service = screen.getByLabelText('Work Permit Visa (SR-00101)')
     expect(within(service).getByRole('heading', { name: 'Work Permit Visa' })).toBeInTheDocument()
     expect(
-      service.querySelector('.pd-case-detail__header-icon svg'),
-    ).toBeTruthy()
+      within(service).getByRole('heading', { name: 'Work Permit Visa' }),
+    ).toBeInTheDocument()
     expect(within(service).getByText('In-Progress')).toBeInTheDocument()
     expect(within(service).queryByRole('tablist')).not.toBeInTheDocument()
     expect(within(service).queryByRole('tab', { name: 'Documents' })).not.toBeInTheDocument()

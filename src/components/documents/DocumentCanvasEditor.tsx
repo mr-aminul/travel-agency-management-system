@@ -15,6 +15,7 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  ArrowLeft,
   Bold,
   Eye,
   Heading1,
@@ -28,9 +29,18 @@ import {
   Search,
   Trash2,
   Underline as UnderlineIcon,
+  X,
 } from 'lucide-react'
-import { BackButton, Button, Input, SearchField, Select } from '@/components/ui'
+import {
+  elevatedPageClass,
+  pureWhiteFieldClass as whiteFieldClass,
+  pureWhiteOutlineClass as whiteOutlineClass,
+} from '@/components/clients/shadcnChrome'
+import { Button } from '@/components/shadcn/button'
+import { Input as ShadcnInput } from '@/components/shadcn/input'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
 import { cx } from '@/lib/cx'
+import { cn } from '@/lib/utils'
 import { DEFAULT_BRAND_NAME } from '@/lib/agencyProfile'
 import { useAgencyProfile } from '@/layout/useAgencyProfile'
 import { useClients } from '@/lib/clientsStore'
@@ -54,6 +64,7 @@ import {
   type DocumentTemplateDraft,
 } from '@/types/documentTemplate'
 import type { Client } from '@/types/client'
+import '@/styles/layout-clients.css'
 
 const DIRECTION_OPTIONS = [
   { value: 'ltr', label: 'Left to right' },
@@ -397,27 +408,43 @@ export function DocumentCanvasEditor({
 
   return (
     <div
-      className={cx(
+      className={cn(
+        elevatedPageClass,
         'pd-doc-canvas',
         mode === 'preview' && 'pd-doc-canvas--preview',
       )}
+      data-elevated-canvas
       aria-label="Document template editor"
     >
       <header className="pd-doc-canvas__top pd-doc-canvas__no-print">
         <div className="pd-doc-canvas__top-start">
-          <BackButton label="documents" onClick={onCancel} />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className={cn(whiteOutlineClass, 'size-9')}
+            aria-label="Back to documents"
+            onClick={onCancel}
+          >
+            <ArrowLeft size={18} strokeWidth={2.25} aria-hidden />
+          </Button>
           <div className="pd-doc-canvas__identity">
-            <Input
+            <ShadcnInput
               aria-label="Template name"
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Template name"
+              className={whiteFieldClass}
             />
           </div>
         </div>
         <div className="pd-doc-canvas__top-actions">
           <Button
-            variant={mode === 'preview' ? 'primary' : 'secondary'}
+            variant={mode === 'preview' ? 'default' : 'outline'}
+            className={cn(
+              'h-9 rounded-lg',
+              mode !== 'preview' && whiteOutlineClass,
+            )}
             onClick={() =>
               setMode((current) => (current === 'edit' ? 'preview' : 'edit'))
             }
@@ -432,13 +459,23 @@ export function DocumentCanvasEditor({
               </>
             )}
           </Button>
-          <Button variant="secondary" onClick={handlePrint}>
+          <Button
+            variant="outline"
+            className={whiteOutlineClass}
+            onClick={handlePrint}
+          >
             <Printer size={16} /> Print
           </Button>
-          <Button variant="secondary" onClick={onCancel}>
+          <Button
+            variant="outline"
+            className={whiteOutlineClass}
+            onClick={onCancel}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave}>{submitLabel}</Button>
+          <Button className="h-9 rounded-lg" onClick={handleSave}>
+            {submitLabel}
+          </Button>
         </div>
       </header>
 
@@ -455,30 +492,34 @@ export function DocumentCanvasEditor({
 
       <div className="pd-doc-canvas__meta pd-doc-canvas__no-print">
         <Select
-          label="Text direction"
+          label="Text Direction"
           value={direction}
           options={DIRECTION_OPTIONS}
+          className={whiteFieldClass}
           onChange={(event) =>
             setDirection(event.target.value === 'rtl' ? 'rtl' : 'ltr')
           }
         />
         <Input
-          label="Printed title"
+          label="Printed Title"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Optional heading on the page"
+          className={whiteFieldClass}
         />
         <Input
-          label="License number"
+          label="License"
           value={licenseNo}
           onChange={(event) => setLicenseNo(event.target.value)}
           placeholder="Used by License no. field"
+          className={whiteFieldClass}
         />
         <Input
-          label="Destination country"
+          label="Country"
           value={country}
           onChange={(event) => setCountry(event.target.value)}
           placeholder="Used by Country field"
+          className={whiteFieldClass}
         />
       </div>
 
@@ -495,12 +536,26 @@ export function DocumentCanvasEditor({
                   Pick a real client to see how fields fill, or keep the sample
                   data.
                 </p>
-                <SearchField
-                  value={previewQuery}
-                  onChange={(event) => setPreviewQuery(event.target.value)}
-                  onClear={() => setPreviewQuery('')}
-                  placeholder="Search client…"
-                />
+                <div className="relative">
+                  <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <ShadcnInput
+                    className={cn('pl-8 pr-8', whiteFieldClass)}
+                    value={previewQuery}
+                    onChange={(event) => setPreviewQuery(event.target.value)}
+                    placeholder="Search client…"
+                    aria-label="Search client"
+                  />
+                  {previewQuery ? (
+                    <button
+                      type="button"
+                      className="absolute top-1/2 right-2 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+                      aria-label="Clear search"
+                      onClick={() => setPreviewQuery('')}
+                    >
+                      <X size={14} strokeWidth={2.25} aria-hidden />
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <div className="pd-doc-canvas__fields-body">
                 <button

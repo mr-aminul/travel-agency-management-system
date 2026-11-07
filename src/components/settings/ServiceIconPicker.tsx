@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { cx } from '@/lib/cx'
-import { Field } from '@/components/ui'
+import { Field, FieldLabel } from '@/components/shadcn/field'
 import {
   SERVICE_ICON_OPTIONS,
   defaultIconIdForService,
@@ -254,10 +254,8 @@ export function ServiceIconPicker({
   }
 
   return (
-    <Field
-      label="Icon"
-      className="pd-service-icon-picker"
-    >
+    <Field className="pd-service-icon-picker">
+      <FieldLabel>Icon</FieldLabel>
       <div className="pd-service-icon-picker__preview" aria-hidden>
         <span className="pd-service-icon-picker__preview-icon">
           <PreviewIcon size={18} strokeWidth={2.25} />

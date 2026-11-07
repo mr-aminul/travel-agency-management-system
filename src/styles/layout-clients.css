@@ -6,6 +6,225 @@
   gap: 1.25rem;
 }
 
+/* Sub Agents trial: same chrome as FN People Performance. */
+.pd-app-scroll:has(.pd-page--elevated),
+.pd-app-scroll:has([data-elevated-canvas]) {
+  background: color-mix(in srgb, var(--color-text) 4.5%, var(--color-surface));
+}
+
+/* Same right window as FN People: 180ms slide, floating rounded panel. */
+@keyframes pd-sub-agent-sheet-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes pd-sub-agent-sheet-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.pd-sub-agent-sheet {
+  top: 0.75rem !important;
+  right: 0.75rem !important;
+  bottom: 0.75rem !important;
+  left: auto !important;
+  height: auto !important;
+  width: min(32rem, calc(100vw - 1.5rem)) !important;
+  max-width: calc(100vw - 1.5rem) !important;
+  border: 0 !important;
+  border-radius: 1rem !important;
+  background: var(--color-surface-raised, var(--color-surface));
+  box-shadow: var(--shadow-deep);
+  animation: pd-sub-agent-sheet-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both !important;
+}
+
+.pd-sub-agent-sheet.pd-client-sheet {
+  width: min(40rem, calc(100vw - 1.5rem)) !important;
+}
+
+.pd-sub-agent-sheet[data-state='closed'] {
+  animation: pd-sub-agent-sheet-out 180ms cubic-bezier(0.22, 1, 0.36, 1) both !important;
+}
+
+.pd-sub-agent-sheet {
+  --primary: var(--color-theme);
+  --primary-foreground: #ffffff;
+  --ring: var(--color-theme);
+}
+
+.pd-sub-agent-sheet [data-slot='input'],
+.pd-sub-agent-sheet [data-slot='textarea'] {
+  background: transparent !important;
+  border: 1px solid var(--color-divider);
+  border-radius: 0.5rem;
+  box-shadow: none;
+  color: var(--color-text);
+}
+
+.pd-sub-agent-sheet [data-slot='input'] {
+  height: 2.25rem;
+}
+
+.pd-sub-agent-sheet [data-slot='textarea'] {
+  min-height: 4rem;
+}
+
+.dark .pd-sub-agent-sheet {
+  --primary: oklch(from var(--color-theme) 0.4 calc(c * 1.2) h);
+  --primary-foreground: #ffffff;
+}
+
+.pd-page--elevated .pd-white-control {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text);
+}
+
+.pd-page--elevated .pd-white-control:hover {
+  background-color: var(--color-surface) !important;
+}
+
+.pd-page--elevated .pd-white-control.is-active,
+.pd-page--elevated .pd-white-control.is-active:hover {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.pd-page--elevated {
+  font-family: 'Geist Variable', sans-serif;
+  --color-chrome-fill: var(--color-theme);
+  --color-chrome-fill-hover: color-mix(in srgb, var(--color-theme) 86%, white);
+  --color-chrome-border: color-mix(in srgb, black 28%, var(--color-theme));
+  --color-on-chrome: var(--color-on-theme);
+  --color-chrome-label: color-mix(in srgb, var(--color-on-theme) 84%, transparent);
+  --color-chrome-accent: var(--color-on-theme);
+}
+
+.dark .pd-page--elevated {
+  /* Same navy as the shell, one step brighter so it still reads on the dark page. */
+  --color-chrome-fill: oklch(from var(--color-theme) 0.4 calc(c * 1.2) h);
+  --color-chrome-fill-hover: oklch(from var(--color-theme) 0.46 calc(c * 1.2) h);
+  --color-chrome-border: color-mix(in srgb, white 16%, var(--color-chrome-fill));
+  --primary: var(--color-chrome-fill);
+  --primary-foreground: #ffffff;
+}
+
+.pd-page--elevated .pd-summary-stat-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.pd-page--elevated .pd-summary-stat {
+  appearance: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.2rem;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  padding: 0.7rem 0.95rem;
+  border: 0 !important;
+  outline: none;
+  box-shadow: none;
+  border-radius: 0.65rem;
+  background: var(--color-theme) !important;
+  color: var(--color-on-theme);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  white-space: normal;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.pd-page--elevated .pd-summary-stat:hover {
+  filter: brightness(1.08);
+  color: var(--color-on-chrome);
+}
+
+.pd-page--elevated .pd-summary-stat.is-active {
+  border: 0;
+}
+
+.pd-page--elevated .pd-summary-stat__peek {
+  position: absolute;
+  right: -0.65rem;
+  bottom: -0.75rem;
+  width: 4.75rem !important;
+  height: 4.75rem !important;
+  color: #ffffff;
+  opacity: 0.35;
+  transform: rotate(-18deg);
+  pointer-events: none;
+}
+
+.pd-page--elevated .pd-summary-stat__label,
+.pd-page--elevated .pd-summary-stat__value {
+  position: relative;
+  z-index: 1;
+}
+
+.pd-page--elevated .pd-summary-stat__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-chrome-label);
+}
+
+.pd-page--elevated .pd-summary-stat__label > svg {
+  color: #ffffff;
+  opacity: 1;
+}
+
+.pd-page--elevated .pd-summary-stat__value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--color-on-chrome);
+}
+
+.pd-page--elevated table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.pd-page--elevated table th:not(:last-child),
+.pd-page--elevated table td:not(:last-child) {
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 45%, transparent);
+}
+
+.pd-page--elevated table th:not(:last-child) {
+  border-right-color: color-mix(in srgb, white 12%, transparent);
+}
+
+.pd-page--elevated thead tr {
+  border-bottom-color: transparent;
+}
+
+.pd-page--elevated .pd-chrome-head {
+  height: auto;
+  border-bottom-color: transparent;
+  background: var(--color-theme) !important;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-on-theme) !important;
+}
+
 .pd-sub-agent-report-panel {
   display: flex;
   flex-direction: column;
@@ -502,7 +721,7 @@
 .pd-clients-form__scroll {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 1.5rem;
   max-height: min(60vh, 28rem);
   overflow-y: auto;
   padding-inline-end: 0.25rem;
@@ -542,8 +761,7 @@
 .pd-clients-form__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.875rem 1rem;
-  padding-top: 0.4rem;
+  gap: 1rem 0.875rem;
 }
 
 .pd-clients-form__full {
@@ -569,6 +787,26 @@
 
 .pd-clients-form--public .pd-clients-form__footer .pd-btn {
   width: 100%;
+}
+
+.pd-sub-agent-sheet .pd-clients-form {
+  min-height: 0;
+  flex: 1;
+  gap: 0;
+}
+
+.pd-sub-agent-sheet .pd-clients-form__scroll {
+  max-height: none;
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+.pd-sub-agent-sheet .pd-clients-form__footer {
+  margin: 0;
+  padding: 0.75rem 1.25rem;
+  border-top-color: var(--color-divider);
+  background: var(--color-surface);
 }
 
 .pd-drawer .pd-clients-form__footer {
@@ -626,26 +864,25 @@
 
 .pd-profile-photo__upload {
   position: absolute;
-  right: -0.15rem;
-  bottom: -0.15rem;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  right: -0.1rem;
+  bottom: -0.1rem;
+  z-index: 2;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  min-width: 1.5rem;
   margin: 0;
-  padding: 0;
-  border: 0.125rem solid var(--color-surface, var(--color-bg));
-  border-radius: 50%;
-  background: var(--color-theme);
-  color: var(--color-theme-ink, var(--color-bg));
-  cursor: pointer;
+  padding: 0 !important;
+  border: 0.125rem solid var(--color-surface, #fff) !important;
+  border-radius: 50% !important;
+  background: var(--color-theme) !important;
+  color: #fff !important;
   box-shadow: var(--shadow-low);
 }
 
 .pd-profile-photo__upload:hover,
 .pd-profile-photo__upload:focus-visible {
+  background: var(--color-theme) !important;
+  color: #fff !important;
   filter: brightness(1.06);
 }
 
@@ -657,6 +894,7 @@
 .pd-profile-photo__upload svg {
   width: 0.8rem;
   height: 0.8rem;
+  stroke: #fff;
 }
 
 .pd-profile-photo-picker.pd-modal {
@@ -1021,8 +1259,8 @@
   padding-top: 0.125rem;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
   color: var(--color-text-secondary);
   line-height: 1.3;
 }
@@ -1153,8 +1391,8 @@
 .pd-client-detail__card-snap-label {
   font-size: 0.625rem;
   font-weight: 650;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
   color: var(--color-text-secondary);
 }
 
@@ -2007,8 +2245,8 @@
 .pd-client-detail__stat-label {
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
   color: var(--color-text-secondary);
   line-height: 1.2;
 }
@@ -2379,8 +2617,8 @@
   margin: 0 0 0.35rem;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
   color: var(--color-text-secondary);
 }
 

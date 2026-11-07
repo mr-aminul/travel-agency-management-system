@@ -1,18 +1,33 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Download, FileText, Users } from 'lucide-react'
+import { Button } from '@/components/shadcn/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/shadcn/card'
+import { Checkbox } from '@/components/shadcn/checkbox'
 import {
-  Button,
-  Checkbox,
-  EmptyState,
-  SearchField,
+  Empty,
+  EmptyContent,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/shadcn/empty'
+import { FieldError } from '@/components/shadcn/field'
+import { Input } from '@/components/shadcn/input'
+import { Label } from '@/components/shadcn/label'
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui'
+} from '@/components/shadcn/table'
 import { SubAgentClientReportDocument } from '@/components/subAgents/SubAgentClientReportDocument'
+import {
+  chromeHeadClass,
+  tableShellClass,
+  whiteControlClass,
+} from '@/components/clients/shadcnChrome'
+import { cn } from '@/lib/utils'
 import { downloadSubAgentClientReportPdf } from '@/lib/downloadSubAgentClientReportPdf'
 import { deriveClientServiceStatus } from '@/lib/clientServiceStatus'
 import {
@@ -31,7 +46,6 @@ import { layoutConfig } from '@/config/layout'
 import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { SubAgent } from '@/types/subAgent'
-import { cx } from '@/lib/cx'
 import '@/styles/layout-invoice.css'
 
 type SubAgentClientReportPanelProps = {
@@ -167,268 +181,276 @@ export function SubAgentClientReportPanel({
 
   if (clients.length === 0) {
     return (
-      <EmptyState
-        icon={Users}
-        title="No clients to report"
-      />
+      <Empty className="bg-card shadow-sm">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Users />
+          </EmptyMedia>
+          <EmptyTitle>No Clients to Report</EmptyTitle>
+        </EmptyHeader>
+        <EmptyContent />
+      </Empty>
     )
   }
 
   return (
-    <div className="pd-sub-agent-report-panel">
-      <section className="pd-client-detail__section pd-sub-agent-report-panel__box">
-        <div className="pd-client-detail__section-head">
-          <h2 className="pd-client-detail__section-title">
-            <span className="pd-client-detail__section-icon" aria-hidden>
+    <div className="flex flex-col gap-4">
+      <Card className="shadow-sm">
+        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+          <CardTitle className="inline-flex items-center gap-2">
+            <span
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-theme-subtle)] text-[var(--color-theme-ink)]"
+              aria-hidden
+            >
               <FileText size={16} strokeWidth={2.25} />
             </span>
-            Client report
-          </h2>
+            Client Report
+          </CardTitle>
           <Button
             type="button"
             size="sm"
+            className="h-8 rounded-lg"
             disabled={!report || downloading}
-            loading={downloading}
             onClick={() => void handleDownload()}
           >
-            <Download size={14} strokeWidth={2.25} aria-hidden />
+            <Download size={14} strokeWidth={2.25} data-icon="inline-start" />
             {downloading ? 'Downloading…' : 'Download PDF'}
           </Button>
-        </div>
-        <p className="pd-sub-agent-report-panel__lead">
-          Choose fields and their order for the table and PDF together, then
-          select clients. Amount summary appears only when Balance due is
-          included.
-        </p>
-
-        <div
-          className="pd-sub-agent-report-panel__fields"
-          role="group"
-          aria-label="Report fields"
-        >
-          <p className="pd-sub-agent-report-panel__fields-label">
-            Column order
-          </p>
-          <ol className="pd-sub-agent-report-panel__order">
-            {reportColumns.map((columnId, index) => {
-              const meta = SUB_AGENT_REPORT_COLUMNS.find(
-                (item) => item.id === columnId,
-              )
-              const label = meta?.label ?? columnId
-              return (
-                <li key={columnId} className="pd-sub-agent-report-panel__order-item">
-                  <span className="pd-sub-agent-report-panel__order-index">
-                    {index + 1}
-                  </span>
-                  <span className="pd-sub-agent-report-panel__order-label">
-                    {label}
-                    {meta?.required ? ' (required)' : ''}
-                  </span>
-                  <div className="pd-sub-agent-report-panel__order-actions">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="pd-btn--icon"
-                      aria-label={`Move ${label} earlier`}
-                      disabled={index === 0}
-                      onClick={() => moveColumn(columnId, -1)}
-                    >
-                      <ChevronUp size={14} strokeWidth={2.25} aria-hidden />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="pd-btn--icon"
-                      aria-label={`Move ${label} later`}
-                      disabled={index === reportColumns.length - 1}
-                      onClick={() => moveColumn(columnId, 1)}
-                    >
-                      <ChevronDown size={14} strokeWidth={2.25} aria-hidden />
-                    </Button>
-                    {!meta?.required ? (
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div role="group" aria-label="Report fields" className="flex flex-col gap-3">
+            <p className="m-0 text-xs font-medium tracking-wide text-muted-foreground">
+              Column Order
+            </p>
+            <ol className="m-0 flex list-none flex-col gap-2 p-0">
+              {reportColumns.map((columnId, index) => {
+                const meta = SUB_AGENT_REPORT_COLUMNS.find(
+                  (item) => item.id === columnId,
+                )
+                const label = meta?.label ?? columnId
+                return (
+                  <li
+                    key={columnId}
+                    className="flex flex-wrap items-center gap-2 rounded-lg border border-border px-3 py-2"
+                  >
+                    <span className="inline-flex size-6 items-center justify-center rounded-md bg-muted text-xs font-semibold">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1 text-sm">
+                      {label}
+                      {meta?.required ? ' (required)' : ''}
+                    </span>
+                    <div className="flex items-center gap-1">
                       <Button
                         type="button"
-                        size="sm"
+                        size="icon"
                         variant="ghost"
-                        onClick={() => toggleColumn(columnId, false)}
+                        className="size-8"
+                        aria-label={`Move ${label} earlier`}
+                        disabled={index === 0}
+                        onClick={() => moveColumn(columnId, -1)}
                       >
-                        Remove
+                        <ChevronUp size={14} strokeWidth={2.25} aria-hidden />
                       </Button>
-                    ) : null}
-                  </div>
-                </li>
-              )
-            })}
-          </ol>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        aria-label={`Move ${label} later`}
+                        disabled={index === reportColumns.length - 1}
+                        onClick={() => moveColumn(columnId, 1)}
+                      >
+                        <ChevronDown size={14} strokeWidth={2.25} aria-hidden />
+                      </Button>
+                      {!meta?.required ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => toggleColumn(columnId, false)}
+                        >
+                          Remove
+                        </Button>
+                      ) : null}
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
 
-          {availableColumns.length > 0 ? (
-            <>
-              <p className="pd-sub-agent-report-panel__fields-label pd-sub-agent-report-panel__fields-label--spaced">
-                Add fields
-              </p>
-              <div className="pd-sub-agent-report-panel__field-list">
-                {availableColumns.map((column) => (
-                  <Checkbox
-                    key={column.id}
-                    className="pd-sub-agent-report-panel__field"
-                    label={column.label}
-                    checked={false}
-                    onChange={(event) =>
-                      toggleColumn(column.id, event.target.checked)
-                    }
-                  />
-                ))}
-              </div>
-            </>
-          ) : null}
-        </div>
-
-        <div className="pd-sub-agent-report-panel__toolbar">
-          <SearchField
-            className="pd-clients__search"
-            placeholder="Search clients to select…"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onClear={() => setSearch('')}
-          />
-          <p className="pd-sub-agent-report-panel__count">
-            {selectedIds.size} selected
-            {search.trim() ? ` · ${visibleClients.length} shown` : ''}
-            {reportColumns.includes('balance')
-              ? ' · amount summary on'
-              : ' · amount summary off'}
-          </p>
-        </div>
-
-        {visibleClients.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="No clients match"
-            action={
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setSearch('')}
-              >
-                Clear search
-              </Button>
-            }
-          />
-        ) : (
-          <div className="pd-sub-agent-report-panel__table">
-            <Table aria-label={`${subAgent.name} report clients`}>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
-                    <Checkbox
-                      label="Select all visible clients"
-                      hideLabel
-                      checked={allVisibleSelected}
-                      onChange={(event) =>
-                        toggleVisible(event.target.checked)
-                      }
-                    />
-                  </TableHead>
-                  {reportColumns.map((column) => (
-                    <TableHead key={column}>
-                      {reportColumnLabel(column)}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibleClients.map((client) => {
-                  const row = buildClientReportRow(
-                    client,
-                    statusByClientId.get(client.id) || '—',
-                  )
-                  const checked = selectedIds.has(client.id)
-                  return (
-                    <TableRow
-                      key={client.id}
-                      className={cx(
-                        'pd-sub-agent-report-panel__row',
-                        checked && 'is-selected',
-                      )}
+            {availableColumns.length > 0 ? (
+              <>
+                <p className="m-0 text-xs font-medium tracking-wide text-muted-foreground">
+                  Add Fields
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {availableColumns.map((column) => (
+                    <Label
+                      key={column.id}
+                      className="inline-flex items-center gap-2 text-sm font-normal"
                     >
-                      <TableCell>
-                        <Checkbox
-                          label={`Select ${client.name}`}
-                          hideLabel
-                          checked={checked}
-                          onChange={(event) =>
-                            toggleClient(client.id, event.target.checked)
-                          }
-                        />
-                      </TableCell>
-                      {reportColumns.map((column) => (
-                        <TableCell key={column}>
-                          {reportRowValue(row, column)}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                      <Checkbox
+                        checked={false}
+                        onCheckedChange={(checked) =>
+                          toggleColumn(column.id, checked === true)
+                        }
+                      />
+                      {column.label}
+                    </Label>
+                  ))}
+                </div>
+              </>
+            ) : null}
           </div>
-        )}
 
-        <div className="pd-sub-agent-report-panel__actions">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={visibleClients.length === 0}
-            onClick={() => toggleVisible(true)}
-          >
-            Select shown
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={selectedIds.size === 0}
-            onClick={() => setSelectedIds(new Set())}
-          >
-            Clear selection
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={!report || downloading}
-            loading={downloading}
-            onClick={() => void handleDownload()}
-          >
-            <Download size={14} strokeWidth={2.25} aria-hidden />
-            {downloading ? 'Downloading…' : 'Generate PDF'}
-          </Button>
-        </div>
-        {downloadError ? (
-          <p className="pd-field__error" role="alert">
-            {downloadError}
-          </p>
-        ) : null}
-      </section>
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              className={cn(whiteControlClass, 'max-w-sm')}
+              placeholder="Search clients to select…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              aria-label="Search clients"
+            />
+            <p className="m-0 text-sm text-muted-foreground">
+              {selectedIds.size} selected
+              {search.trim() ? ` · ${visibleClients.length} shown` : ''}
+              {reportColumns.includes('balance')
+                ? ' · amount summary on'
+                : ' · amount summary off'}
+            </p>
+          </div>
+
+          {visibleClients.length === 0 ? (
+            <Empty className="bg-card shadow-sm">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Users />
+                </EmptyMedia>
+                <EmptyTitle>No Clients Match</EmptyTitle>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-lg"
+                  onClick={() => setSearch('')}
+                >
+                  Clear Search
+                </Button>
+              </EmptyContent>
+            </Empty>
+          ) : (
+            <div className={tableShellClass}>
+              <Table aria-label={`${subAgent.name} report clients`}>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-0">
+                    <TableHead className={cn(chromeHeadClass, 'w-10')}>
+                      <Checkbox
+                        checked={allVisibleSelected}
+                        onCheckedChange={(checked) =>
+                          toggleVisible(checked === true)
+                        }
+                        aria-label="Select all visible clients"
+                      />
+                    </TableHead>
+                    {reportColumns.map((column) => (
+                      <TableHead key={column} className={chromeHeadClass}>
+                        {reportColumnLabel(column)}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleClients.map((client) => {
+                    const row = buildClientReportRow(
+                      client,
+                      statusByClientId.get(client.id) || '—',
+                    )
+                    const checked = selectedIds.has(client.id)
+                    return (
+                      <TableRow
+                        key={client.id}
+                        className={cn(checked && 'bg-muted/40')}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(next) =>
+                              toggleClient(client.id, next === true)
+                            }
+                            aria-label={`Select ${client.name}`}
+                          />
+                        </TableCell>
+                        {reportColumns.map((column) => (
+                          <TableCell key={column}>
+                            {reportRowValue(row, column)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-lg"
+              disabled={visibleClients.length === 0}
+              onClick={() => toggleVisible(true)}
+            >
+              Select Shown
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-lg"
+              disabled={selectedIds.size === 0}
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Clear Selection
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 rounded-lg"
+              disabled={!report || downloading}
+              onClick={() => void handleDownload()}
+            >
+              <Download size={14} strokeWidth={2.25} data-icon="inline-start" />
+              {downloading ? 'Downloading…' : 'Generate PDF'}
+            </Button>
+          </div>
+          {downloadError ? (
+            <FieldError role="alert">{downloadError}</FieldError>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {report ? (
-        <section
-          className="pd-client-detail__section pd-sub-agent-report-panel__preview"
-          aria-label="Report preview"
-        >
-          <div className="pd-invoice-page__stage">
-            <SubAgentClientReportDocument report={report} />
-          </div>
-        </section>
+        <Card className="shadow-sm" aria-label="Report preview">
+          <CardContent className="pt-6">
+            <div className="pd-invoice-page__stage overflow-auto">
+              <SubAgentClientReportDocument report={report} />
+            </div>
+          </CardContent>
+        </Card>
       ) : (
-        <section className="pd-client-detail__section pd-sub-agent-report-panel__box">
-          <EmptyState
-            icon={FileText}
-            title="Select clients to preview"
-          />
-        </section>
+        <Empty className="bg-card shadow-sm">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <FileText />
+            </EmptyMedia>
+            <EmptyTitle>Select Clients to Preview</EmptyTitle>
+          </EmptyHeader>
+          <EmptyContent />
+        </Empty>
       )}
     </div>
   )

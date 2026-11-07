@@ -15,7 +15,7 @@ import {
   dismissOnboarding,
   usePlatformTourState,
 } from '@/lib/onboardingStore'
-import { Button } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
 import '@/styles/layout-tour.css'
 
 const PAD = 8
@@ -259,7 +259,6 @@ export function PlatformTour() {
             ) : null}
             <Button
               size="sm"
-              variant="primary"
               onClick={() => {
                 if (isLast) finish()
                 else setStepIndex((i) => i + 1)

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent, type FocusEvent } from 'react'
 import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import { ClientCustomFieldControl } from '@/components/clients/ClientCustomFieldControl'
-import { Button, Input, Select } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
 import {
   compactCustomFieldValues,
   emptyCustomFieldValues,
@@ -39,7 +40,7 @@ export function NewClientForm({
   defaultSubAgentId,
   variant = 'staff',
   serviceTenantId,
-  submitLabel = 'Register client',
+  submitLabel = 'Register Client',
 }: NewClientFormProps) {
   const isPublic = variant === 'public'
   const serviceOptions = useEnabledServiceOptions(serviceTenantId)
@@ -222,13 +223,15 @@ export function NewClientForm({
   return (
     <form
       className={
-        isPublic ? 'pd-clients-form pd-clients-form--public' : 'pd-clients-form'
+        isPublic
+          ? 'flex min-h-0 flex-col gap-0'
+          : 'flex h-full min-h-0 flex-col'
       }
       onSubmit={handleSubmit}
       noValidate
     >
-      <div className="pd-clients-form__scroll">
-        <div className="pd-clients-form__block">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        <div className="flex flex-col gap-4">
           <ProfilePhotoField
             name={name}
             fallbackName="Client"
@@ -237,19 +240,19 @@ export function NewClientForm({
             onChange={setAvatarUrl}
           >
             <Input
-              label="Full name"
+              label="Full Name"
               required
               value={name}
               onChange={(event) => setName(event.target.value)}
               onBlur={handleBlur('name')}
-              placeholder="Client name"
+              placeholder="Client Name"
               error={fieldError('name')}
             />
           </ProfilePhotoField>
 
-          <div className="pd-clients-form__grid">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Input
-              label="Mobile number"
+              label="Mobile Number"
               type="tel"
               required
               value={phone}
@@ -258,8 +261,17 @@ export function NewClientForm({
               placeholder="01XXXXXXXXX"
               error={fieldError('phone')}
             />
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              onBlur={handleBlur('email')}
+              placeholder="client@email.com"
+              error={fieldError('email')}
+            />
             <Select
-              label="Primary service"
+              label="Primary Service"
               value={primaryService}
               onChange={(event) => {
                 setPrimaryService(event.target.value as ServiceType)
@@ -277,6 +289,79 @@ export function NewClientForm({
               onChange={(event) => setServiceCountry(event.target.value)}
               options={countryOptions}
               disabled={catalogCountries.length === 0}
+            />
+            {isPublic ? null : (
+              <Select
+                label="Sub Agent"
+                value={subAgentId}
+                onChange={(event) => setSubAgentId(event.target.value)}
+                options={[
+                  { value: '', label: 'None' },
+                  ...subAgents.map((subAgent) => ({
+                    value: subAgent.id,
+                    label: subAgent.name,
+                  })),
+                ]}
+              />
+            )}
+            <div className={isPublic ? 'sm:col-span-2' : undefined}>
+              <Input
+                label="Address"
+                value={address}
+                onChange={(event) => setAddress(event.target.value)}
+                onBlur={handleBlur('address')}
+                placeholder="Present Address"
+                error={fieldError('address')}
+              />
+            </div>
+            <Input
+              label="Bangla Name"
+              value={banglaName}
+              onChange={(event) => setBanglaName(event.target.value)}
+              onBlur={handleBlur('banglaName')}
+              placeholder="বাংলা নাম"
+              error={fieldError('banglaName')}
+            />
+            <Input
+              label="Father's Name"
+              value={fatherName}
+              onChange={(event) => setFatherName(event.target.value)}
+              onBlur={handleBlur('fatherName')}
+              error={fieldError('fatherName')}
+            />
+            <Input
+              label="Date of Birth"
+              type="date"
+              value={dateOfBirth}
+              onChange={(event) => setDateOfBirth(event.target.value)}
+              onBlur={handleBlur('dateOfBirth')}
+              error={fieldError('dateOfBirth')}
+            />
+            <Select
+              label="Gender"
+              value={gender}
+              onChange={(event) =>
+                setGender(event.target.value as 'Male' | 'Female' | 'Other')
+              }
+              options={[
+                { value: 'Male', label: 'Male' },
+                { value: 'Female', label: 'Female' },
+                { value: 'Other', label: 'Other' },
+              ]}
+            />
+            <Input
+              label="Place of Birth"
+              value={placeOfBirth}
+              onChange={(event) => setPlaceOfBirth(event.target.value)}
+              onBlur={handleBlur('placeOfBirth')}
+              error={fieldError('placeOfBirth')}
+            />
+            <Input
+              label="NID Number"
+              value={nid}
+              onChange={(event) => setNid(event.target.value)}
+              onBlur={handleBlur('nid')}
+              error={fieldError('nid')}
             />
             {requiredCustomFields.map((field) => {
               const key = `custom:${field.id}` as const
@@ -296,119 +381,6 @@ export function NewClientForm({
                 />
               )
             })}
-          </div>
-        </div>
-
-        <div className="pd-clients-form__block">
-          <div className="pd-clients-form__grid">
-            <Input
-              label="Passport number"
-              value={passport}
-              onChange={(event) => setPassport(event.target.value)}
-              onBlur={handleBlur('passport')}
-              error={fieldError('passport')}
-            />
-            <Input
-              label="Place of issue"
-              value={passportPlaceOfIssue}
-              onChange={(event) => setPassportPlaceOfIssue(event.target.value)}
-              onBlur={handleBlur('passportPlaceOfIssue')}
-              error={fieldError('passportPlaceOfIssue')}
-            />
-            <Input
-              label="Date of issue"
-              type="date"
-              required={Boolean(passport.trim())}
-              value={passportIssuedOn}
-              onChange={(event) => setPassportIssuedOn(event.target.value)}
-              onBlur={handleBlur('passportIssuedOn')}
-              error={fieldError('passportIssuedOn')}
-            />
-            <Input
-              label="Date of expiry"
-              type="date"
-              required={Boolean(passport.trim())}
-              value={passportExpiry}
-              onChange={(event) => setPassportExpiry(event.target.value)}
-              onBlur={handleBlur('passportExpiry')}
-              error={fieldError('passportExpiry')}
-            />
-            <Input
-              label="NID number"
-              value={nid}
-              onChange={(event) => setNid(event.target.value)}
-              onBlur={handleBlur('nid')}
-              error={fieldError('nid')}
-            />
-          </div>
-        </div>
-
-        <div className="pd-clients-form__block">
-          <div className="pd-clients-form__grid">
-            <Input
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              onBlur={handleBlur('email')}
-              placeholder="client@email.com"
-              error={fieldError('email')}
-            />
-            <Input
-              label="Address"
-              value={address}
-              onChange={(event) => setAddress(event.target.value)}
-              onBlur={handleBlur('address')}
-              placeholder="Present address"
-              error={fieldError('address')}
-            />
-          </div>
-        </div>
-
-        <div className="pd-clients-form__block">
-          <div className="pd-clients-form__grid">
-            <Input
-              label="Bangla name"
-              value={banglaName}
-              onChange={(event) => setBanglaName(event.target.value)}
-              onBlur={handleBlur('banglaName')}
-              placeholder="বাংলা নাম"
-              error={fieldError('banglaName')}
-            />
-            <Input
-              label="Father name"
-              value={fatherName}
-              onChange={(event) => setFatherName(event.target.value)}
-              onBlur={handleBlur('fatherName')}
-              error={fieldError('fatherName')}
-            />
-            <Select
-              label="Gender"
-              value={gender}
-              onChange={(event) =>
-                setGender(event.target.value as 'Male' | 'Female' | 'Other')
-              }
-              options={[
-                { value: 'Male', label: 'Male' },
-                { value: 'Female', label: 'Female' },
-                { value: 'Other', label: 'Other' },
-              ]}
-            />
-            <Input
-              label="Date of birth"
-              type="date"
-              value={dateOfBirth}
-              onChange={(event) => setDateOfBirth(event.target.value)}
-              onBlur={handleBlur('dateOfBirth')}
-              error={fieldError('dateOfBirth')}
-            />
-            <Input
-              label="Place of birth"
-              value={placeOfBirth}
-              onChange={(event) => setPlaceOfBirth(event.target.value)}
-              onBlur={handleBlur('placeOfBirth')}
-              error={fieldError('placeOfBirth')}
-            />
             {optionalCustomFields.map((field) => {
               const key = `custom:${field.id}` as const
               return (
@@ -427,31 +399,49 @@ export function NewClientForm({
                 />
               )
             })}
-            {isPublic ? null : (
-              <Select
-                label="Sub Agent"
-                value={subAgentId}
-                onChange={(event) => setSubAgentId(event.target.value)}
-                options={[
-                  { value: '', label: 'None' },
-                  ...subAgents.map((subAgent) => ({
-                    value: subAgent.id,
-                    label: subAgent.name,
-                  })),
-                ]}
-              />
-            )}
+            <Input
+              label="Passport Number"
+              value={passport}
+              onChange={(event) => setPassport(event.target.value)}
+              onBlur={handleBlur('passport')}
+              error={fieldError('passport')}
+            />
+            <Input
+              label="Place of Issue"
+              value={passportPlaceOfIssue}
+              onChange={(event) => setPassportPlaceOfIssue(event.target.value)}
+              onBlur={handleBlur('passportPlaceOfIssue')}
+              error={fieldError('passportPlaceOfIssue')}
+            />
+            <Input
+              label="Date of Issue"
+              type="date"
+              required={Boolean(passport.trim())}
+              value={passportIssuedOn}
+              onChange={(event) => setPassportIssuedOn(event.target.value)}
+              onBlur={handleBlur('passportIssuedOn')}
+              error={fieldError('passportIssuedOn')}
+            />
+            <Input
+              label="Date of Expiry"
+              type="date"
+              required={Boolean(passport.trim())}
+              value={passportExpiry}
+              onChange={(event) => setPassportExpiry(event.target.value)}
+              onBlur={handleBlur('passportExpiry')}
+              error={fieldError('passportExpiry')}
+            />
           </div>
         </div>
       </div>
 
-      <div className="pd-clients-form__footer">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border px-5 py-4">
         {onCancel ? (
-          <Button type="button" variant="secondary" onClick={onCancel}>
+          <Button type="button" variant="outline" className="h-9 rounded-lg shadow-xs" onClick={onCancel}>
             Cancel
           </Button>
         ) : null}
-        <Button type="submit">{submitLabel}</Button>
+        <Button type="submit" className="h-9 rounded-lg shadow-xs">{submitLabel}</Button>
       </div>
     </form>
   )

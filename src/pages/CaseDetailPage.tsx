@@ -7,8 +7,18 @@ import { formatDisplayDate } from '@/lib/formatDate'
 import { serviceDetailAriaLabel } from '@/lib/serviceDisplay'
 import { countMissingDocuments } from '@/lib/caseDocuments'
 import { listCaseInfoGaps } from '@/lib/caseServiceRules'
-import { cx } from '@/lib/cx'
-import { Badge, Button, ConfirmDialog, Input, Modal, Select, Textarea, type BadgeVariant } from '@/components/ui'
+import { Input, Select, Textarea } from '@/components/clients/clientShadcnFields'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { Card, CardContent } from '@/components/shadcn/card'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/shadcn/dialog'
 import {
   CASE_STATUS_OPTIONS,
   deleteCase,
@@ -45,8 +55,11 @@ import {
 import { flashAndReveal } from '@/lib/scrollWithin'
 import { clientPath, workDetailPath, workInvoicePath } from '@/lib/workPaths'
 import { clientTrackingUrl } from '@/lib/publicUrl'
+import { cn } from '@/lib/utils'
 import type { CaseStatus } from '@/types/case'
-import '@/styles/layout-cases.css'
+
+const FOCUS_FLASH_CLASS =
+  'rounded-xl outline outline-2 outline-[color-mix(in_srgb,var(--color-theme)_55%,transparent)] outline-offset-[3px]'
 
 function cityFromDestination(destination: string, country: string): string {
   const place = destination.trim()
@@ -61,12 +74,13 @@ function cityFromDestination(destination: string, country: string): string {
   return place
 }
 
-function statusBadgeVariant(status: CaseStatus): BadgeVariant {
-  if (status === 'Completed') return 'completed'
-  if (status === 'Pending') return 'pending'
-  if (status === 'In-Progress') return 'in-progress'
-  if (status === 'On-Hold') return 'on-hold'
-  return 'danger'
+function caseStatusShadcnVariant(
+  status: CaseStatus,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (status === 'Completed') return 'default'
+  if (status === 'Cancelled') return 'destructive'
+  if (status === 'On-Hold') return 'outline'
+  return 'secondary'
 }
 
 const SERVICE_BOARD_RIBBON: Record<
@@ -75,7 +89,16 @@ const SERVICE_BOARD_RIBBON: Record<
 > = {
   actionable: { label: 'Ready', tone: 'ready' },
   blocked: { label: 'Blocked', tone: 'blocked' },
-  'on-hold': { label: 'On hold', tone: 'hold' },
+  'on-hold': { label: 'On Hold', tone: 'hold' },
+}
+
+const RIBBON_TONE_CLASS: Record<'ready' | 'blocked' | 'hold', string> = {
+  ready:
+    'border-[color-mix(in_srgb,var(--color-status-completed)_28%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-status-completed)_12%,var(--color-surface))] text-foreground',
+  blocked:
+    'border-[color-mix(in_srgb,var(--color-danger)_32%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-danger)_10%,var(--color-surface))] text-destructive',
+  hold:
+    'border-[color-mix(in_srgb,var(--color-status-on-hold)_32%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-status-on-hold)_12%,var(--color-surface))] text-[var(--color-status-on-hold)]',
 }
 
 const FOCUS_FLASH_MS = 2800
@@ -85,7 +108,6 @@ function clientFocusPath(
   focus: Extract<ServiceBoardFocus, 'profile' | 'documents'>,
   caseId: string,
 ): string {
-  // Passport/NID are edited in Documents; Profile only mirrors them.
   const params = new URLSearchParams({
     tab: 'documents',
     focus: focus === 'profile' ? 'passport' : 'docs',
@@ -124,7 +146,6 @@ function Fact({
 }: {
   label?: string
   value?: string
-  /** Recommended gap: highlight only, never blocks progress. */
   attention?: boolean
   className?: string
   id?: string
@@ -133,14 +154,15 @@ function Fact({
   return (
     <div
       id={id}
-      className={cx(
-        'pd-case-detail__fact',
-        attention && 'is-attention',
+      className={cn(
+        'min-w-0',
+        attention &&
+          '[&_[data-slot=field-label]]:text-destructive [&_input]:border-destructive/55 [&_input]:bg-[color-mix(in_srgb,var(--color-danger)_5%,var(--color-surface))]',
         className,
       )}
     >
       {children ?? (
-        <Input label={label} value={value} readOnly tabIndex={-1} />
+        <Input label={label ?? ''} value={value} readOnly tabIndex={-1} />
       )}
     </div>
   )
@@ -204,7 +226,6 @@ export default function CaseDetailPage() {
     if (!flashTarget) return
     const id =
       flashTarget === 'status' ? 'case-status-field' : 'case-pipeline'
-    // Wait a frame so edit-mode DOM is mounted before measuring.
     const frame = window.requestAnimationFrame(() => {
       flashAndReveal(id)
     })
@@ -330,47 +351,53 @@ export default function CaseDetailPage() {
 
   const serviceHeader = (
     <header
-      className={
-        editing
-          ? 'pd-case-detail__header is-editing'
-          : 'pd-case-detail__header'
-      }
+      className={cn(
+        'flex flex-wrap items-center gap-4 rounded-[0.875rem] border border-border bg-[var(--color-surface-raised,var(--color-bg))] p-[1.125rem_1.25rem] shadow-[var(--shadow-low)] transition-[border-color,box-shadow] duration-200',
+        editing &&
+          'border-[color-mix(in_srgb,var(--color-theme)_35%,var(--color-border))] shadow-[var(--shadow-low),0_0_0_0.1875rem_color-mix(in_srgb,var(--color-theme)_10%,transparent)]',
+      )}
     >
-      <span className="pd-case-detail__header-icon" aria-hidden>
+      <span
+        className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--color-theme)_10%,var(--color-bg))] text-[var(--color-theme-ink)]"
+        aria-hidden
+      >
         <ServiceIcon size={18} strokeWidth={2.25} />
       </span>
-      <div className="pd-case-detail__header-text">
-        <div className="pd-case-detail__title-row">
-          <h2 className="pd-case-detail__name">{item.service}</h2>
-          <Badge variant={statusBadgeVariant(displayStatus)}>
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-1 [flex-basis:14rem]">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+          <h2 className="m-0 font-heading text-[1.125rem] font-normal leading-tight tracking-tight text-foreground md:text-[1.375rem]">
+            {item.service}
+          </h2>
+          <Badge variant={caseStatusShadcnVariant(displayStatus)}>
             {displayStatus}
           </Badge>
         </div>
-        <p className="pd-case-detail__client-line">
+        <p className="m-0 flex flex-wrap items-center gap-1.5 text-[0.8125rem] font-medium leading-snug text-muted-foreground">
           <span>{item.caseId}</span>
         </p>
       </div>
 
-      <div className="pd-case-detail__header-actions">
+      <div className="ms-auto flex flex-wrap items-center gap-2 max-md:w-full max-md:ms-0">
         {editing ? (
           <>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
+              className="h-9 rounded-lg"
               onClick={() => setEditing(false)}
             >
               Cancel
             </Button>
-            <Button size="sm" onClick={finishEditing}>
+            <Button size="sm" className="h-9 rounded-lg" onClick={finishEditing}>
               Save
             </Button>
           </>
         ) : (
           <>
             <Button
-              variant="secondary"
-              size="sm"
-              className="pd-btn--icon"
+              variant="outline"
+              size="icon-sm"
+              className="rounded-lg"
               aria-label={
                 trackingCopied
                   ? 'Tracking link copied'
@@ -401,8 +428,9 @@ export default function CaseDetailPage() {
               )}
             </Button>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
+              className="h-9 rounded-lg"
               onClick={() => {
                 setRequestTo(
                   item.status === 'Pending' ? 'In-Progress' : 'Completed',
@@ -411,30 +439,36 @@ export default function CaseDetailPage() {
                 setRequestOpen(true)
               }}
             >
-              <ClipboardList size={14} strokeWidth={2.25} aria-hidden />
+              <ClipboardList data-icon="inline-start" />
               Request update
             </Button>
-            <Link
-              to={workInvoicePath(item)}
-              className="pd-btn pd-btn--secondary pd-btn--sm"
-            >
-              <FileText size={14} strokeWidth={2.25} aria-hidden />
-              Invoice
-            </Link>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
+              className="h-9 rounded-lg"
+              asChild
+            >
+              <Link to={workInvoicePath(item)}>
+                <FileText data-icon="inline-start" />
+                Invoice
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-lg"
               onClick={startEditing}
             >
-              <SquarePen size={14} strokeWidth={2.25} aria-hidden />
+              <SquarePen data-icon="inline-start" />
               Edit
             </Button>
             <Button
-              variant="danger"
+              variant="destructive"
               size="sm"
+              className="h-9 rounded-lg"
               onClick={() => setDeleteOpen(true)}
             >
-              <Trash2 size={14} strokeWidth={2.25} aria-hidden />
+              <Trash2 data-icon="inline-start" />
               Delete
             </Button>
           </>
@@ -445,226 +479,261 @@ export default function CaseDetailPage() {
 
   return (
     <div
-      className="pd-case-detail pd-case-detail--workspace"
+      className="flex flex-col gap-3.5"
       aria-label={serviceDetailAriaLabel(item)}
     >
       {ribbon && boardItem ? (
         <button
           type="button"
-          className={`pd-case-detail__ribbon pd-case-detail__ribbon--${ribbon.tone}`}
+          className={cn(
+            'flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border px-[0.95rem] py-2.5 text-left font-[inherit] transition-[filter] hover:brightness-[0.98]',
+            RIBBON_TONE_CLASS[ribbon.tone],
+          )}
           onClick={openServiceBoardTarget}
         >
-          <span className="pd-case-detail__ribbon-copy">
-            <strong>{ribbon.label}</strong>
-            <span>{boardItem.action}</span>
+          <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <strong className="text-[0.8125rem] font-bold">{ribbon.label}</strong>
+            <span className="text-[0.8125rem] font-medium">{boardItem.action}</span>
           </span>
           <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
         </button>
       ) : null}
       {serviceHeader}
-      <div className="pd-case-detail__overview">
-        <section
-          className="pd-case-detail__sheet"
+      <div className="flex flex-col gap-4">
+        <Card
+          className="gap-0 border border-border bg-[var(--color-surface-raised,var(--color-bg))] py-4 shadow-[var(--shadow-low)] ring-0"
           aria-label="Service details"
         >
-          <div className="pd-case-detail__facts">
-            <Fact attention={missingCountry}>
-              {editing ? (
-                <Select
-                  label="Country"
-                  searchable
-                  searchPlaceholder="Search countries…"
-                  value={draft.country}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      country: event.target.value,
-                    }))
-                  }
-                  options={countryOptions}
-                />
-              ) : (
-                <Input
-                  label="Country"
-                  value={displayCountry || '-'}
-                  readOnly
-                  tabIndex={-1}
-                />
-              )}
-            </Fact>
-            <Fact>
-              {editing ? (
-                <Input
-                  label="City / destination"
-                  value={draft.destination}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      destination: event.target.value,
-                    }))
-                  }
-                  placeholder="City or area"
-                />
-              ) : (
-                <Input
-                  label="Destination"
-                  value={displayDestination || '-'}
-                  readOnly
-                  tabIndex={-1}
-                />
-              )}
-            </Fact>
-            <Fact>
-              {editing ? (
-                <Input
-                  label="Departure"
-                  type="date"
-                  value={draft.departureDate}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      departureDate: event.target.value,
-                    }))
-                  }
-                />
-              ) : (
-                <Input
-                  label="Departure"
-                  value={formatDate(item.departureDate)}
-                  readOnly
-                  tabIndex={-1}
-                />
-              )}
-            </Fact>
-            <Fact label="Current step" value={currentLabel} />
-            <Fact attention={missingAssignee}>
-              {editing ? (
-                <Select
-                  label="Assigned to"
-                  searchable
-                  searchPlaceholder="Search employees…"
-                  placeholder="Select employee"
-                  value={draft.assignedTo}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      assignedTo: event.target.value,
-                    }))
-                  }
-                  options={employeeAssignmentOptions(
-                    employees,
-                    draft.assignedTo,
-                  )}
-                />
-              ) : (
-                <Input
-                  label="Assigned to"
-                  value={assignedName || '-'}
-                  readOnly
-                  tabIndex={-1}
-                />
-              )}
-            </Fact>
-            <Fact>
-              {editing ? (
-                <Input
-                  label="Service fee"
-                  inputMode="numeric"
-                  value={draft.serviceFee}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      serviceFee: event.target.value,
-                    }))
-                  }
-                />
-              ) : (
-                <Input
-                  label="Service fee"
-                  value={formatBalance(serviceFee)}
-                  readOnly
-                  tabIndex={-1}
-                />
-              )}
-            </Fact>
-            <Fact
-              label="Balance due"
-              value={formatBalance(displayBalance)}
-            />
-            <Fact label="Opened" value={formatDate(item.createdAt)} />
-            <Fact label="Updated" value={formatDate(item.updatedAt)} />
-            <Fact
-              label="Documents"
-              value={
-                missingDocs > 0 ? `${missingDocs} needed` : 'Complete'
-              }
-              attention={missingDocs > 0}
-            />
-            <Fact
-              id="case-status-field"
-              className={cx(flashTarget === 'status' && 'pd-focus-flash')}
-            >
-              {editing ? (
-                <Select
-                  label="Status"
-                  value={draft.status}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      status: event.target.value as CaseStatus,
-                    }))
-                  }
-                  options={CASE_STATUS_OPTIONS}
-                />
-              ) : (
-                <Input
-                  label="Status"
-                  value={item.status}
-                  readOnly
-                  tabIndex={-1}
-                />
-              )}
-            </Fact>
-            <Fact className="pd-case-detail__fact--full">
-              {editing ? (
-                <Input
-                  label="Notes"
-                  value={draft.description}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
-                  }
-                />
-              ) : (
-                <Input
-                  label="Notes"
-                  value={item.description?.trim() || '-'}
-                  readOnly
-                  tabIndex={-1}
-                />
-              )}
-            </Fact>
-          </div>
-        </section>
+          <CardContent className="px-[1.125rem]">
+            <div className="grid grid-cols-1 gap-3.5 pt-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <Fact attention={missingCountry}>
+                {editing ? (
+                  <Select
+                    label="Country"
+                    searchable
+                    searchPlaceholder="Search countries…"
+                    value={draft.country}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        country: event.target.value,
+                      }))
+                    }
+                    options={countryOptions}
+                  />
+                ) : (
+                  <Input
+                    label="Country"
+                    value={displayCountry || '-'}
+                    readOnly
+                    tabIndex={-1}
+                  />
+                )}
+              </Fact>
+              <Fact>
+                {editing ? (
+                  <Input
+                    label="City / destination"
+                    value={draft.destination}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        destination: event.target.value,
+                      }))
+                    }
+                    placeholder="City or area"
+                  />
+                ) : (
+                  <Input
+                    label="Destination"
+                    value={displayDestination || '-'}
+                    readOnly
+                    tabIndex={-1}
+                  />
+                )}
+              </Fact>
+              <Fact>
+                {editing ? (
+                  <Input
+                    label="Departure"
+                    type="date"
+                    value={draft.departureDate}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        departureDate: event.target.value,
+                      }))
+                    }
+                  />
+                ) : (
+                  <Input
+                    label="Departure"
+                    value={formatDate(item.departureDate)}
+                    readOnly
+                    tabIndex={-1}
+                  />
+                )}
+              </Fact>
+              <Fact label="Current step" value={currentLabel} />
+              <Fact attention={missingAssignee}>
+                {editing ? (
+                  <Select
+                    label="Assigned to"
+                    searchable
+                    searchPlaceholder="Search employees…"
+                    placeholder="Select employee"
+                    value={draft.assignedTo}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        assignedTo: event.target.value,
+                      }))
+                    }
+                    options={employeeAssignmentOptions(
+                      employees,
+                      draft.assignedTo,
+                    )}
+                  />
+                ) : (
+                  <Input
+                    label="Assigned to"
+                    value={assignedName || '-'}
+                    readOnly
+                    tabIndex={-1}
+                  />
+                )}
+              </Fact>
+              <Fact>
+                {editing ? (
+                  <Input
+                    label="Service fee"
+                    inputMode="numeric"
+                    value={draft.serviceFee}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        serviceFee: event.target.value,
+                      }))
+                    }
+                  />
+                ) : (
+                  <Input
+                    label="Service fee"
+                    value={formatBalance(serviceFee)}
+                    readOnly
+                    tabIndex={-1}
+                  />
+                )}
+              </Fact>
+              <Fact
+                label="Balance due"
+                value={formatBalance(displayBalance)}
+              />
+              <Fact label="Opened" value={formatDate(item.createdAt)} />
+              <Fact label="Updated" value={formatDate(item.updatedAt)} />
+              <Fact
+                label="Documents"
+                value={
+                  missingDocs > 0 ? `${missingDocs} needed` : 'Complete'
+                }
+                attention={missingDocs > 0}
+              />
+              <Fact
+                id="case-status-field"
+                className={cn(
+                  flashTarget === 'status' && FOCUS_FLASH_CLASS,
+                )}
+              >
+                {editing ? (
+                  <Select
+                    label="Status"
+                    value={draft.status}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        status: event.target.value as CaseStatus,
+                      }))
+                    }
+                    options={CASE_STATUS_OPTIONS}
+                  />
+                ) : (
+                  <Input
+                    label="Status"
+                    value={item.status}
+                    readOnly
+                    tabIndex={-1}
+                  />
+                )}
+              </Fact>
+              <Fact className="col-span-full">
+                {editing ? (
+                  <Input
+                    label="Notes"
+                    value={draft.description}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        description: event.target.value,
+                      }))
+                    }
+                  />
+                ) : (
+                  <Input
+                    label="Notes"
+                    value={item.description?.trim() || '-'}
+                    readOnly
+                    tabIndex={-1}
+                  />
+                )}
+              </Fact>
+            </div>
+          </CardContent>
+        </Card>
         <div
           id="case-pipeline"
-          className={flashTarget === 'pipeline' ? 'pd-focus-flash' : undefined}
+          className={flashTarget === 'pipeline' ? FOCUS_FLASH_CLASS : undefined}
         >
           <CasePipeline item={item} />
         </div>
       </div>
-      <Modal
+      <Dialog
         open={requestOpen}
-        onClose={() => setRequestOpen(false)}
-        title="Request status update"
-        actions={
-          <>
-            <Button variant="secondary" onClick={() => setRequestOpen(false)}>
+        onOpenChange={(next) => {
+          if (!next) setRequestOpen(false)
+        }}
+      >
+        <DialogContent className="border border-border bg-card shadow-[var(--shadow-deep)] ring-0">
+          <DialogHeader>
+            <DialogTitle>Request Status Update</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <Select
+              label="Move to"
+              value={requestTo}
+              onChange={(event) =>
+                setRequestTo(event.target.value as CaseStatus)
+              }
+              options={CASE_STATUS_OPTIONS}
+            />
+            <Textarea
+              label="Remarks"
+              rows={3}
+              value={requestRemarks}
+              onChange={(event) => setRequestRemarks(event.target.value)}
+            />
+          </div>
+          <DialogFooter className="border-0 bg-transparent">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 rounded-lg"
+              onClick={() => setRequestOpen(false)}
+            >
               Cancel
             </Button>
             <Button
+              type="button"
+              className="h-9 rounded-lg"
               onClick={() => {
                 submitStatusRequest({
                   subAgentId: client?.subAgentId,
@@ -680,24 +749,9 @@ export default function CaseDetailPage() {
             >
               Submit request
             </Button>
-          </>
-        }
-      >
-        <Select
-          label="Move to"
-          value={requestTo}
-          onChange={(event) =>
-            setRequestTo(event.target.value as CaseStatus)
-          }
-          options={CASE_STATUS_OPTIONS}
-        />
-        <Textarea
-          label="Remarks"
-          rows={3}
-          value={requestRemarks}
-          onChange={(event) => setRequestRemarks(event.target.value)}
-        />
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <ConfirmDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}

@@ -1,4 +1,11 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/shadcn/table'
 import {
   formatInvoiceAmount,
   formatInvoiceDate,

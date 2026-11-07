@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { NewClientForm } from '@/components/clients/NewClientForm'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+} from '@/components/shadcn/card'
 import { layoutConfig } from '@/config/layout'
 import { createClient, getClientByPhone } from '@/lib/clientsStore'
 import {
@@ -24,9 +29,18 @@ import {
   resolveTenantRef,
   seedPublicTenantForIntake,
 } from '@/lib/tenantsStore'
+import { cn } from '@/lib/utils'
 import type { CreateClientInput } from '@/types/client'
-import '@/styles/layout-track.css'
 import '@/styles/layout-clients.css'
+
+const intakePageBackgroundStyle = {
+  backgroundColor: 'color-mix(in srgb, var(--color-theme) 55%, #040806)',
+  backgroundImage: [
+    'radial-gradient(48rem 34rem at 14% 10%, color-mix(in srgb, var(--color-theme) 88%, #06281c) 0%, transparent 58%)',
+    'radial-gradient(40rem 30rem at 90% 90%, color-mix(in srgb, var(--color-theme) 70%, #041910) 0%, transparent 55%)',
+    'linear-gradient(165deg, color-mix(in srgb, var(--color-theme) 65%, #03140e) 0%, color-mix(in srgb, var(--color-theme) 40%, #070b0f) 50%, #050807 100%)',
+  ].join(', '),
+} as const
 
 export default function PublicClientIntakePage() {
   const { subAgentId = '', tenantSlug: tenantFromRoute = '' } = useParams()
@@ -201,72 +215,95 @@ export default function PublicClientIntakePage() {
   }
 
   return (
-    <div className="pd-track">
+    <div
+      className={cn(
+        'relative isolate flex min-h-full flex-col items-center overflow-auto',
+        'pt-[calc(4.5rem+env(safe-area-inset-top,0px))] px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]',
+        'text-[#0a0a0a] [color-scheme:light]',
+      )}
+      style={intakePageBackgroundStyle}
+    >
       <img
         src={publicUrl('images/logo.svg')}
         alt={layoutConfig.brand.name}
-        className="pd-track__corner-logo"
+        className="absolute left-5 top-5 z-[2] h-[1.625rem] w-auto object-contain opacity-[0.92]"
         width={86}
         height={44}
         decoding="async"
       />
 
-      <main
-        className={
+      <Card
+        className={cn(
+          'relative z-[1] w-full gap-5 rounded-[1.25rem] border-border bg-white py-7 text-[#0a0a0a] shadow-[0_18px_48px_color-mix(in_srgb,black_28%,transparent),0_2px_8px_color-mix(in_srgb,black_12%,transparent)] ring-0',
           submittedName
-            ? 'pd-track__sheet pd-track__sheet--success'
-            : 'pd-track__sheet pd-track__sheet--wide pd-track__sheet--intake'
-        }
+            ? 'my-auto max-w-[28rem]'
+            : 'mt-0 mb-auto max-w-[44rem]',
+        )}
       >
         {submittedName ? (
-          <div className="pd-track__success" role="status">
-            <span className="pd-track__success-icon" aria-hidden>
+          <CardContent className="flex flex-col items-center gap-3 px-6 py-[0.35rem] pb-[0.15rem] text-center">
+            <div
+              className="inline-flex size-14 items-center justify-center rounded-full bg-[var(--color-status-completed)] text-white"
+              aria-hidden
+            >
               <Check size={28} strokeWidth={2.75} />
-            </span>
-            <h1 className="pd-track__title">Details received</h1>
-            <p className="pd-track__lede">
+            </div>
+            <h1 className="m-0 text-balance font-[family-name:var(--font-heading)] text-[clamp(1.5rem,2.6vw,1.85rem)] font-extrabold leading-[1.15] tracking-[-0.03em]">
+              Details received
+            </h1>
+            <p
+              className="m-0 mx-auto max-w-96 text-pretty text-[0.9rem] leading-snug text-[#64748b]"
+              role="status"
+            >
               {awaitingApproval
                 ? `Thank you, ${submittedName}. ${referringName} received your profile for approval and will follow up.`
                 : `Thank you, ${submittedName}. ${referringName} has your profile and will follow up.`}
             </p>
-          </div>
+          </CardContent>
         ) : (
           <>
-            <header className="pd-track__intro">
-              <h1 className="pd-track__title">Create your profile</h1>
-            </header>
+            <CardHeader className="gap-1 px-6 pb-0 text-start">
+              <h1 className="m-0 text-balance font-[family-name:var(--font-heading)] text-[clamp(1.5rem,2.6vw,1.85rem)] font-extrabold leading-[1.15] tracking-[-0.03em]">
+                Create your profile
+              </h1>
+            </CardHeader>
 
-            {loading ? (
-              <p className="pd-admin__quiet" role="status">
-                Loading registration form…
-              </p>
-            ) : formReady ? (
-              <>
-                {submitError ? (
-                  <p className="pd-field__error" role="alert">
-                    {submitError}
-                  </p>
-                ) : null}
-                <NewClientForm
-                  variant="public"
-                  defaultSubAgentId={
-                    isAgencyDirect ? undefined : activeSubAgent?.id
-                  }
-                  serviceTenantId={tenant?.id}
-                  submitLabel={busy ? 'Submitting…' : 'Submit'}
-                  onSubmit={(input) => {
-                    void handleSubmit(input)
-                  }}
-                />
-              </>
-            ) : (
-              <p className="pd-field__error" role="status">
-                {unavailable}
-              </p>
-            )}
+            <CardContent className="flex flex-col gap-5 px-6 text-start">
+              {loading ? (
+                <p
+                  className="m-0 text-sm leading-snug text-[#64748b]"
+                  role="status"
+                >
+                  Loading registration form…
+                </p>
+              ) : formReady ? (
+                <>
+                  {submitError ? (
+                    <p className="m-0 text-sm text-destructive" role="alert">
+                      {submitError}
+                    </p>
+                  ) : null}
+                  <NewClientForm
+                    variant="public"
+                    defaultSubAgentId={
+                      isAgencyDirect ? undefined : activeSubAgent?.id
+                    }
+                    serviceTenantId={tenant?.id}
+                    submitLabel={busy ? 'Submitting…' : 'Submit'}
+                    onSubmit={(input) => {
+                      void handleSubmit(input)
+                    }}
+                  />
+                </>
+              ) : (
+                <p className="m-0 text-sm text-destructive" role="status">
+                  {unavailable}
+                </p>
+              )}
+            </CardContent>
           </>
         )}
-      </main>
+      </Card>
     </div>
   )
 }

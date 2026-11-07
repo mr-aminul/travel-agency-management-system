@@ -1,5 +1,8 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { Button, Input, Select } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/shadcn/card'
+import { FieldError } from '@/components/shadcn/field'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
 import { absolutePublicUrl } from '@/lib/publicUrl'
 import {
   createUserInvite,
@@ -158,93 +161,95 @@ export function SubAgentLoginSection({ subAgent, onEmailSaved }: Props) {
   const effectiveMode = existingLogin && mode === 'password' ? 'link' : mode
 
   return (
-    <section className="pd-settings-block" aria-labelledby="sub-agent-login-heading">
-      <header className="pd-settings-block__header">
-        <h2 id="sub-agent-login-heading">Sub agent login</h2>
-        <p>
-          Sub agents sign in with <strong>Sub agent login</strong> on the
-          sign-in page. If this email already runs an agency, we link sub-agent
-          access. We do not overwrite their agency password.
-        </p>
-      </header>
+    <Card className="shadow-sm" aria-labelledby="sub-agent-login-heading">
+      <CardHeader>
+        <CardTitle id="sub-agent-login-heading">Sub Agent Login</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {login ? (
+          <p className="m-0 text-sm text-muted-foreground">
+            Status: <strong className="text-foreground">{login.status}</strong> · {login.email}
+          </p>
+        ) : (
+          <p className="m-0 text-sm text-muted-foreground">No login yet.</p>
+        )}
 
-      {login ? (
-        <p className="pd-settings-block__meta">
-          Status: <strong>{login.status}</strong> · {login.email}
-        </p>
-      ) : (
-        <p className="pd-settings-block__meta">No login yet.</p>
-      )}
+        {existingLogin && !login ? (
+          <p className="m-0 text-sm text-muted-foreground" role="status">
+            This email already has an agency login. Prefer linking. They will use
+            the same password and choose Sub agent login when signing in.
+          </p>
+        ) : null}
 
-      {existingLogin && !login ? (
-        <p className="pd-settings-block__meta" role="status">
-          This email already has an agency login. Prefer linking. They will use
-          the same password and choose Sub agent login when signing in.
-        </p>
-      ) : null}
-
-      <form className="pd-form-stack" onSubmit={(event) => void handleSubmit(event)}>
-        <Select
-          label="How to grant access"
-          value={effectiveMode}
-          onChange={(event) =>
-            setMode(event.target.value as 'invite' | 'password' | 'link')
-          }
-          options={grantOptions}
-        />
-        <Input
-          label="Login email"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-          autoComplete="off"
-        />
-        {effectiveMode === 'password' ? (
-          <Input
-            label="Initial password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            autoComplete="new-password"
+        <form className="flex flex-col gap-3" onSubmit={(event) => void handleSubmit(event)}>
+          <Select
+            label="How to Grant Access"
+            value={effectiveMode}
+            onChange={(event) =>
+              setMode(event.target.value as 'invite' | 'password' | 'link')
+            }
+            options={grantOptions}
           />
-        ) : null}
-        {error ? (
-          <p className="pd-field__error" role="alert">
-            {error}
-          </p>
-        ) : null}
-        {status ? <p role="status">{status}</p> : null}
-        {inviteLink ? (
-          <p>
-            Invite link:{' '}
-            <a href={inviteLink} target="_blank" rel="noreferrer">
-              {inviteLink}
-            </a>
-          </p>
-        ) : null}
-        <div className="pd-form-actions">
-          <Button type="submit" disabled={busy}>
-            {busy
-              ? 'Working…'
-              : effectiveMode === 'invite'
-                ? login
-                  ? 'Resend invite'
-                  : 'Create invite'
-                : effectiveMode === 'link'
-                  ? 'Link sub-agent access'
-                  : login
-                    ? 'Reset password'
-                    : 'Create login'}
-          </Button>
-          {login && login.status !== 'invited' ? (
-            <Button type="button" variant="secondary" onClick={toggleDisabled}>
-              {login.status === 'disabled' ? 'Enable login' : 'Disable login'}
-            </Button>
+          <Input
+            label="Login Email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            autoComplete="off"
+          />
+          {effectiveMode === 'password' ? (
+            <Input
+              label="Initial Password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              autoComplete="new-password"
+            />
           ) : null}
-        </div>
-      </form>
-    </section>
+          {error ? <FieldError role="alert">{error}</FieldError> : null}
+          {status ? <p className="m-0 text-sm" role="status">{status}</p> : null}
+          {inviteLink ? (
+            <p className="m-0 break-all text-sm">
+              Invite link:{' '}
+              <a
+                className="text-primary underline-offset-2 hover:underline"
+                href={inviteLink}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {inviteLink}
+              </a>
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" className="h-9 rounded-lg" disabled={busy}>
+              {busy
+                ? 'Working…'
+                : effectiveMode === 'invite'
+                  ? login
+                    ? 'Resend Invite'
+                    : 'Create Invite'
+                  : effectiveMode === 'link'
+                    ? 'Link Sub-Agent Access'
+                    : login
+                      ? 'Reset Password'
+                      : 'Create Login'}
+            </Button>
+            {login && login.status !== 'invited' ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 rounded-lg"
+                onClick={toggleDisabled}
+              >
+                {login.status === 'disabled' ? 'Enable Login' : 'Disable Login'}
+              </Button>
+            ) : null}
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   )
 }

@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
+import { FileText } from 'lucide-react'
 import { InvoicePageView } from '@/components/invoices/InvoicePageView'
 import { InvoicePrintActions } from '@/components/invoices/InvoicePrintActions'
 import { PublicInvoicePayPanel } from '@/components/invoices/PublicInvoicePayPanel'
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/shadcn/empty'
 import { layoutConfig } from '@/config/layout'
-import { EmptyState } from '@/components/ui'
 import type { CaseInvoice } from '@/lib/caseInvoice'
 import { overlayInvoice } from '@/lib/invoicePay'
 import {
@@ -76,7 +82,14 @@ export default function PublicInvoicePage() {
     return (
       <div className="pd-invoice-page-frame pd-invoice-page-frame--public">
         <div className="pd-page pd-invoice-page" aria-busy="true">
-          <EmptyState title="Loading invoice…" />
+          <Empty className="bg-card shadow-sm">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileText aria-hidden />
+              </EmptyMedia>
+              <EmptyTitle>Loading Invoice…</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         </div>
       </div>
     )
@@ -86,7 +99,14 @@ export default function PublicInvoicePage() {
     return (
       <div className="pd-invoice-page-frame pd-invoice-page-frame--public">
         <div className="pd-page pd-invoice-page">
-          <EmptyState title="Invoice not found" />
+          <Empty className="bg-card shadow-sm">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileText aria-hidden />
+              </EmptyMedia>
+              <EmptyTitle>Invoice Not Found</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         </div>
       </div>
     )

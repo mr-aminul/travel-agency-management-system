@@ -1,21 +1,65 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Badge, Button, ConfirmDialog, EmptyState, FilterChip, FilterChips, FilterPopover, PageHeader, SearchField, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, type BadgeVariant } from '@/components/ui'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { Checkbox } from '@/components/shadcn/checkbox'
+import { Input } from '@/components/shadcn/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/shadcn/popover'
+import {
+  chromeHeadClass,
+  elevatedPageClass,
+  floatingSheetClass,
+  summaryStatClass,
+  summaryStatGroupClass,
+  summaryStatLabelClass,
+  summaryStatPeekClass,
+  summaryStatValueClass,
+  filterChipClass,
+  pureWhiteFieldClass,
+  pureWhiteOutlineClass,
+} from '@/components/clients/shadcnChrome'
+import {
+  Empty,
+  EmptyContent,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/shadcn/empty'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/shadcn/table'
 import {
   CheckCircle2,
-  CircleDot,
   CircleOff,
   Clock,
   Folder,
   ListChecks,
+  ListFilter,
   PauseCircle,
   PlayCircle,
   Plus,
+  Search,
+  SlidersHorizontal,
   Trash2,
   Wallet,
 } from 'lucide-react'
 import { NewCaseForm } from '@/components/cases/NewCaseForm'
-import { StatCards } from '@/components/StatCards'
 import { getCurrentStepLabel } from '@/lib/caseChecklist'
 import { createCase, deleteCase, getEnabledServiceOptions } from '@/lib/casesStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
@@ -26,6 +70,7 @@ import { isOverdueReceivable } from '@/lib/dashboardInsights'
 import { formatBdt } from '@/lib/dashboardMetrics'
 import { formatDisplayDate } from '@/lib/formatDate'
 import { cx } from '@/lib/cx'
+import { cn } from '@/lib/utils'
 import {
   resolveServiceFromSlug,
   useCatalogServiceRefs,
@@ -42,12 +87,13 @@ import {
   type CreateCaseInput,
   type ServiceType,
 } from '@/types/case'
-import '@/styles/layout-cases.css'
+
+const outlineControl = pureWhiteOutlineClass
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'Pending', label: 'Pending' },
-  { value: 'In-Progress', label: 'In progress' },
-  { value: 'On-Hold', label: 'On hold' },
+  { value: 'In-Progress', label: 'In Progress' },
+  { value: 'On-Hold', label: 'On Hold' },
   { value: 'Completed', label: 'Completed' },
   { value: 'Cancelled', label: 'Cancelled' },
 ]
@@ -66,12 +112,13 @@ function isOpenService(item: Case): boolean {
   return item.status !== 'Completed' && item.status !== 'Cancelled'
 }
 
-export function caseStatusBadgeVariant(status: CaseStatus): BadgeVariant {
-  if (status === 'Completed') return 'completed'
-  if (status === 'Pending') return 'pending'
-  if (status === 'In-Progress') return 'in-progress'
-  if (status === 'On-Hold') return 'on-hold'
-  return 'danger'
+function caseStatusShadcnVariant(
+  status: CaseStatus,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (status === 'Completed') return 'default'
+  if (status === 'Cancelled') return 'destructive'
+  if (status === 'On-Hold') return 'outline'
+  return 'secondary'
 }
 
 function formatCaseDate(value?: string): string {
@@ -98,6 +145,143 @@ function matchesFilters(
   const matchService =
     serviceFilters.length === 0 || serviceFilters.includes(item.service)
   return matchSearch && matchStatus && matchService
+}
+
+function FilterChoices({
+  label,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string
+  options: { value: string; label: string }[]
+  selected: string[]
+  onChange: (next: string[]) => void
+}) {
+  const allSelected =
+    options.length > 0 && options.every((option) => selected.includes(option.value))
+
+  function toggle(value: string) {
+    onChange(
+      selected.includes(value)
+        ? selected.filter((item) => item !== value)
+        : [...selected, value],
+    )
+  }
+
+  return (
+    <>
+      <div className="px-2.5 py-1.5 text-xs font-medium text-muted-foreground">
+        Filter {label}
+      </div>
+      <div className="h-px bg-border" />
+      <div
+        role="button"
+        tabIndex={0}
+        className="flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-sm hover:bg-muted"
+        onClick={() =>
+          onChange(allSelected ? [] : options.map((option) => option.value))
+        }
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          onChange(allSelected ? [] : options.map((option) => option.value))
+        }}
+      >
+        <Checkbox checked={allSelected} tabIndex={-1} aria-hidden className="pointer-events-none" />
+        <span>{allSelected ? 'Deselect All' : 'Select All'}</span>
+      </div>
+      <div className="h-px bg-border" />
+      <div
+        className="max-h-56 overflow-y-auto py-1"
+        role="listbox"
+        aria-label={`${label} values`}
+        aria-multiselectable
+      >
+        {options.length === 0 ? (
+          <p className="px-2.5 py-2 text-sm text-muted-foreground">None Yet</p>
+        ) : (
+          options.map((option) => {
+            const isSelected = selected.includes(option.value)
+            return (
+              <div
+                key={option.value}
+                role="option"
+                tabIndex={0}
+                aria-selected={isSelected}
+                className="flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-sm hover:bg-muted"
+                onClick={() => toggle(option.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return
+                  event.preventDefault()
+                  toggle(option.value)
+                }}
+              >
+                <Checkbox
+                  checked={isSelected}
+                  tabIndex={-1}
+                  aria-hidden
+                  className="pointer-events-none"
+                />
+                <span className="min-w-0 truncate">{option.label}</span>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </>
+  )
+}
+
+function ToolbarMultiFilter({
+  label,
+  options,
+  selected,
+  onChange,
+  className,
+}: {
+  label: string
+  options: { value: string; label: string }[]
+  selected: string[]
+  onChange: (next: string[]) => void
+  className?: string
+}) {
+  const active = selected.length > 0
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            outlineControl,
+            active &&
+              'border-[var(--color-theme)] !font-semibold ring-1 ring-[var(--color-theme)]',
+            className,
+          )}
+          aria-label={
+            active ? `Filter ${label}, ${selected.length} selected` : `Filter ${label}`
+          }
+        >
+          <ListFilter data-icon="inline-start" aria-hidden />
+          {label}
+          {active ? (
+            <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 tabular-nums">
+              {selected.length}
+            </Badge>
+          ) : null}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 !gap-0 !p-0">
+        <FilterChoices
+          label={label}
+          options={options}
+          selected={selected}
+          onChange={onChange}
+        />
+      </PopoverContent>
+    </Popover>
+  )
 }
 
 export type CasesListProps = {
@@ -195,9 +379,8 @@ export function CasesList({
   }, [syncNewWithSearchParams, urlDue, urlOverdue])
 
   const feeCellClass = cx(
-    'pd-cases__balance',
-    'pd-cases__fee',
-    highlightServiceFee && 'is-highlight',
+    'tabular-nums font-medium',
+    highlightServiceFee && 'bg-primary/10',
   )
 
   const serviceScoped = useMemo(() => {
@@ -358,11 +541,72 @@ export function CasesList({
   }
 
   const newCaseButton = (
-    <Button onClick={openNewCaseModal}>
-      <Plus size={16} strokeWidth={2.25} aria-hidden />
-      Add service
+    <Button className="h-9 rounded-lg shadow-xs" onClick={openNewCaseModal}>
+      <Plus data-icon="inline-start" />
+      Add Service
     </Button>
   )
+
+  const clearToolbarFilters = () => {
+    setStatusFilters([])
+    setDueOnly(false)
+    setOverdueOnly(false)
+    writeBalanceQuery(false)
+    if (!showServiceChips) {
+      setServiceFilters([])
+      writeServiceQuery()
+    }
+  }
+
+  const serviceStatCards: {
+    id: ServiceStatId
+    label: string
+    value: string
+    icon: typeof Folder
+  }[] = [
+    {
+      id: 'all',
+      label: 'Total Services',
+      value: String(stats.total),
+      icon: Folder,
+    },
+    {
+      id: 'Pending',
+      label: 'Pending',
+      value: String(stats.byStatus.Pending),
+      icon: Clock,
+    },
+    {
+      id: 'In-Progress',
+      label: 'In Progress',
+      value: String(stats.byStatus['In-Progress']),
+      icon: PlayCircle,
+    },
+    {
+      id: 'On-Hold',
+      label: 'On Hold',
+      value: String(stats.byStatus['On-Hold']),
+      icon: PauseCircle,
+    },
+    {
+      id: 'Completed',
+      label: 'Completed',
+      value: String(stats.byStatus.Completed),
+      icon: CheckCircle2,
+    },
+    {
+      id: 'Cancelled',
+      label: 'Cancelled',
+      value: String(stats.byStatus.Cancelled),
+      icon: CircleOff,
+    },
+    {
+      id: 'due',
+      label: 'Outstanding',
+      value: formatBdt(stats.outstanding),
+      icon: Wallet,
+    },
+  ]
 
   const hasQuery =
     search.trim().length > 0 ||
@@ -373,40 +617,56 @@ export function CasesList({
 
   const body =
     filtered.length === 0 ? (
-      <EmptyState
-        icon={Folder}
-        title={cases.length === 0 && !hasQuery ? emptyTitle : 'No services match'}
-        action={
-          cases.length === 0 && !hasQuery ? (
+      <Empty className="bg-card shadow-sm">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Folder />
+          </EmptyMedia>
+          <EmptyTitle>
+            {cases.length === 0 && !hasQuery ? emptyTitle : 'No Services Match'}
+          </EmptyTitle>
+        </EmptyHeader>
+        <EmptyContent>
+          {cases.length === 0 && !hasQuery ? (
             (emptyAction ?? newCaseButton)
           ) : (
-            <Button variant="secondary" size="sm" onClick={resetFilters}>
-              Reset filters
+            <Button variant="outline" size="sm" className="h-8 rounded-lg" onClick={resetFilters}>
+              Reset Filters
             </Button>
-          )
-        }
-      />
+          )}
+        </EmptyContent>
+      </Empty>
     ) : (
+      <div
+        className={
+          embedded
+            ? 'overflow-auto rounded-lg border border-border'
+            : 'overflow-auto rounded-xl border border-border bg-card shadow-md'
+        }
+      >
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Service</TableHead>
-            <TableHead>ID</TableHead>
-            <TableHead>Created at</TableHead>
-            {showClientColumn && <TableHead>Client</TableHead>}
-            <TableHead>Current step</TableHead>
-            <TableHead>Destination</TableHead>
-            <TableHead>Departure</TableHead>
+          <TableRow className="border-0 hover:bg-transparent">
+            <TableHead className={chromeHeadClass}>Service</TableHead>
+            <TableHead className={chromeHeadClass}>ID</TableHead>
+            <TableHead className={chromeHeadClass}>Created At</TableHead>
+            {showClientColumn && <TableHead className={chromeHeadClass}>Client</TableHead>}
+            <TableHead className={chromeHeadClass}>Current Step</TableHead>
+            <TableHead className={chromeHeadClass}>Destination</TableHead>
+            <TableHead className={chromeHeadClass}>Departure</TableHead>
             <TableHead
-              className={cx('pd-cases__fee', highlightServiceFee && 'is-highlight')}
+              className={cx(
+                chromeHeadClass,
+                highlightServiceFee && 'ring-2 ring-inset ring-white/50',
+              )}
             >
-              Service fee
+              Service Fee
             </TableHead>
-            <TableHead>Balance due</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead className={chromeHeadClass}>Balance Due</TableHead>
+            <TableHead className={chromeHeadClass}>Status</TableHead>
             {allowDelete ? (
-              <TableHead className="pd-cases__actions-head">
-                <span className="pd-sr-only">Actions</span>
+              <TableHead className={chromeHeadClass}>
+                <span className="sr-only">Actions</span>
               </TableHead>
             ) : null}
           </TableRow>
@@ -418,51 +678,54 @@ export function CasesList({
               <TableRow
                 key={item.id}
                 className={cx(
-                  'pd-cases__row',
-                  item.id === selectedId && 'is-selected',
+                  'cursor-pointer',
+                  item.id === selectedId && 'bg-muted/60',
                 )}
                 aria-selected={item.id === selectedId ? true : undefined}
                 onClick={() => navigate(workDetailPath(item))}
               >
                 <TableCell>
-                  <span className="pd-cases__service">
-                    <span className="pd-cases__service-icon" aria-hidden>
+                  <span className="inline-flex items-center gap-2">
+                    <span
+                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
+                      aria-hidden
+                    >
                       <ServiceIcon size={15} strokeWidth={2} />
                     </span>
-                    <p className="pd-cases__name">{item.service}</p>
+                    <p className="m-0 font-medium">{item.service}</p>
                   </span>
                 </TableCell>
-                <TableCell className="pd-table__code">{item.caseId}</TableCell>
+                <TableCell className="font-mono text-xs">{item.caseId}</TableCell>
                 <TableCell>{formatCaseDate(item.createdAt)}</TableCell>
                 {showClientColumn && <TableCell>{item.clientName}</TableCell>}
                 <TableCell>
-                  <span className="pd-cases__step">{getCurrentStepLabel(item)}</span>
+                  <span className="text-sm">{getCurrentStepLabel(item)}</span>
                 </TableCell>
                 <TableCell>{item.destination || '-'}</TableCell>
                 <TableCell>{formatCaseDate(item.departureDate)}</TableCell>
                 <TableCell className={feeCellClass}>
                   {formatBalance(caseServiceFee(item))}
                 </TableCell>
-                <TableCell className="pd-cases__balance">
+                <TableCell className="tabular-nums font-medium">
                   {formatBalance(item.balance)}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={caseStatusBadgeVariant(item.status)}>
+                  <Badge variant={caseStatusShadcnVariant(item.status)}>
                     {item.status}
                   </Badge>
                 </TableCell>
                 {allowDelete ? (
                   <TableCell
-                    className="pd-cases__actions-cell"
+                    className="w-10"
                     onClick={(event) => event.stopPropagation()}
                   >
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
-                      className="pd-btn--icon"
+                      size="icon"
+                      className="size-8"
                       aria-label={`Delete ${item.service}`}
-                      title="Delete service"
+                      title="Delete Service"
                       onClick={() => setPendingDelete(item)}
                     >
                       <Trash2 size={14} strokeWidth={2.25} aria-hidden />
@@ -474,229 +737,221 @@ export function CasesList({
           })}
         </TableBody>
       </Table>
+      </div>
     )
 
   return (
     <div
-      className={embedded ? 'pd-cases pd-cases--embedded' : 'pd-page pd-cases'}
+      className={cn(
+        embedded ? 'flex min-w-0 flex-col gap-3' : cn(elevatedPageClass, 'flex min-w-0 flex-col gap-5'),
+      )}
       aria-label={label}
+      {...(!embedded ? { 'data-elevated-canvas': true } : {})}
     >
       {viewToggle && !embedded ? (
-        <PageHeader title={label} titleAside={viewToggle} />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="m-0 text-xl font-semibold tracking-tight">{label}</h1>
+          {viewToggle}
+        </div>
       ) : null}
       {!embedded ? (
-        <StatCards
-          label="Service stats"
-          selectedId={selectedStat}
-          onSelect={selectStat}
-          cards={[
-            {
-              id: 'all',
-              label: 'Total services',
-              value: String(stats.total),
-              icon: Folder,
-              tone: 'brand',
-            },
-            {
-              id: 'Pending',
-              label: 'Pending',
-              value: String(stats.byStatus.Pending),
-              icon: Clock,
-              tone: 'warning',
-            },
-            {
-              id: 'In-Progress',
-              label: 'In progress',
-              value: String(stats.byStatus['In-Progress']),
-              icon: PlayCircle,
-              tone: 'info',
-            },
-            {
-              id: 'On-Hold',
-              label: 'On hold',
-              value: String(stats.byStatus['On-Hold']),
-              icon: PauseCircle,
-              tone: 'muted',
-            },
-            {
-              id: 'Completed',
-              label: 'Completed',
-              value: String(stats.byStatus.Completed),
-              icon: CheckCircle2,
-              tone: 'success',
-            },
-            {
-              id: 'Cancelled',
-              label: 'Cancelled',
-              value: String(stats.byStatus.Cancelled),
-              icon: CircleOff,
-              tone: 'muted',
-            },
-            {
-              id: 'due',
-              label: 'Outstanding',
-              value: formatBdt(stats.outstanding),
-              icon: Wallet,
-              tone: 'warning',
-            },
-          ]}
-        />
+        <div className={summaryStatGroupClass} role="group" aria-label="Service stats">
+          {serviceStatCards.map((card) => {
+            const Icon = card.icon
+            return (
+              <Button
+                key={card.id}
+                type="button"
+                variant="ghost"
+                aria-pressed={selectedStat === card.id}
+                className={summaryStatClass}
+                onClick={() => selectStat(card.id)}
+              >
+                <Icon className={summaryStatPeekClass} size={76} strokeWidth={1.25} aria-hidden />
+                <span className={summaryStatLabelClass}>
+                  <Icon size={14} strokeWidth={1.75} aria-hidden />
+                  {card.label}
+                </span>
+                <span className={summaryStatValueClass}>{card.value}</span>
+              </Button>
+            )
+          })}
+        </div>
       ) : null}
       {showToolbar ? (
-        <div className="pd-cases__toolbar">
-          <SearchField
-            className="pd-cases__search"
-            placeholder="Search services…"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onClear={() => setSearch('')}
-          />
-
-          <div className="pd-cases__toolbar-end">
-            <div className="pd-cases__filters">
-              {showServiceColumn && !showServiceChips && (
-                <Select
-                  className="pd-cases__filter"
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="relative min-w-56 flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search Services…"
+              className={cn('pl-8', pureWhiteFieldClass)}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="hidden items-center gap-2 md:flex">
+              {showServiceColumn && !showServiceChips ? (
+                <ToolbarMultiFilter
                   label="Service"
-                  multiple
-                  searchable
-                  placeholder="All services"
-                  searchPlaceholder="Search services…"
-                  value={serviceFilters}
-                  onChange={(event) => setServiceFilters(event.target.value)}
                   options={serviceFilterOptions}
+                  selected={serviceFilters}
+                  onChange={(value) => {
+                    setServiceFilters(value)
+                    writeServiceQuery(value.length === 1 ? value[0] : undefined)
+                  }}
                 />
-              )}
-              <Select
-                className="pd-cases__filter"
+              ) : null}
+              <ToolbarMultiFilter
                 label="Status"
-                multiple
-                searchable
-                placeholder="All statuses"
-                searchPlaceholder="Search statuses…"
-                value={statusFilters}
-                onChange={(event) => {
-                  setStatusFilters(event.target.value)
+                options={STATUS_FILTERS}
+                selected={statusFilters}
+                onChange={(value) => {
+                  setStatusFilters(value)
                   setDueOnly(false)
                   setOverdueOnly(false)
                   writeBalanceQuery(false)
                 }}
-                options={STATUS_FILTERS}
               />
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  className="pd-cases__clear"
-                  onClick={() => {
-                    setStatusFilters([])
-                    setDueOnly(false)
-                    setOverdueOnly(false)
-                    writeBalanceQuery(false)
-                    if (!showServiceChips) {
-                      setServiceFilters([])
-                      writeServiceQuery()
-                    }
-                  }}
-                >
-                  Clear
-                </button>
-              )}
             </div>
-            <FilterPopover
-              className="pd-cases__mobile-filters"
-              sectionLabel="Service attributes"
-              dimensions={[
-                ...(showServiceColumn && !showServiceChips
-                  ? [
-                    {
-                      id: 'service',
-                      label: 'Service',
-                      icon: ListChecks,
-                      options: serviceFilterOptions,
-                      value: serviceFilters,
-                      onChange: (value: string[]) => {
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={cn(
+                    outlineControl,
+                    'md:hidden',
+                    hasActiveFilters &&
+                      'border-[var(--color-theme)] !font-semibold ring-1 ring-[var(--color-theme)]',
+                  )}
+                  aria-label="Filter services"
+                >
+                  <SlidersHorizontal data-icon="inline-start" aria-hidden />
+                  Filters
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 !gap-0 !p-0 md:hidden">
+                {showServiceColumn && !showServiceChips ? (
+                  <>
+                    <FilterChoices
+                      label="Service"
+                      options={serviceFilterOptions}
+                      selected={serviceFilters}
+                      onChange={(value) => {
                         setServiceFilters(value)
-                        writeServiceQuery(
-                          value.length === 1 ? value[0] : undefined,
-                        )
-                      },
-                    },
-                  ]
-                  : []),
-                {
-                  id: 'status',
-                  label: 'Status',
-                  icon: CircleDot,
-                  options: STATUS_FILTERS,
-                  value: statusFilters,
-                  onChange: (value: string[]) => {
+                        writeServiceQuery(value.length === 1 ? value[0] : undefined)
+                      }}
+                    />
+                    <div className="h-px bg-border" />
+                  </>
+                ) : null}
+                <FilterChoices
+                  label="Status"
+                  options={STATUS_FILTERS}
+                  selected={statusFilters}
+                  onChange={(value) => {
                     setStatusFilters(value)
                     setDueOnly(false)
                     setOverdueOnly(false)
                     writeBalanceQuery(false)
-                  },
-                },
-              ]}
-              onClearAll={() => {
-                setStatusFilters([])
-                setDueOnly(false)
-                setOverdueOnly(false)
-                writeBalanceQuery(false)
-                if (!showServiceChips) {
-                  setServiceFilters([])
-                  writeServiceQuery()
-                }
-              }}
-            />
+                  }}
+                />
+                {hasActiveFilters ? (
+                  <>
+                    <div className="h-px bg-border" />
+                    <div className="p-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn('h-8 w-full', outlineControl)}
+                        onClick={clearToolbarFilters}
+                      >
+                        Clear Filters
+                      </Button>
+                    </div>
+                  </>
+                ) : null}
+              </PopoverContent>
+            </Popover>
+            {hasActiveFilters ? (
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(outlineControl, 'hidden md:inline-flex')}
+                onClick={clearToolbarFilters}
+              >
+                Clear
+              </Button>
+            ) : null}
             {newCaseButton}
           </div>
         </div>
       ) : null}
 
       {showServiceChips ? (
-        <FilterChips label="Filter by service type">
-          <FilterChip
-            active={serviceFilters.length === 0}
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="Filter by service type"
+        >
+          <button
+            type="button"
+            className={cn(
+              filterChipClass(serviceFilters.length === 0),
+              'inline-flex items-center gap-1',
+            )}
+            aria-pressed={serviceFilters.length === 0}
             onClick={() => selectServiceChip(null)}
           >
-            <ListChecks size={15} strokeWidth={2} aria-hidden />
-            All services
-          </FilterChip>
+            <ListChecks size={13} strokeWidth={2} aria-hidden />
+            All Services
+          </button>
           {catalog.map((item) => {
             const Icon = iconForService(item.key)
             const selected =
               serviceFilters.length === 1 && serviceFilters[0] === item.key
             return (
-              <FilterChip
+              <button
                 key={item.key}
-                active={selected}
+                type="button"
+                className={cn(
+                  filterChipClass(selected),
+                  'inline-flex items-center gap-1',
+                )}
+                aria-pressed={selected}
                 onClick={() => selectServiceChip(item.key)}
               >
-                <Icon size={15} strokeWidth={2} aria-hidden />
+                <Icon size={13} strokeWidth={2} aria-hidden />
                 {item.label}
-              </FilterChip>
+              </button>
             )
           })}
-        </FilterChips>
+        </div>
       ) : null}
 
       {body}
 
-      <SideDrawer
+      <Sheet
         open={newCaseOpen}
-        onClose={closeNewCaseModal}
-        title="Add service"
-        className="pd-cases-drawer"
+        onOpenChange={(open) => {
+          if (!open) closeNewCaseModal()
+        }}
       >
-        <NewCaseForm
-          onSubmit={handleCreateCase}
-          onCancel={closeNewCaseModal}
-          defaultClientId={resolvedClientId}
-          lockClient={lockClient}
-          defaultService={resolvedService}
-          lockService={lockService}
-        />
-      </SideDrawer>
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">Add Service</SheetTitle>
+          </SheetHeader>
+          <NewCaseForm
+            onSubmit={handleCreateCase}
+            onCancel={closeNewCaseModal}
+            defaultClientId={resolvedClientId}
+            lockClient={lockClient}
+            defaultService={resolvedService}
+            lockService={lockService}
+          />
+        </SheetContent>
+      </Sheet>
 
       {allowDelete ? (
         <ConfirmDialog

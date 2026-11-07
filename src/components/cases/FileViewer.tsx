@@ -1,4 +1,4 @@
-import { DOCUMENT_FILE_ACCEPT } from '@/components/ui'
+import { DOCUMENT_FILE_ACCEPT } from '@/components/shadcn/file-dropzone'
 import {
   useEffect,
   useEffectEvent,
@@ -27,7 +27,7 @@ import {
   isPdfMime,
   isTextMime,
 } from '@/lib/fileStore'
-import { cx } from '@/lib/cx'
+import { cn } from '@/lib/utils'
 
 export type FileViewerProps = {
   fileId?: string | null
@@ -47,6 +47,12 @@ const MIN_ZOOM = 0.5
 const MAX_ZOOM = 3
 const ZOOM_STEP = 0.25
 
+const viewerActionClass =
+  'inline-flex size-8 items-center justify-center rounded-md hover:bg-muted'
+
+const fsControlBtnClass =
+  'inline-flex min-h-9 min-w-9 items-center justify-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-2.5 text-sm font-bold text-white hover:bg-white/[0.16] disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2694fe]'
+
 function FilePreview({
   url,
   name,
@@ -54,6 +60,7 @@ function FilePreview({
   textPreview,
   textError,
   zoom,
+  compact,
 }: {
   url: string
   name: string
@@ -61,15 +68,16 @@ function FilePreview({
   textPreview: string | null
   textError: boolean
   zoom: number
+  compact?: boolean
 }) {
   if (isImageMime(type)) {
     return (
-      <div className="pd-file-viewer__image-wrap">
+      <div className="grid max-h-[28rem] place-items-center overflow-auto bg-background">
         <img
-          className="pd-file-viewer__image"
+          className="block max-h-[28rem] w-full max-w-full object-contain transition-transform duration-150"
           src={url}
           alt={name}
-          style={{ transform: `scale(${zoom})` }}
+          style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
         />
       </div>
     )
@@ -78,7 +86,10 @@ function FilePreview({
   if (isPdfMime(type)) {
     return (
       <iframe
-        className="pd-file-viewer__frame"
+        className={cn(
+          'block w-full border-0 bg-background',
+          compact ? 'h-64' : 'h-[28rem]',
+        )}
         title={name}
         src={url}
       />
@@ -88,21 +99,21 @@ function FilePreview({
   if (isTextMime(type)) {
     if (textError) {
       return (
-        <p className="pd-file-viewer__fallback">
+        <p className="m-0 grid min-h-40 place-items-center p-5 text-center text-[0.8125rem] leading-snug text-muted-foreground">
           Couldn’t load a text preview. Use Download instead.
         </p>
       )
     }
     return (
-      <pre className="pd-file-viewer__text">
+      <pre className="m-0 max-h-80 overflow-auto whitespace-pre-wrap break-words p-3.5 font-mono text-xs leading-normal text-foreground">
         {textPreview ?? 'Loading preview…'}
       </pre>
     )
   }
 
   return (
-    <div className="pd-file-viewer__fallback">
-      <p>
+    <div className="m-0 grid min-h-40 place-items-center gap-3 p-5 text-center text-[0.8125rem] leading-snug text-muted-foreground">
+      <p className="m-0">
         Inline preview isn’t available for this file type. Use Full screen or
         Download instead.
       </p>
@@ -201,37 +212,45 @@ function FullscreenViewer({
   let stage: ReactNode
   if (isImageMime(type)) {
     stage = (
-      <div className="pd-file-fs__image-stage">
+      <div className="grid w-full flex-1 place-items-center overflow-auto rounded-xl bg-black/45">
         <img
-          className="pd-file-fs__image"
+          className="block max-h-[calc(100dvh-7.5rem)] max-w-full object-contain transition-transform duration-150"
           src={url}
           alt={name}
-          style={{ transform: `scale(${zoom})` }}
+          style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
         />
       </div>
     )
   } else if (isPdfMime(type)) {
     stage = (
-      <iframe className="pd-file-fs__frame" title={name} src={url} />
+      <iframe
+        className="h-full min-h-[calc(100dvh-7.5rem)] w-full flex-1 rounded-xl border-0 bg-white"
+        title={name}
+        src={url}
+      />
     )
   } else if (isTextMime(type)) {
     stage = textError ? (
-      <p className="pd-file-viewer__fallback">
+      <p className="m-0 grid min-h-40 place-items-center p-5 text-center text-[0.8125rem] leading-snug text-white/65">
         Couldn’t load a text preview. Use Download instead.
       </p>
     ) : (
-      <pre className="pd-file-fs__text">
+      <pre className="m-0 w-full flex-1 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-[#111112] p-5 font-mono text-sm leading-relaxed text-[#dfe2e5]">
         {textPreview ?? 'Loading preview…'}
       </pre>
     )
   } else {
     stage = (
-      <div className="pd-file-viewer__fallback">
-        <p>
+      <div className="m-0 grid min-h-40 place-items-center gap-3 p-5 text-center text-[0.8125rem] leading-snug text-white/65">
+        <p className="m-0">
           This file type can’t be previewed inline. Download it to open with
           another app.
         </p>
-        <a className="pd-file-viewer__action" href={url} download={name}>
+        <a
+          className={cn(fsControlBtnClass, 'no-underline')}
+          href={url}
+          download={name}
+        >
           <Download size={14} strokeWidth={2.25} aria-hidden />
           Download
         </a>
@@ -240,34 +259,40 @@ function FullscreenViewer({
   }
 
   return createPortal(
-    <div className="pd-file-fs" role="presentation">
+    <div
+      className="fixed inset-0 z-[300] bg-black/80"
+      role="presentation"
+    >
       <div
         ref={panelRef}
-        className="pd-file-fs__panel"
+        className="flex h-full w-full flex-col text-[#dfe2e5] outline-none"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={onPanelKeyDown}
       >
-        <header className="pd-file-fs__toolbar">
-          <div className="pd-file-fs__title-block">
-            <h2 id={titleId} className="pd-file-fs__title">
+        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-black/45 px-3 py-2 max-md:flex-col max-md:items-stretch">
+          <div className="min-w-0">
+            <h2
+              id={titleId}
+              className="m-0 truncate font-heading text-base font-bold text-white"
+            >
               {name}
             </h2>
-            <p className="pd-file-fs__meta">
+            <p className="mt-0.5 text-xs text-white/65">
               {type || 'Unknown type'}
               {sizeLabel ? ` · ${sizeLabel}` : ''}
               {canZoom ? ` · ${Math.round(zoom * 100)}%` : ''}
             </p>
           </div>
 
-          <div className="pd-file-fs__controls">
+          <div className="flex shrink-0 items-center gap-1.5 max-md:justify-end">
             {canZoom ? (
               <>
                 <button
                   type="button"
-                  className="pd-file-fs__btn"
+                  className={fsControlBtnClass}
                   onClick={() =>
                     setZoom((current) => Math.max(MIN_ZOOM, current - ZOOM_STEP))
                   }
@@ -279,7 +304,7 @@ function FullscreenViewer({
                 </button>
                 <button
                   type="button"
-                  className="pd-file-fs__btn"
+                  className={fsControlBtnClass}
                   onClick={() =>
                     setZoom((current) => Math.min(MAX_ZOOM, current + ZOOM_STEP))
                   }
@@ -291,7 +316,7 @@ function FullscreenViewer({
                 </button>
                 <button
                   type="button"
-                  className="pd-file-fs__btn"
+                  className={fsControlBtnClass}
                   onClick={() => setZoom(1)}
                   disabled={zoom === 1}
                   aria-label="Reset zoom"
@@ -303,7 +328,7 @@ function FullscreenViewer({
             ) : null}
 
             <a
-              className="pd-file-fs__btn"
+              className={cn(fsControlBtnClass, 'no-underline')}
               href={url}
               download={name}
               aria-label={`Download ${name}`}
@@ -315,20 +340,22 @@ function FullscreenViewer({
             <button
               ref={closeRef}
               type="button"
-              className="pd-file-fs__btn is-close"
+              className={cn(fsControlBtnClass, 'px-3')}
               onClick={close}
               aria-label="Exit full screen"
               title="Exit full screen (Esc)"
             >
               <X size={18} strokeWidth={2.25} aria-hidden />
-              <span className="pd-file-fs__btn-label">Exit</span>
+              <span className="leading-none max-md:hidden">Exit</span>
             </button>
           </div>
         </header>
 
-        <div className="pd-file-fs__stage">{stage}</div>
+        <div className="flex min-h-0 flex-1 items-stretch justify-center overflow-hidden p-3">
+          {stage}
+        </div>
 
-        <p className="pd-file-fs__hint">
+        <p className="m-0 shrink-0 px-4 pb-3 pt-2 text-center text-[0.6875rem] text-white/55">
           Press Esc to exit full screen
           {canZoom ? ' · + / − to zoom · 0 to reset' : ''}
         </p>
@@ -349,7 +376,7 @@ function UploadFileButton({
     <>
       <button
         type="button"
-        className="pd-file-viewer__action"
+        className={viewerActionClass}
         aria-label="Upload"
         title="Upload"
         onClick={() => inputRef.current?.click()}
@@ -358,7 +385,7 @@ function UploadFileButton({
       </button>
       <input
         ref={inputRef}
-        className="pd-file-drop__input"
+        className="sr-only"
         type="file"
         accept={DOCUMENT_FILE_ACCEPT}
         onChange={(event) => {
@@ -382,12 +409,15 @@ function FileViewerActions({
 }) {
   if (!onUpload && !onDelete && !extra) return null
   return (
-    <div className="pd-file-viewer__actions">
+    <div className="flex shrink-0 flex-wrap gap-1.5">
       {onUpload ? <UploadFileButton onUpload={onUpload} /> : null}
       {onDelete ? (
         <button
           type="button"
-          className="pd-file-viewer__action is-danger"
+          className={cn(
+            viewerActionClass,
+            'text-destructive hover:bg-destructive/10',
+          )}
           aria-label="Delete"
           title="Delete"
           onClick={onDelete}
@@ -440,13 +470,15 @@ export function FileViewer({
 
   if (!url) {
     return (
-      <div className="pd-file-viewer is-empty">
+      <div className="flex items-start gap-3 rounded-xl border bg-card p-3 text-muted-foreground">
         <FileWarning size={20} strokeWidth={2} aria-hidden />
-        <div>
+        <div className="min-w-0">
           {hideMeta ? null : (
-            <p className="pd-file-viewer__name">{name}</p>
+            <p className="m-0 break-words text-sm font-semibold text-foreground">
+              {name}
+            </p>
           )}
-          <p className="pd-file-viewer__hint">
+          <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
             Preview unavailable. Re-upload the file to view it here.
           </p>
         </div>
@@ -466,7 +498,7 @@ export function FileViewer({
         <>
           <button
             type="button"
-            className="pd-file-viewer__action"
+            className={viewerActionClass}
             aria-label="Full screen"
             title="Full screen"
             onClick={() => setFullscreen(true)}
@@ -474,7 +506,7 @@ export function FileViewer({
             <Maximize2 size={14} strokeWidth={2.25} aria-hidden />
           </button>
           <a
-            className="pd-file-viewer__action"
+            className={cn(viewerActionClass, 'no-underline')}
             href={url}
             download={name}
             aria-label={`Download ${name}`}
@@ -490,20 +522,28 @@ export function FileViewer({
   return (
     <>
       <div
-        className={cx(
-          compact ? 'pd-file-viewer is-compact' : 'pd-file-viewer',
-          hideMeta && 'is-meta-hidden',
+        className={cn(
+          'flex flex-col overflow-hidden rounded-xl border bg-card',
         )}
       >
         {hideMeta ? (
           toolbar ? (
-            <div className="pd-file-viewer__toolbar">{toolbar}</div>
+            <div
+              className={cn(
+                'flex items-center justify-end gap-2 border-b px-3 py-2',
+                '-mb-1',
+              )}
+            >
+              {toolbar}
+            </div>
           ) : null
         ) : (
-          <header className="pd-file-viewer__header">
-            <div className="pd-file-viewer__meta">
-              <p className="pd-file-viewer__name">{name}</p>
-              <p className="pd-file-viewer__hint">
+          <header className="flex items-center justify-between gap-2 border-b px-3 py-2">
+            <div className="min-w-0">
+              <p className="m-0 break-words text-sm font-semibold text-foreground">
+                {name}
+              </p>
+              <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
                 {type || 'Unknown type'}
                 {sizeLabel ? ` · ${sizeLabel}` : ''}
               </p>
@@ -512,7 +552,12 @@ export function FileViewer({
           </header>
         )}
 
-        <div className="pd-file-viewer__stage">
+        <div
+          className={cn(
+            'flex min-h-48 items-center justify-center overflow-hidden bg-muted/40',
+            compact && 'min-h-40',
+          )}
+        >
           <FilePreview
             url={url}
             name={name}
@@ -520,6 +565,7 @@ export function FileViewer({
             textPreview={textPreview}
             textError={textError}
             zoom={1}
+            compact={compact}
           />
         </div>
       </div>

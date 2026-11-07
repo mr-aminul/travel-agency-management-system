@@ -9,14 +9,13 @@ import {
   type PendingBranch,
 } from '@/components/settings/flow/BranchConditionDialog'
 import { ServiceFlowCanvas } from '@/components/settings/flow/ServiceFlowCanvas'
-import {
-  Button,
-  Checkbox,
-  ConfirmDialog,
-  Input,
-  Select,
-  Switch,
-} from '@/components/ui'
+import { LabeledSwitch } from '@/components/clients/LabeledSwitch'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
+import { Button } from '@/components/shadcn/button'
+import { Checkbox } from '@/components/shadcn/checkbox'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import { Field, FieldLabel } from '@/components/shadcn/field'
+import { Input as PlainInput } from '@/components/shadcn/input'
 import { cx } from '@/lib/cx'
 import {
   getDefaultDocumentForm,
@@ -366,8 +365,7 @@ export function ServiceFlowEditorV2({
           ) : null}
           <div className="pd-service-flow__country">
             <Select
-              aria-label="Country variation"
-              className="pd-service-flow__country-select"
+              label="Country"
               value={country}
               options={countrySelectOptions}
               onChange={(event) => selectCountry(event.target.value)}
@@ -375,9 +373,7 @@ export function ServiceFlowEditorV2({
             {adding ? (
               <div className="pd-service-flow__add-country">
                 <Select
-                  aria-label="New country"
-                  searchable
-                  searchPlaceholder="Search countries…"
+                  label="New Country"
                   placeholder="Choose a country"
                   value={
                     countryOptions.some((option) => option.value === newCountry)
@@ -518,7 +514,7 @@ export function ServiceFlowEditorV2({
                 </Button>
               </div>
               <Input
-                label="Step name"
+                label="Step Name"
                 value={selectedStep.label}
                 placeholder="e.g. Medical"
                 onChange={(event) => {
@@ -624,15 +620,20 @@ export function ServiceFlowEditorV2({
                           key={doc.id}
                           className="pd-service-flow__doc-pick-row"
                         >
-                          <Checkbox
-                            label={doc.name || 'Untitled'}
-                            checked={checked}
-                            onChange={() =>
-                              setStepNeedsDoc(selectedStep.id, doc.id)
-                            }
-                          />
+                          <Field orientation="horizontal">
+                            <Checkbox
+                              id={`flow-need-doc-${doc.id}`}
+                              checked={checked}
+                              onCheckedChange={() =>
+                                setStepNeedsDoc(selectedStep.id, doc.id)
+                              }
+                            />
+                            <FieldLabel htmlFor={`flow-need-doc-${doc.id}`}>
+                              {doc.name || 'Untitled'}
+                            </FieldLabel>
+                          </Field>
                           {checked ? (
-                            <Switch
+                            <LabeledSwitch
                               className="pd-service-flow__doc-required"
                               label="Required"
                               checked={doc.required}
@@ -686,7 +687,7 @@ export function ServiceFlowEditorV2({
               <div className="pd-service-flow__inspector-head">
                 <h3 className="pd-service-flow__inspector-title">Document</h3>
                 <div className="pd-service-flow__inspector-head-actions">
-                  <Switch
+                  <LabeledSwitch
                     className="pd-service-flow__doc-required"
                     label="Required"
                     checked={selectedDocument.required}
@@ -736,7 +737,7 @@ export function ServiceFlowEditorV2({
                   </Button>
                 </div>
               </div>
-              <Input
+              <PlainInput
                 aria-label="Document name"
                 value={selectedDocument.name}
                 placeholder="Document name"

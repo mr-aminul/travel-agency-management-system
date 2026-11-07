@@ -1,6 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { ProfilePhotoField } from '@/components/ProfilePhotoField'
-import { Button, Input, Textarea } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/shadcn/field'
+import { Input } from '@/components/shadcn/input'
+import { Textarea } from '@/components/shadcn/textarea'
 import {
   validateOptionalEmail,
   validateOptionalText,
@@ -69,80 +77,106 @@ export function NewSubAgentForm({ onSubmit, onCancel }: NewSubAgentFormProps) {
   }
 
   return (
-    <form className="pd-clients-form" onSubmit={handleSubmit} noValidate>
-      <div className="pd-clients-form__scroll">
-        <div className="pd-clients-form__block">
-          <ProfilePhotoField
-            name={name}
-            fallbackName="Sub Agent"
-            kind="subAgent"
-            value={photoUrl}
-            onChange={setPhotoUrl}
-          >
+    <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit} noValidate>
+      <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
+        <ProfilePhotoField
+          name={name}
+          fallbackName="Sub Agent"
+          kind="subAgent"
+          value={photoUrl}
+          onChange={setPhotoUrl}
+        >
+          <Field data-invalid={fieldError('name') ? true : undefined}>
+            <FieldLabel htmlFor="sub-agent-name">Sub Agent Name</FieldLabel>
             <Input
-              label="Sub Agent name"
+              id="sub-agent-name"
               required
               value={name}
+              aria-invalid={fieldError('name') ? true : undefined}
               onChange={(event) => setName(event.target.value)}
               onBlur={blur('name')}
-              placeholder="Agency or sub agent name"
-              error={fieldError('name')}
+              placeholder="Agency Or Sub Agent Name"
             />
-          </ProfilePhotoField>
-          <div className="pd-clients-form__grid">
+            <FieldError>{fieldError('name')}</FieldError>
+          </Field>
+        </ProfilePhotoField>
+        <FieldGroup className="gap-5">
+          <div className="grid grid-cols-2 gap-4">
+          <Field data-invalid={fieldError('phone') ? true : undefined}>
+            <FieldLabel htmlFor="sub-agent-phone">Mobile Number</FieldLabel>
             <Input
-              label="Mobile number"
+              id="sub-agent-phone"
               type="tel"
               required
               value={phone}
+              aria-invalid={fieldError('phone') ? true : undefined}
               onChange={(event) => setPhone(event.target.value)}
               onBlur={blur('phone')}
               placeholder="01XXXXXXXXX"
-              error={fieldError('phone')}
             />
+            <FieldError>{fieldError('phone')}</FieldError>
+          </Field>
+          <Field data-invalid={fieldError('email') ? true : undefined}>
+            <FieldLabel htmlFor="sub-agent-email">Email</FieldLabel>
             <Input
-              label="Email"
+              id="sub-agent-email"
               type="email"
               value={email}
+              aria-invalid={fieldError('email') ? true : undefined}
               onChange={(event) => setEmail(event.target.value)}
               onBlur={blur('email')}
               placeholder="agent@email.com"
-              error={fieldError('email')}
             />
+            <FieldError>{fieldError('email')}</FieldError>
+          </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+          <Field data-invalid={fieldError('branch') ? true : undefined}>
+            <FieldLabel htmlFor="sub-agent-branch">Branch</FieldLabel>
             <Input
-              label="Branch"
+              id="sub-agent-branch"
               value={branch}
+              aria-invalid={fieldError('branch') ? true : undefined}
               onChange={(event) => setBranch(event.target.value)}
               onBlur={blur('branch')}
-              error={fieldError('branch')}
             />
+            <FieldError>{fieldError('branch')}</FieldError>
+          </Field>
+          <Field data-invalid={fieldError('licenseNumber') ? true : undefined}>
+            <FieldLabel htmlFor="sub-agent-license">License Number</FieldLabel>
             <Input
-              label="License number"
+              id="sub-agent-license"
               value={licenseNumber}
+              aria-invalid={fieldError('licenseNumber') ? true : undefined}
               onChange={(event) => setLicenseNumber(event.target.value)}
               onBlur={blur('licenseNumber')}
               placeholder="Optional"
-              error={fieldError('licenseNumber')}
             />
+            <FieldError>{fieldError('licenseNumber')}</FieldError>
+          </Field>
+          </div>
+          <Field data-invalid={fieldError('address') ? true : undefined}>
+            <FieldLabel htmlFor="sub-agent-address">Address</FieldLabel>
             <Textarea
-              className="pd-clients-form__full"
-              label="Address"
+              id="sub-agent-address"
               rows={2}
               value={address}
+              aria-invalid={fieldError('address') ? true : undefined}
               onChange={(event) => setAddress(event.target.value)}
               onBlur={blur('address')}
-              placeholder="Office address"
-              error={fieldError('address')}
+              placeholder="Office Address"
             />
-          </div>
-        </div>
+            <FieldError>{fieldError('address')}</FieldError>
+          </Field>
+        </FieldGroup>
       </div>
-
-      <div className="pd-clients-form__footer">
-        <Button type="button" variant="secondary" onClick={onCancel}>
+      <div className="mt-auto flex justify-end gap-2 border-t border-border px-5 py-3">
+        <Button type="button" variant="outline" className="h-9 rounded-lg shadow-xs" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit">Register sub agent</Button>
+        <Button type="submit" className="h-9 rounded-lg shadow-xs">
+          Register Sub Agent
+        </Button>
       </div>
     </form>
   )

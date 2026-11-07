@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import https from 'node:https'
@@ -64,6 +65,7 @@ export default defineConfig(({ mode }) => {
     // Legacy EC2 deploy sets VITE_BASE_PATH=/platform/ (see scripts/deploy-to-ec2.sh).
     base: env.VITE_BASE_PATH || process.env.VITE_BASE_PATH || '/',
     plugins: [
+      tailwindcss(),
       react(),
       {
         name: 'inject-theme-bootstrap',

@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollText } from 'lucide-react'
+import { Select } from '@/components/clients/clientShadcnFields'
+import { Empty, EmptyHeader, EmptyTitle } from '@/components/shadcn/empty'
+import { PageHeader } from '@/components/shadcn/page-header'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/shadcn/table'
 import { useAuth } from '@/lib/auth'
 import { formatDisplayDateTime } from '@/lib/formatDate'
 import {
@@ -7,19 +18,16 @@ import {
   type PlatformAuditEntry,
 } from '@/lib/platformAdminApi'
 import { useTenants } from '@/lib/tenantsStore'
-import { cx } from '@/lib/cx'
+import { cn } from '@/lib/utils'
 import {
-  EmptyState,
-  PageHeader,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui'
+  adminQuietClass,
+  adminToolbarRowClass,
+  chromeHeadClass,
+  elevatedPageClass,
+  tableShellClass,
+} from '@/components/admin/adminChrome'
 import '@/styles/layout-admin.css'
+import '@/styles/layout-clients.css'
 
 export default function AdminActivityPage({
   lockedTenantId,
@@ -54,7 +62,7 @@ export default function AdminActivityPage({
 
   const tenantOptions = useMemo(
     () => [
-      { value: 'all', label: 'All agencies' },
+      { value: 'all', label: 'All Agencies' },
       ...tenants.map((t) => ({ value: t.id, label: t.name })),
     ],
     [tenants],
@@ -67,7 +75,12 @@ export default function AdminActivityPage({
 
   return (
     <div
-      className={cx('pd-page pd-admin', lockedTenantId && 'pd-admin--embedded')}
+      className={cn(
+        elevatedPageClass,
+        'pd-page pd-page--elevated pd-admin',
+        lockedTenantId && 'pd-admin--embedded',
+      )}
+      data-elevated-canvas
       aria-label="Activity"
     >
       {lockedTenantId ? null : (
@@ -75,7 +88,7 @@ export default function AdminActivityPage({
       )}
 
       {lockedTenantId ? null : (
-        <div className="pd-admin__toolbar-row">
+        <div className={adminToolbarRowClass}>
           <Select
             label="Agency"
             value={tenantFilter}
@@ -86,45 +99,52 @@ export default function AdminActivityPage({
       )}
 
       {loading ? (
-        <p className="pd-admin__quiet">Loading audit…</p>
+        <p className={adminQuietClass}>Loading audit…</p>
       ) : audit.length === 0 ? (
-        <EmptyState
-          icon={ScrollText}
-          title={
-            tenantFilter === 'all' ? 'No audit entries' : 'No entries for this agency'
-          }
-        />
+        <Empty className="bg-card shadow-sm">
+          <EmptyHeader>
+            <ScrollText size={20} aria-hidden />
+            <EmptyTitle>
+              {tenantFilter === 'all'
+                ? 'No Audit Entries'
+                : 'No Entries For This Agency'}
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>When</TableHead>
-              {lockedTenantId ? null : <TableHead>Agency</TableHead>}
-              <TableHead>Actor</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>Summary</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {audit.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell>
-                  {row.createdAt
-                    ? formatDisplayDateTime(row.createdAt)
-                    : '-'}
-                </TableCell>
+        <div className={tableShellClass}>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent border-0">
+                <TableHead className={chromeHeadClass}>When</TableHead>
                 {lockedTenantId ? null : (
-                  <TableCell>{tenantName(row.tenantId)}</TableCell>
+                  <TableHead className={chromeHeadClass}>Agency</TableHead>
                 )}
-                <TableCell>{row.actorEmail || row.actorUserId}</TableCell>
-                <TableCell className="pd-table__code">{row.action}</TableCell>
-                <TableCell>{row.summary}</TableCell>
+                <TableHead className={chromeHeadClass}>Actor</TableHead>
+                <TableHead className={chromeHeadClass}>Action</TableHead>
+                <TableHead className={chromeHeadClass}>Summary</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {audit.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>
+                    {row.createdAt
+                      ? formatDisplayDateTime(row.createdAt)
+                      : '-'}
+                  </TableCell>
+                  {lockedTenantId ? null : (
+                    <TableCell>{tenantName(row.tenantId)}</TableCell>
+                  )}
+                  <TableCell>{row.actorEmail || row.actorUserId}</TableCell>
+                  <TableCell className="font-mono text-xs">{row.action}</TableCell>
+                  <TableCell>{row.summary}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
-
     </div>
   )
 }

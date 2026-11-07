@@ -1,14 +1,16 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Check, Mail, Shield, UserRound } from 'lucide-react'
-import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import {
-  Avatar,
-  avatarKindForMemberRole,
-  Button,
-  CopyableText,
-  Input,
-  PageHeader,
-} from '@/components/ui'
+  ProfilePhotoField,
+  type AvatarKind,
+} from '@/components/ProfilePhotoField'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/shadcn/avatar'
+import { Button } from '@/components/shadcn/button'
+import { Card, CardContent } from '@/components/shadcn/card'
+import { FieldError } from '@/components/shadcn/field'
+import { Input } from '@/components/clients/clientShadcnFields'
+import { elevatedPageClass } from '@/components/clients/shadcnChrome'
+import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 import { fileToProfilePictureDataUrl } from '@/lib/agencyProfile'
 import { getActiveTenantId } from '@/lib/authApi'
@@ -20,11 +22,18 @@ import {
   findTenantMemberForUser,
   updateTenantMember,
 } from '@/lib/tenantMembersStore'
+import type { TenantMemberRole } from '@/types/tenant'
 import {
   saveUserAvatar,
   useUserAvatar,
 } from '@/lib/userAvatarStore'
-import '@/styles/layout-ops.css'
+
+function avatarKindForMemberRole(
+  role: TenantMemberRole | undefined,
+): AvatarKind {
+  if (role === 'owner') return 'owner'
+  return 'staff'
+}
 
 function roleLabel(
   role: string | undefined,
@@ -35,6 +44,28 @@ function roleLabel(
   if (memberRole === 'owner') return 'Owner'
   if (memberRole === 'manager') return 'Manager'
   return 'Agency user'
+}
+
+function CopyEmail({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false)
+  useEffect(() => {
+    if (!copied) return
+    const timer = window.setTimeout(() => setCopied(false), 1500)
+    return () => window.clearTimeout(timer)
+  }, [copied])
+  return (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1 text-left hover:underline"
+      onClick={() => {
+        void navigator.clipboard.writeText(value).then(() => setCopied(true))
+      }}
+      aria-label={copied ? 'Copied' : `Copy ${value}`}
+    >
+      {value}
+      {copied ? <Check size={12} strokeWidth={2.5} aria-hidden /> : null}
+    </button>
+  )
 }
 
 export default function ProfilePage() {
@@ -65,6 +96,12 @@ export default function ProfilePage() {
     name.trim() !== (user?.name ?? '') ||
     email.trim().toLowerCase() !== (user?.email ?? '').toLowerCase()
   const displayRole = roleLabel(user?.role, member?.role)
+  const initials = (user?.name ?? 'Staff')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
 
   const handlePhotoChange = (photoUrl: string | undefined) => {
     if (!user || !canEdit) return
@@ -129,64 +166,58 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="pd-page pd-ops pd-profile-page" aria-label="My profile">
-      <PageHeader title="My profile" />
+    <div className={cn(elevatedPageClass, 'gap-5')} data-elevated-canvas aria-label="My Profile">
+      <h1 className="m-0 text-xl font-semibold tracking-tight">My Profile</h1>
 
-      <div className="pd-profile-layout">
-        <section className="pd-profile-card" aria-label="Profile details">
-          <div className="pd-profile-card__hero">
-            {canEdit ? (
-              <ProfilePhotoField
-                name={name || user?.name || 'Staff'}
-                fallbackName="Staff"
-                kind={avatarKind}
-                value={avatarUrl ?? undefined}
-                encodeFile={fileToProfilePictureDataUrl}
-                onChange={handlePhotoChange}
-              />
-            ) : (
-              <Avatar
-                name={user?.name ?? 'Staff'}
-                src={avatarUrl}
-                size="xl"
-                kind={avatarKind}
-              />
-            )}
+      <div className="mx-auto w-full max-w-xl">
+        <Card className="shadow-sm" aria-label="Profile details">
+          <CardContent className="flex flex-col gap-5 pt-6">
+            <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:text-left">
+              {canEdit ? (
+                <ProfilePhotoField
+                  name={name || user?.name || 'Staff'}
+                  fallbackName="Staff"
+                  kind={avatarKind}
+                  value={avatarUrl ?? undefined}
+                  encodeFile={fileToProfilePictureDataUrl}
+                  onChange={handlePhotoChange}
+                />
+              ) : (
+                <Avatar className="size-20">
+                  {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
+                  <AvatarFallback>{initials || 'S'}</AvatarFallback>
+                </Avatar>
+              )}
 
-            <div className="pd-profile-card__intro">
-              <h2 className="pd-profile-card__name">
-                {user?.name ?? 'Staff account'}
-              </h2>
-              <p className="pd-profile-card__email">
-                {user?.email ? (
-                  <CopyableText value={user.email} />
-                ) : (
-                  'No email on this account'
-                )}
-              </p>
-              <p className="pd-profile-card__role">
-                <Shield size={14} strokeWidth={2.25} aria-hidden />
-                {displayRole}
-              </p>
+              <div className="flex min-w-0 flex-col gap-1">
+                <h2 className="m-0 text-lg font-semibold tracking-tight">
+                  {user?.name ?? 'Staff account'}
+                </h2>
+                <p className="m-0 text-sm text-muted-foreground">
+                  {user?.email ? (
+                    <CopyEmail value={user.email} />
+                  ) : (
+                    'No email on this account'
+                  )}
+                </p>
+                <p className="m-0 inline-flex items-center justify-center gap-1.5 text-sm text-muted-foreground sm:justify-start">
+                  <Shield size={14} strokeWidth={2.25} aria-hidden />
+                  {displayRole}
+                </p>
+              </div>
             </div>
-          </div>
 
-          {isViewingAs ? (
-            <p className="pd-profile-card__notice" role="status">
-              Support Mode is on. Exit it to edit your own name, email, or photo.
-            </p>
-          ) : null}
+            {isViewingAs ? (
+              <p className="m-0 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm" role="status">
+                Support Mode is on. Exit it to edit your own name, email, or photo.
+              </p>
+            ) : null}
 
-          <div className="pd-profile-card__body">
             {canEdit ? (
-              <form
-                className="pd-profile-form"
-                onSubmit={handleSave}
-                noValidate
-              >
-                <div className="pd-profile-form__grid">
+              <form className="flex flex-col gap-4" onSubmit={handleSave} noValidate>
+                <div className="grid gap-3 sm:grid-cols-2">
                   <Input
-                    label="Full name"
+                    label="Full Name"
                     name="fullName"
                     autoComplete="name"
                     required
@@ -210,57 +241,49 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                {error ? (
-                  <p className="pd-field__error" role="alert">
-                    {error}
-                  </p>
-                ) : null}
+                {error ? <FieldError role="alert">{error}</FieldError> : null}
                 {success ? (
-                  <p className="pd-profile-form__status" role="status">
+                  <p className="m-0 inline-flex items-center gap-1.5 text-sm text-foreground" role="status">
                     <Check size={14} strokeWidth={2.5} aria-hidden />
                     {success}
                   </p>
                 ) : null}
 
-                <div className="pd-profile-form__actions">
-                  <Button type="submit" disabled={isSaving || !dirty}>
-                    {isSaving ? 'Saving…' : 'Save changes'}
+                <div>
+                  <Button type="submit" className="h-9 rounded-lg" disabled={isSaving || !dirty}>
+                    {isSaving ? 'Saving…' : 'Save Changes'}
                   </Button>
                 </div>
               </form>
             ) : (
-              <dl className="pd-profile-info">
-                <div className="pd-profile-info__item">
-                  <dt>
+              <dl className="m-0 grid gap-3">
+                <div className="grid gap-1">
+                  <dt className="m-0 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <UserRound size={14} strokeWidth={2.25} aria-hidden />
                     Name
                   </dt>
-                  <dd>{user?.name ?? '—'}</dd>
+                  <dd className="m-0 text-sm">{user?.name ?? '—'}</dd>
                 </div>
-                <div className="pd-profile-info__item">
-                  <dt>
+                <div className="grid gap-1">
+                  <dt className="m-0 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <Mail size={14} strokeWidth={2.25} aria-hidden />
                     Email
                   </dt>
-                  <dd>
-                    {user?.email ? (
-                      <CopyableText value={user.email} />
-                    ) : (
-                      '—'
-                    )}
+                  <dd className="m-0 text-sm">
+                    {user?.email ? <CopyEmail value={user.email} /> : '—'}
                   </dd>
                 </div>
-                <div className="pd-profile-info__item">
-                  <dt>
+                <div className="grid gap-1">
+                  <dt className="m-0 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <Shield size={14} strokeWidth={2.25} aria-hidden />
                     Role
                   </dt>
-                  <dd>{displayRole}</dd>
+                  <dd className="m-0 text-sm">{displayRole}</dd>
                 </div>
               </dl>
             )}
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

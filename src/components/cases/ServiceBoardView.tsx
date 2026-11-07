@@ -9,15 +9,24 @@ import {
   type ReactNode,
 } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { LayoutGrid, ListChecks, PackageOpen } from 'lucide-react'
+import { LayoutGrid, ListFilter, PackageOpen } from 'lucide-react'
 import { StepCompletionDrawer } from '@/components/cases/StepCompletionDrawer'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { Checkbox } from '@/components/shadcn/checkbox'
 import {
-  Badge,
-  EmptyState,
-  FilterPopover,
-  PageHeader,
-  type BadgeVariant,
-} from '@/components/ui'
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/shadcn/empty'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/shadcn/popover'
+import { whiteControlClass } from '@/components/clients/shadcnChrome'
+import { cn } from '@/lib/utils'
 import { getNextStepDef, getStepDefs } from '@/lib/caseChecklist'
 import {
   buildServiceBoard,
@@ -44,10 +53,96 @@ type BoardDragPayload = {
 
 const STATE_BADGE: Record<
   Exclude<ServiceBoardState, 'actionable'>,
-  { label: string; variant: BadgeVariant }
+  { label: string; variant: 'destructive' | 'outline' }
 > = {
-  blocked: { label: 'Blocked', variant: 'danger' },
-  'on-hold': { label: 'On hold', variant: 'on-hold' },
+  blocked: { label: 'Blocked', variant: 'destructive' },
+  'on-hold': { label: 'On Hold', variant: 'outline' },
+}
+
+function ServiceFilterChoices({
+  options,
+  selected,
+  onChange,
+}: {
+  options: { value: string; label: string }[]
+  selected: string[]
+  onChange: (next: string[]) => void
+}) {
+  const allSelected =
+    options.length > 0 &&
+    options.every((option) => selected.includes(option.value))
+
+  function toggle(value: string) {
+    onChange(
+      selected.includes(value)
+        ? selected.filter((item) => item !== value)
+        : [...selected, value],
+    )
+  }
+
+  return (
+    <>
+      <div className="px-2.5 py-1.5 text-xs font-medium text-muted-foreground">
+        Filter Service
+      </div>
+      <div className="h-px bg-border" />
+      <div
+        role="button"
+        tabIndex={0}
+        className="flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-sm hover:bg-muted"
+        onClick={() =>
+          onChange(allSelected ? [] : options.map((option) => option.value))
+        }
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          onChange(allSelected ? [] : options.map((option) => option.value))
+        }}
+      >
+        <Checkbox
+          checked={allSelected}
+          tabIndex={-1}
+          aria-hidden
+          className="pointer-events-none"
+        />
+        <span>{allSelected ? 'Deselect All' : 'Select All'}</span>
+      </div>
+      <div className="h-px bg-border" />
+      <div
+        className="max-h-56 overflow-y-auto py-1"
+        role="listbox"
+        aria-label="Service values"
+        aria-multiselectable
+      >
+        {options.map((option) => {
+          const isSelected = selected.includes(option.value)
+          return (
+            <div
+              key={option.value}
+              role="option"
+              tabIndex={0}
+              aria-selected={isSelected}
+              className="flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-sm hover:bg-muted"
+              onClick={() => toggle(option.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return
+                event.preventDefault()
+                toggle(option.value)
+              }}
+            >
+              <Checkbox
+                checked={isSelected}
+                tabIndex={-1}
+                aria-hidden
+                className="pointer-events-none"
+              />
+              <span className="min-w-0 truncate">{option.label}</span>
+            </div>
+          )
+        })}
+      </div>
+    </>
+  )
 }
 
 type BoardColumn = {
@@ -419,67 +514,109 @@ export function ServiceBoardView({ viewToggle }: ServiceBoardViewProps) {
     setAdvanceCaseId(caseId)
   }
 
+  const serviceFilterActive = serviceFilters.length > 0
+
   return (
     <div
       className={`pd-page pd-service-board pd-service-board--ink-${inkPlace}`}
       aria-label="Services board"
     >
-      <PageHeader
-        title="Services"
-        titleAside={viewToggle}
-        actions={
-          <>
-            <div
-              className="pd-service-board__ink-toggle"
-              role="group"
-              aria-label="Color placement"
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="m-0 text-xl font-semibold tracking-tight">Services</h1>
+          {viewToggle}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            className="pd-service-board__ink-toggle"
+            role="group"
+            aria-label="Color placement"
+          >
+            <button
+              type="button"
+              className={`pd-service-board__ink-option${inkPlace === 'desk' ? ' is-selected' : ''}`}
+              aria-pressed={inkPlace === 'desk'}
+              onClick={() => setInkPlace('desk')}
             >
-              <button
+              Deep Desk
+            </button>
+            <button
+              type="button"
+              className={`pd-service-board__ink-option${inkPlace === 'lanes' ? ' is-selected' : ''}`}
+              aria-pressed={inkPlace === 'lanes'}
+              onClick={() => setInkPlace('lanes')}
+            >
+              Deep Lanes
+            </button>
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
                 type="button"
-                className={`pd-service-board__ink-option${inkPlace === 'desk' ? ' is-selected' : ''}`}
-                aria-pressed={inkPlace === 'desk'}
-                onClick={() => setInkPlace('desk')}
+                variant="outline"
+                className={cn(
+                  whiteControlClass,
+                  serviceFilterActive &&
+                    'border-primary bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary',
+                )}
+                aria-label={
+                  serviceFilterActive
+                    ? `Filter Service, ${serviceFilters.length} selected`
+                    : 'Filter Service'
+                }
               >
-                Deep desk
-              </button>
-              <button
-                type="button"
-                className={`pd-service-board__ink-option${inkPlace === 'lanes' ? ' is-selected' : ''}`}
-                aria-pressed={inkPlace === 'lanes'}
-                onClick={() => setInkPlace('lanes')}
-              >
-                Deep lanes
-              </button>
-            </div>
-            <FilterPopover
-              sectionLabel="Filter"
-              dimensions={[
-                {
-                  id: 'service',
-                  label: 'Service',
-                  icon: ListChecks,
-                  options: enabledServices.map((option) => ({
-                    value: option.value,
-                    label: option.label,
-                  })),
-                  value: serviceFilters,
-                  onChange: onServiceFiltersChange,
-                },
-              ]}
-              onClearAll={
-                serviceFilters.length
-                  ? () => onServiceFiltersChange([])
-                  : undefined
-              }
-            />
-          </>
-        }
-      />
+                <ListFilter data-icon="inline-start" aria-hidden />
+                Service
+                {serviceFilterActive ? (
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 h-5 min-w-5 px-1.5 tabular-nums"
+                  >
+                    {serviceFilters.length}
+                  </Badge>
+                ) : null}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 !gap-0 !p-0">
+              <ServiceFilterChoices
+                options={enabledServices.map((option) => ({
+                  value: option.value,
+                  label: option.label,
+                }))}
+                selected={serviceFilters}
+                onChange={onServiceFiltersChange}
+              />
+              {serviceFilterActive ? (
+                <>
+                  <div className="h-px bg-border" />
+                  <div className="p-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn('h-8 w-full', whiteControlClass)}
+                      onClick={() => onServiceFiltersChange([])}
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                </>
+              ) : null}
+            </PopoverContent>
+          </Popover>
+        </div>
+      </header>
 
       {boards.length === 0 ? (
-        <EmptyState
-          title={serviceFilters.length ? 'No matching files' : 'No open services'}
-        />
+        <Empty className="bg-card shadow-sm">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <PackageOpen aria-hidden />
+            </EmptyMedia>
+            <EmptyTitle>
+              {serviceFilters.length ? 'No Matching Files' : 'No Open Services'}
+            </EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <>
           <nav

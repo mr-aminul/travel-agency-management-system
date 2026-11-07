@@ -6,7 +6,7 @@ import {
   HandCoins,
   TrendingUp,
 } from 'lucide-react'
-import { FilterChip, FilterChips, PageHeader } from '@/components/ui'
+import { filterChipClass } from '@/components/clients/shadcnChrome'
 import { TodayFollowUps } from '@/components/home/TodayFollowUps'
 import { BentoTile } from '@/components/dashboard/BentoTile'
 import { TrendChart } from '@/components/dashboard/TrendChart'
@@ -101,27 +101,30 @@ export default function DashboardPage() {
 
   return (
     <div className="pd-page pd-dash" aria-label="Dashboard">
-      <PageHeader
-        title="Dashboard"
-        titleAside={
-          <FilterChips label="Cash period" className="pd-dash__periods">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="m-0 text-xl font-semibold tracking-tight">Dashboard</h1>
+          <nav
+            className="pd-dash__periods flex flex-wrap items-center gap-2"
+            aria-label="Cash period"
+          >
             {DASH_PERIODS.map((option) => (
-              <FilterChip
+              <button
                 key={option.id}
-                active={period === option.id}
+                type="button"
+                aria-pressed={period === option.id}
+                className={filterChipClass(period === option.id)}
                 onClick={() => setPeriod(option.id)}
               >
                 {option.label}
-              </FilterChip>
+              </button>
             ))}
-          </FilterChips>
-        }
-        actions={
-          <time className="pd-dash__asof" dateTime={localIsoDate(window.asOf)}>
-            As of {asOfLabel}
-          </time>
-        }
-      />
+          </nav>
+        </div>
+        <time className="pd-dash__asof" dateTime={localIsoDate(window.asOf)}>
+          As of {asOfLabel}
+        </time>
+      </header>
 
       <div className="pd-dash__layout">
         <div className="pd-dash__chase">

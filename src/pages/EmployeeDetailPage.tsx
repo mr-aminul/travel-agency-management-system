@@ -1,28 +1,52 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
-  BackButton,
-  Badge,
-  Button,
-  ConfirmDialog,
-  EmptyState,
-  Input,
-  Modal,
-  Select,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type ReactNode,
+} from 'react'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/shadcn/card'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import {
+  Empty,
+  EmptyContent,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/shadcn/empty'
+import { FieldError } from '@/components/shadcn/field'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Tabs,
-  Textarea,
-  type BadgeVariant,
-} from '@/components/ui'
+} from '@/components/shadcn/table'
+import { Input, Select, Textarea } from '@/components/clients/clientShadcnFields'
+import {
+  chromeHeadClass,
+  elevatedPageClass,
+  floatingSheetClass,
+} from '@/components/clients/shadcnChrome'
 import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import { PayslipDocument } from '@/components/hr/PayslipDocument'
 import { PayslipDownloadButton } from '@/components/hr/PayslipDownloadButton'
 import {
+  ArrowLeft,
   Banknote,
   CalendarClock,
   CalendarOff,
@@ -58,9 +82,8 @@ import { hrEmployeesPath } from '@/lib/workPaths'
 import { formatDisplayDate } from '@/lib/formatDate'
 import type { Employee, EmployeeStatus } from '@/types/employee'
 import type { LeaveType } from '@/types/hr'
-import { cx } from '@/lib/cx'
-import '@/styles/layout-clients.css'
-import '@/styles/layout-ops.css'
+import { cn } from '@/lib/utils'
+import '@/styles/layout-invoice.css'
 
 const EMPLOYEE_TABS = ['profile', 'attendance', 'leave', 'payroll'] as const
 
@@ -93,15 +116,15 @@ function todayIso() {
   return formatIsoDate(new Date())
 }
 
-function statusBadgeVariant(status: EmployeeStatus): BadgeVariant {
-  return status === 'Active' ? 'completed' : 'on-hold'
+function statusBadgeVariant(status: EmployeeStatus) {
+  return status === 'Active' ? ('default' as const) : ('secondary' as const)
 }
 
-function dayBadgeVariant(kind: string): BadgeVariant {
-  if (kind === 'Present') return 'completed'
-  if (kind === 'Late') return 'pending'
-  if (kind === 'Absent') return 'danger'
-  return 'in-progress'
+function dayBadgeVariant(kind: string) {
+  if (kind === 'Present') return 'default' as const
+  if (kind === 'Late') return 'secondary' as const
+  if (kind === 'Absent') return 'destructive' as const
+  return 'outline' as const
 }
 
 function draftFromEmployee(employee: Employee) {
@@ -122,7 +145,7 @@ function emptyOr(value: string) {
   return trimmed ? (
     trimmed
   ) : (
-    <span className="pd-client-detail__empty">-</span>
+    <span className="text-muted-foreground">-</span>
   )
 }
 
@@ -149,12 +172,101 @@ function SectionTitle({
   children: ReactNode
 }) {
   return (
-    <h2 className="pd-client-detail__section-title">
-      <span className="pd-client-detail__section-icon" aria-hidden>
+    <span className="inline-flex items-center gap-2">
+      <span
+        className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-theme-subtle)] text-[var(--color-theme-ink)]"
+        aria-hidden
+      >
         <Icon size={16} strokeWidth={2.25} />
       </span>
       {children}
-    </h2>
+    </span>
+  )
+}
+
+function DetailTabs({
+  value,
+  onValueChange,
+  items,
+}: {
+  value: string
+  onValueChange: (value: string) => void
+  items: { id: string; label: ReactNode; content: ReactNode }[]
+}) {
+  const rootRef = useRef<HTMLDivElement>(null)
+  const buttonRefs = useRef(new Map<string, HTMLButtonElement>())
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null)
+
+  const updateIndicator = useCallback(() => {
+    const button = buttonRefs.current.get(value)
+    if (!button) return
+    const next = { left: button.offsetLeft, width: button.offsetWidth }
+    setIndicator((prev) =>
+      prev && prev.left === next.left && prev.width === next.width ? prev : next,
+    )
+  }, [value])
+
+  useLayoutEffect(() => {
+    updateIndicator()
+  }, [updateIndicator, items.length])
+
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => updateIndicator())
+    observer.observe(root)
+    window.addEventListener('resize', updateIndicator)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateIndicator)
+    }
+  }, [updateIndicator])
+
+  const active = items.find((item) => item.id === value) ?? items[0]
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div
+        ref={rootRef}
+        role="tablist"
+        aria-label="Employee sections"
+        className="relative inline-flex h-9 max-w-full items-stretch self-start overflow-x-auto rounded-lg border border-input bg-card p-0.5"
+      >
+        {indicator ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-0.5 bottom-0.5 z-0 rounded-md bg-primary transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ left: indicator.left, width: indicator.width } as CSSProperties}
+          />
+        ) : null}
+        {items.map((item) => {
+          const isActive = item.id === value
+          return (
+            <Button
+              key={item.id}
+              ref={(node) => {
+                if (node) buttonRefs.current.set(item.id, node)
+                else buttonRefs.current.delete(item.id)
+              }}
+              type="button"
+              variant="ghost"
+              role="tab"
+              aria-selected={isActive}
+              className={cn(
+                'relative z-[1] h-full min-h-0 shrink-0 rounded-md px-3 text-sm font-medium shadow-none',
+                isActive
+                  ? 'text-primary-foreground hover:!bg-transparent hover:text-primary-foreground'
+                  : 'text-muted-foreground hover:!bg-[color-mix(in_srgb,var(--color-text)_6%,transparent)] hover:text-foreground',
+              )}
+              onClick={() => onValueChange(item.id)}
+            >
+              {item.label}
+            </Button>
+          )
+        })}
+      </div>
+      <div role="tabpanel">{active?.content}</div>
+    </div>
   )
 }
 
@@ -279,13 +391,31 @@ export default function EmployeeDetailPage() {
 
   const displayName = draft.name.trim() || employee.name
 
-  return (
-    <div className="pd-page pd-client-detail pd-ops" aria-label={employee.name}>
-      <BackButton to={hrEmployeesPath()} label="Employees" />
+  const fieldClass = (isDirty: boolean) =>
+    cn(
+      'rounded-lg transition-[box-shadow]',
+      isDirty && 'ring-1 ring-primary/40',
+    )
 
-      <div className="pd-client-detail__layout">
-        <aside className="pd-client-detail__card" aria-label="Employee profile">
-          <div className="pd-client-detail__card-identity">
+  return (
+    <div
+      className={cn(elevatedPageClass, 'gap-5')}
+      data-elevated-canvas
+      aria-label={employee.name}
+    >
+      <Button variant="ghost" className="h-9 w-fit gap-1.5 rounded-lg px-2" asChild>
+        <Link to={hrEmployeesPath()}>
+          <ArrowLeft size={16} strokeWidth={2.25} aria-hidden />
+          Employees
+        </Link>
+      </Button>
+
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
+        <aside
+          className="flex min-w-0 flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm lg:sticky lg:top-0 lg:z-[1] lg:max-h-[calc(100dvh-8.5rem)] lg:overflow-y-auto"
+          aria-label="Employee profile"
+        >
+          <div className="flex shrink-0 flex-col items-center gap-2 text-center">
             <ProfilePhotoField
               name={displayName}
               fallbackName="Employee"
@@ -296,99 +426,91 @@ export default function EmployeeDetailPage() {
                 updateEmployee(employee.id, { avatarUrl })
               }}
             />
-            <div className="pd-client-detail__title-row">
-              <h1 className="pd-client-detail__name">{displayName}</h1>
-              <Badge variant={statusBadgeVariant(draft.status)}>
-                {draft.status}
-              </Badge>
+            <div className="flex flex-col items-center justify-center gap-1">
+              <h1 className="m-0 text-[1.0625rem] font-semibold leading-tight tracking-tight">
+                {displayName}
+              </h1>
+              <Badge variant={statusBadgeVariant(draft.status)}>{draft.status}</Badge>
+              {draft.designation || draft.department ? (
+                <p className="m-0 text-xs font-medium leading-snug text-muted-foreground">
+                  {[draft.designation, draft.department]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+              ) : null}
             </div>
-            {draft.designation || draft.department ? (
-              <p className="pd-client-detail__card-subtitle">
-                {[draft.designation, draft.department]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
-            ) : null}
           </div>
 
-          <div className="pd-client-detail__card-actions">
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 size={14} strokeWidth={2.25} aria-hidden />
-              Delete
-            </Button>
-          </div>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="h-8 w-full rounded-lg"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 size={14} strokeWidth={2.25} data-icon="inline-start" />
+            Delete
+          </Button>
 
-          <dl className="pd-client-detail__card-fields">
-            <div className="pd-client-detail__card-field">
-              <dt>Employee ID</dt>
-              <dd className="pd-table__code">{employee.id}</dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Phone</dt>
-              <dd>{emptyOr(draft.phone)}</dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Email</dt>
-              <dd>{emptyOr(draft.email)}</dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Department</dt>
-              <dd>{emptyOr(draft.department)}</dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Designation</dt>
-              <dd>{emptyOr(draft.designation)}</dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Salary</dt>
-              <dd>{formatSalary(draft.salary)}</dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Joined</dt>
-              <dd>
-                {draft.joined ? formatDisplayDate(draft.joined) : (
-                  <span className="pd-client-detail__empty">-</span>
-                )}
-              </dd>
-            </div>
+          <dl className="m-0 flex shrink-0 flex-col overflow-hidden rounded-[0.625rem] border border-border bg-background">
+            {(
+              [
+                ['Employee ID', <span className="font-mono text-xs">{employee.id}</span>],
+                ['Phone', emptyOr(draft.phone)],
+                ['Email', emptyOr(draft.email)],
+                ['Department', emptyOr(draft.department)],
+                ['Designation', emptyOr(draft.designation)],
+                ['Salary', formatSalary(draft.salary)],
+                [
+                  'Joined',
+                  draft.joined ? (
+                    formatDisplayDate(draft.joined)
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  ),
+                ],
+              ] as const
+            ).map(([label, value]) => (
+              <div
+                key={label}
+                className="grid min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0"
+              >
+                <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
+                  {label}
+                </dt>
+                <dd className="m-0 min-w-0 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
+                  {value}
+                </dd>
+              </div>
+            ))}
           </dl>
 
-          <div className="pd-client-detail__card-snapshot" aria-label="Snapshot">
+          <div className="grid grid-cols-2 gap-2" aria-label="Snapshot">
             <button
               type="button"
-              className="pd-client-detail__card-snap"
+              className="flex flex-col gap-0.5 rounded-lg border border-border bg-background px-2.5 py-2 text-left transition-colors hover:bg-muted/50"
               onClick={() => selectTab('attendance')}
             >
-              <span className="pd-client-detail__card-snap-label">Attendance</span>
-              <span className="pd-client-detail__card-snap-value">
-                {dayMarks.length}
+              <span className="text-[0.625rem] font-medium tracking-wide text-muted-foreground">
+                Attendance
               </span>
+              <span className="text-base font-semibold">{dayMarks.length}</span>
             </button>
             <button
               type="button"
-              className="pd-client-detail__card-snap"
+              className="flex flex-col gap-0.5 rounded-lg border border-border bg-background px-2.5 py-2 text-left transition-colors hover:bg-muted/50"
               onClick={() => selectTab('leave')}
             >
-              <span className="pd-client-detail__card-snap-label">Leave</span>
-              <span className="pd-client-detail__card-snap-value">
-                {leaveRecords.length}
+              <span className="text-[0.625rem] font-medium tracking-wide text-muted-foreground">
+                Leave
               </span>
+              <span className="text-base font-semibold">{leaveRecords.length}</span>
             </button>
           </div>
-
         </aside>
 
-        <div
-          className={cx('pd-client-detail__main', 'pd-employee-main')}
-          aria-label="Employee workspace"
-        >
-          <Tabs
-            className="pd-client-detail__tabs"
+        <div className="min-w-0" aria-label="Employee workspace">
+          <DetailTabs
             value={activeTab}
             onValueChange={selectTab}
             items={[
@@ -396,177 +518,141 @@ export default function EmployeeDetailPage() {
                 id: 'profile',
                 label: <TabLabel icon={Contact}>Profile</TabLabel>,
                 content: (
-                  <form
-                    className="pd-employee-panels"
-                    onSubmit={handleSaveProfile}
-                    noValidate
-                  >
-                    <section className="pd-client-detail__section pd-employee-panel">
-                      <div className="pd-client-detail__section-head">
-                        <SectionTitle icon={Contact}>
-                          Personal &amp; job details
-                        </SectionTitle>
-                      </div>
-                      <div className="pd-employee-profile__grid">
-                        <div
-                          className={cx(
-                            'pd-employee-profile__field',
-                            draft.name !== employee.name && 'is-dirty',
-                          )}
-                        >
-                          <Input
-                            label="Full name"
-                            required
-                            value={draft.name}
-                            onChange={(event) =>
-                              updateDraft('name', event.target.value)
-                            }
-                          />
-                        </div>
-                        <div
-                          className={cx(
-                            'pd-employee-profile__field',
-                            draft.status !== employee.status && 'is-dirty',
-                          )}
-                        >
-                          <Select
-                            label="Status"
-                            options={STATUS_OPTIONS}
-                            value={draft.status}
-                            onChange={(event) =>
-                              updateDraft(
-                                'status',
-                                event.target.value as EmployeeStatus,
-                              )
-                            }
-                          />
-                        </div>
-                        <div
-                          className={cx(
-                            'pd-employee-profile__field',
-                            draft.phone !== employee.phone && 'is-dirty',
-                          )}
-                        >
-                          <Input
-                            label="Phone"
-                            type="tel"
-                            value={draft.phone}
-                            onChange={(event) =>
-                              updateDraft('phone', event.target.value)
-                            }
-                          />
-                        </div>
-                        <div
-                          className={cx(
-                            'pd-employee-profile__field',
-                            draft.email !== employee.email && 'is-dirty',
-                          )}
-                        >
-                          <Input
-                            label="Email"
-                            type="email"
-                            value={draft.email}
-                            onChange={(event) =>
-                              updateDraft('email', event.target.value)
-                            }
-                          />
-                        </div>
-                        <div
-                          className={cx(
-                            'pd-employee-profile__field',
-                            draft.department !== employee.department &&
-                              'is-dirty',
-                          )}
-                        >
-                          <Input
-                            label="Department"
-                            value={draft.department}
-                            onChange={(event) =>
-                              updateDraft('department', event.target.value)
-                            }
-                          />
-                        </div>
-                        <div
-                          className={cx(
-                            'pd-employee-profile__field',
-                            draft.designation !== employee.designation &&
-                              'is-dirty',
-                          )}
-                        >
-                          <Input
-                            label="Designation"
-                            value={draft.designation}
-                            onChange={(event) =>
-                              updateDraft('designation', event.target.value)
-                            }
-                          />
-                        </div>
-                        <div
-                          className={cx(
-                            'pd-employee-profile__field',
-                            draft.joined !== employee.joined && 'is-dirty',
-                          )}
-                        >
-                          <Input
-                            label="Joined"
-                            type="date"
-                            value={draft.joined}
-                            onChange={(event) =>
-                              updateDraft('joined', event.target.value)
-                            }
-                          />
-                        </div>
-                        <div
-                          className={cx(
-                            'pd-employee-profile__field',
-                            draft.salary !== employee.salary && 'is-dirty',
-                          )}
-                        >
-                          <Input
-                            label="Basic salary"
-                            type="number"
-                            value={String(draft.salary)}
-                            onChange={(event) =>
-                              updateDraft(
-                                'salary',
-                                Number(event.target.value) || 0,
-                              )
-                            }
-                          />
-                        </div>
-                      </div>
-
-                      {saveError ? (
-                        <p className="pd-field__error" role="alert">
-                          {saveError}
-                        </p>
-                      ) : null}
-                      {saveOk ? (
-                        <p className="pd-ops__meta" role="status">
-                          {saveOk}
-                        </p>
-                      ) : null}
-
-                      {dirty ? (
-                        <div className="pd-employee-panel__actions">
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            disabled={saving}
-                            onClick={() => {
-                              setDraft(draftFromEmployee(employee))
-                              setSaveError(undefined)
-                              setSaveOk(undefined)
-                            }}
+                  <form className="flex flex-col gap-4" onSubmit={handleSaveProfile} noValidate>
+                    <Card size="sm" className="shadow-sm">
+                      <CardHeader>
+                        <CardTitle>
+                          <SectionTitle icon={Contact}>Personal & Job Details</SectionTitle>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-col gap-4">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className={fieldClass(draft.name !== employee.name)}>
+                            <Input
+                              id="employee-profile-full-name"
+                              label="Full Name"
+                              required
+                              value={draft.name}
+                              onChange={(event) =>
+                                updateDraft('name', event.target.value)
+                              }
+                            />
+                          </div>
+                          <div className={fieldClass(draft.status !== employee.status)}>
+                            <Select
+                              label="Status"
+                              options={STATUS_OPTIONS}
+                              value={draft.status}
+                              onChange={(event) =>
+                                updateDraft(
+                                  'status',
+                                  event.target.value as EmployeeStatus,
+                                )
+                              }
+                            />
+                          </div>
+                          <div className={fieldClass(draft.phone !== employee.phone)}>
+                            <Input
+                              label="Phone"
+                              type="tel"
+                              value={draft.phone}
+                              onChange={(event) =>
+                                updateDraft('phone', event.target.value)
+                              }
+                            />
+                          </div>
+                          <div className={fieldClass(draft.email !== employee.email)}>
+                            <Input
+                              label="Email"
+                              type="email"
+                              value={draft.email}
+                              onChange={(event) =>
+                                updateDraft('email', event.target.value)
+                              }
+                            />
+                          </div>
+                          <div
+                            className={fieldClass(
+                              draft.department !== employee.department,
+                            )}
                           >
-                            Discard changes
-                          </Button>
-                          <Button type="submit" disabled={saving}>
-                            {saving ? 'Saving…' : 'Save'}
-                          </Button>
+                            <Input
+                              label="Department"
+                              value={draft.department}
+                              onChange={(event) =>
+                                updateDraft('department', event.target.value)
+                              }
+                            />
+                          </div>
+                          <div
+                            className={fieldClass(
+                              draft.designation !== employee.designation,
+                            )}
+                          >
+                            <Input
+                              label="Designation"
+                              value={draft.designation}
+                              onChange={(event) =>
+                                updateDraft('designation', event.target.value)
+                              }
+                            />
+                          </div>
+                          <div className={fieldClass(draft.joined !== employee.joined)}>
+                            <Input
+                              label="Joined"
+                              type="date"
+                              value={draft.joined}
+                              onChange={(event) =>
+                                updateDraft('joined', event.target.value)
+                              }
+                            />
+                          </div>
+                          <div className={fieldClass(draft.salary !== employee.salary)}>
+                            <Input
+                              label="Basic Salary"
+                              type="number"
+                              value={String(draft.salary)}
+                              onChange={(event) =>
+                                updateDraft(
+                                  'salary',
+                                  Number(event.target.value) || 0,
+                                )
+                              }
+                            />
+                          </div>
                         </div>
-                      ) : null}
-                    </section>
+
+                        {saveError ? (
+                          <FieldError role="alert">{saveError}</FieldError>
+                        ) : null}
+                        {saveOk ? (
+                          <p className="m-0 text-sm text-muted-foreground" role="status">
+                            {saveOk}
+                          </p>
+                        ) : null}
+
+                        {dirty ? (
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-9 rounded-lg"
+                              disabled={saving}
+                              onClick={() => {
+                                setDraft(draftFromEmployee(employee))
+                                setSaveError(undefined)
+                                setSaveOk(undefined)
+                              }}
+                            >
+                              Discard Changes
+                            </Button>
+                            <Button type="submit" className="h-9 rounded-lg" disabled={saving}>
+                              {saving ? 'Saving…' : 'Save'}
+                            </Button>
+                          </div>
+                        ) : null}
+                      </CardContent>
+                    </Card>
                   </form>
                 ),
               },
@@ -574,14 +660,14 @@ export default function EmployeeDetailPage() {
                 id: 'attendance',
                 label: <TabLabel icon={CalendarClock}>Attendance</TabLabel>,
                 content: (
-                  <div className="pd-employee-panels">
-                    <section className="pd-client-detail__section pd-employee-panel">
-                      <div className="pd-client-detail__section-head">
-                        <SectionTitle icon={CalendarClock}>
-                          Mark attendance
-                        </SectionTitle>
-                      </div>
-                      <div className="pd-employee-panel__controls">
+                  <div className="flex flex-col gap-4">
+                    <Card size="sm" className="shadow-sm">
+                      <CardHeader>
+                        <CardTitle>
+                          <SectionTitle icon={CalendarClock}>Mark Attendance</SectionTitle>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-wrap items-end gap-3">
                         <Input
                           label="Day"
                           type="date"
@@ -589,7 +675,7 @@ export default function EmployeeDetailPage() {
                           onChange={(event) => setDate(event.target.value)}
                         />
                         {onLeave ? (
-                          <p className="pd-ops__meta pd-employee-panel__note">
+                          <p className="m-0 pb-2 text-sm text-muted-foreground">
                             On leave
                             {covering.leaveType
                               ? ` · ${covering.leaveType}`
@@ -617,48 +703,56 @@ export default function EmployeeDetailPage() {
                             }}
                           />
                         )}
-                      </div>
-                    </section>
+                      </CardContent>
+                    </Card>
 
-                    <section className="pd-client-detail__section pd-employee-panel">
-                      <div className="pd-client-detail__section-head">
-                        <SectionTitle icon={CalendarClock}>
-                          Attendance history
-                        </SectionTitle>
-                      </div>
-                      {dayMarks.length === 0 ? (
-                        <EmptyState title="No attendance marked" />
-                      ) : (
-                        <div className="pd-employee-panel__table">
-                          <Table aria-label={`${employee.name} attendance`}>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Note</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {dayMarks.map((record) => (
-                                <TableRow key={record.id}>
-                                  <TableCell>
-                                    {formatDisplayDate(record.startDate)}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      variant={dayBadgeVariant(record.kind)}
-                                    >
-                                      {record.kind}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>{record.note ?? '-'}</TableCell>
+                    <Card size="sm" className="shadow-sm">
+                      <CardHeader>
+                        <CardTitle>
+                          <SectionTitle icon={CalendarClock}>Attendance History</SectionTitle>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {dayMarks.length === 0 ? (
+                          <Empty className="border-0 p-4 shadow-none">
+                            <EmptyHeader>
+                              <EmptyMedia variant="icon">
+                                <CalendarClock />
+                              </EmptyMedia>
+                              <EmptyTitle>No Attendance Marked</EmptyTitle>
+                            </EmptyHeader>
+                            <EmptyContent />
+                          </Empty>
+                        ) : (
+                          <div className="overflow-auto rounded-xl border">
+                            <Table aria-label={`${employee.name} attendance`}>
+                              <TableHeader>
+                                <TableRow className="hover:bg-transparent">
+                                  <TableHead className={chromeHeadClass}>Date</TableHead>
+                                  <TableHead className={chromeHeadClass}>Status</TableHead>
+                                  <TableHead className={chromeHeadClass}>Note</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-                    </section>
+                              </TableHeader>
+                              <TableBody>
+                                {dayMarks.map((record) => (
+                                  <TableRow key={record.id}>
+                                    <TableCell>
+                                      {formatDisplayDate(record.startDate)}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant={dayBadgeVariant(record.kind)}>
+                                        {record.kind}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>{record.note ?? '-'}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   </div>
                 ),
               },
@@ -666,38 +760,49 @@ export default function EmployeeDetailPage() {
                 id: 'leave',
                 label: <TabLabel icon={CalendarOff}>Leave</TabLabel>,
                 content: (
-                  <div className="pd-employee-panels">
-                    <section className="pd-client-detail__section pd-employee-panel">
-                      <div className="pd-client-detail__section-head">
+                  <Card size="sm" className="shadow-sm">
+                    <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+                      <CardTitle>
                         <SectionTitle icon={CalendarOff}>Leave</SectionTitle>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            const today = todayIso()
-                            setLeaveDraft({
-                              startDate: today,
-                              endDate: today,
-                              leaveType: 'Casual',
-                              note: '',
-                            })
-                            setLeaveOpen(true)
-                          }}
-                        >
-                          Record leave
-                        </Button>
-                      </div>
+                      </CardTitle>
+                      <Button
+                        size="sm"
+                        className="h-8 rounded-lg"
+                        onClick={() => {
+                          const today = todayIso()
+                          setLeaveDraft({
+                            startDate: today,
+                            endDate: today,
+                            leaveType: 'Casual',
+                            note: '',
+                          })
+                          setLeaveOpen(true)
+                        }}
+                      >
+                        Record Leave
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
                       {leaveRecords.length === 0 ? (
-                        <EmptyState title="No leave recorded" />
+                        <Empty className="border-0 p-4 shadow-none">
+                          <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                              <CalendarOff />
+                            </EmptyMedia>
+                            <EmptyTitle>No Leave Recorded</EmptyTitle>
+                          </EmptyHeader>
+                          <EmptyContent />
+                        </Empty>
                       ) : (
-                        <div className="pd-employee-panel__table">
+                        <div className="overflow-auto rounded-xl border">
                           <Table aria-label={`${employee.name} leave`}>
                             <TableHeader>
-                              <TableRow>
-                                <TableHead>Type</TableHead>
-                                <TableHead>From</TableHead>
-                                <TableHead>To</TableHead>
-                                <TableHead>Note</TableHead>
-                                <TableHead> </TableHead>
+                              <TableRow className="hover:bg-transparent">
+                                <TableHead className={chromeHeadClass}>Type</TableHead>
+                                <TableHead className={chromeHeadClass}>From</TableHead>
+                                <TableHead className={chromeHeadClass}>To</TableHead>
+                                <TableHead className={chromeHeadClass}>Note</TableHead>
+                                <TableHead className={chromeHeadClass}> </TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -719,9 +824,7 @@ export default function EmployeeDetailPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() =>
-                                        setPendingLeaveId(record.id)
-                                      }
+                                      onClick={() => setPendingLeaveId(record.id)}
                                     >
                                       Remove
                                     </Button>
@@ -732,79 +835,76 @@ export default function EmployeeDetailPage() {
                           </Table>
                         </div>
                       )}
-                    </section>
-                  </div>
+                    </CardContent>
+                  </Card>
                 ),
               },
               {
                 id: 'payroll',
                 label: <TabLabel icon={Banknote}>Payroll</TabLabel>,
                 content: (
-                  <div className="pd-employee-panels">
-                    <section className="pd-client-detail__section pd-employee-panel">
-                      <div className="pd-client-detail__section-head">
-                        <SectionTitle icon={Banknote}>
-                          Monthly payslip
-                        </SectionTitle>
+                  <div className="flex flex-col gap-4">
+                    <Card size="sm" className="shadow-sm">
+                      <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+                        <CardTitle>
+                          <SectionTitle icon={Banknote}>Monthly Payslip</SectionTitle>
+                        </CardTitle>
                         <PayslipDownloadButton payslip={payslip} />
-                      </div>
-                      <div className="pd-employee-panel__controls">
-                        <Input
-                          label="Month"
-                          type="month"
-                          value={yearMonth}
-                          onChange={(event) =>
-                            setYearMonth(event.target.value)
-                          }
-                        />
-                        <p className="pd-ops__meta pd-employee-panel__note">
-                          {monthLabel}
-                        </p>
-                      </div>
-                      <div className="pd-employee-panel__table">
-                        <Table aria-label={`${employee.name} payroll`}>
-                          <TableBody>
-                            <TableRow>
-                              <TableCell>Basic salary</TableCell>
-                              <TableCell>
-                                {formatSalary(line.salary)}
-                              </TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>Unpaid days</TableCell>
-                              <TableCell>
-                                {line.unpaidDays === 0
-                                  ? '-'
-                                  : line.unpaidDays}
-                              </TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>Deduction</TableCell>
-                              <TableCell>
-                                {line.deduction
-                                  ? formatSalary(line.deduction)
-                                  : '-'}
-                              </TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell>Net pay</TableCell>
-                              <TableCell>
-                                {formatSalary(line.net)}
-                              </TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </section>
+                      </CardHeader>
+                      <CardContent className="flex flex-col gap-4">
+                        <div className="flex flex-wrap items-end gap-3">
+                          <Input
+                            label="Month"
+                            type="month"
+                            value={yearMonth}
+                            onChange={(event) => setYearMonth(event.target.value)}
+                          />
+                          <p className="m-0 pb-2 text-sm text-muted-foreground">
+                            {monthLabel}
+                          </p>
+                        </div>
+                        <div className="overflow-auto rounded-xl border">
+                          <Table aria-label={`${employee.name} payroll`}>
+                            <TableBody>
+                              <TableRow>
+                                <TableCell>Basic Salary</TableCell>
+                                <TableCell>{formatSalary(line.salary)}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell>Unpaid Days</TableCell>
+                                <TableCell>
+                                  {line.unpaidDays === 0 ? '-' : line.unpaidDays}
+                                </TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell>Deduction</TableCell>
+                                <TableCell>
+                                  {line.deduction
+                                    ? formatSalary(line.deduction)
+                                    : '-'}
+                                </TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell>Net Pay</TableCell>
+                                <TableCell>{formatSalary(line.net)}</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                    <section
-                      className="pd-client-detail__section pd-employee-panel pd-employee-panel--payslip"
+                    <Card
+                      size="sm"
+                      className="shadow-sm"
                       aria-label="Payslip preview"
                     >
-                      <div className="pd-invoice-page__stage">
-                        <PayslipDocument payslip={payslip} />
-                      </div>
-                    </section>
+                      <CardContent className="pt-6">
+                        <div className="pd-invoice-page__stage overflow-auto">
+                          <PayslipDocument payslip={payslip} />
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 ),
               },
@@ -813,16 +913,70 @@ export default function EmployeeDetailPage() {
         </div>
       </div>
 
-      <Modal
+      <Sheet
         open={leaveOpen}
-        onClose={() => setLeaveOpen(false)}
-        title="Record leave"
-        actions={
-          <>
-            <Button variant="secondary" onClick={() => setLeaveOpen(false)}>
+        onOpenChange={(next) => {
+          if (!next) setLeaveOpen(false)
+        }}
+      >
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">Record Leave</SheetTitle>
+          </SheetHeader>
+          <div className="grid gap-3 overflow-y-auto px-5 py-4 sm:grid-cols-2">
+            <Select
+              label="Type"
+              options={LEAVE_TYPE_OPTIONS}
+              value={leaveDraft.leaveType}
+              onChange={(event) =>
+                setLeaveDraft((prev) => ({
+                  ...prev,
+                  leaveType: event.target.value as LeaveType,
+                }))
+              }
+            />
+            <Input
+              label="From"
+              type="date"
+              value={leaveDraft.startDate}
+              onChange={(event) =>
+                setLeaveDraft((prev) => ({
+                  ...prev,
+                  startDate: event.target.value,
+                }))
+              }
+            />
+            <Input
+              label="To"
+              type="date"
+              value={leaveDraft.endDate}
+              onChange={(event) =>
+                setLeaveDraft((prev) => ({
+                  ...prev,
+                  endDate: event.target.value,
+                }))
+              }
+            />
+            <div className="sm:col-span-2">
+              <Textarea
+                label="Note"
+                value={leaveDraft.note}
+                onChange={(event) =>
+                  setLeaveDraft((prev) => ({ ...prev, note: event.target.value }))
+                }
+              />
+            </div>
+          </div>
+          <div className="mt-auto flex justify-end gap-2 border-t border-border px-5 py-4">
+            <Button
+              variant="outline"
+              className="h-9 rounded-lg"
+              onClick={() => setLeaveOpen(false)}
+            >
               Cancel
             </Button>
             <Button
+              className="h-9 rounded-lg"
               onClick={() => {
                 if (!leaveDraft.startDate || !leaveDraft.endDate) return
                 createLeave({
@@ -835,54 +989,11 @@ export default function EmployeeDetailPage() {
                 setLeaveOpen(false)
               }}
             >
-              Save leave
+              Save Leave
             </Button>
-          </>
-        }
-      >
-        <div className="pd-ops-form pd-ops-form--2">
-          <Select
-            label="Type"
-            options={LEAVE_TYPE_OPTIONS}
-            value={leaveDraft.leaveType}
-            onChange={(event) =>
-              setLeaveDraft((prev) => ({
-                ...prev,
-                leaveType: event.target.value as LeaveType,
-              }))
-            }
-          />
-          <Input
-            label="From"
-            type="date"
-            value={leaveDraft.startDate}
-            onChange={(event) =>
-              setLeaveDraft((prev) => ({
-                ...prev,
-                startDate: event.target.value,
-              }))
-            }
-          />
-          <Input
-            label="To"
-            type="date"
-            value={leaveDraft.endDate}
-            onChange={(event) =>
-              setLeaveDraft((prev) => ({
-                ...prev,
-                endDate: event.target.value,
-              }))
-            }
-          />
-          <Textarea
-            label="Note"
-            value={leaveDraft.note}
-            onChange={(event) =>
-              setLeaveDraft((prev) => ({ ...prev, note: event.target.value }))
-            }
-          />
-        </div>
-      </Modal>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={pendingLeaveId !== null}
@@ -900,7 +1011,7 @@ export default function EmployeeDetailPage() {
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
         title={`Delete ${employee.name} from the staff directory?`}
-        confirmLabel="Delete employee"
+        confirmLabel="Delete Employee"
         confirmVariant="danger"
         onConfirm={() => {
           deleteEmployee(employee.id)

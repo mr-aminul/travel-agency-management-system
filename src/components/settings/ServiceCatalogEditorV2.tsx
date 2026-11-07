@@ -1,12 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Trash2 } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Trash2 } from 'lucide-react'
+import { Input, Textarea } from '@/components/clients/clientShadcnFields'
 import { ServiceIconPicker } from '@/components/settings/ServiceIconPicker'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { ServiceFlowEditorV2 } from '@/components/settings/flow/ServiceFlowEditorV2'
+import { Button } from '@/components/shadcn/button'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
 import { renameServiceOnCases } from '@/lib/casesStore'
 import { renameServiceOnClients } from '@/lib/clientsStore'
-import { BackButton, Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
 import {
   deleteCustomService,
   updateCustomService,
@@ -154,7 +156,18 @@ export function ServiceCatalogEditorV2({
         <p className="pd-settings-service-empty">
           That service is not in the catalog.
         </p>
-        <BackButton to={serviceCatalogPathV2()} label="Catalog" />
+        <Link
+          to={serviceCatalogPathV2()}
+          className="pd-back"
+          aria-label="Back to Catalog"
+        >
+          <span
+            className="inline-flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+            aria-hidden
+          >
+            <ArrowLeft size={18} strokeWidth={2.25} />
+          </span>
+        </Link>
       </div>
     )
   }
@@ -203,7 +216,7 @@ export function ServiceCatalogEditorV2({
             onSubmit={saveIdentity}
           >
             <Input
-              label="Service name"
+              label="Service Name"
               name="customServiceName"
               required
               value={name}
@@ -241,7 +254,7 @@ export function ServiceCatalogEditorV2({
                 {identityError ?? identityStatus ?? ''}
               </p>
               <Button type="submit" size="sm" disabled={!identityDirty}>
-                Save details
+                Save Details
               </Button>
             </div>
           </form>
@@ -254,10 +267,19 @@ export function ServiceCatalogEditorV2({
           onDirtyChange={setTemplateDirty}
           leading={
             <>
-              <BackButton
-                label="Catalog"
+              <button
+                type="button"
+                className="pd-back"
+                aria-label="Back to Catalog"
                 onClick={() => requestLeave(serviceCatalogPathV2())}
-              />
+              >
+                <span
+                  className="inline-flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+                  aria-hidden
+                >
+                  <ArrowLeft size={18} strokeWidth={2.25} />
+                </span>
+              </button>
               <div className="pd-settings-catalog-editor__title-row">
                 <ServiceIconPicker
                   variant="popover"

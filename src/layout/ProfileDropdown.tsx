@@ -10,6 +10,9 @@ import {
   Undo2,
 } from 'lucide-react'
 import { SignOutConfirmModal } from '@/components/ConfirmModal'
+import { CopyableText } from '@/components/CopyableText'
+import type { AvatarKind } from '@/components/ProfilePhotoField'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/shadcn/avatar'
 import {
   settingsNavItem,
   profileNavItem,
@@ -20,9 +23,16 @@ import { getActiveTenantId } from '@/lib/authApi'
 import { findTenantMemberForUser } from '@/lib/tenantMembersStore'
 import { useUserAvatar } from '@/lib/userAvatarStore'
 import { useAuth } from '@/lib/useAuth'
-import { Avatar, avatarKindForMemberRole, CopyableText } from '@/components/ui'
+import type { TenantMemberRole } from '@/types/tenant'
 import { useAgencyProfile } from './useAgencyProfile'
 import { useHoverMenu } from './useHoverMenu'
+
+function avatarKindForMemberRole(
+  role: TenantMemberRole | undefined,
+): AvatarKind {
+  if (role === 'owner') return 'owner'
+  return 'staff'
+}
 
 export function ProfileDropdown({
   userName,
@@ -74,6 +84,16 @@ export function ProfileDropdown({
     onSignOut?.()
   }, [onSignOut])
 
+  const displayName = userName ?? user?.name ?? 'User'
+  const avatar = (
+    <Avatar size="sm" aria-label={displayName}>
+      {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
+      <AvatarFallback>
+        <ProfileIcon size={14} strokeWidth={2} aria-hidden />
+      </AvatarFallback>
+    </Avatar>
+  )
+
   return (
     <div
       ref={containerRef}
@@ -88,16 +108,7 @@ export function ProfileDropdown({
         aria-label="Profile menu"
         aria-expanded={open}
       >
-        {avatarUrl ? (
-          <Avatar
-            name={userName ?? user?.name ?? 'User'}
-            src={avatarUrl}
-            size="sm"
-            kind={avatarKind}
-          />
-        ) : (
-          <ProfileIcon size={16} strokeWidth={2} aria-hidden />
-        )}
+        {avatarUrl ? avatar : <ProfileIcon size={16} strokeWidth={2} aria-hidden />}
       </button>
       {open && (
         <div
@@ -108,12 +119,7 @@ export function ProfileDropdown({
           <div className="pd-topbar__dropdown-header">
             <span className="pd-topbar__profile-avatar pd-topbar__profile-avatar--menu">
               {avatarUrl ? (
-                <Avatar
-                  name={userName ?? user?.name ?? 'User'}
-                  src={avatarUrl}
-                  size="sm"
-                  kind={avatarKind}
-                />
+                avatar
               ) : (
                 <ProfileIcon size={14} strokeWidth={2} aria-hidden />
               )}
@@ -216,7 +222,7 @@ export function ProfileDropdown({
               role="menuitem"
             >
               <ArrowLeftRight size={14} strokeWidth={2} />
-              Switch workspace
+              Switch Workspace
             </button>
           ) : null}
           <button
@@ -229,7 +235,7 @@ export function ProfileDropdown({
             role="menuitem"
           >
             <LogOut size={14} strokeWidth={2} />
-            Sign out
+            Sign Out
           </button>
         </div>
       )}

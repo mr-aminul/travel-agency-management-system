@@ -5,7 +5,35 @@ import { ServiceIconPicker } from '@/components/settings/ServiceIconPicker'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
 import { resolveServiceTemplate } from '@/lib/resolveServiceTemplate'
 import { isBuiltinService } from '@/types/case'
-import { Badge, Button, ConfirmDialog, Input, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea, Tooltip } from '@/components/ui'
+import {
+  chromeHeadClass,
+  floatingSheetClass,
+  tableShellClass,
+} from '@/components/clients/shadcnChrome'
+import { Input, Textarea } from '@/components/clients/clientShadcnFields'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/shadcn/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/shadcn/tooltip'
 import {
   createCustomService,
   deleteCustomService,
@@ -125,14 +153,14 @@ export function ServicesSettingsSectionV2({
         <div className="pd-settings-panel__actions">
           <Button
             type="button"
-            size="sm"
+            className="h-9 rounded-lg"
             onClick={() => {
               setComposerOpen(true)
               setError(null)
             }}
           >
             <Plus size={14} />
-            Add service
+            Add Service
           </Button>
         </div>
       </header>
@@ -141,12 +169,13 @@ export function ServicesSettingsSectionV2({
         {catalog.length === 0 ? (
           <p className="pd-settings-service-empty">No services yet.</p>
         ) : (
-          <Table aria-label="Service catalog v2">
+          <div className={tableShellClass}>
+          <Table aria-label="Service Catalog V2">
             <TableHeader>
-              <TableRow>
-                <TableHead>Service</TableHead>
-                <TableHead>Checklist</TableHead>
-                <TableHead aria-label="Actions" />
+              <TableRow className="hover:bg-transparent border-0">
+                <TableHead className={chromeHeadClass}>Service</TableHead>
+                <TableHead className={chromeHeadClass}>Checklist</TableHead>
+                <TableHead className={chromeHeadClass} aria-label="Actions" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -184,40 +213,43 @@ export function ServicesSettingsSectionV2({
                           </>
                         ) : null}
                         {item.isCustomized ? (
-                          <Badge variant="in-progress">Customized</Badge>
+                          <Badge variant="secondary">Customized</Badge>
                         ) : null}
                         {item.kind === 'custom' ? (
-                          <Badge variant="neutral">Added</Badge>
+                          <Badge variant="outline">Added</Badge>
                         ) : null}
                       </span>
                     </TableCell>
                     <TableCell>
                       <div className="pd-settings-catalog__row-actions">
-                        <Tooltip
-                          content={
-                            item.kind === 'custom'
-                              ? 'Delete this service'
-                              : 'Remove from catalog'
-                          }
-                        >
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            aria-label={`Delete ${item.label}`}
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              setPendingDelete({
-                                key: item.key,
-                                label: item.label,
-                                kind: item.kind,
-                                customId: item.customId,
-                              })
-                            }}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </Tooltip>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label={`Delete ${item.label}`}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  setPendingDelete({
+                                    key: item.key,
+                                    label: item.label,
+                                    kind: item.kind,
+                                    customId: item.customId,
+                                  })
+                                }}
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {item.kind === 'custom'
+                                ? 'Delete This Service'
+                                : 'Remove From Catalog'}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <ChevronRight
                           size={16}
                           strokeWidth={2}
@@ -231,6 +263,7 @@ export function ServicesSettingsSectionV2({
               })}
             </TableBody>
           </Table>
+          </div>
         )}
 
         {hiddenBuiltins.length > 0 ? (
@@ -261,63 +294,65 @@ export function ServicesSettingsSectionV2({
         ) : null}
       </div>
 
-      <SideDrawer
+      <Sheet
         open={composerOpen}
-        onClose={closeComposer}
-        title="Add service"
-        className="pd-settings-drawer"
+        onOpenChange={(next) => {
+          if (!next) closeComposer()
+        }}
       >
-        <form
-          className="pd-settings-catalog__composer"
-          onSubmit={handleComposerSubmit}
-        >
-          <Input
-            label="Service name"
-            name="customServiceName"
-            required
-            placeholder="e.g. Visa processing"
-            value={name}
-            autoFocus
-            onChange={(event) => {
-              setName(event.target.value)
-              setError(null)
-            }}
-            onBlur={blur('name')}
-            error={showError('name') ? nameError : undefined}
-          />
-          <Textarea
-            label="Description"
-            name="customServiceDescription"
-            rows={3}
-            placeholder="What this service covers (optional)"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            onBlur={blur('description')}
-            error={showError('description') ? descriptionError : undefined}
-          />
-          <ServiceIconPicker
-            value={iconId}
-            serviceName={name}
-            onChange={setIconId}
-          />
-          {error ? (
-            <p
-              className="pd-settings-form__status pd-settings-form__status--error"
-              role="alert"
-            >
-              {error}
-            </p>
-          ) : null}
-          <div className="pd-settings-catalog__composer-actions">
-            <Button type="button" variant="secondary" size="sm" onClick={closeComposer}>
-              Cancel
-            </Button>
-            <Button type="submit" size="sm">
-              Create and edit checklist
-            </Button>
-          </div>
-        </form>
-      </SideDrawer>
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">Add Service</SheetTitle>
+          </SheetHeader>
+          <form
+            className="flex flex-col gap-4 p-5"
+            onSubmit={handleComposerSubmit}
+          >
+            <Input
+              label="Service Name"
+              name="customServiceName"
+              required
+              placeholder="e.g. Visa processing"
+              value={name}
+              autoFocus
+              onChange={(event) => {
+                setName(event.target.value)
+                setError(null)
+              }}
+              onBlur={blur('name')}
+              error={showError('name') ? nameError : undefined}
+            />
+            <Textarea
+              label="Description"
+              name="customServiceDescription"
+              rows={3}
+              placeholder="What this service covers (optional)"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              onBlur={blur('description')}
+              error={showError('description') ? descriptionError : undefined}
+            />
+            <ServiceIconPicker
+              value={iconId}
+              serviceName={name}
+              onChange={setIconId}
+            />
+            {error ? (
+              <p className="m-0 text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <Button type="button" variant="outline" className="h-9 rounded-lg" onClick={closeComposer}>
+                Cancel
+              </Button>
+              <Button type="submit" className="h-9 rounded-lg">
+                Create And Edit Checklist
+              </Button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={pendingDelete != null}

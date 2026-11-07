@@ -34,40 +34,77 @@ import type {
   TenantMemberRole,
   TenantMemberStatus,
 } from '@/types/tenant'
+import { CopyableText } from '@/components/CopyableText'
+import { Input, Select as FormSelect } from '@/components/clients/clientShadcnFields'
+import { cn } from '@/lib/utils'
+import { Avatar, AvatarFallback } from '@/components/shadcn/avatar'
+import { Button } from '@/components/shadcn/button'
+import { Checkbox } from '@/components/shadcn/checkbox'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
 import {
-  Avatar,
-  avatarKindForMemberRole,
-  Button,
-  Checkbox,
-  ConfirmDialog,
-  CopyableText,
-  EmptyState,
-  Input,
-  Modal,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/shadcn/dialog'
+import { Empty, EmptyHeader, EmptyTitle } from '@/components/shadcn/empty'
+import {
   Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  type SelectOption,
-} from '@/components/ui'
+} from '@/components/shadcn/table'
+import {
+  adminBulkActionsClass,
+  adminBulkBarClass,
+  adminBulkCountClass,
+  adminCredentialNameClass,
+  adminCredentialRowClass,
+  adminRowActionsClass,
+  adminSelectCellClass,
+  adminSelectColClass,
+  adminUserClass,
+  adminUserNameClass,
+  chromeHeadClass,
+  tableShellClass,
+} from '@/components/admin/adminChrome'
+import { floatingSheetClass } from '@/components/clients/shadcnChrome'
 
 type EditableStatus = 'active' | 'disabled'
 
-const STATUS_OPTIONS_BASE: SelectOption[] = [
+const STATUS_OPTIONS_BASE: Array<{ value: string; label: string }> = [
   { value: 'active', label: 'Active' },
   { value: 'disabled', label: 'Disabled' },
 ]
 
-function statusToneClass(status: string): string {
-  if (status === 'active') return 'pd-select--tone-completed'
-  if (status === 'invited') return 'pd-select--tone-pending'
-  return 'pd-select--tone-on-hold'
+const statusTriggerClass = 'h-8 w-[7.5rem] rounded-lg'
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
 }
 
-function statusOptions(current: string): SelectOption[] {
+
+function statusOptions(current: string): Array<{ value: string; label: string }> {
   if (current === 'invited') {
     return [{ value: 'invited', label: 'Invited' }, ...STATUS_OPTIONS_BASE]
   }
@@ -425,25 +462,96 @@ export default function TenantUsersPage() {
   }
 
   const addButton = (
-    <Button onClick={() => setCreateOpen(true)}>
+    <Button className="h-9 rounded-lg" onClick={() => setCreateOpen(true)}>
       <Plus size={16} strokeWidth={2.25} aria-hidden />
-      Add user
+      Add User
     </Button>
   )
 
   const createModal = (
-    <Modal
+    <Sheet
       open={createOpen}
-      onClose={closeCreate}
-      title="Add user"
-      actions={
-        <>
-          <Button variant="secondary" onClick={closeCreate} disabled={isSubmitting}>
+      onOpenChange={(next) => {
+        if (!next) closeCreate()
+      }}
+    >
+      <SheetContent className={floatingSheetClass}>
+        <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+          <SheetTitle className="text-base font-semibold">Add User</SheetTitle>
+        </SheetHeader>
+        <form
+          id="pd-admin-create-user"
+          className="flex flex-col gap-4 p-5"
+          onSubmit={(event) => void handleCreate(event)}
+          noValidate
+        >
+          <FormSelect
+            label="How To Add"
+            value={inviteOnly ? 'invite' : 'password'}
+            onChange={(event) => setInviteOnly(event.target.value === 'invite')}
+            options={[
+              { value: 'invite', label: 'Invite Link (Recommended)' },
+              { value: 'password', label: 'Set Password Now' },
+            ]}
+          />
+          <Input
+            label="Full Name"
+            required
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onBlur={blur('name')}
+            error={showError('name') ? errors.name : undefined}
+          />
+          <Input
+            label="Email"
+            required
+            type="email"
+            autoComplete="off"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            onBlur={blur('email')}
+            error={showError('email') ? errors.email : undefined}
+          />
+          <FormSelect
+            label="Role"
+            required
+            value={role}
+            onChange={(event) => setRole(event.target.value as TenantMemberRole)}
+            onBlur={blur('role')}
+            options={STAFF_MEMBER_ROLES}
+            error={showError('role') ? errors.role : undefined}
+          />
+          {inviteOnly ? null : (
+            <Input
+              label="Initial Password"
+              required
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              onBlur={blur('password')}
+              error={showError('password') ? errors.password : undefined}
+            />
+          )}
+          {formError ? (
+            <p className="m-0 text-sm text-destructive" role="alert">
+              {formError}
+            </p>
+          ) : null}
+        </form>
+        <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
+          <Button
+            variant="outline"
+            className="h-9 rounded-lg"
+            onClick={closeCreate}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
           <Button
             type="submit"
             form="pd-admin-create-user"
+            className="h-9 rounded-lg"
             disabled={isSubmitting}
           >
             {isSubmitting
@@ -451,127 +559,108 @@ export default function TenantUsersPage() {
                 ? 'Sending…'
                 : 'Creating…'
               : inviteOnly
-                ? 'Create invite'
-                : 'Add user'}
+                ? 'Create Invite'
+                : 'Add User'}
           </Button>
-        </>
-      }
-    >
-      <form id="pd-admin-create-user" onSubmit={handleCreate} noValidate>
-        <Select
-          label="How to add"
-          value={inviteOnly ? 'invite' : 'password'}
-          onChange={(event) => setInviteOnly(event.target.value === 'invite')}
-          options={[
-            { value: 'invite', label: 'Invite link (recommended)' },
-            { value: 'password', label: 'Set password now' },
-          ]}
-        />
-        <Input
-          label="Full name"
-          required
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onBlur={blur('name')}
-          error={showError('name') ? errors.name : undefined}
-        />
-        <Input
-          label="Email"
-          required
-          type="email"
-          autoComplete="off"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          onBlur={blur('email')}
-          error={showError('email') ? errors.email : undefined}
-        />
-        <Select
-          label="Role"
-          required
-          value={role}
-          onChange={(event) => setRole(event.target.value as TenantMemberRole)}
-          onBlur={blur('role')}
-          options={STAFF_MEMBER_ROLES}
-          error={showError('role') ? errors.role : undefined}
-        />
-        {inviteOnly ? null : (
-          <Input
-            label="Initial password"
-            required
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            onBlur={blur('password')}
-            error={showError('password') ? errors.password : undefined}
-          />
-        )}
-        {formError ? (
-          <p className="pd-field__error" role="alert">
-            {formError}
-          </p>
-        ) : null}
-      </form>
-    </Modal>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 
   const credentialsModal = (
-    <Modal
+    <Dialog
       open={createdCredentials != null}
-      onClose={() => setCreatedCredentials(null)}
-      title={
-        createdCredentials?.inviteLink
-          ? 'Copy the invite link. It expires in 7 days.'
-          : 'Copy this password. It will not be shown again.'
-      }
-      actions={
-        <Button onClick={() => setCreatedCredentials(null)}>Done</Button>
-      }
+      onOpenChange={(next) => {
+        if (!next) setCreatedCredentials(null)
+      }}
     >
-      {createdCredentials ? (
-        <>
-          <p className="pd-admin__credential-name">{createdCredentials.name}</p>
-          <p className="pd-admin__credential-row">
-            Email:{' '}
-            <CopyableText value={createdCredentials.email} label="email" />
-          </p>
-          {createdCredentials.inviteLink ? (
-            <p className="pd-admin__credential-row">
-              Invite link:{' '}
-              <CopyableText
-                value={createdCredentials.inviteLink}
-                label="invite link"
-              />
+      <DialogContent className="border border-border bg-card shadow-[var(--shadow-deep)] ring-0 sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {createdCredentials?.inviteLink
+              ? 'Copy The Invite Link. It Expires In 7 Days.'
+              : 'Copy This Password. It Will Not Be Shown Again.'}
+          </DialogTitle>
+        </DialogHeader>
+        {createdCredentials ? (
+          <>
+            <p className={adminCredentialNameClass}>{createdCredentials.name}</p>
+            <p className={adminCredentialRowClass}>
+              Email:{' '}
+              <CopyableText value={createdCredentials.email} label="email" />
             </p>
-          ) : createdCredentials.password ? (
-            <p className="pd-admin__credential-row">
-              Password:{' '}
-              <CopyableText
-                value={createdCredentials.password}
-                label="password"
-              />
-            </p>
-          ) : null}
-        </>
-      ) : null}
-    </Modal>
+            {createdCredentials.inviteLink ? (
+              <p className={adminCredentialRowClass}>
+                Invite Link:{' '}
+                <CopyableText
+                  value={createdCredentials.inviteLink}
+                  label="invite link"
+                />
+              </p>
+            ) : createdCredentials.password ? (
+              <p className={adminCredentialRowClass}>
+                Password:{' '}
+                <CopyableText
+                  value={createdCredentials.password}
+                  label="password"
+                />
+              </p>
+            ) : null}
+          </>
+        ) : null}
+        <DialogFooter className="border-0 bg-transparent">
+          <Button
+            className="h-9 rounded-lg"
+            onClick={() => setCreatedCredentials(null)}
+          >
+            Done
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 
   const resetModal = (
-    <Modal
+    <Sheet
       open={resetMember != null}
-      onClose={() => {
-        setResetMember(null)
-        setResetPassword('')
-        setActionError(undefined)
+      onOpenChange={(next) => {
+        if (!next) {
+          setResetMember(null)
+          setResetPassword('')
+          setActionError(undefined)
+        }
       }}
-      title={
-        resetMember ? `New password for ${resetMember.name}` : 'Reset password'
-      }
-      actions={
-        <>
+    >
+      <SheetContent className={floatingSheetClass}>
+        <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+          <SheetTitle className="text-base font-semibold">
+            {resetMember ? `New Password For ${resetMember.name}` : 'Reset Password'}
+          </SheetTitle>
+        </SheetHeader>
+        <form
+          id="pd-admin-reset-password"
+          className="flex flex-col gap-4 p-5"
+          onSubmit={(event) => void handleResetPassword(event)}
+          noValidate
+        >
+          <Input
+            label="New Password"
+            required
+            type="password"
+            autoComplete="new-password"
+            value={resetPassword}
+            onChange={(event) => setResetPassword(event.target.value)}
+          />
+          {actionError ? (
+            <p className="m-0 text-sm text-destructive" role="alert">
+              {actionError}
+            </p>
+          ) : null}
+        </form>
+        <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
           <Button
-            variant="secondary"
+            variant="outline"
+            className="h-9 rounded-lg"
             onClick={() => {
               setResetMember(null)
               setResetPassword('')
@@ -579,68 +668,77 @@ export default function TenantUsersPage() {
           >
             Cancel
           </Button>
-          <Button type="submit" form="pd-admin-reset-password">
-            Save password
+          <Button
+            type="submit"
+            form="pd-admin-reset-password"
+            className="h-9 rounded-lg"
+          >
+            Save Password
           </Button>
-        </>
-      }
-    >
-      <form id="pd-admin-reset-password" onSubmit={handleResetPassword} noValidate>
-        <Input
-          label="New password"
-          required
-          type="password"
-          autoComplete="new-password"
-          value={resetPassword}
-          onChange={(event) => setResetPassword(event.target.value)}
-        />
-        {actionError ? (
-          <p className="pd-field__error" role="alert">
-            {actionError}
-          </p>
-        ) : null}
-      </form>
-    </Modal>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 
   const editModal = (
-    <Modal
+    <Sheet
       open={editMember != null}
-      onClose={closeEdit}
-      title={editMember ? editMember.name : 'Edit user'}
-      actions={
-        <>
-          <Button variant="secondary" onClick={closeEdit} disabled={isEditing}>
+      onOpenChange={(next) => {
+        if (!next) closeEdit()
+      }}
+    >
+      <SheetContent className={floatingSheetClass}>
+        <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+          <SheetTitle className="text-base font-semibold">
+            {editMember ? editMember.name : 'Edit User'}
+          </SheetTitle>
+        </SheetHeader>
+        <form
+          id="pd-admin-edit-user"
+          className="flex flex-col gap-4 p-5"
+          onSubmit={(event) => void handleEditProfile(event)}
+          noValidate
+        >
+          <Input
+            label="Full Name"
+            required
+            value={editName}
+            onChange={(event) => setEditName(event.target.value)}
+          />
+          <Input
+            label="Email"
+            required
+            type="email"
+            autoComplete="off"
+            value={editEmail}
+            onChange={(event) => setEditEmail(event.target.value)}
+          />
+          {editError ? (
+            <p className="m-0 text-sm text-destructive" role="alert">
+              {editError}
+            </p>
+          ) : null}
+        </form>
+        <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
+          <Button
+            variant="outline"
+            className="h-9 rounded-lg"
+            onClick={closeEdit}
+            disabled={isEditing}
+          >
             Cancel
           </Button>
-          <Button type="submit" form="pd-admin-edit-user" disabled={isEditing}>
+          <Button
+            type="submit"
+            form="pd-admin-edit-user"
+            className="h-9 rounded-lg"
+            disabled={isEditing}
+          >
             {isEditing ? 'Saving…' : 'Save'}
           </Button>
-        </>
-      }
-    >
-      <form id="pd-admin-edit-user" onSubmit={handleEditProfile} noValidate>
-        <Input
-          label="Full name"
-          required
-          value={editName}
-          onChange={(event) => setEditName(event.target.value)}
-        />
-        <Input
-          label="Email"
-          required
-          type="email"
-          autoComplete="off"
-          value={editEmail}
-          onChange={(event) => setEditEmail(event.target.value)}
-        />
-        {editError ? (
-          <p className="pd-field__error" role="alert">
-            {editError}
-          </p>
-        ) : null}
-      </form>
-    </Modal>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 
   const sectionHead = (
@@ -660,11 +758,13 @@ export default function TenantUsersPage() {
       <div className="pd-client-detail__overview" aria-label="People">
         <section className="pd-client-detail__section pd-client-detail__section--compact">
           {sectionHead}
-          <EmptyState
-            icon={Users}
-            title="No users yet"
-            action={addButton}
-          />
+          <Empty className="bg-card shadow-sm">
+            <EmptyHeader>
+              <Users size={20} aria-hidden />
+              <EmptyTitle>No Users Yet</EmptyTitle>
+            </EmptyHeader>
+            {addButton}
+          </Empty>
         </section>
         {createModal}
         {credentialsModal}
@@ -680,17 +780,17 @@ export default function TenantUsersPage() {
       {sectionHead}
       {selectedCount > 0 ? (
         <div
-          className="pd-admin__bulk-bar"
+          className={adminBulkBarClass}
           role="region"
           aria-label="Bulk actions"
         >
-          <span className="pd-admin__bulk-count">
+          <span className={adminBulkCountClass}>
             {selectedCount} selected
           </span>
-          <div className="pd-admin__bulk-actions">
+          <div className={adminBulkActionsClass}>
             <Button
               size="sm"
-              variant="secondary"
+              variant="outline"
               onClick={() => setSelectedIds(new Set())}
               disabled={isDeleting}
             >
@@ -698,7 +798,7 @@ export default function TenantUsersPage() {
             </Button>
             <Button
               size="sm"
-              variant="danger"
+              variant="destructive"
               disabled={isDeleting || busyId != null}
               onClick={() => setConfirmDelete(true)}
             >
@@ -709,109 +809,122 @@ export default function TenantUsersPage() {
         </div>
       ) : null}
       {actionError && !resetMember ? (
-        <p className="pd-field__error" role="alert">
+        <p className="m-0 text-sm text-destructive" role="alert">
           {actionError}
         </p>
       ) : null}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pd-admin__select-col">
-              <Checkbox
-                hideLabel
-                label="Select all users"
-                checked={allSelected}
-                aria-checked={someSelected ? 'mixed' : allSelected}
-                onChange={(event) => toggleAll(event.target.checked)}
-              />
-            </TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead aria-label="Actions" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {members.map((member) => (
-            <TableRow key={member.id}>
-              <TableCell className="pd-admin__select-cell">
+      <div className={tableShellClass}>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent border-0">
+              <TableHead className={cn(chromeHeadClass, adminSelectColClass)}>
                 <Checkbox
-                  hideLabel
-                  label={`Select ${member.name}`}
-                  checked={selectedIds.has(member.id)}
-                  onChange={(event) =>
-                    toggleId(member.id, event.target.checked)
-                  }
+                  aria-label="Select all users"
+                  checked={allSelected}
+                  aria-checked={someSelected ? 'mixed' : allSelected}
+                  onCheckedChange={(checked) => toggleAll(checked === true)}
                 />
-              </TableCell>
-              <TableCell>
-                <span className="pd-admin__user">
-                  <Avatar
-                    name={member.name}
-                    size="sm"
-                    kind={avatarKindForMemberRole(member.role)}
-                  />
-                  <span className="pd-admin__user-name">{member.name}</span>
-                </span>
-              </TableCell>
-              <TableCell>
-                <CopyableText value={member.email} />
-              </TableCell>
-              <TableCell>{roleLabel(member.role)}</TableCell>
-              <TableCell>
-                <Select
-                  size="sm"
-                  aria-label={`Status for ${member.name}`}
-                  className={statusToneClass(member.status)}
-                  value={member.status}
-                  options={statusOptions(member.status)}
-                  disabled={busyId != null || isDeleting}
-                  onChange={(event) =>
-                    void handleMemberStatusChange(member, event.target.value)
-                  }
-                />
-              </TableCell>
-              <TableCell>
-                <span className="pd-admin__row-actions">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={busyId != null || isDeleting || isEditing}
-                    onClick={() => openEdit(member)}
-                  >
-                    <Pencil size={14} strokeWidth={2.25} aria-hidden />
-                    Edit
-                  </Button>
-                  {member.status === 'active' ? (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={busyId != null || isDeleting}
-                      onClick={() => void handleViewAs(member)}
-                    >
-                      <Eye size={14} strokeWidth={2.25} aria-hidden />
-                      {busyId === member.id ? 'Opening…' : 'View as'}
-                    </Button>
-                  ) : null}
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={busyId != null || isDeleting}
-                    onClick={() => {
-                      setResetMember(member)
-                      setResetPassword('')
-                      setActionError(undefined)
-                    }}
-                  >
-                    Reset password
-                  </Button>
-                </span>
-              </TableCell>
+              </TableHead>
+              <TableHead className={chromeHeadClass}>Name</TableHead>
+              <TableHead className={chromeHeadClass}>Email</TableHead>
+              <TableHead className={chromeHeadClass}>Role</TableHead>
+              <TableHead className={chromeHeadClass}>Status</TableHead>
+              <TableHead className={chromeHeadClass} aria-label="Actions" />
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {members.map((member) => (
+              <TableRow key={member.id}>
+                <TableCell className={adminSelectCellClass}>
+                  <Checkbox
+                    aria-label={`Select ${member.name}`}
+                    checked={selectedIds.has(member.id)}
+                    onCheckedChange={(checked) =>
+                      toggleId(member.id, checked === true)
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <span className={adminUserClass}>
+                    <Avatar size="sm">
+                      <AvatarFallback>{initials(member.name)}</AvatarFallback>
+                    </Avatar>
+                    <span className={adminUserNameClass}>{member.name}</span>
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <CopyableText value={member.email} />
+                </TableCell>
+                <TableCell className="font-mono text-xs">
+                  {roleLabel(member.role)}
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={member.status}
+                    disabled={busyId != null || isDeleting}
+                    onValueChange={(next) =>
+                      void handleMemberStatusChange(member, next)
+                    }
+                  >
+                    <SelectTrigger
+                      aria-label={`Status for ${member.name}`}
+                      className={statusTriggerClass}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions(member.status).map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <span className={adminRowActionsClass}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 rounded-lg"
+                      disabled={busyId != null || isDeleting || isEditing}
+                      onClick={() => openEdit(member)}
+                    >
+                      <Pencil size={14} strokeWidth={2.25} aria-hidden />
+                      Edit
+                    </Button>
+                    {member.status === 'active' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 rounded-lg"
+                        disabled={busyId != null || isDeleting}
+                        onClick={() => void handleViewAs(member)}
+                      >
+                        <Eye size={14} strokeWidth={2.25} aria-hidden />
+                        {busyId === member.id ? 'Opening…' : 'View As'}
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 rounded-lg"
+                      disabled={busyId != null || isDeleting}
+                      onClick={() => {
+                        setResetMember(member)
+                        setResetPassword('')
+                        setActionError(undefined)
+                      }}
+                    >
+                      Reset Password
+                    </Button>
+                  </span>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       </section>
       {createModal}
       {credentialsModal}

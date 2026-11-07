@@ -243,6 +243,11 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   isolation: isolate;
 }
 
+/* Soft gray canvas for shadcn list/detail pages (Clients, etc.). */
+.pd-app-scroll:has([data-elevated-canvas]) {
+  background: color-mix(in srgb, var(--color-text) 4.5%, var(--color-surface));
+}
+
 .pd-app-shell--mobile .pd-app-scroll {
   border-radius: 0;
 }
@@ -337,6 +342,10 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   flex-direction: column;
   overflow: hidden;
   transition: width var(--sidebar-duration) var(--sidebar-ease);
+  --color-active-nav: color-mix(in srgb, var(--color-theme) 40%, #4c82ff);
+  --color-active-nav-soft: color-mix(in srgb, var(--color-theme) 55%, #3a6ae0);
+  --color-on-active-nav: #fff;
+  --color-on-active-nav-soft: #fff;
 }
 
 .pd-app-sidebar--mobile {
@@ -536,14 +545,10 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   border-radius: 1px;
 }
 
-.pd-sidebar-nav__tooltip {
+.pd-sidebar-nav__tooltip-trigger {
   display: flex;
   width: 100%;
-}
-
-.pd-sidebar-nav__tooltip .pd-tooltip__trigger {
-  display: flex;
-  width: 100%;
+  min-width: 0;
 }
 
 .pd-sidebar-nav__link {
@@ -940,9 +945,9 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
 }
 
 .pd-topbar__title-text {
-  font-family: var(--font-heading);
-  font-size: 1rem;
-  font-weight: 800;
+  font-family: 'Roboto', var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--color-on-sidebar);
   overflow: hidden;
@@ -1228,7 +1233,7 @@ html[data-theme-transition='circle']::view-transition-new(root) {
 }
 
 .pd-topbar--mobile .pd-topbar__title-text {
-  font-size: 0.9375rem;
+  font-size: 0.8125rem;
 }
 
 .pd-topbar--mobile .pd-topbar__dropdown-panel--profile {

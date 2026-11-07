@@ -29,27 +29,44 @@ import { authApiConfigured } from '@/lib/billing/platformFlag'
 import { repairTenantIsolation } from '@/lib/platformAdminApi'
 import { useTenantMembers } from '@/lib/tenantMembersStore'
 import { useTenants } from '@/lib/tenantsStore'
-import { StatCards, type StatCardItem } from '@/components/StatCards'
 import {
-  Badge,
-  Button,
-  PageHeader,
+  adminBusinessNameClass,
+  adminCountClass,
+  adminPanelClass,
+  adminPanelHeaderClass,
+  adminPanelTitleClass,
+  adminQuietClass,
+  adminShortcutClass,
+  adminShortcutIconClass,
+  adminShortcutsClass,
+  chromeHeadClass,
+  elevatedPageClass,
+  tableShellClass,
+} from '@/components/admin/adminChrome'
+import { cn } from '@/lib/utils'
+import { StatCards, type StatCardItem } from '@/components/StatCards'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { PageHeader } from '@/components/shadcn/page-header'
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  type BadgeVariant,
-} from '@/components/ui'
+} from '@/components/shadcn/table'
 import type { BillingInvoice } from '@/types/billing'
 import type { TenantStatus } from '@/types/tenant'
 import '@/styles/layout-admin.css'
+import '@/styles/layout-clients.css'
 
-function statusBadgeVariant(status: TenantStatus): BadgeVariant {
-  if (status === 'active') return 'completed'
-  if (status === 'trial') return 'pending'
-  return 'danger'
+function statusBadgeVariant(
+  status: TenantStatus,
+): 'default' | 'secondary' | 'destructive' {
+  if (status === 'active') return 'default'
+  if (status === 'trial') return 'secondary'
+  return 'destructive'
 }
 
 function invoiceStatusLabel(status: BillingInvoice['status']): string {
@@ -177,32 +194,41 @@ export default function AdminOverviewPage() {
   }
 
   return (
-    <div className="pd-page pd-admin" aria-label="Platform overview">
+    <div
+      className={cn(elevatedPageClass, 'pd-page pd-page--elevated pd-admin')}
+      data-elevated-canvas
+      aria-label="Platform Overview"
+    >
       <PageHeader
         title="Platform"
         actions={
           <>
             <Button
-              variant="secondary"
+              variant="outline"
+              className="h-9 rounded-lg"
               disabled={repairBusy || !authApiConfigured()}
               onClick={() => void runIsolationRepair()}
             >
-              {repairBusy ? 'Repairing…' : 'Repair data isolation'}
+              {repairBusy ? 'Repairing…' : 'Repair Data Isolation'}
             </Button>
             <Button
-              variant="secondary"
+              variant="outline"
+              className="h-9 rounded-lg"
               onClick={() => navigate(ADMIN_AGENCIES)}
             >
-              All agencies
+              All Agencies
             </Button>
-            <Button onClick={() => navigate(`${ADMIN_AGENCIES}?new=1`)}>
-              Add agency
+            <Button
+              className="h-9 rounded-lg"
+              onClick={() => navigate(`${ADMIN_AGENCIES}?new=1`)}
+            >
+              Add Agency
             </Button>
           </>
         }
       />
       {repairStatus ? (
-        <p className="pd-admin__quiet" role="status">
+        <p className={adminQuietClass} role="status">
           {repairStatus}
         </p>
       ) : null}
@@ -211,158 +237,165 @@ export default function AdminOverviewPage() {
 
       {billingError || pendingInvoices.length > 0 ? (
       <section
-        className="pd-admin__panel"
+        className={adminPanelClass}
         aria-labelledby="admin-billing-queue-title"
       >
-        <header className="pd-admin__panel-header">
-          <h2 id="admin-billing-queue-title" className="pd-admin__panel-title">
+        <header className={adminPanelHeaderClass}>
+          <h2 id="admin-billing-queue-title" className={adminPanelTitleClass}>
             <Receipt size={16} strokeWidth={2.25} aria-hidden />
-            Billing queue
-            <span className="pd-admin__count">{pendingInvoices.length}</span>
+            Billing Queue
+            <span className={adminCountClass}>{pendingInvoices.length}</span>
           </h2>
         </header>
         {billingError ? (
-          <p className="pd-admin__quiet" role="alert">
+          <p className={adminQuietClass} role="alert">
             {billingError}
           </p>
         ) : null}
         {pendingInvoices.length === 0 ? null : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Agency</TableHead>
-                <TableHead>Plan / note</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead aria-label="Actions" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pendingInvoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell>
-                    <Link
-                      className="pd-admin__business-name"
-                      to={adminAgencyPath(invoice.tenantId)}
-                    >
-                      {invoice.agencyName || invoice.tenantId}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{invoice.description || invoice.planId || '—'}</TableCell>
-                  <TableCell>{formatBdt(invoice.amountBdt)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        invoice.status === 'pending_review'
-                          ? 'pending'
-                          : 'in-progress'
-                      }
-                    >
-                      {invoiceStatusLabel(invoice.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(invoice.createdAt)}</TableCell>
-                  <TableCell>
-                    <div style={{ display: 'flex', gap: '0.35rem' }}>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() =>
-                          navigate(adminAgencyPath(invoice.tenantId))
+          <div className={tableShellClass}>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-0">
+                  <TableHead className={chromeHeadClass}>Agency</TableHead>
+                  <TableHead className={chromeHeadClass}>Plan / Note</TableHead>
+                  <TableHead className={chromeHeadClass}>Amount</TableHead>
+                  <TableHead className={chromeHeadClass}>Status</TableHead>
+                  <TableHead className={chromeHeadClass}>Created</TableHead>
+                  <TableHead className={chromeHeadClass} aria-label="Actions" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingInvoices.map((invoice) => (
+                  <TableRow key={invoice.id}>
+                    <TableCell>
+                      <Link
+                        className={adminBusinessNameClass}
+                        to={adminAgencyPath(invoice.tenantId)}
+                      >
+                        {invoice.agencyName || invoice.tenantId}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{invoice.description || invoice.planId || '—'}</TableCell>
+                    <TableCell>{formatBdt(invoice.amountBdt)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          invoice.status === 'pending_review'
+                            ? 'outline'
+                            : 'secondary'
                         }
                       >
-                        Open
-                      </Button>
-                      {invoice.status === 'pending_review' ? (
+                        {invoiceStatusLabel(invoice.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatDate(invoice.createdAt)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1.5">
                         <Button
+                          variant="outline"
                           size="sm"
-                          disabled={billingBusyId === invoice.id}
-                          onClick={() => void markPaid(invoice.id)}
+                          className="h-9 rounded-lg"
+                          onClick={() =>
+                            navigate(adminAgencyPath(invoice.tenantId))
+                          }
                         >
-                          Mark paid
+                          Open
                         </Button>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        {invoice.status === 'pending_review' ? (
+                          <Button
+                            size="sm"
+                            className="h-9 rounded-lg"
+                            disabled={billingBusyId === invoice.id}
+                            onClick={() => void markPaid(invoice.id)}
+                          >
+                            Mark Paid
+                          </Button>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </section>
       ) : null}
 
       {attention.length === 0 ? null : (
-      <section className="pd-admin__panel" aria-labelledby="admin-attention-title">
-        <header className="pd-admin__panel-header">
-          <h2 id="admin-attention-title" className="pd-admin__panel-title">
+      <section className={adminPanelClass} aria-labelledby="admin-attention-title">
+        <header className={adminPanelHeaderClass}>
+          <h2 id="admin-attention-title" className={adminPanelTitleClass}>
             <AlertTriangle size={16} strokeWidth={2.25} aria-hidden />
-            Needs attention
-            <span className="pd-admin__count">{attention.length}</span>
+            Needs Attention
+            <span className={adminCountClass}>{attention.length}</span>
           </h2>
         </header>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Agency</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead aria-label="Open" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {attention.map((tenant) => (
-                <TableRow key={tenant.id}>
-                  <TableCell>
-                    <Link
-                      className="pd-admin__business-name"
-                      to={adminAgencyPath(tenant.id)}
-                    >
-                      {tenant.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusBadgeVariant(tenant.status)}>
-                      {tenant.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => navigate(adminAgencyPath(tenant.id))}
-                    >
-                      Open
-                    </Button>
-                  </TableCell>
+          <div className={tableShellClass}>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-0">
+                  <TableHead className={chromeHeadClass}>Agency</TableHead>
+                  <TableHead className={chromeHeadClass}>Status</TableHead>
+                  <TableHead className={chromeHeadClass} aria-label="Open" />
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {attention.map((tenant) => (
+                  <TableRow key={tenant.id}>
+                    <TableCell>
+                      <Link
+                        className={adminBusinessNameClass}
+                        to={adminAgencyPath(tenant.id)}
+                      >
+                        {tenant.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusBadgeVariant(tenant.status)}>
+                        {tenant.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 rounded-lg"
+                        onClick={() => navigate(adminAgencyPath(tenant.id))}
+                      >
+                        Open
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
       </section>
       )}
 
-      <nav className="pd-admin__shortcuts" aria-label="Shortcuts">
-        <Link className="pd-admin__shortcut" to={ADMIN_PEOPLE}>
-          <span className="pd-admin__shortcut-icon" aria-hidden>
+      <nav className={adminShortcutsClass} aria-label="Shortcuts">
+        <Link className={adminShortcutClass} to={ADMIN_PEOPLE}>
+          <span className={adminShortcutIconClass} aria-hidden>
             <Users size={22} strokeWidth={1.75} />
           </span>
           People
         </Link>
-        <Link className="pd-admin__shortcut" to={ADMIN_ACTIVITY}>
-          <span className="pd-admin__shortcut-icon" aria-hidden>
+        <Link className={adminShortcutClass} to={ADMIN_ACTIVITY}>
+          <span className={adminShortcutIconClass} aria-hidden>
             <ScrollText size={22} strokeWidth={1.75} />
           </span>
           Activity
         </Link>
-        <Link className="pd-admin__shortcut" to={ADMIN_PLANS}>
-          <span className="pd-admin__shortcut-icon" aria-hidden>
+        <Link className={adminShortcutClass} to={ADMIN_PLANS}>
+          <span className={adminShortcutIconClass} aria-hidden>
             <CreditCard size={22} strokeWidth={1.75} />
           </span>
           Plans
         </Link>
-        <Link className="pd-admin__shortcut" to={ADMIN_ADMINS}>
-          <span className="pd-admin__shortcut-icon" aria-hidden>
+        <Link className={adminShortcutClass} to={ADMIN_ADMINS}>
+          <span className={adminShortcutIconClass} aria-hidden>
             <Shield size={22} strokeWidth={1.75} />
           </span>
           Admins

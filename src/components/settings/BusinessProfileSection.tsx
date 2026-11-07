@@ -11,8 +11,10 @@ import {
   Package,
 } from 'lucide-react'
 import { ProfilePhotoField } from '@/components/ProfilePhotoField'
+import { Input, Textarea } from '@/components/clients/clientShadcnFields'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
-import { Badge, Button, Input, Progress, Textarea } from '@/components/ui'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
 import {
   DEFAULT_BRAND_NAME,
   fileToProfilePictureDataUrl,
@@ -54,14 +56,31 @@ function meterClass(tone: string | undefined): string {
 
 function badgeVariant(
   status: string,
-): 'neutral' | 'completed' | 'pending' | 'in-progress' | 'danger' {
-  if (status === 'active' || status === 'paid') return 'completed'
-  if (status === 'trial' || status === 'open') return 'in-progress'
-  if (status === 'past_due' || status === 'pending_review') return 'pending'
+): 'default' | 'secondary' | 'outline' | 'destructive' {
+  if (status === 'active' || status === 'paid') return 'default'
+  if (status === 'trial' || status === 'open') return 'secondary'
+  if (status === 'past_due' || status === 'pending_review') return 'outline'
   if (status === 'suspended' || status === 'canceled' || status === 'failed') {
-    return 'danger'
+    return 'destructive'
   }
-  return 'neutral'
+  return 'secondary'
+}
+
+function MeterProgress({ value, max = 100 }: { value: number; max?: number }) {
+  const safeMax = max <= 0 ? 100 : max
+  const clamped = Math.min(safeMax, Math.max(0, value))
+  const percent = Math.round((clamped / safeMax) * 100)
+  return (
+    <div
+      className="h-1.5 overflow-hidden rounded-full bg-muted"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={safeMax}
+      aria-valuenow={clamped}
+    >
+      <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
+    </div>
+  )
 }
 
 export function BusinessProfileSection({
@@ -116,7 +135,7 @@ export function BusinessProfileSection({
               )}
             >
               <Input
-                label="Company name"
+                label="Company Name"
                 name="businessName"
                 autoComplete="organization"
                 placeholder="Your travel agency name"
@@ -152,7 +171,7 @@ export function BusinessProfileSection({
                 )}
               >
                 <Input
-                  label="Mobile number"
+                  label="Mobile Number"
                   name="mobile"
                   type="tel"
                   autoComplete="tel"
@@ -203,9 +222,9 @@ export function BusinessProfileSection({
             >
               {error ?? status ?? ''}
             </p>
-            <Button type="submit" size="md">
+            <Button type="submit" className="h-9 rounded-lg">
               <Check size={16} strokeWidth={2.25} aria-hidden />
-              Save profile
+              Save Profile
             </Button>
           </div>
         </form>
@@ -276,7 +295,7 @@ export function BusinessProfileSection({
                   {snapshot.usage.seatCommit}/{snapshot.limits.userLimit}
                 </span>
               </div>
-              <Progress
+              <MeterProgress
                 value={snapshot.usage.seatCommit}
                 max={Math.max(1, snapshot.limits.userLimit)}
               />
@@ -297,7 +316,7 @@ export function BusinessProfileSection({
             <span className="pd-business-profile__summary-icon" aria-hidden>
               <Handshake size={15} strokeWidth={2.25} />
             </span>
-            <h3 className="pd-business-profile__summary-title">Sub agents</h3>
+            <h3 className="pd-business-profile__summary-title">Sub Agents</h3>
           </div>
           {snapshot ? (
             <div
@@ -312,7 +331,7 @@ export function BusinessProfileSection({
                   {snapshot.usage.subAgents}/{snapshot.limits.subAgentLimit}
                 </span>
               </div>
-              <Progress
+              <MeterProgress
                 value={snapshot.usage.subAgents}
                 max={Math.max(1, snapshot.limits.subAgentLimit)}
               />

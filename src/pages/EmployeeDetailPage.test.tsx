@@ -1,10 +1,20 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { AuthProvider } from '@/lib/AuthProvider'
 import { DEMO_USER, clearSession, writeSession } from '@/lib/authApi'
 import { TENANT_IDS } from '@/types/tenant'
 import EmployeeDetailPage from '@/pages/EmployeeDetailPage'
+
+beforeAll(() => {
+  if (typeof globalThis.ResizeObserver === 'undefined') {
+    globalThis.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+  }
+})
 
 afterEach(() => {
   cleanup()
@@ -30,7 +40,7 @@ function renderEmployee(path: string) {
 }
 
 describe('employee profile', () => {
-  it('shows read-only left card and editable Profile tab first', () => {
+  it('shows read-only left card and editable Profile tab first', async () => {
     renderEmployee('/hr/employees/EMP-7001')
 
     const profile = screen.getByLabelText('Employee profile')
@@ -39,7 +49,7 @@ describe('employee profile', () => {
     ).toBeInTheDocument()
     expect(within(profile).getByText('01711234567')).toBeInTheDocument()
     expect(within(profile).getByText('karim@abctravel.demo')).toBeInTheDocument()
-    expect(within(profile).queryByLabelText('Full name')).not.toBeInTheDocument()
+    expect(within(profile).queryByLabelText('Full Name')).not.toBeInTheDocument()
     expect(
       within(profile).getByRole('button', { name: 'Delete' }),
     ).toBeInTheDocument()
@@ -58,9 +68,10 @@ describe('employee profile', () => {
       within(workspace).getByRole('tab', { name: 'Payroll' }),
     ).toBeInTheDocument()
 
-    expect(within(workspace).getByLabelText('Full name')).toHaveValue(
-      'Md. Karim Ahmed',
-    )
+    // Profile fields mount with the active tabpanel; wait for label↔input wiring.
+    expect(
+      await within(workspace).findByLabelText('Full Name', {}, { timeout: 3000 }),
+    ).toHaveValue('Md. Karim Ahmed')
     expect(within(workspace).getByLabelText('Phone')).toHaveValue('01711234567')
   })
 
@@ -85,9 +96,9 @@ describe('employee profile', () => {
     })
 
     const payroll = screen.getByLabelText('Mehnaz Sultana payroll')
-    expect(within(payroll).getByText('Basic salary')).toBeInTheDocument()
+    expect(within(payroll).getByText('Basic Salary')).toBeInTheDocument()
     expect(within(payroll).getByText('৳30,000')).toBeInTheDocument()
-    expect(within(payroll).getByText('Unpaid days')).toBeInTheDocument()
+    expect(within(payroll).getByText('Unpaid Days')).toBeInTheDocument()
     expect(within(payroll).getByText('2')).toBeInTheDocument()
 
     expect(

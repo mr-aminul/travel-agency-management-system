@@ -1,5 +1,15 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { Button, Checkbox, Input, Select } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import { Checkbox } from '@/components/shadcn/checkbox'
+import { Field, FieldLabel } from '@/components/shadcn/field'
+import { Input } from '@/components/shadcn/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
 import { defaultYesNoDecision } from '@/lib/stepDecisions'
 import type {
   ServiceStepConfig,
@@ -18,7 +28,7 @@ export function StepDecisionsEditor({
 }) {
   const decisions = step.decisions ?? []
   const nextStepOptions = [
-    { value: '', label: 'Default next step' },
+    { value: '', label: 'Default Next Step' },
     ...steps
       .filter((item) => item.id !== step.id)
       .map((item) => ({
@@ -68,10 +78,10 @@ export function StepDecisionsEditor({
   return (
     <section className="pd-settings-template__exceptions">
       <div className="pd-settings-template__panel-label-row">
-        <span className="pd-settings-template__panel-label">If / require</span>
+        <span className="pd-settings-template__panel-label">If / Require</span>
         <Button type="button" variant="ghost" size="sm" onClick={addDecision}>
           <Plus size={14} aria-hidden />
-          Add option
+          Add Option
         </Button>
       </div>
 
@@ -109,36 +119,60 @@ export function StepDecisionsEditor({
                 </Button>
               </div>
               <ul className="pd-settings-template__decision-options">
-                {decision.options.map((option) => (
-                  <li key={option.value}>
-                    <div className="pd-settings-template__decision-option-row">
-                      <span className="pd-settings-template__decision-option-label">
-                        {option.value}
-                      </span>
-                      <Select
-                        aria-label={`${decision.label} ${option.value} next step`}
-                        size="sm"
-                        value={option.nextStepId ?? ''}
-                        options={nextStepOptions}
-                        onChange={(event) => {
-                          const nextStepId = event.target.value.trim()
-                          updateOption(decision.key, option.value, {
-                            nextStepId: nextStepId || undefined,
-                          })
-                        }}
-                      />
-                    </div>
-                    <Checkbox
-                      label="Skip documents for this choice"
-                      checked={option.skipDocuments === true}
-                      onChange={(event) =>
-                        updateOption(decision.key, option.value, {
-                          skipDocuments: event.target.checked || undefined,
-                        })
-                      }
-                    />
-                  </li>
-                ))}
+                {decision.options.map((option) => {
+                  const skipId = `${decision.key}-${option.value}-skip`
+                  return (
+                    <li key={option.value}>
+                      <div className="pd-settings-template__decision-option-row">
+                        <span className="pd-settings-template__decision-option-label">
+                          {option.value}
+                        </span>
+                        <Select
+                          value={option.nextStepId || '__default__'}
+                          onValueChange={(next) => {
+                            const nextStepId =
+                              next === '__default__' ? '' : next.trim()
+                            updateOption(decision.key, option.value, {
+                              nextStepId: nextStepId || undefined,
+                            })
+                          }}
+                        >
+                          <SelectTrigger
+                            aria-label={`${decision.label} ${option.value} next step`}
+                            className="h-8"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {nextStepOptions.map((item) => (
+                              <SelectItem
+                                key={item.value || '__default__'}
+                                value={item.value || '__default__'}
+                              >
+                                {item.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Field orientation="horizontal">
+                        <Checkbox
+                          id={skipId}
+                          checked={option.skipDocuments === true}
+                          onCheckedChange={(checked) =>
+                            updateOption(decision.key, option.value, {
+                              skipDocuments:
+                                checked === true || undefined,
+                            })
+                          }
+                        />
+                        <FieldLabel htmlFor={skipId}>
+                          Skip Documents For This Choice
+                        </FieldLabel>
+                      </Field>
+                    </li>
+                  )
+                })}
               </ul>
             </li>
           ))}

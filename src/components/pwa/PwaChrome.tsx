@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Download, Plus, RefreshCw, Share, WifiOff } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
 import { publicUrl } from '@/lib/publicUrl'
 import {
   PWA_UPDATE_EVENT,
@@ -175,23 +175,23 @@ export function PwaChrome() {
                 </li>
               </ol>
               <div className="pd-pwa-sheet__actions">
-                <Button size="md" onClick={dismissInstall}>
-                  Got it
+                <Button className="h-9 rounded-lg" onClick={dismissInstall}>
+                  Got It
                 </Button>
               </div>
             </>
           ) : (
             <div className="pd-pwa-sheet__actions">
               <Button
-                size="md"
+                className="h-9 rounded-lg"
                 onClick={() => void handleInstall()}
                 disabled={!deferredPrompt}
               >
                 <Download size={16} strokeWidth={2} aria-hidden />
                 Install
               </Button>
-              <Button size="md" variant="ghost" onClick={dismissInstall}>
-                Not now
+              <Button variant="ghost" className="h-9 rounded-lg" onClick={dismissInstall}>
+                Not Now
               </Button>
             </div>
           )}
@@ -213,12 +213,12 @@ export function PwaChrome() {
         </header>
         <div className="pd-card__body">
           <div className="pd-pwa-sheet__actions">
-            <Button size="md" onClick={() => applyWaitingPwaUpdate()}>
+            <Button className="h-9 rounded-lg" onClick={() => applyWaitingPwaUpdate()}>
               Reload
             </Button>
             <Button
-              size="md"
               variant="ghost"
+              className="h-9 rounded-lg"
               onClick={() => setUpdateReady(false)}
             >
               Later

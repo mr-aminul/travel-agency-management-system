@@ -1,5 +1,43 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Plus, Shield } from 'lucide-react'
+import { Plus, Search, Shield } from 'lucide-react'
+import { CopyableText } from '@/components/CopyableText'
+import { Input } from '@/components/clients/clientShadcnFields'
+import { floatingSheetClass } from '@/components/clients/shadcnChrome'
+import { cn } from '@/lib/utils'
+import { Avatar, AvatarFallback } from '@/components/shadcn/avatar'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/shadcn/dialog'
+import { Empty, EmptyHeader, EmptyTitle } from '@/components/shadcn/empty'
+import { Input as SearchInput } from '@/components/shadcn/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/shadcn/table'
 import { useAuth } from '@/lib/auth'
 import {
   createPlatformAdmin,
@@ -10,30 +48,35 @@ import {
 import { authApiConfigured } from '@/lib/billing/platformFlag'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import {
-  Avatar,
-  Badge,
-  Button,
-  CopyableText,
-  EmptyState,
-  Input,
-  Modal,
-  SearchField,
-  Select,
-  SideDrawer,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  type SelectOption,
-} from '@/components/ui'
+  adminClientsToolbarClass,
+  adminCredentialNameClass,
+  adminCredentialRowClass,
+  adminFormStackClass,
+  adminPanelClass,
+  adminPanelTitleClass,
+  adminPanelToolbarClass,
+  adminQuietClass,
+  adminUserClass,
+  adminUserNameClass,
+  chromeHeadClass,
+  tableShellClass,
+  whiteControlClass,
+} from '@/components/admin/adminChrome'
 import '@/styles/layout-clients.css'
 
-const STATUS_OPTIONS: SelectOption[] = [
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+}
+
+const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
   { value: 'disabled', label: 'Disabled' },
 ]
+
+const statusTriggerClass = 'h-8 w-[7.5rem] rounded-lg'
 
 type CreateField = 'name' | 'email' | 'password'
 
@@ -41,11 +84,6 @@ type CreatedCredentials = {
   name: string
   email: string
   password: string
-}
-
-function statusToneClass(status: string): string {
-  if (status === 'active') return 'pd-select--tone-completed'
-  return 'pd-select--tone-danger'
 }
 
 export function AdminPlatformAdminsPanel() {
@@ -171,33 +209,36 @@ export function AdminPlatformAdminsPanel() {
   }
 
   return (
-    <section className="pd-admin__panel" aria-label="Platform admins">
-      <div className="pd-admin__panel-toolbar">
-        <h2 className="pd-admin__panel-title">Platform admins</h2>
+    <section className={adminPanelClass} aria-label="Platform Admins">
+      <div className={adminPanelToolbarClass}>
+        <h2 className={adminPanelTitleClass}>Platform Admins</h2>
         <Button
-          size="sm"
+          className="h-9 rounded-lg"
           disabled={!apiReady}
           onClick={() => setCreateOpen(true)}
         >
           <Plus size={16} strokeWidth={2.2} aria-hidden />
-          Add admin
+          Add Admin
         </Button>
       </div>
 
       {!apiReady ? (
-        <p className="pd-admin__quiet">
+        <p className={adminQuietClass}>
           Connect the platform API to manage live admin accounts.
         </p>
       ) : null}
 
-      <div className="pd-clients__toolbar">
-        <SearchField
-          className="pd-clients__search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          onClear={() => setSearch('')}
-          placeholder="Search admins…"
-        />
+      <div className={adminClientsToolbarClass}>
+        <div className="relative min-w-56 flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <SearchInput
+            className={cn('pl-8', whiteControlClass)}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search Admins…"
+            aria-label="Search Admins"
+          />
+        </div>
       </div>
 
       {error ? (
@@ -210,95 +251,161 @@ export function AdminPlatformAdminsPanel() {
       ) : null}
 
       {loading ? (
-        <p className="pd-admin__quiet">Loading admins…</p>
+        <p className={adminQuietClass}>Loading admins…</p>
       ) : admins.length === 0 ? (
-        <EmptyState
-          icon={Shield}
-          title="No platform admins"
-          action={
-            <Button disabled={!apiReady} onClick={() => setCreateOpen(true)}>
-              <Plus size={16} aria-hidden />
-              Add admin
-            </Button>
-          }
-        />
+        <Empty className="bg-card shadow-sm">
+          <EmptyHeader>
+            <Shield size={20} aria-hidden />
+            <EmptyTitle>No Platform Admins</EmptyTitle>
+          </EmptyHeader>
+          <Button className="h-9 rounded-lg" disabled={!apiReady} onClick={() => setCreateOpen(true)}>
+            <Plus size={16} aria-hidden />
+            Add Admin
+          </Button>
+        </Empty>
       ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={Shield}
-          title="No matching admins"
-          action={
-            <Button variant="secondary" onClick={() => setSearch('')}>
-              Clear search
-            </Button>
-          }
-        />
+        <Empty className="bg-card shadow-sm">
+          <EmptyHeader>
+            <Shield size={20} aria-hidden />
+            <EmptyTitle>No Matching Admins</EmptyTitle>
+          </EmptyHeader>
+          <Button variant="outline" className="h-9 rounded-lg" onClick={() => setSearch('')}>
+            Clear Search
+          </Button>
+        </Empty>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Admin</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Type</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((admin) => {
-              const isYou = user?.id === admin.id
-              return (
-                <TableRow key={admin.id}>
-                  <TableCell>
-                    <span className="pd-admin__user">
-                      <Avatar name={admin.name} size="sm" />
-                      <span>
-                        <span className="pd-admin__user-name">
-                          {admin.name}
-                          {isYou ? (
-                            <>
-                              {' '}
-                              <Badge variant="pending">You</Badge>
-                            </>
-                          ) : null}
+        <div className={tableShellClass}>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent border-0">
+                <TableHead className={chromeHeadClass}>Admin</TableHead>
+                <TableHead className={chromeHeadClass}>Email</TableHead>
+                <TableHead className={chromeHeadClass}>Status</TableHead>
+                <TableHead className={chromeHeadClass}>Type</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((admin) => {
+                const isYou = user?.id === admin.id
+                return (
+                  <TableRow key={admin.id}>
+                    <TableCell>
+                      <span className={adminUserClass}>
+                        <Avatar size="sm">
+                          <AvatarFallback>{initials(admin.name)}</AvatarFallback>
+                        </Avatar>
+                        <span>
+                          <span className={adminUserNameClass}>
+                            {admin.name}
+                            {isYou ? (
+                              <>
+                                {' '}
+                                <Badge variant="outline">You</Badge>
+                              </>
+                            ) : null}
+                          </span>
                         </span>
                       </span>
-                    </span>
-                  </TableCell>
-                  <TableCell className="pd-table__code">{admin.email}</TableCell>
-                  <TableCell>
-                    <Select
-                      size="sm"
-                      aria-label={`Status for ${admin.name}`}
-                      className={statusToneClass(admin.status)}
-                      value={admin.status}
-                      options={STATUS_OPTIONS}
-                      disabled={!apiReady || busyId != null || isYou}
-                      onChange={(event) =>
-                        void handleStatusChange(admin, event.target.value)
-                      }
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {admin.isBootstrap ? (
-                      <Badge variant="neutral">Bootstrap</Badge>
-                    ) : (
-                      <span className="pd-admin__quiet">Operator</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{admin.email}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={admin.status}
+                        disabled={!apiReady || busyId != null || isYou}
+                        onValueChange={(next) => void handleStatusChange(admin, next)}
+                      >
+                        <SelectTrigger
+                          aria-label={`Status for ${admin.name}`}
+                          className={statusTriggerClass}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      {admin.isBootstrap ? (
+                        <Badge variant="secondary">Bootstrap</Badge>
+                      ) : (
+                        <span className={adminQuietClass}>Operator</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
-      <SideDrawer
+      <Sheet
         open={createOpen}
-        onClose={closeCreate}
-        title="Add platform admin"
-        footer={
-          <>
+        onOpenChange={(next) => {
+          if (!next) closeCreate()
+        }}
+      >
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">Add Platform Admin</SheetTitle>
+          </SheetHeader>
+          <form
+            id="pd-admin-create-platform-admin"
+            className="flex flex-col gap-4 p-5"
+            onSubmit={(event) => void handleCreate(event)}
+            noValidate
+          >
+            <Input
+              label="Name"
+              required
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              onBlur={blur('name')}
+              error={showError('name') && !name.trim() ? 'Name is required.' : undefined}
+            />
+            <Input
+              label="Email"
+              required
+              type="email"
+              autoComplete="off"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              onBlur={blur('email')}
+              error={
+                showError('email') && !email.trim()
+                  ? 'Email is required.'
+                  : undefined
+              }
+            />
+            <Input
+              label="Initial Password"
+              required
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              onBlur={blur('password')}
+              error={
+                showError('password') && password.length < 8
+                  ? 'Password must be at least 8 characters.'
+                  : undefined
+              }
+            />
+            {formError ? (
+              <p className="m-0 text-sm text-destructive" role="alert">
+                {formError}
+              </p>
+            ) : null}
+          </form>
+          <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
             <Button
-              variant="secondary"
+              variant="outline"
+              className="h-9 rounded-lg"
               onClick={closeCreate}
               disabled={isSubmitting}
             >
@@ -307,85 +414,52 @@ export function AdminPlatformAdminsPanel() {
             <Button
               type="submit"
               form="pd-admin-create-platform-admin"
+              className="h-9 rounded-lg"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Creating…' : 'Add admin'}
+              {isSubmitting ? 'Creating…' : 'Add Admin'}
             </Button>
-          </>
-        }
-      >
-        <form
-          id="pd-admin-create-platform-admin"
-          className="pd-admin__form-stack"
-          onSubmit={(event) => void handleCreate(event)}
-          noValidate
-        >
-          <Input
-            label="Name"
-            required
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            onBlur={blur('name')}
-            error={showError('name') && !name.trim() ? 'Name is required.' : undefined}
-          />
-          <Input
-            label="Email"
-            required
-            type="email"
-            autoComplete="off"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            onBlur={blur('email')}
-            error={
-              showError('email') && !email.trim()
-                ? 'Email is required.'
-                : undefined
-            }
-          />
-          <Input
-            label="Initial password"
-            required
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            onBlur={blur('password')}
-            error={
-              showError('password') && password.length < 8
-                ? 'Password must be at least 8 characters.'
-                : undefined
-            }
-          />
-          {formError ? (
-            <p className="pd-field__error" role="alert">
-              {formError}
-            </p>
-          ) : null}
-        </form>
-      </SideDrawer>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-      <Modal
+      <Dialog
         open={createdCredentials != null}
-        onClose={() => setCreatedCredentials(null)}
-        title="Copy this password. It will not be shown again."
-        actions={
-          <Button onClick={() => setCreatedCredentials(null)}>Done</Button>
-        }
+        onOpenChange={(next) => {
+          if (!next) setCreatedCredentials(null)
+        }}
       >
-        {createdCredentials ? (
-          <div className="pd-admin__form-stack">
-            <p className="pd-admin__credential-name">{createdCredentials.name}</p>
-            <p className="pd-admin__credential-row">
-              Email{' '}
-              <CopyableText value={createdCredentials.email} />
-            </p>
-            <p className="pd-admin__credential-row">
-              Password{' '}
-              <CopyableText value={createdCredentials.password} />
-            </p>
-          </div>
-        ) : null}
-      </Modal>
+        <DialogContent className="border border-border bg-card shadow-[var(--shadow-deep)] ring-0 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Copy This Password. It Will Not Be Shown Again.
+            </DialogTitle>
+          </DialogHeader>
+          {createdCredentials ? (
+            <div className={adminFormStackClass}>
+              <p className={adminCredentialNameClass}>{createdCredentials.name}</p>
+              <p className={adminCredentialRowClass}>
+                Email <CopyableText value={createdCredentials.email} />
+              </p>
+              <p className={adminCredentialRowClass}>
+                Password{' '}
+                <CopyableText
+                  value={createdCredentials.password}
+                  label="password"
+                />
+              </p>
+            </div>
+          ) : null}
+          <DialogFooter className="border-0 bg-transparent">
+            <Button
+              className="h-9 rounded-lg"
+              onClick={() => setCreatedCredentials(null)}
+            >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

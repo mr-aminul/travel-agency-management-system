@@ -1,4 +1,5 @@
 import { useParams } from 'react-router-dom'
+import { adminAllViewClass } from '@/components/admin/adminChrome'
 import { useTenantById } from '@/lib/tenantsStore'
 import TenantActivityPage from '@/pages/admin/TenantActivityPage'
 import TenantMessagingPage from '@/pages/admin/TenantMessagingPage'
@@ -14,7 +15,7 @@ export default function TenantAllPage() {
   if (!tenant) return null
 
   return (
-    <div className="pd-admin__all-view" aria-label="All">
+    <div className={adminAllViewClass} aria-label="All">
       {/* Setup order: status → product → messaging → people → activity */}
       <TenantOverviewPage />
       <TenantModulesPage />

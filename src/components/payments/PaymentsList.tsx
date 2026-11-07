@@ -4,7 +4,27 @@ import { Eye, FileText, Plus, Wallet } from 'lucide-react'
 import { getCaseById } from '@/lib/casesStore'
 import { workInvoicePath } from '@/lib/workPaths'
 import { formatDisplayDate } from '@/lib/formatDate'
-import { Button, EmptyState, Input, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/shadcn/empty'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
+import {
+  chromeHeadClass,
+  floatingSheetClass,
+} from '@/components/clients/shadcnChrome'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/shadcn/table'
 import {
   validateOptionalText,
   validateRequiredMoney,
@@ -153,65 +173,75 @@ export function PaymentsList({
   const canRecord = caseOptions.length > 0
 
   return (
-    <div className="pd-payments">
+    <div className="flex flex-col gap-4">
       {dueTotal > 0 ? (
-        <div className="pd-payments__due" role="status">
-          <div className="pd-payments__due-copy">
-            <p className="pd-payments__due-label">Still due</p>
-            <p className="pd-payments__due-amount">
+        <div
+          className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[color-mix(in_srgb,var(--color-red)_30%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-red)_7%,var(--color-surface))] px-4 py-3.5"
+          role="status"
+        >
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <p className="m-0 text-[0.625rem] font-medium uppercase tracking-wide text-[var(--color-red)]">
+              Still Due
+            </p>
+            <p className="m-0 text-xl font-semibold leading-tight text-foreground">
               {formatPaymentAmount(dueTotal)}
             </p>
           </div>
-          <Button size="sm" onClick={beginRecording} disabled={!canRecord}>
+          <Button className="h-9 rounded-lg" onClick={beginRecording} disabled={!canRecord}>
             <Wallet size={14} strokeWidth={2.25} aria-hidden />
-            Collect payment
+            Collect Payment
           </Button>
         </div>
       ) : null}
 
-      <div className="pd-payments__toolbar">
-        <h2 className="pd-payments__heading">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="m-0 text-[0.9375rem] font-semibold leading-snug text-foreground">
           Payment History ({payments.length})
         </h2>
-        <div className="pd-payments__actions">
+        <div className="flex flex-wrap items-center gap-2">
           {caseId ? (
             <Link
               to={workInvoicePath({ id: caseId, clientId })}
-              className="pd-btn pd-btn--secondary pd-btn--sm"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-sm no-underline"
             >
               <FileText size={14} strokeWidth={2.25} aria-hidden />
-              View invoice
+              View Invoice
             </Link>
           ) : null}
           {dueTotal > 0 ? null : (
             <Button
-              size="sm"
-              variant="secondary"
+              variant="outline"
+              className="h-9 rounded-lg"
               onClick={beginRecording}
               disabled={!canRecord}
             >
               <Plus size={14} strokeWidth={2.25} aria-hidden />
-              Record payment
+              Record Payment
             </Button>
           )}
         </div>
       </div>
 
       {payments.length === 0 ? (
-        <EmptyState
-          icon={Wallet}
-          title="No payments yet"
-        />
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Wallet />
+            </EmptyMedia>
+            <EmptyTitle>No Payments Yet</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       ) : (
+        <div className="overflow-auto rounded-xl border border-border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              {!caseId ? <TableHead>Service</TableHead> : null}
-              <TableHead>Method</TableHead>
-              <TableHead>Note</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Invoice</TableHead>
+              <TableHead className={chromeHeadClass}>Date</TableHead>
+              {!caseId ? <TableHead className={chromeHeadClass}>Service</TableHead> : null}
+              <TableHead className={chromeHeadClass}>Method</TableHead>
+              <TableHead className={chromeHeadClass}>Note</TableHead>
+              <TableHead className={chromeHeadClass}>Amount</TableHead>
+              <TableHead className={chromeHeadClass}>Invoice</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -227,7 +257,7 @@ export function PaymentsList({
                   ) : null}
                   <TableCell>{payment.method}</TableCell>
                   <TableCell>{payment.note || '-'}</TableCell>
-                  <TableCell className="pd-cases__balance">
+                  <TableCell className="tabular-nums font-medium">
                     {formatPaymentAmount(payment.amount)}
                   </TableCell>
                   <TableCell>
@@ -236,7 +266,7 @@ export function PaymentsList({
                         id: payment.caseId,
                         clientId: payment.clientId,
                       })}
-                      className="pd-btn pd-btn--secondary pd-btn--sm pd-payments__view-btn"
+                      className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card"
                     >
                       <Eye size={14} strokeWidth={2.25} aria-hidden />
                       View
@@ -247,18 +277,15 @@ export function PaymentsList({
             })}
           </TableBody>
         </Table>
+        </div>
       )}
 
-      <SideDrawer
-        open={recording}
-        onClose={endRecording}
-        title="Collect payment"
-        description={
-          dueTotal > 0 ? `${formatPaymentAmount(dueTotal)} still due` : undefined
-        }
-        className="pd-payments-drawer"
-      >
-        <form className="pd-payments__form" onSubmit={handleSubmit} noValidate>
+      <Sheet open={recording} onOpenChange={(open) => { if (!open) endRecording() }}>
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">Collect Payment</SheetTitle>
+          </SheetHeader>
+        <form className="flex flex-col gap-4 p-5" onSubmit={handleSubmit} noValidate>
           {!caseId ? (
             <Select
               label="Service"
@@ -316,18 +343,19 @@ export function PaymentsList({
             error={showError('note') ? noteError : undefined}
           />
           {error ? (
-            <p className="pd-field__error" role="alert">
+            <p className="m-0 text-sm text-destructive" role="alert">
               {error}
             </p>
           ) : null}
-          <div className="pd-payments__form-actions">
-            <Button type="submit">Save payment</Button>
-            <Button type="button" variant="secondary" onClick={endRecording}>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <Button type="submit" className="h-9 rounded-lg">Save Payment</Button>
+            <Button type="button" variant="outline" className="h-9 rounded-lg" onClick={endRecording}>
               Cancel
             </Button>
           </div>
         </form>
-      </SideDrawer>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

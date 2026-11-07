@@ -18,7 +18,7 @@ One line per thing. The title, field label, or button is that line.
 - Legacy-only leftovers (`/partners` redirects, `pd-partners-created`, `partnerId` reads) must stay labeled as legacy and must not appear in new user-facing text.
 
 <!-- ASTRYX:START -->
-Product UI uses the custom `pd-*` design system (components under `src/components/ui`, styles under `src/styles`). Prefer extending existing `pd-*` patterns for new screens.
+Product UI uses shadcn under `src/components/shadcn`, with shell/layout styles under `src/styles` (`pd-*` chrome). Prefer extending existing shadcn + shell patterns for new screens.
 
 Astryx (`@astryxdesign/core`) is an **optional reference** only. Do not require Astryx for new UI, and do not block work on Astryx CLI discovery. If exploring Astryx for inspiration:
 

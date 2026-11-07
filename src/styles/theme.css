@@ -1,11 +1,12 @@
 /**
- * ONE knob: --color-theme
- * Brand scale + roles derive from it.
+ * ONE knob: --color-theme (#0c2d79)
+ * Change that hex only. Buttons, stat cards, table heads, and active
+ * toggles all paint from it (via --primary / .pd-*-chrome).
  * Status colors stay independent.
  */
 
 :root {
-  /* ═══ ONLY brand hex ═══ */
+  /* ═══ ONLY brand hex — edit this one value for the whole app ═══ */
   --color-theme: #0c2d79;
 
   /* Scale */
@@ -84,9 +85,11 @@
   --color-muted-bg: color-mix(in srgb, var(--color-theme) 4%, white);
 
   /* Deep linear base */
-  --app-shell-gradient: linear-gradient(150deg,
-      color-mix(in srgb, var(--color-theme) 22%, #020814) 0%,
-      color-mix(in srgb, var(--color-theme) 8%, #02040a) 100%);
+  /* Sidebar chrome. More of the brand blue, still dark enough for white type. */
+  --app-shell-gradient: linear-gradient(165deg,
+      color-mix(in srgb, var(--color-theme) 58%, #2f62e6) 0%,
+      color-mix(in srgb, var(--color-theme) 36%, #060e22) 40%,
+      color-mix(in srgb, var(--color-theme) 16%, #02060e) 100%);
 
   /*
    * Shell glow inks, separate from UI mid/bright (those flip in .dark
@@ -102,7 +105,7 @@
      blobs over the top-left chrome for the whole loop. */
   --app-shell-glow:
     radial-gradient(ellipse 35% 40% at 21% 18%,
-      color-mix(in srgb, var(--app-shell-glow-core) 40%, transparent) 0%,
+      color-mix(in srgb, var(--app-shell-glow-core) 55%, transparent) 0%,
       transparent 48%),
     radial-gradient(ellipse 27% 32% at 31% 13%,
       color-mix(in srgb, var(--app-shell-glow-soft) 24%, transparent) 0%,
@@ -113,6 +116,30 @@
     radial-gradient(ellipse 24% 35% at 26% 26%,
       color-mix(in srgb, var(--app-shell-glow-depth) 32%, transparent) 0%,
       transparent 44%);
+}
+
+/*
+ * Filled chrome: always the one brand blue (--color-theme / --primary).
+ * No black mixes here — those made cards/headers look near-black.
+ */
+.pd-summary-stat-chrome {
+  background: var(--color-theme) !important;
+  color: var(--color-on-theme) !important;
+  border: 0 !important;
+}
+
+.pd-chrome-head {
+  background: var(--color-theme) !important;
+  color: var(--color-on-theme) !important;
+}
+
+.pd-white-control.is-active,
+.pd-white-control.is-active:hover,
+.pd-white-control[data-state='on'],
+.pd-white-control[data-state='on']:hover {
+  background-color: var(--color-theme) !important;
+  color: var(--color-on-theme) !important;
+  border-color: var(--color-theme) !important;
 }
 
 /**

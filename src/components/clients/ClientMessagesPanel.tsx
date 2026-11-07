@@ -1,4 +1,7 @@
-import { Button, ConfirmDialog, Input, Textarea } from '@/components/ui'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import { Button } from '@/components/shadcn/button'
+import { Input } from '@/components/shadcn/input'
+import { Textarea } from '@/components/shadcn/textarea'
 import {
   useEffect,
   useId,
@@ -29,7 +32,7 @@ import type {
   ClientMessageAttachment,
   ClientMessageChannel,
 } from '@/types/clientMessage'
-import '@/styles/layout-clients.css'
+import { cn } from '@/lib/utils'
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024
 
@@ -253,64 +256,59 @@ export function ClientMessagesPanel({
   }
 
   return (
-    <div className="pd-client-messages">
-      <div
-        className={[
-          'pd-client-messages__frame',
-          isEmail ? 'pd-client-messages__frame--email' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
-        <p className="pd-client-messages__to">
+    <div className="flex flex-col">
+      <div className="flex min-h-[22rem] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <p className="m-0 border-b border-border px-3.5 py-2.5 text-xs font-semibold text-muted-foreground">
           {channelCopy(channel, address)}
         </p>
 
         <div
           ref={threadRef}
-          className="pd-client-messages__thread"
+          className="min-h-[14rem] max-h-[24rem] flex-1 overflow-y-auto bg-background p-3.5"
           aria-live="polite"
         >
           {chronological.length === 0 ? (
-            <p className="pd-client-messages__empty">{emptyLabel}</p>
+            <p className="m-0 flex min-h-[12rem] items-center justify-center text-sm text-muted-foreground">
+              {emptyLabel}
+            </p>
           ) : (
-            <ul className="pd-client-messages__list" aria-label={historyLabel}>
+            <ul
+              className="m-0 flex list-none flex-col gap-3 p-0"
+              aria-label={historyLabel}
+            >
               {chronological.map((item) => (
                 <li
                   key={item.id}
-                  className="pd-client-messages__item pd-client-messages__item--out"
+                  className="flex max-w-[min(22rem,82%)] flex-col items-end gap-1 self-end"
                 >
                   <div
-                    className={[
-                      'pd-client-messages__bubble',
-                      isBrandedEmailHtml(item.body)
-                        ? 'pd-client-messages__bubble--email-html'
-                        : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
+                    className={cn(
+                      'm-0 flex flex-col gap-2 whitespace-pre-wrap rounded-[0.75rem_0.75rem_0.25rem_0.75rem] bg-primary px-3 py-2 text-sm leading-snug text-primary-foreground',
+                      isBrandedEmailHtml(item.body) &&
+                        'max-w-[min(100%,28rem)] overflow-hidden bg-[#eef2f6] p-0 text-inherit',
+                    )}
                   >
                     {item.body ? (
                       isBrandedEmailHtml(item.body) ? (
                         <iframe
                           title={`Email ${item.id}`}
-                          className="pd-client-messages__email-frame"
+                          className="block min-h-[18rem] w-full border-0 bg-white"
                           sandbox=""
                           srcDoc={item.body}
                         />
                       ) : (
-                        <p>{item.body}</p>
+                        <p className="m-0">{item.body}</p>
                       )
                     ) : null}
                     {item.attachment ? (
                       <img
-                        className="pd-client-messages__image"
+                        className="max-h-48 max-w-full rounded-md"
                         src={item.attachment.dataUrl}
                         alt={item.attachment.name}
                       />
                     ) : null}
                   </div>
-                  <p className="pd-client-messages__meta">
+                  <p className="m-0 text-[0.6875rem] text-muted-foreground">
                     Sent · {formatMessageStamp(item.createdAt)}
                   </p>
                 </li>
@@ -321,11 +319,11 @@ export function ClientMessagesPanel({
 
         {isEmail ? (
           <form
-            className="pd-client-messages__composer pd-client-messages__composer--email"
+            className="flex flex-col gap-3 border-t border-border p-3.5"
             onSubmit={(event) => event.preventDefault()}
             noValidate
           >
-            <div className="pd-client-messages__template-bar">
+            <div className="flex flex-wrap items-center gap-2">
               <SmsTemplatePicker
                 client={client}
                 channel="email"
@@ -338,7 +336,7 @@ export function ClientMessagesPanel({
               />
             </div>
             <Textarea
-              className="pd-client-messages__editor"
+              className="min-h-[8rem]"
               value={body}
               onChange={(event) => {
                 setBody(event.target.value)
@@ -357,34 +355,39 @@ export function ClientMessagesPanel({
               aria-label="Email"
               disabled={!address || isBusy}
               rows={useBrandedEmail ? 5 : 8}
-              error={error}
+              aria-invalid={error ? true : undefined}
             />
+            {error ? (
+              <p className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
             {brandedPreviewHtml ? (
-              <div className="pd-client-messages__email-preview">
-                <p className="pd-client-messages__email-preview-label">
-                  Email preview
+              <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-background p-2.5">
+                <p className="m-0 text-xs font-semibold text-muted-foreground">
+                  Email Preview
                 </p>
                 <iframe
                   title="Branded email preview"
-                  className="pd-client-messages__email-frame pd-client-messages__email-frame--preview"
+                  className="block min-h-[12rem] w-full border-0 bg-white"
                   sandbox=""
                   srcDoc={brandedPreviewHtml}
                 />
               </div>
             ) : null}
             {attachment ? (
-              <div className="pd-client-messages__attach-preview">
+              <div className="flex items-center gap-2">
                 <img
                   src={attachment.dataUrl}
                   alt={attachment.name}
-                  className="pd-client-messages__attach-thumb"
+                  className="size-10 rounded object-cover"
                 />
-                <span className="pd-client-messages__attach-name">
+                <span className="min-w-0 flex-1 truncate text-sm">
                   {attachment.name}
                 </span>
                 <button
                   type="button"
-                  className="pd-client-messages__attach-remove"
+                  className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
                   onClick={clearAttachment}
                   aria-label="Remove attached image"
                   title="Remove image"
@@ -393,20 +396,20 @@ export function ClientMessagesPanel({
                 </button>
               </div>
             ) : null}
-            <div className="pd-client-messages__composer-actions">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 ref={fileInputRef}
                 id={fileInputId}
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/*"
-                className="pd-client-messages__file"
+                className="sr-only"
                 onChange={handleImage}
                 disabled={!address || isBusy}
               />
               <Button
                 type="button"
-                size="sm"
-                variant="secondary"
+                variant="outline"
+                className="h-9 rounded-lg"
                 disabled={!address || isBusy}
                 onClick={() => fileInputRef.current?.click()}
                 aria-label="Attach image"
@@ -417,6 +420,7 @@ export function ClientMessagesPanel({
               </Button>
               <Button
                 type="button"
+                className="h-9 rounded-lg"
                 disabled={!canCompose}
                 onClick={openEmailConfirm}
               >
@@ -426,11 +430,11 @@ export function ClientMessagesPanel({
           </form>
         ) : (
           <form
-            className="pd-client-messages__composer pd-client-messages__composer--sms"
+            className="flex flex-col gap-3 border-t border-border p-3.5"
             onSubmit={(event) => event.preventDefault()}
             noValidate
           >
-            <div className="pd-client-messages__template-bar">
+            <div className="flex flex-wrap items-center gap-2">
               <SmsTemplatePicker
                 client={client}
                 channel="sms"
@@ -442,9 +446,9 @@ export function ClientMessagesPanel({
                 }}
               />
             </div>
-            <div className="pd-client-messages__sms-row">
+            <div className="flex flex-wrap items-center gap-2">
               <Input
-                className="pd-client-messages__input"
+                className="min-w-[12rem] flex-1"
                 value={body}
                 onChange={(event) => {
                   setBody(event.target.value)
@@ -463,10 +467,10 @@ export function ClientMessagesPanel({
                 aria-label="Message"
                 disabled={!address || isSendingSms}
                 autoComplete="off"
-                error={error}
               />
               <Button
                 type="button"
+                className="h-9 rounded-lg"
                 disabled={!canCompose}
                 onClick={openSmsConfirm}
               >

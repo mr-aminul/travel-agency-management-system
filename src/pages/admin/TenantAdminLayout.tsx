@@ -3,6 +3,7 @@ import {
   NavLink,
   Navigate,
   Outlet,
+  useLocation,
   useNavigate,
   useParams,
 } from 'react-router-dom'
@@ -34,16 +35,27 @@ import { adminPatchBilling } from '@/lib/billing/billingApi'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
 import { useTenantMembersByTenantId } from '@/lib/tenantMembersStore'
 import { setTenantStatus, useTenantById } from '@/lib/tenantsStore'
-import { cx } from '@/lib/cx'
 import type { TenantStatus } from '@/types/tenant'
 import '@/styles/layout-admin.css'
 import '@/styles/layout-clients.css'
 import { AdminTenantBillingPanel } from '@/components/admin/AdminTenantBillingPanel'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/shadcn/avatar'
+import { Button } from '@/components/shadcn/button'
+import { SegmentedNav } from '@/components/shadcn/segmented-nav'
 import {
-  Avatar,
-  Button,
   Select,
-} from '@/components/ui'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+}
 
 const STATUS_OPTIONS: { value: TenantStatus; label: string }[] = [
   { value: 'trial', label: 'Trial' },
@@ -51,11 +63,7 @@ const STATUS_OPTIONS: { value: TenantStatus; label: string }[] = [
   { value: 'suspended', label: 'Suspended' },
 ]
 
-function tenantStatusToneClass(status: TenantStatus): string {
-  if (status === 'active') return 'pd-select--tone-completed'
-  if (status === 'trial') return 'pd-select--tone-pending'
-  return 'pd-select--tone-danger'
-}
+const statusTriggerClass = 'h-8 w-[7.5rem] rounded-lg'
 
 const SECTIONS = [
   { to: 'all', label: 'All', icon: LayoutGrid },
@@ -65,6 +73,35 @@ const SECTIONS = [
   { to: 'messaging', label: 'SMS / Email', icon: MessageSquareText },
   { to: 'activity', label: 'Activity', icon: ScrollText },
 ] as const
+
+function AgencySectionNav({ tenantId }: { tenantId: string }) {
+  const { pathname } = useLocation()
+  const active =
+    SECTIONS.find((section) =>
+      pathname.includes(`/agencies/${tenantId}/${section.to}`),
+    )?.to ?? 'all'
+
+  return (
+    <SegmentedNav
+      aria-label="Agency sections"
+      value={active}
+      items={SECTIONS.map((section) => {
+        const Icon = section.icon
+        return {
+          id: section.to,
+          to: adminAgencyPath(tenantId, section.to),
+          end: section.to === 'all',
+          label: (
+            <>
+              <Icon size={15} strokeWidth={2.25} aria-hidden />
+              {section.label}
+            </>
+          ),
+        }
+      })}
+    />
+  )
+}
 
 function latestActivity(tenantId: string): string | undefined {
   const caseStamp = latestCaseActivityForTenant(tenantId)
@@ -147,12 +184,13 @@ export default function TenantAdminLayout() {
       <div className="pd-client-detail__layout">
         <aside className="pd-client-detail__card" aria-label="Agency">
           <div className="pd-client-detail__card-identity">
-            <Avatar
-              name={tenant.name}
-              size="xl"
-              kind="business"
-              src={readAgencyProfile(tenant.id).profilePicture}
-            />
+            <Avatar size="lg" className="size-16">
+              <AvatarImage
+                src={readAgencyProfile(tenant.id).profilePicture ?? undefined}
+                alt=""
+              />
+              <AvatarFallback>{initials(tenant.name)}</AvatarFallback>
+            </Avatar>
             <div className="pd-client-detail__title-row">
               <h1 className="pd-client-detail__name">{tenant.name}</h1>
             </div>
@@ -165,28 +203,38 @@ export default function TenantAdminLayout() {
               disabled={supportBusy || !owner}
             >
               <ExternalLink size={14} strokeWidth={2.25} aria-hidden />
-              {supportBusy ? 'Opening…' : 'Open agency'}
+              {supportBusy ? 'Opening…' : 'Open Agency'}
             </Button>
             <Select
-              aria-label="Status"
-              size="sm"
-              className={tenantStatusToneClass(tenant.status)}
               value={tenant.status}
-              options={STATUS_OPTIONS}
-              onChange={(event) => {
-                const next = event.target.value as TenantStatus
-                setTenantStatus(tenant.id, next)
+              onValueChange={(next) => {
+                const status = next as TenantStatus
+                setTenantStatus(tenant.id, status)
                 if (authApiConfigured()) {
                   void adminPatchBilling(tenant.id, {
-                    billingStatus: next,
+                    billingStatus: status,
                   }).catch(() => {
                     /* local status already updated */
                   })
                 }
               }}
-            />
+            >
+              <SelectTrigger
+                aria-label="Status"
+                className={statusTriggerClass}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {supportError ? (
-              <p className="pd-field__error" role="alert">
+              <p className="m-0 text-sm text-destructive" role="alert">
                 {supportError}
               </p>
             ) : null}
@@ -237,27 +285,8 @@ export default function TenantAdminLayout() {
           </p>
         </aside>
 
-        <div className="pd-client-detail__main">
-          <nav
-            className="pd-tabs__list pd-admin__detail-tabs"
-            aria-label="Agency sections"
-          >
-            {SECTIONS.map((section) => {
-              const Icon = section.icon
-              return (
-                <NavLink
-                  key={section.to}
-                  to={adminAgencyPath(tenant.id, section.to)}
-                  className={({ isActive }) =>
-                    cx('pd-tabs__tab', isActive && 'is-selected')
-                  }
-                >
-                  <Icon size={15} strokeWidth={2.25} aria-hidden />
-                  {section.label}
-                </NavLink>
-              )
-            })}
-          </nav>
+        <div className="pd-client-detail__main flex min-w-0 flex-col gap-4">
+          <AgencySectionNav tenantId={tenant.id} />
           <Outlet />
         </div>
       </div>

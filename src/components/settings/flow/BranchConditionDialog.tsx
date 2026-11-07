@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Select, SideDrawer } from '@/components/ui'
+import { floatingSheetClass } from '@/components/clients/shadcnChrome'
+import { Select } from '@/components/clients/clientShadcnFields'
+import { Button } from '@/components/shadcn/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
 import {
   fieldToken,
   listSelectFields,
@@ -68,24 +77,79 @@ export function BranchConditionDialog({
   }))
 
   const canConfirm = Boolean(pending && selectedField)
+  const title =
+    fromStep && toStep
+      ? `${fromStep.label || 'Untitled'} → ${toStep.label || 'Untitled'}`
+      : 'Branch Condition'
 
   return (
-    <SideDrawer
+    <Sheet
       open={open && pending != null}
-      onClose={onClose}
-      title={
-        fromStep && toStep
-          ? `${fromStep.label || 'Untitled'} → ${toStep.label || 'Untitled'}`
-          : 'Branch condition'
-      }
-      className="pd-service-flow-branch-drawer"
-      footer={
-        <div className="pd-service-flow-branch-dialog__actions">
-          <Button type="button" variant="secondary" onClick={onClose}>
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+    >
+      <SheetContent className={floatingSheetClass}>
+        <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+          <SheetTitle className="text-base font-semibold">{title}</SheetTitle>
+        </SheetHeader>
+        <div className="flex flex-col gap-4 p-5">
+          {selectFields.length === 0 ? (
+            <p className="m-0 text-sm text-muted-foreground">
+              No dropdown fields yet. Open a document on the canvas, add a field,
+              set its type to Dropdown, and list choices (one per line). Then connect
+              the steps again.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <Select
+                label="When Field"
+                value={
+                  selectFields.some(
+                    (field) =>
+                      fieldToken(field.documentId, field.fieldKey) === fieldValue,
+                  )
+                    ? fieldValue
+                    : fieldToken(
+                        selectedField?.documentId ?? '',
+                        selectedField?.fieldKey ?? '',
+                      )
+                }
+                options={selectFields.map((field) => ({
+                  value: fieldToken(field.documentId, field.fieldKey),
+                  label: `${field.documentName} · ${field.fieldLabel}`,
+                }))}
+                onChange={(event) => {
+                  const next = parseFieldToken(event.target.value)
+                  const match = selectFields.find(
+                    (field) =>
+                      field.documentId === next.documentId &&
+                      field.fieldKey === next.fieldKey,
+                  )
+                  setFieldValue(event.target.value)
+                  setEquals(match?.options[0] ?? '')
+                }}
+              />
+              <Select
+                label="Equals"
+                value={
+                  valueOptions.some((option) => option.value === equals)
+                    ? equals
+                    : (valueOptions[0]?.value ?? '')
+                }
+                options={valueOptions}
+                onChange={(event) => setEquals(event.target.value)}
+              />
+            </div>
+          )}
+        </div>
+        <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" className="h-9 rounded-lg" onClick={onClose}>
             Cancel
           </Button>
           <Button
             type="button"
+            className="h-9 rounded-lg"
             disabled={!canConfirm}
             onClick={() => {
               if (!pending || !selectedField) return
@@ -101,59 +165,10 @@ export function BranchConditionDialog({
               })
             }}
           >
-            Add branch
+            Add Branch
           </Button>
-        </div>
-      }
-    >
-      {selectFields.length === 0 ? (
-        <p className="pd-service-flow-branch-dialog__empty">
-          No dropdown fields yet. Open a document on the canvas, add a field,
-          set its type to Dropdown, and list choices (one per line). Then connect
-          the steps again.
-        </p>
-      ) : (
-        <div className="pd-service-flow-branch-dialog__fields">
-          <Select
-            label="When field"
-            value={
-              selectFields.some(
-                (field) =>
-                  fieldToken(field.documentId, field.fieldKey) === fieldValue,
-              )
-                ? fieldValue
-                : fieldToken(
-                    selectedField?.documentId ?? '',
-                    selectedField?.fieldKey ?? '',
-                  )
-            }
-            options={selectFields.map((field) => ({
-              value: fieldToken(field.documentId, field.fieldKey),
-              label: `${field.documentName} · ${field.fieldLabel}`,
-            }))}
-            onChange={(event) => {
-              const next = parseFieldToken(event.target.value)
-              const match = selectFields.find(
-                (field) =>
-                  field.documentId === next.documentId &&
-                  field.fieldKey === next.fieldKey,
-              )
-              setFieldValue(event.target.value)
-              setEquals(match?.options[0] ?? '')
-            }}
-          />
-          <Select
-            label="Equals"
-            value={
-              valueOptions.some((option) => option.value === equals)
-                ? equals
-                : (valueOptions[0]?.value ?? '')
-            }
-            options={valueOptions}
-            onChange={(event) => setEquals(event.target.value)}
-          />
-        </div>
-      )}
-    </SideDrawer>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }

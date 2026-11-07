@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { Button, Input, Select, Textarea } from '@/components/ui'
+import { whiteControlClass } from '@/components/clients/shadcnChrome'
+import { Button } from '@/components/shadcn/button'
+import { Input, Select, Textarea } from '@/components/clients/clientShadcnFields'
 import {
   validateOptionalText,
   validateRequiredText,
@@ -81,6 +83,7 @@ export function DocumentTemplateForm({
   const [headerRows, setHeaderRows] = useState<TemplateColumn[][]>(
     cloneColumns(initial?.headerRows?.length ? initial.headerRows : embassyHeaderRows()),
   )
+  const [columnStarter, setColumnStarter] = useState('blank')
   const { markAllTouched, showError, blur } = useTouchedFields<
     'name' | 'title' | 'licenseNo' | 'country' | 'declaration' | 'letterIntro'
   >()
@@ -258,10 +261,13 @@ export function DocumentTemplateForm({
       ) : (
         <>
           <Select
-            label="Column starter"
-            defaultValue="blank"
+            label="Column Starter"
+            value={columnStarter}
             options={STARTER_OPTIONS}
-            onChange={(event) => applyStarter(event.target.value)}
+            onChange={(event) => {
+              setColumnStarter(event.target.value)
+              applyStarter(event.target.value)
+            }}
           />
           <div className="pd-ops__section">
             <p className="pd-ops__section-title">Columns</p>
@@ -295,6 +301,7 @@ export function DocumentTemplateForm({
                   type="button"
                   variant="ghost"
                   size="sm"
+                  className="h-9 rounded-lg"
                   aria-label={`Remove ${col.label || 'column'}`}
                   onClick={() => removeColumn(index)}
                 >
@@ -302,8 +309,14 @@ export function DocumentTemplateForm({
                 </Button>
               </div>
             ))}
-            <Button type="button" variant="secondary" size="sm" onClick={addColumn}>
-              <Plus size={14} /> Add column
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className={whiteControlClass}
+              onClick={addColumn}
+            >
+              <Plus size={14} /> Add Column
             </Button>
           </div>
           <Textarea
@@ -317,10 +330,17 @@ export function DocumentTemplateForm({
       )}
 
       <div className="pd-ops__row-actions">
-        <Button type="button" variant="secondary" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="outline"
+          className={whiteControlClass}
+          onClick={onCancel}
+        >
           Cancel
         </Button>
-        <Button type="submit">{submitLabel}</Button>
+        <Button type="submit" className="h-9 rounded-lg">
+          {submitLabel}
+        </Button>
       </div>
     </form>
   )

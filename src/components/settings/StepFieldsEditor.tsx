@@ -1,7 +1,18 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { Button, Checkbox, Input, Select, Textarea } from '@/components/ui'
 import { keyFromLabel } from '@/components/settings/DocumentFieldsEditor'
+import { Button } from '@/components/shadcn/button'
+import { Checkbox } from '@/components/shadcn/checkbox'
+import { Field, FieldLabel } from '@/components/shadcn/field'
+import { Input } from '@/components/shadcn/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
+import { Textarea } from '@/components/shadcn/textarea'
 import type {
   ServiceStepConfig,
   ServiceStepDecision,
@@ -12,7 +23,7 @@ const TYPE_OPTIONS: { value: ServiceStepField['type']; label: string }[] = [
   { value: 'text', label: 'Text' },
   { value: 'date', label: 'Date' },
   { value: 'number', label: 'Number' },
-  { value: 'textarea', label: 'Long text' },
+  { value: 'textarea', label: 'Long Text' },
   { value: 'select', label: 'Dropdown' },
 ]
 
@@ -179,6 +190,7 @@ export function StepFieldsEditor({
 }) {
   // Remount via parent `key` when country/step changes — keeps typing stable.
   const [rows, setRows] = useState(() => rowsFromStep(step))
+  const baseId = useId()
 
   const commit = (nextRows: FieldRow[]) => {
     setRows(nextRows)
@@ -244,7 +256,7 @@ export function StepFieldsEditor({
   }
 
   const nextStepOptions = [
-    { value: '', label: 'Default next step' },
+    { value: '', label: 'Default Next Step' },
     ...steps
       .filter((item) => item.id !== step.id)
       .map((item) => ({
@@ -259,7 +271,7 @@ export function StepFieldsEditor({
         <span className="pd-settings-template__panel-label">Fields</span>
         <Button type="button" variant="ghost" size="sm" onClick={addField}>
           <Plus size={14} aria-hidden />
-          Add field
+          Add Field
         </Button>
       </div>
       <p className="pd-service-flow__inspector-copy">
@@ -273,138 +285,177 @@ export function StepFieldsEditor({
         </p>
       ) : (
         <ul className="pd-settings-template__step-fields">
-          {rows.map((row) => (
-            <li key={row.rowId} className="pd-settings-template__step-field">
-              <div className="pd-settings-template__step-field-head">
-                <Input
-                  aria-label="Field label"
-                  value={row.label}
-                  placeholder="Type a label…"
-                  onChange={(event) =>
-                    updateRow(row.rowId, { label: event.target.value })
-                  }
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  aria-label={`Remove ${row.label || 'field'}`}
-                  onClick={() => removeRow(row.rowId)}
-                >
-                  <Trash2 size={14} />
-                </Button>
-              </div>
-              <div className="pd-settings-template__step-field-meta">
-                <Select
-                  aria-label="Field type"
-                  size="sm"
-                  value={row.type}
-                  options={TYPE_OPTIONS}
-                  onChange={(event) =>
-                    updateRow(row.rowId, {
-                      type: event.target.value as ServiceStepField['type'],
-                    })
-                  }
-                />
-                <Checkbox
-                  label="Required to complete"
-                  checked={row.required === true || row.type === 'select'}
-                  disabled={row.type === 'select' && hasRouting(row.options)}
-                  onChange={(event) =>
-                    updateRow(row.rowId, {
-                      required: event.target.checked || undefined,
-                    })
-                  }
-                />
-              </div>
-
-              {row.type === 'select' ? (
-                <div className="pd-settings-template__step-field-routes">
-                  <Textarea
-                    aria-label="Dropdown choices"
-                    rows={3}
-                    value={optionsText(row.options)}
-                    placeholder={'One choice per line\nYes\nNo'}
-                    onChange={(event) => {
-                      const values = event.target.value
-                        .split('\n')
-                        .map((line) => line.trimEnd())
-                      const previous = new Map(
-                        row.options.map((option) => [
-                          option.value.toLowerCase(),
-                          option,
-                        ]),
-                      )
-                      updateRow(row.rowId, {
-                        options: values.map((value) => {
-                          const trimmed = value.trim()
-                          const prior = previous.get(trimmed.toLowerCase())
-                          return {
-                            value,
-                            ...(prior?.nextStepId
-                              ? { nextStepId: prior.nextStepId }
-                              : {}),
-                            ...(prior?.skipDocuments
-                              ? { skipDocuments: true }
-                              : {}),
-                          }
-                        }),
-                      })
-                    }}
+          {rows.map((row) => {
+            const requiredId = `${baseId}-${row.rowId}-required`
+            return (
+              <li key={row.rowId} className="pd-settings-template__step-field">
+                <div className="pd-settings-template__step-field-head">
+                  <Input
+                    aria-label="Field label"
+                    value={row.label}
+                    placeholder="Type a label…"
+                    onChange={(event) =>
+                      updateRow(row.rowId, { label: event.target.value })
+                    }
                   />
-                  <p className="pd-service-flow__inspector-copy">
-                    If / require — wire each choice below.
-                  </p>
-                  <ul className="pd-settings-template__decision-options">
-                    {row.options
-                      .filter((option) => option.value.trim())
-                      .map((option) => (
-                        <li key={`${row.rowId}-${option.value}`}>
-                          <div className="pd-settings-template__decision-option-row">
-                            <span className="pd-settings-template__decision-option-label">
-                              {option.value.trim()}
-                            </span>
-                            <Select
-                              aria-label={`${row.label || 'Field'} ${option.value.trim()} next step`}
-                              size="sm"
-                              value={option.nextStepId ?? ''}
-                              options={nextStepOptions}
-                              onChange={(event) => {
-                                const nextStepId = event.target.value.trim()
-                                updateOption(row.rowId, option.value, {
-                                  nextStepId: nextStepId || undefined,
-                                })
-                              }}
-                            />
-                          </div>
-                          <Checkbox
-                            label="Skip documents for this choice"
-                            checked={option.skipDocuments === true}
-                            onChange={(event) =>
-                              updateOption(row.rowId, option.value, {
-                                skipDocuments:
-                                  event.target.checked || undefined,
-                              })
-                            }
-                          />
-                        </li>
-                      ))}
-                  </ul>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Remove ${row.label || 'field'}`}
+                    onClick={() => removeRow(row.rowId)}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
                 </div>
-              ) : (
-                <Input
-                  aria-label="Placeholder"
-                  value={row.placeholder ?? ''}
-                  placeholder="Placeholder (optional)"
-                  onChange={(event) =>
-                    updateRow(row.rowId, {
-                      placeholder: event.target.value || undefined,
-                    })
-                  }
-                />
-              )}
-            </li>
-          ))}
+                <div className="pd-settings-template__step-field-meta">
+                  <Select
+                    value={row.type}
+                    onValueChange={(type) =>
+                      updateRow(row.rowId, {
+                        type: type as ServiceStepField['type'],
+                      })
+                    }
+                  >
+                    <SelectTrigger aria-label="Field type" className="h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Field orientation="horizontal">
+                    <Checkbox
+                      id={requiredId}
+                      checked={row.required === true || row.type === 'select'}
+                      disabled={row.type === 'select' && hasRouting(row.options)}
+                      onCheckedChange={(checked) =>
+                        updateRow(row.rowId, {
+                          required: checked === true || undefined,
+                        })
+                      }
+                    />
+                    <FieldLabel htmlFor={requiredId}>
+                      Required To Complete
+                    </FieldLabel>
+                  </Field>
+                </div>
+
+                {row.type === 'select' ? (
+                  <div className="pd-settings-template__step-field-routes">
+                    <Textarea
+                      aria-label="Dropdown choices"
+                      rows={3}
+                      value={optionsText(row.options)}
+                      placeholder={'One choice per line\nYes\nNo'}
+                      onChange={(event) => {
+                        const values = event.target.value
+                          .split('\n')
+                          .map((line) => line.trimEnd())
+                        const previous = new Map(
+                          row.options.map((option) => [
+                            option.value.toLowerCase(),
+                            option,
+                          ]),
+                        )
+                        updateRow(row.rowId, {
+                          options: values.map((value) => {
+                            const trimmed = value.trim()
+                            const prior = previous.get(trimmed.toLowerCase())
+                            return {
+                              value,
+                              ...(prior?.nextStepId
+                                ? { nextStepId: prior.nextStepId }
+                                : {}),
+                              ...(prior?.skipDocuments
+                                ? { skipDocuments: true }
+                                : {}),
+                            }
+                          }),
+                        })
+                      }}
+                    />
+                    <p className="pd-service-flow__inspector-copy">
+                      If / require — wire each choice below.
+                    </p>
+                    <ul className="pd-settings-template__decision-options">
+                      {row.options
+                        .filter((option) => option.value.trim())
+                        .map((option) => {
+                          const skipId = `${baseId}-${row.rowId}-${option.value}-skip`
+                          return (
+                            <li key={`${row.rowId}-${option.value}`}>
+                              <div className="pd-settings-template__decision-option-row">
+                                <span className="pd-settings-template__decision-option-label">
+                                  {option.value.trim()}
+                                </span>
+                                <Select
+                                  value={option.nextStepId || '__default__'}
+                                  onValueChange={(next) => {
+                                    const nextStepId =
+                                      next === '__default__' ? '' : next.trim()
+                                    updateOption(row.rowId, option.value, {
+                                      nextStepId: nextStepId || undefined,
+                                    })
+                                  }}
+                                >
+                                  <SelectTrigger
+                                    aria-label={`${row.label || 'Field'} ${option.value.trim()} next step`}
+                                    className="h-8"
+                                  >
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {nextStepOptions.map((item) => (
+                                      <SelectItem
+                                        key={item.value || '__default__'}
+                                        value={item.value || '__default__'}
+                                      >
+                                        {item.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <Field orientation="horizontal">
+                                <Checkbox
+                                  id={skipId}
+                                  checked={option.skipDocuments === true}
+                                  onCheckedChange={(checked) =>
+                                    updateOption(row.rowId, option.value, {
+                                      skipDocuments:
+                                        checked === true || undefined,
+                                    })
+                                  }
+                                />
+                                <FieldLabel htmlFor={skipId}>
+                                  Skip Documents For This Choice
+                                </FieldLabel>
+                              </Field>
+                            </li>
+                          )
+                        })}
+                    </ul>
+                  </div>
+                ) : (
+                  <Input
+                    aria-label="Placeholder"
+                    value={row.placeholder ?? ''}
+                    placeholder="Placeholder (optional)"
+                    onChange={(event) =>
+                      updateRow(row.rowId, {
+                        placeholder: event.target.value || undefined,
+                      })
+                    }
+                  />
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
     </section>

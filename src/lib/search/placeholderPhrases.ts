@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import type { AvatarKind } from '@/components/ui'
+import type { AvatarKind } from '@/components/ProfilePhotoField'
 import type { SearchGroup, SearchKind } from './types'
 
 /** Idle groups whose labels rotate in the empty search placeholder. */

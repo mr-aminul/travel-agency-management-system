@@ -24,19 +24,34 @@ import {
 } from '@/lib/billing/planCatalog'
 import { cx } from '@/lib/cx'
 import { MODULE_GROUPS } from '@/lib/modules'
+import { floatingSheetClass, floatingSheetWideClass } from '@/components/clients/shadcnChrome'
+import { Input, Select, Textarea } from '@/components/clients/clientShadcnFields'
+import { LabeledSwitch } from '@/components/clients/LabeledSwitch'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { Checkbox } from '@/components/shadcn/checkbox'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import { Field, FieldLabel } from '@/components/shadcn/field'
 import {
-  Badge,
-  Button,
-  Checkbox,
-  ConfirmDialog,
-  Input,
-  Select,
-  SideDrawer,
-  Switch,
-  Textarea,
-} from '@/components/ui'
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
 import type { PlanTemplate } from '@/types/billing'
 import type { ModuleId } from '@/types/tenant'
+import {
+  adminFormGridClass,
+  adminModuleGroupClass,
+  adminModuleGroupTitleClass,
+  adminModuleListGridClass,
+  adminModulesClass,
+  adminPanelClass,
+  adminPanelTitleClass,
+  adminPanelToolbarClass,
+  adminQuietClass,
+} from '@/components/admin/adminChrome'
 import '@/styles/layout-billing.css'
 
 const MB = 1024 ** 2
@@ -420,9 +435,9 @@ export function AdminPlansPanel() {
   const anyBusy = busyId != null || saving
 
   return (
-    <section className="pd-admin__panel" aria-label="Subscription plans">
-      <div className="pd-admin__panel-toolbar">
-        <h2 className="pd-admin__panel-title">Subscription plans</h2>
+    <section className={adminPanelClass} aria-label="Subscription plans">
+      <div className={adminPanelToolbarClass}>
+        <h2 className={adminPanelTitleClass}>Subscription plans</h2>
         <Button size="sm" disabled={!apiReady || anyBusy} onClick={openCreate}>
           <Plus size={16} strokeWidth={2.2} aria-hidden />
           New plan
@@ -430,7 +445,7 @@ export function AdminPlansPanel() {
       </div>
 
       {!apiReady ? (
-        <p className="pd-admin__quiet">Connect the platform API to manage plans.</p>
+        <p className={adminQuietClass}>Connect the platform API to manage plans.</p>
       ) : null}
 
       {error ? (
@@ -448,7 +463,7 @@ export function AdminPlansPanel() {
       ) : null}
 
       {sortedPlans.length === 0 ? (
-        <p className="pd-admin__quiet">No plans yet.</p>
+        <p className={adminQuietClass}>No plans yet.</p>
       ) : (
         <ul className="pd-billing-admin__catalog">
           {sortedPlans.map((plan, index) => {
@@ -485,7 +500,7 @@ export function AdminPlansPanel() {
                         {formatBdt(plan.priceBdt)} <span>/ {intervalLabel}</span>
                       </p>
                     </div>
-                    <Badge variant={live ? 'completed' : 'neutral'}>
+                    <Badge variant={live ? 'default' : 'secondary'}>
                       {live ? 'Live' : 'Hidden'}
                     </Badge>
                   </div>
@@ -509,10 +524,10 @@ export function AdminPlansPanel() {
                       {plan.smsLimit.toLocaleString('en-BD')} SMS
                     </span>
                     <div className="pd-billing-admin__badges">
-                      {badge ? <Badge variant="completed">{badge}</Badge> : null}
-                      {isTest ? <Badge variant="pending">Test</Badge> : null}
+                      {badge ? <Badge variant="default">{badge}</Badge> : null}
+                      {isTest ? <Badge variant="outline">Test</Badge> : null}
                       {plan.isPublic === false ? (
-                        <Badge variant="neutral">Private</Badge>
+                        <Badge variant="secondary">Private</Badge>
                       ) : null}
                       <span className="pd-billing-admin__plan-id">{plan.id}</span>
                     </div>
@@ -583,28 +598,21 @@ export function AdminPlansPanel() {
         </ul>
       )}
 
-      <SideDrawer
+      <Sheet
         open={editorOpen}
-        onClose={closeEditor}
-        title={editorMode === 'create' ? 'New plan' : 'Edit plan'}
-        footer={
-          <>
-            <Button variant="secondary" onClick={closeEditor} disabled={saving}>
-              Cancel
-            </Button>
-            <Button type="submit" form={formId} disabled={saving || !apiReady}>
-              {saving
-                ? 'Saving…'
-                : editorMode === 'create'
-                  ? 'Create plan'
-                  : 'Save plan'}
-            </Button>
-          </>
-        }
+        onOpenChange={(next) => {
+          if (!next) closeEditor()
+        }}
       >
-        <form
+        <SheetContent className={`${floatingSheetClass} ${floatingSheetWideClass}`}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">
+              {editorMode === 'create' ? 'New Plan' : 'Edit Plan'}
+            </SheetTitle>
+          </SheetHeader>
+          <form
           id={formId}
-          className="pd-admin__form-stack"
+          className="flex flex-col gap-4 overflow-y-auto p-5"
           onSubmit={(event) => {
             event.preventDefault()
             void savePlan()
@@ -637,7 +645,7 @@ export function AdminPlansPanel() {
             onChange={(e) => patchDraft('description', e.target.value)}
           />
 
-          <div className="pd-admin__form-grid">
+          <div className={adminFormGridClass}>
             <Input
               label="Badge"
               value={draft.badge}
@@ -660,7 +668,7 @@ export function AdminPlansPanel() {
             placeholder="One per line"
           />
 
-          <div className="pd-admin__form-grid">
+          <div className={adminFormGridClass}>
             <Input
               label="Amount (BDT)"
               type="number"
@@ -686,7 +694,7 @@ export function AdminPlansPanel() {
             />
           </div>
 
-          <div className="pd-admin__form-grid">
+          <div className={adminFormGridClass}>
             <Input
               label="Users"
               type="number"
@@ -747,46 +755,48 @@ export function AdminPlansPanel() {
           </div>
 
           <div className="pd-billing-admin__switches">
-            <Switch
+            <LabeledSwitch
               label="Live in catalog"
               checked={draft.isActive}
               onChange={(e) => patchDraft('isActive', e.target.checked)}
             />
-            <Switch
+            <LabeledSwitch
               label="Public on agency checkout"
               checked={draft.isPublic}
               onChange={(e) => patchDraft('isPublic', e.target.checked)}
             />
-            <Switch
+            <LabeledSwitch
               label="Highlighted"
               checked={draft.isHighlighted}
               onChange={(e) => patchDraft('isHighlighted', e.target.checked)}
             />
-            <Switch
+            <LabeledSwitch
               label="Test plan"
               checked={draft.isTest}
               onChange={(e) => patchDraft('isTest', e.target.checked)}
             />
           </div>
 
-          <div className="pd-admin__modules" aria-label="Included modules">
+          <div className={adminModulesClass} aria-label="Included modules">
             {MODULE_GROUPS.map((group) => (
               <section
                 key={group.id}
-                className="pd-admin__module-group"
+                className={adminModuleGroupClass}
                 aria-label={group.label}
               >
-                <h3 className="pd-admin__module-group-title">{group.label}</h3>
-                <ul className="pd-admin__module-list pd-admin__module-list--grid">
+                <h3 className={adminModuleGroupTitleClass}>{group.label}</h3>
+                <ul className={adminModuleListGridClass}>
                   {group.modules.map((module) => (
                     <li key={module.id} className="pd-billing-admin__module-item">
-                      <Checkbox
-                        label={module.label}
-                        checked={draft.modules.includes(module.id)}
-                        onChange={(e) =>
-                          toggleModule(module.id, e.target.checked)
-                        }
-                      />
+                      <Field orientation="horizontal">
+                        <Checkbox
+                          checked={draft.modules.includes(module.id)}
+                          onCheckedChange={(checked) =>
+                            toggleModule(module.id, checked === true)
+                          }
+                        />
+                        <FieldLabel>{module.label}</FieldLabel>
+                      </Field>
                     </li>
                   ))}
                 </ul>
@@ -794,7 +804,20 @@ export function AdminPlansPanel() {
             ))}
           </div>
         </form>
-      </SideDrawer>
+          <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
+            <Button variant="outline" className="h-9 rounded-lg" onClick={closeEditor} disabled={saving}>
+              Cancel
+            </Button>
+            <Button type="submit" form={formId} className="h-9 rounded-lg" disabled={saving || !apiReady}>
+              {saving
+                ? 'Saving…'
+                : editorMode === 'create'
+                  ? 'Create Plan'
+                  : 'Save Plan'}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={pendingDelete != null}

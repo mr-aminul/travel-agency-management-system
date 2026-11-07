@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Check, ChevronDown, Circle, IdCard, Plus } from 'lucide-react'
 import { DocumentWorkspace } from '@/components/cases/DocumentWorkspace'
-import { cx } from '@/lib/cx'
-import { Button, EmptyState } from '@/components/ui'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/shadcn/button'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/shadcn/empty'
 import {
   buildIdentityCaseDocument,
   documentHasFile,
@@ -15,9 +16,15 @@ import { iconForService } from '@/lib/serviceIcons'
 import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { ComplianceDocument } from '@/lib/caseDocuments'
-import '@/styles/layout-cases.css'
-
 const IDENTITY_GROUP_ID = 'identity'
+
+const markToneClass = (tone: 'done' | 'need' | 'idle') =>
+  cn(
+    'inline-flex size-4 shrink-0 items-center justify-center rounded-full',
+    tone === 'done' && 'bg-emerald-500/15 text-emerald-700',
+    tone === 'need' && 'bg-destructive/15 text-destructive',
+    tone === 'idle' && 'bg-muted text-muted-foreground',
+  )
 
 type SelectedDoc = {
   groupId: string
@@ -130,18 +137,20 @@ export function ClientDocumentsPanel({
   return (
     <section
       id="client-documents"
-      className={cx(
-        'pd-service-workspace pd-service-workspace--docs pd-client-docs',
-        highlight && 'pd-focus-flash',
+      className={cn(
+        'grid min-h-[22rem] grid-cols-1 gap-3 md:grid-cols-[minmax(14rem,18rem)_minmax(0,1fr)]',
+        highlight && 'animate-pulse ring-2 ring-primary/40',
       )}
       aria-label={`${client.name} documents`}
     >
-      <aside className="pd-service-rail">
-        <div className="pd-service-rail__head">
-          <p className="pd-service-rail__title">Documents</p>
+      <aside className="flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-card p-3 shadow-sm">
+        <div className="flex items-center justify-between gap-2">
+          <p className="m-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Documents
+          </p>
           <Button
-            size="sm"
             variant="ghost"
+            className="h-9"
             onClick={onAddService}
             aria-label="Add service"
           >
@@ -149,39 +158,40 @@ export function ClientDocumentsPanel({
             Add
           </Button>
         </div>
-        <nav className="pd-doc-tree" aria-label="Document groups">
-          <div className="pd-doc-tree__group">
-            <div className="pd-service-rail__item pd-doc-tree__parent">
+        <nav className="flex flex-col gap-2" aria-label="Document groups">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1 rounded-lg">
               <button
                 type="button"
-                className="pd-doc-tree__parent-hit"
+                className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted"
                 onClick={() =>
                   selectIdentityDoc(
                     (identityDocs[0]?.id as IdentityKind) ?? 'passport',
                   )
                 }
               >
-                <span className="pd-service-rail__icon" aria-hidden>
+                <span
+                  className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
+                  aria-hidden
+                >
                   <IdCard size={14} strokeWidth={2.25} />
                 </span>
-                <span className="pd-service-rail__copy">
-                  <span className="pd-service-rail__name">Identity</span>
-                </span>
+                <span className="min-w-0 truncate font-medium">Identity</span>
               </button>
-              <span className="pd-doc-tree__count" aria-hidden>
+              <span className="text-xs text-muted-foreground tabular-nums" aria-hidden>
                 {identityDocs.length}
               </span>
               <button
                 type="button"
-                className="pd-doc-tree__toggle"
+                className="inline-flex size-7 items-center justify-center rounded-md hover:bg-muted"
                 aria-expanded={identityOpen}
                 aria-label={identityOpen ? 'Collapse Identity' : 'Expand Identity'}
                 onClick={() => toggleGroup(IDENTITY_GROUP_ID)}
               >
                 <ChevronDown
-                  className={cx(
-                    'pd-doc-tree__chevron',
-                    identityOpen && 'is-open',
+                  className={cn(
+                    'transition-transform',
+                    identityOpen && 'rotate-180',
                   )}
                   size={14}
                   strokeWidth={2.25}
@@ -190,7 +200,11 @@ export function ClientDocumentsPanel({
               </button>
             </div>
             {identityOpen ? (
-              <div className="pd-doc-tree__docs" role="group" aria-label="Identity">
+              <div
+                className="ms-3 flex flex-col gap-0.5 border-l border-border ps-2"
+                role="group"
+                aria-label="Identity"
+              >
                 {identityDocs.map((doc) => {
                   const active =
                     selected.groupId === IDENTITY_GROUP_ID &&
@@ -200,25 +214,22 @@ export function ClientDocumentsPanel({
                     <button
                       key={doc.id}
                       type="button"
-                      className={cx(
-                        'pd-doc-tree__doc',
-                        active && 'is-selected',
-                        tone === 'need' && 'is-attention',
+                      className={cn(
+                        'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted',
+                        active && 'bg-muted font-medium',
+                        tone === 'need' && 'text-destructive',
                       )}
                       aria-current={active ? 'page' : undefined}
                       onClick={() => selectIdentityDoc(doc.id as IdentityKind)}
                     >
-                      <span
-                        className={cx('pd-doc-check__mark', `is-${tone}`)}
-                        aria-hidden
-                      >
+                      <span className={markToneClass(tone)} aria-hidden>
                         {tone === 'done' ? (
                           <Check size={12} strokeWidth={2.5} />
                         ) : (
                           <Circle size={8} strokeWidth={2.25} />
                         )}
                       </span>
-                      <span className="pd-doc-tree__doc-name">{doc.name}</span>
+                      <span className="min-w-0 truncate">{doc.name}</span>
                     </button>
                   )
                 })}
@@ -230,35 +241,40 @@ export function ClientDocumentsPanel({
             const open = isGroupOpen(group.caseId)
             const Icon = iconForService(group.service)
             return (
-              <div key={group.caseId} className="pd-doc-tree__group">
+              <div key={group.caseId} className="flex flex-col gap-1">
                 <div
-                  className={cx(
-                    'pd-service-rail__item pd-doc-tree__parent',
-                    highlight && group.caseId === focusCaseId && 'pd-focus-flash',
+                  className={cn(
+                    'flex items-center gap-1 rounded-lg',
+                    highlight &&
+                      group.caseId === focusCaseId &&
+                      'ring-2 ring-primary/40',
                   )}
                 >
                   <button
                     type="button"
-                    className="pd-doc-tree__parent-hit"
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted"
                     onClick={() => {
                       const first = group.papers[0]
                       if (first) selectServiceDoc(group.caseId, first.id)
                       else expandGroup(group.caseId)
                     }}
                   >
-                    <span className="pd-service-rail__icon" aria-hidden>
+                    <span
+                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
+                      aria-hidden
+                    >
                       <Icon size={14} strokeWidth={2.25} />
                     </span>
-                    <span className="pd-service-rail__copy">
-                      <span className="pd-service-rail__name">{group.service}</span>
+                    <span className="min-w-0 truncate font-medium">
+                      {group.service}
                     </span>
                   </button>
-                  <span className="pd-doc-tree__count" aria-hidden>
+                  <span className="text-xs text-muted-foreground tabular-nums" aria-hidden>
                     {group.papers.length}
                   </span>
                   <button
                     type="button"
-                    className="pd-doc-tree__toggle"
+                    className="inline-flex size-7 items-center justify-center rounded-md hover:bg-muted"
                     aria-expanded={open}
                     aria-label={
                       open ? `Collapse ${group.service}` : `Expand ${group.service}`
@@ -266,7 +282,10 @@ export function ClientDocumentsPanel({
                     onClick={() => toggleGroup(group.caseId)}
                   >
                     <ChevronDown
-                      className={cx('pd-doc-tree__chevron', open && 'is-open')}
+                      className={cn(
+                        'transition-transform',
+                        open && 'rotate-180',
+                      )}
                       size={14}
                       strokeWidth={2.25}
                       aria-hidden
@@ -275,7 +294,7 @@ export function ClientDocumentsPanel({
                 </div>
                 {open ? (
                   <div
-                    className="pd-doc-tree__docs"
+                    className="ms-3 flex flex-col gap-0.5 border-l border-border ps-2"
                     role="group"
                     aria-label={group.service}
                   >
@@ -292,29 +311,23 @@ export function ClientDocumentsPanel({
                         <button
                           key={doc.id}
                           type="button"
-                          className={cx(
-                            'pd-doc-tree__doc',
-                            doc.locked && 'is-later',
-                            active && 'is-selected',
-                            tone === 'need' && 'is-attention',
+                          className={cn(
+                            'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted',
+                            doc.locked && 'opacity-60',
+                            active && 'bg-muted font-medium',
+                            tone === 'need' && 'text-destructive',
                           )}
                           aria-current={active ? 'page' : undefined}
                           onClick={() => selectServiceDoc(group.caseId, doc.id)}
                         >
-                          <span
-                            className={cx(
-                              'pd-doc-check__mark',
-                              tone !== 'idle' && `is-${tone}`,
-                            )}
-                            aria-hidden
-                          >
+                          <span className={markToneClass(tone)} aria-hidden>
                             {tone === 'done' ? (
                               <Check size={12} strokeWidth={2.5} />
                             ) : (
                               <Circle size={8} strokeWidth={2.25} />
                             )}
                           </span>
-                          <span className="pd-doc-tree__doc-name">{doc.name}</span>
+                          <span className="min-w-0 truncate">{doc.name}</span>
                         </button>
                       )
                     })}
@@ -326,7 +339,7 @@ export function ClientDocumentsPanel({
         </nav>
       </aside>
 
-      <div className="pd-service-workspace__main">
+      <div className="min-w-0 rounded-xl border border-border bg-card p-3 shadow-sm">
         {selectedIdentity ? (
           <DocumentWorkspace
             key={`identity:${selectedIdentity.id}`}
@@ -345,10 +358,14 @@ export function ClientDocumentsPanel({
             hint={selectedPaper.collectionHint}
           />
         ) : (
-          <EmptyState
-            icon={IdCard}
-            title="Choose a document"
-          />
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <IdCard />
+              </EmptyMedia>
+              <EmptyTitle>Choose A Document</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </div>
     </section>

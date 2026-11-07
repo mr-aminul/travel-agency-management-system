@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { BillingSettingsSection } from '@/components/billing/BillingSettingsSection'
-import { Button } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
 import { useAuth } from '@/lib/auth'
 import { queryClient } from '@/lib/queryClient'
 import '@/styles/layout-billing.css'
@@ -69,8 +69,8 @@ export default function BillingPage() {
           <div>
             <h1 style={{ margin: 0, fontSize: '1.35rem' }}>Billing</h1>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => void handleSignOut()}>
-            Sign out
+          <Button variant="ghost" size="sm" className="h-9 rounded-lg" onClick={() => void handleSignOut()}>
+            Sign Out
           </Button>
         </div>
         {paymentBanner ? (

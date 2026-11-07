@@ -1,24 +1,37 @@
 import { useMemo, useState } from 'react'
-import { Download } from 'lucide-react'
-import { useCases } from '@/lib/casesStore'
-import { getClientById, useClients } from '@/lib/clientsStore'
-import { formatBdt } from '@/lib/dashboardMetrics'
-import { formatDisplayDate } from '@/lib/formatDate'
-import { formatPaymentAmount, usePayments } from '@/lib/paymentsStore'
-import { useSubAgents } from '@/lib/subAgentsStore'
+import { Download, FileBarChart } from 'lucide-react'
+import { Button } from '@/components/shadcn/button'
 import {
-  Button,
-  EmptyState,
-  Input,
-  PageHeader,
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/shadcn/empty'
+import { Input } from '@/components/clients/clientShadcnFields'
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui'
+} from '@/components/shadcn/table'
+import {
+  chromeHeadClass,
+  elevatedPageClass,
+  pureWhiteFieldClass,
+  pureWhiteOutlineClass,
+  tableShellClass,
+} from '@/components/clients/shadcnChrome'
+import { useCases } from '@/lib/casesStore'
+import { getClientById, useClients } from '@/lib/clientsStore'
+import { formatBdt } from '@/lib/dashboardMetrics'
+import { formatDisplayDate } from '@/lib/formatDate'
+import { formatPaymentAmount, usePayments } from '@/lib/paymentsStore'
+import { useSubAgents } from '@/lib/subAgentsStore'
+import { cn } from '@/lib/utils'
 import '@/styles/layout-ops.css'
+import '@/styles/layout-clients.css'
 
 function toDateInputValue(date: Date): string {
   return date.toISOString().slice(0, 10)
@@ -125,8 +138,14 @@ export default function ReportsPage() {
   }, [subAgents, clients, cases, payments, from, to])
 
   return (
-    <div className="pd-page pd-ops" aria-label="Reports">
-      <PageHeader title="Reports" />
+    <div
+      className={cn(elevatedPageClass, 'pd-page pd-page--elevated pd-ops')}
+      data-elevated-canvas
+      aria-label="Reports"
+    >
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="m-0 text-xl font-semibold tracking-tight">Reports</h1>
+      </header>
 
       <div className="pd-ops__toolbar">
         <Input
@@ -134,12 +153,14 @@ export default function ReportsPage() {
           type="date"
           value={from}
           onChange={(event) => setFrom(event.target.value)}
+          className={pureWhiteFieldClass}
         />
         <Input
           label="To"
           type="date"
           value={to}
           onChange={(event) => setTo(event.target.value)}
+          className={pureWhiteFieldClass}
         />
       </div>
 
@@ -150,7 +171,8 @@ export default function ReportsPage() {
           </h2>
           <Button
             size="sm"
-            variant="secondary"
+            variant="outline"
+            className={pureWhiteOutlineClass}
             onClick={() =>
               downloadCsv('collections.csv', [
                 ['Date', 'Client', 'Service', 'Method', 'Txn ID', 'Amount', 'Note'],
@@ -176,43 +198,53 @@ export default function ReportsPage() {
           </Button>
         </div>
         {collections.length === 0 ? (
-          <EmptyState title="No collections in this range" />
+          <Empty className="bg-card shadow-sm">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileBarChart aria-hidden />
+              </EmptyMedia>
+              <EmptyTitle>No Collections In This Range</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {collections.map((payment) => {
-                const client = getClientById(payment.clientId)
-                const caseItem = cases.find((item) => item.id === payment.caseId)
-                return (
-                  <TableRow key={payment.id}>
-                    <TableCell>{formatDisplayDate(payment.createdAt)}</TableCell>
-                    <TableCell>{client?.name ?? payment.clientId}</TableCell>
-                    <TableCell>{caseItem?.service ?? '-'}</TableCell>
-                    <TableCell>{payment.method}</TableCell>
-                    <TableCell>{formatPaymentAmount(payment.amount)}</TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+          <div className={tableShellClass}>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-0">
+                  <TableHead className={chromeHeadClass}>Date</TableHead>
+                  <TableHead className={chromeHeadClass}>Client</TableHead>
+                  <TableHead className={chromeHeadClass}>Service</TableHead>
+                  <TableHead className={chromeHeadClass}>Method</TableHead>
+                  <TableHead className={chromeHeadClass}>Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {collections.map((payment) => {
+                  const client = getClientById(payment.clientId)
+                  const caseItem = cases.find((item) => item.id === payment.caseId)
+                  return (
+                    <TableRow key={payment.id}>
+                      <TableCell>{formatDisplayDate(payment.createdAt)}</TableCell>
+                      <TableCell>{client?.name ?? payment.clientId}</TableCell>
+                      <TableCell>{caseItem?.service ?? '-'}</TableCell>
+                      <TableCell>{payment.method}</TableCell>
+                      <TableCell>{formatPaymentAmount(payment.amount)}</TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </section>
 
-      <section className="pd-ops__section" aria-label="Outstanding by service">
+      <section className="pd-ops__section" aria-label="Outstanding By Service">
         <div className="pd-ops__toolbar">
-          <h2 className="pd-ops__section-title">Outstanding by service</h2>
+          <h2 className="pd-ops__section-title">Outstanding By Service</h2>
           <Button
             size="sm"
-            variant="secondary"
+            variant="outline"
+            className={pureWhiteOutlineClass}
             onClick={() =>
               downloadCsv('outstanding-by-service.csv', [
                 ['Service', 'Open files', 'Outstanding'],
@@ -230,38 +262,48 @@ export default function ReportsPage() {
           </Button>
         </div>
         {outstandingByService.length === 0 ? (
-          <EmptyState title="Nothing outstanding" />
+          <Empty className="bg-card shadow-sm">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileBarChart aria-hidden />
+              </EmptyMedia>
+              <EmptyTitle>Nothing Outstanding</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Service</TableHead>
-                <TableHead>Open files</TableHead>
-                <TableHead>Outstanding</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {outstandingByService.map((row) => (
-                <TableRow key={row.service}>
-                  <TableCell>{row.service}</TableCell>
-                  <TableCell>{row.count}</TableCell>
-                  <TableCell>{formatPaymentAmount(row.balance)}</TableCell>
+          <div className={tableShellClass}>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-0">
+                  <TableHead className={chromeHeadClass}>Service</TableHead>
+                  <TableHead className={chromeHeadClass}>Open Files</TableHead>
+                  <TableHead className={chromeHeadClass}>Outstanding</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {outstandingByService.map((row) => (
+                  <TableRow key={row.service}>
+                    <TableCell>{row.service}</TableCell>
+                    <TableCell>{row.count}</TableCell>
+                    <TableCell>{formatPaymentAmount(row.balance)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </section>
 
-      <section className="pd-ops__section" aria-label="Sub-agent pipeline">
+      <section className="pd-ops__section" aria-label="Sub-Agent Pipeline">
         <div className="pd-ops__toolbar">
-          <h2 className="pd-ops__section-title">Sub-agent pipeline</h2>
+          <h2 className="pd-ops__section-title">Sub-Agent Pipeline</h2>
           <Button
             size="sm"
-            variant="secondary"
+            variant="outline"
+            className={pureWhiteOutlineClass}
             onClick={() =>
               downloadCsv('sub-agent-pipeline.csv', [
-                ['Sub agent', 'Clients', 'Open services', 'Collected', 'Outstanding'],
+                ['Sub Agent', 'Clients', 'Open Services', 'Collected', 'Outstanding'],
                 ...subAgentPipeline.map((row) => [
                   row.name,
                   String(row.clients),
@@ -278,30 +320,39 @@ export default function ReportsPage() {
           </Button>
         </div>
         {subAgentPipeline.length === 0 ? (
-          <EmptyState title="No sub-agent activity" />
+          <Empty className="bg-card shadow-sm">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileBarChart aria-hidden />
+              </EmptyMedia>
+              <EmptyTitle>No Sub-Agent Activity</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Sub agent</TableHead>
-                <TableHead>Clients</TableHead>
-                <TableHead>Open</TableHead>
-                <TableHead>Collected</TableHead>
-                <TableHead>Outstanding</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {subAgentPipeline.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>{row.name}</TableCell>
-                  <TableCell>{row.clients}</TableCell>
-                  <TableCell>{row.openCases}</TableCell>
-                  <TableCell>{formatPaymentAmount(row.collected)}</TableCell>
-                  <TableCell>{formatPaymentAmount(row.outstanding)}</TableCell>
+          <div className={tableShellClass}>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-0">
+                  <TableHead className={chromeHeadClass}>Sub Agent</TableHead>
+                  <TableHead className={chromeHeadClass}>Clients</TableHead>
+                  <TableHead className={chromeHeadClass}>Open</TableHead>
+                  <TableHead className={chromeHeadClass}>Collected</TableHead>
+                  <TableHead className={chromeHeadClass}>Outstanding</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {subAgentPipeline.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>{row.name}</TableCell>
+                    <TableCell>{row.clients}</TableCell>
+                    <TableCell>{row.openCases}</TableCell>
+                    <TableCell>{formatPaymentAmount(row.collected)}</TableCell>
+                    <TableCell>{formatPaymentAmount(row.outstanding)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </section>
     </div>

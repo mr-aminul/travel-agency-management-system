@@ -8,8 +8,26 @@ import {
 import { TENANT_BILLING_CHANGED_EVENT } from '@/lib/billing/billingEvents'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
 import { useTenantById } from '@/lib/tenantsStore'
-import { Badge, Button, Input, Switch } from '@/components/ui'
+import { LabeledSwitch } from '@/components/clients/LabeledSwitch'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { Input } from '@/components/shadcn/input'
 import type { BillingSnapshot } from '@/types/billing'
+import {
+  adminMessagingQuantityClass,
+  adminMessagingQuantityHeadClass,
+  adminMessagingQuantityRowClass,
+  adminModuleGroupClass,
+  adminModuleGroupTitleClass,
+  adminModuleIconClass,
+  adminModuleLabelClass,
+  adminModuleListGridClass,
+  adminModuleMetaClass,
+  adminModuleRowClass,
+  adminModuleSwitchClass,
+  adminModulesClass,
+  adminQuietClass,
+} from '@/components/admin/adminChrome'
 
 type Props = {
   tenantId: string
@@ -62,11 +80,11 @@ export function AdminTenantMessagingEditor({ tenantId }: Props) {
   }
 
   if (!authApiConfigured()) {
-    return <p className="pd-admin__quiet">Messaging needs the platform API.</p>
+    return <p className={adminQuietClass}>Messaging needs the platform API.</p>
   }
 
   if (!snapshot) {
-    return <p className="pd-admin__quiet">Loading messaging…</p>
+    return <p className={adminQuietClass}>Loading messaging…</p>
   }
 
   const smsSent = snapshot.usage.smsSent
@@ -98,38 +116,38 @@ export function AdminTenantMessagingEditor({ tenantId }: Props) {
   }
 
   return (
-    <div className="pd-admin__modules" aria-label="SMS and email permission">
+    <div className={adminModulesClass} aria-label="SMS and email permission">
       {error ? (
-        <p className="pd-field__error" role="alert">
+        <p className="m-0 text-sm text-destructive" role="alert">
           {error}
         </p>
       ) : null}
 
       <section
-        className="pd-admin__module-group"
+        className={adminModuleGroupClass}
         aria-labelledby="pd-admin-messaging-permission"
       >
         <h3
           id="pd-admin-messaging-permission"
-          className="pd-admin__module-group-title"
+          className={adminModuleGroupTitleClass}
         >
           Permission
         </h3>
-        <ul className="pd-admin__module-list pd-admin__module-list--grid">
-          <li className="pd-admin__module-row">
-            <div className="pd-admin__module-meta">
-              <span className="pd-admin__module-icon" aria-hidden>
+        <ul className={adminModuleListGridClass}>
+          <li className={adminModuleRowClass}>
+            <div className={adminModuleMetaClass}>
+              <span className={adminModuleIconClass} aria-hidden>
                 <MessageSquareText size={16} strokeWidth={2.1} />
               </span>
-              <span className="pd-admin__module-label">SMS allowed</span>
+              <span className={adminModuleLabelClass}>SMS allowed</span>
             </div>
-            <Switch
+            <LabeledSwitch
               label={
                 snapshot.billing?.smsEnabled === false
                   ? 'Blocked by platform'
                   : 'Agency may send'
               }
-              className="pd-admin__module-switch"
+              className={adminModuleSwitchClass}
               checked={snapshot.billing?.smsEnabled !== false}
               disabled={busy}
               onChange={(event) => {
@@ -140,20 +158,20 @@ export function AdminTenantMessagingEditor({ tenantId }: Props) {
               }}
             />
           </li>
-          <li className="pd-admin__module-row">
-            <div className="pd-admin__module-meta">
-              <span className="pd-admin__module-icon" aria-hidden>
+          <li className={adminModuleRowClass}>
+            <div className={adminModuleMetaClass}>
+              <span className={adminModuleIconClass} aria-hidden>
                 <Mail size={16} strokeWidth={2.1} />
               </span>
-              <span className="pd-admin__module-label">Email allowed</span>
+              <span className={adminModuleLabelClass}>Email allowed</span>
             </div>
-            <Switch
+            <LabeledSwitch
               label={
                 snapshot.billing?.emailEnabled === false
                   ? 'Blocked by platform'
                   : 'Agency may send'
               }
-              className="pd-admin__module-switch"
+              className={adminModuleSwitchClass}
               checked={snapshot.billing?.emailEnabled !== false}
               disabled={busy}
               onChange={(event) => {
@@ -165,7 +183,7 @@ export function AdminTenantMessagingEditor({ tenantId }: Props) {
             />
           </li>
         </ul>
-        <p className="pd-admin__quiet">
+        <p className={adminQuietClass}>
           Agency SMS:{' '}
           {snapshot.billing?.smsEnabled === false
             ? 'Off (platform)'
@@ -183,29 +201,29 @@ export function AdminTenantMessagingEditor({ tenantId }: Props) {
       </section>
 
       <section
-        className="pd-admin__module-group"
+        className={adminModuleGroupClass}
         aria-labelledby="pd-admin-messaging-quantity"
       >
-        <div className="pd-admin__messaging-quantity-head">
+        <div className={adminMessagingQuantityHeadClass}>
           <h3
             id="pd-admin-messaging-quantity"
-            className="pd-admin__module-group-title"
+            className={adminModuleGroupTitleClass}
           >
             SMS quantity
           </h3>
-          <Badge variant={isSmsAvailable ? 'completed' : 'danger'}>
+          <Badge variant={isSmsAvailable ? 'default' : 'destructive'}>
             {isSmsAvailable ? 'Available' : 'Not available'}
           </Badge>
         </div>
-        <div className="pd-admin__messaging-quantity">
-          <p className="pd-admin__quiet">
+        <div className={adminMessagingQuantityClass}>
+          <p className={adminQuietClass}>
             {liveLimit === 0
               ? 'Quantity is 0 — SMS is not available. Add a quantity to make it available.'
               : remaining === 0
                 ? `Used all ${liveLimit.toLocaleString('en-BD')} — SMS is not available until you add more.`
                 : `Used ${smsSent.toLocaleString('en-BD')} of ${liveLimit.toLocaleString('en-BD')} · ${remaining.toLocaleString('en-BD')} left. Sending stops when this quantity is finished.`}
           </p>
-          <div className="pd-admin__messaging-quantity-row">
+          <div className={adminMessagingQuantityRowClass}>
             <Input
               aria-label="SMS quantity limit"
               type="number"

@@ -1,5 +1,13 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Accordion, Avatar, Badge, Button, CopyableText, EmptyState, Input, SearchField, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, Tooltip, type BadgeVariant } from '@/components/ui'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 import {
   Link,
   Navigate,
@@ -8,20 +16,75 @@ import {
   useSearchParams,
 } from 'react-router-dom'
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/shadcn/accordion'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/shadcn/avatar'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/shadcn/card'
+import { Checkbox } from '@/components/shadcn/checkbox'
+import {
+  Empty,
+  EmptyContent,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/shadcn/empty'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/shadcn/popover'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/shadcn/table'
+import { ToggleGroup, ToggleGroupItem } from '@/components/shadcn/toggle-group'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/shadcn/tooltip'
+import { Input } from '@/components/clients/clientShadcnFields'
+import { Input as SearchInput } from '@/components/shadcn/input'
+import {
+  chromeHeadClass,
+  elevatedPageClass,
+  floatingSheetClass,
+  floatingSheetWideClass,
+  whiteControlClass,
+} from '@/components/clients/shadcnChrome'
+import { cn } from '@/lib/utils'
+import {
   Calendar,
   Check,
   CircleDot,
   Contact,
   Copy,
+  FileText,
   IdCard,
   KeyRound,
   LayoutDashboard,
   LayoutGrid,
+  ListFilter,
   Mail,
   MapPin,
   Pencil,
   Phone,
-  FileText,
   Table2,
   Users,
   Wallet,
@@ -43,7 +106,6 @@ import {
 } from '@/lib/fieldValidation'
 import { formatDisplayDate } from '@/lib/formatDate'
 import { useTouchedFields } from '@/lib/useTouchedFields'
-import { caseStatusBadgeVariant } from '@/components/cases/CasesList'
 import { useCases } from '@/lib/casesStore'
 import {
   clientMatchesServiceStatusFilters,
@@ -64,21 +126,20 @@ import {
   usePendingCommissions,
 } from '@/lib/commissionsStore'
 import { formatPaymentAmount, usePayments } from '@/lib/paymentsStore'
-import type { Case } from '@/types/case'
+import type { Case, CaseStatus } from '@/types/case'
 import type { SubAgent, SubAgentStatus } from '@/types/subAgent'
 import type {
   Client,
   CreateClientInput,
   ServiceType,
 } from '@/types/client'
-import '@/styles/layout-clients.css'
 
 const SUB_AGENT_TABS = ['overview', 'profile', 'clients', 'report', 'login'] as const
 
 const CLIENT_STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'Pending', label: 'Pending' },
-  { value: 'In-Progress', label: 'In progress' },
-  { value: 'On-Hold', label: 'On hold' },
+  { value: 'In-Progress', label: 'In Progress' },
+  { value: 'On-Hold', label: 'On Hold' },
   { value: 'Completed', label: 'Completed' },
   { value: 'Cancelled', label: 'Cancelled' },
 ]
@@ -167,8 +228,17 @@ function matchesSubAgentClientFilters(
   return matchSearch && matchService && matchStatus
 }
 
-function statusBadgeVariant(status: SubAgentStatus): BadgeVariant {
-  return status === 'Active' ? 'completed' : 'on-hold'
+function statusBadgeVariant(status: SubAgentStatus) {
+  return status === 'Active' ? ('default' as const) : ('secondary' as const)
+}
+
+function caseStatusShadcnVariant(
+  status: CaseStatus,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (status === 'Completed') return 'default'
+  if (status === 'Cancelled') return 'destructive'
+  if (status === 'On-Hold') return 'outline'
+  return 'secondary'
 }
 
 function formatDate(value: string): string {
@@ -188,13 +258,19 @@ function toProfileDraft(subAgent: SubAgent): ProfileDraft {
 }
 
 function StatusChip({ status }: { status: SubAgentStatus }) {
-  return (
-    <Badge variant={statusBadgeVariant(status)}>{status}</Badge>
-  )
+  return <Badge variant={statusBadgeVariant(status)}>{status}</Badge>
 }
 
 function profileDraftsEqual(a: ProfileDraft, b: ProfileDraft): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
+}
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
 }
 
 function FieldLabel({
@@ -205,8 +281,11 @@ function FieldLabel({
   children: ReactNode
 }) {
   return (
-    <dt>
-      <span className="pd-client-detail__field-icon" aria-hidden>
+    <dt className="mb-1.5 flex items-center gap-1.5 text-[0.6875rem] font-medium tracking-wide text-muted-foreground">
+      <span
+        className="inline-flex size-5 shrink-0 items-center justify-center rounded-[0.35rem] bg-muted text-muted-foreground"
+        aria-hidden
+      >
         <Icon size={13} strokeWidth={2.25} />
       </span>
       {children}
@@ -237,12 +316,15 @@ function SectionTitle({
   children: ReactNode
 }) {
   return (
-    <h2 className="pd-client-detail__section-title">
-      <span className="pd-client-detail__section-icon" aria-hidden>
+    <span className="inline-flex items-center gap-2">
+      <span
+        className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-theme-subtle)] text-[var(--color-theme-ink)]"
+        aria-hidden
+      >
         <Icon size={15} strokeWidth={2.25} />
       </span>
       {children}
-    </h2>
+    </span>
   )
 }
 
@@ -251,11 +333,13 @@ function ContactChip({
   to,
   value,
   label,
+  variant = 'identity',
 }: {
   href?: string
   to?: string
   value: string
   label: string
+  variant?: 'identity' | 'cardField'
 }) {
   const [copied, setCopied] = useState(false)
 
@@ -274,24 +358,42 @@ function ContactChip({
     }
   }
 
+  const valueClass = cn(
+    'break-words',
+    variant === 'cardField' && 'block min-w-0 max-w-full pe-5',
+    (to || href) && 'text-primary underline-offset-2 hover:underline',
+  )
+
   const valueNode = to ? (
-    <Link to={to} className="pd-client-detail__contact-value">
+    <Link to={to} className={valueClass}>
       {value}
     </Link>
   ) : href ? (
-    <a href={href} className="pd-client-detail__contact-value">
+    <a href={href} className={valueClass}>
       {value}
     </a>
   ) : (
-    <span className="pd-client-detail__contact-value">{value}</span>
+    <span className={valueClass}>{value}</span>
   )
 
   return (
-    <span className="pd-client-detail__contact">
+    <span
+      className={cn(
+        'group relative overflow-visible',
+        variant === 'cardField'
+          ? 'flex w-full min-w-0 items-start'
+          : 'inline-flex max-w-full items-center justify-center',
+      )}
+    >
       {valueNode}
       <button
         type="button"
-        className="pd-client-detail__contact-copy"
+        className={cn(
+          'absolute size-5 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100',
+          variant === 'cardField'
+            ? 'end-0 top-0'
+            : 'start-full top-1/2 -translate-y-1/2',
+        )}
         onClick={handleCopy}
         aria-label={copied ? `${label} copied` : `Copy ${label}`}
         title={copied ? 'Copied' : `Copy ${label}`}
@@ -306,6 +408,203 @@ function ContactChip({
   )
 }
 
+function DetailTabs({
+  value,
+  onValueChange,
+  items,
+}: {
+  value: string
+  onValueChange: (value: string) => void
+  items: { id: string; label: ReactNode; content: ReactNode }[]
+}) {
+  const rootRef = useRef<HTMLDivElement>(null)
+  const buttonRefs = useRef(new Map<string, HTMLButtonElement>())
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null)
+
+  const updateIndicator = useCallback(() => {
+    const button = buttonRefs.current.get(value)
+    if (!button) return
+    setIndicator({ left: button.offsetLeft, width: button.offsetWidth })
+  }, [value])
+
+  useLayoutEffect(() => {
+    updateIndicator()
+  }, [updateIndicator, items.length])
+
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => updateIndicator())
+    observer.observe(root)
+    window.addEventListener('resize', updateIndicator)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateIndicator)
+    }
+  }, [updateIndicator])
+
+  const active = items.find((item) => item.id === value) ?? items[0]
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div
+        ref={rootRef}
+        role="tablist"
+        aria-label="Sub agent sections"
+        className="relative inline-flex h-9 max-w-full items-stretch self-start overflow-x-auto rounded-lg border border-input bg-card p-0.5"
+      >
+        {indicator ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-0.5 bottom-0.5 z-0 rounded-md bg-primary transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ left: indicator.left, width: indicator.width } as CSSProperties}
+          />
+        ) : null}
+        {items.map((item) => {
+          const isActive = item.id === value
+          return (
+            <Button
+              key={item.id}
+              ref={(node) => {
+                if (node) buttonRefs.current.set(item.id, node)
+                else buttonRefs.current.delete(item.id)
+              }}
+              type="button"
+              variant="ghost"
+              role="tab"
+              aria-selected={isActive}
+              className={cn(
+                'relative z-[1] h-full min-h-0 shrink-0 rounded-md px-3 text-sm font-medium shadow-none',
+                isActive
+                  ? 'text-primary-foreground hover:!bg-transparent hover:text-primary-foreground'
+                  : 'text-muted-foreground hover:!bg-[color-mix(in_srgb,var(--color-text)_6%,transparent)] hover:text-foreground',
+              )}
+              onClick={() => onValueChange(item.id)}
+            >
+              {item.label}
+            </Button>
+          )
+        })}
+      </div>
+      <div role="tabpanel">{active?.content}</div>
+    </div>
+  )
+}
+
+function FilterChoices({
+  label,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string
+  options: { value: string; label: string }[]
+  selected: string[]
+  onChange: (next: string[]) => void
+}) {
+  const allSelected =
+    options.length > 0 && options.every((option) => selected.includes(option.value))
+
+  function toggle(value: string) {
+    onChange(
+      selected.includes(value)
+        ? selected.filter((item) => item !== value)
+        : [...selected, value],
+    )
+  }
+
+  return (
+    <>
+      <div className="px-2.5 py-1.5 text-xs font-medium text-muted-foreground">
+        Filter {label}
+      </div>
+      <div className="h-px bg-border" />
+      <div
+        role="button"
+        tabIndex={0}
+        className="flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-sm hover:bg-muted"
+        onClick={() =>
+          onChange(allSelected ? [] : options.map((option) => option.value))
+        }
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          onChange(allSelected ? [] : options.map((option) => option.value))
+        }}
+      >
+        <Checkbox checked={allSelected} tabIndex={-1} aria-hidden className="pointer-events-none" />
+        <span>{allSelected ? 'Deselect All' : 'Select All'}</span>
+      </div>
+      <div className="h-px bg-border" />
+      <div className="max-h-56 overflow-y-auto py-1" role="listbox" aria-label={`${label} values`} aria-multiselectable>
+        {options.map((option) => {
+          const isSelected = selected.includes(option.value)
+          return (
+            <div
+              key={option.value}
+              role="option"
+              tabIndex={0}
+              aria-selected={isSelected}
+              className="flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-sm hover:bg-muted"
+              onClick={() => toggle(option.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return
+                event.preventDefault()
+                toggle(option.value)
+              }}
+            >
+              <Checkbox
+                checked={isSelected}
+                tabIndex={-1}
+                aria-hidden
+                className="pointer-events-none"
+              />
+              <span className="min-w-0 truncate">{option.label}</span>
+            </div>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
+function MultiFilterButton({
+  label,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string
+  options: { value: string; label: string }[]
+  selected: string[]
+  onChange: (next: string[]) => void
+}) {
+  const active = selected.length > 0
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(whiteControlClass, active && 'border-primary')}
+        >
+          <ListFilter size={14} strokeWidth={2} data-icon="inline-start" />
+          {label}
+          {active ? ` (${selected.length})` : ''}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 !gap-0 !p-0">
+        <FilterChoices
+          label={label}
+          options={options}
+          selected={selected}
+          onChange={onChange}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 export default function SubAgentDetailPage() {
   const { id = '' } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -314,7 +613,6 @@ export default function SubAgentDetailPage() {
   const subAgent = subAgents.find((item) => item.id === id)
   const allClients = useClients()
   const allCases = useCases()
-  // Tenant-scoped: never attach another agency's clients via colliding AGT ids.
   const clients = useMemo(() => {
     if (!subAgent) return []
     return allClients.filter(
@@ -371,7 +669,7 @@ export default function SubAgentDetailPage() {
   const profileDraft = draft ?? savedDraft
   const isDirty = !profileDraftsEqual(profileDraft, savedDraft)
   const subAgentErrors = {
-    name: validateRequiredName(profileDraft.name, 'Sub agent name'),
+    name: validateRequiredName(profileDraft.name, 'Sub Agent Name'),
     phone: validateRequiredPhone(profileDraft.phone),
     email: validateOptionalEmail(profileDraft.email),
     address: validateOptionalText(profileDraft.address, 'Address'),
@@ -467,273 +765,290 @@ export default function SubAgentDetailPage() {
   const statusForClient = (clientId: string) =>
     deriveClientServiceStatus(casesByClientId.get(clientId) ?? [])
 
+  const fieldClass = (isDirtyField: boolean) =>
+    cn('rounded-lg transition-[box-shadow]', isDirtyField && 'ring-1 ring-primary/40')
+
   return (
-    <div className="pd-page pd-client-detail" aria-label={subAgent.name}>
-      <div className="pd-client-detail__layout">
-        <aside className="pd-client-detail__card" aria-label="Sub agent profile">
-          <div className="pd-client-detail__card-identity">
-            <Avatar
-              name={displayName}
-              src={profileDraft.photoUrl ?? subAgent.photoUrl}
-              size="xl"
-              kind="subAgent"
-            />
-            <div className="pd-client-detail__title-row">
-              <h1 className="pd-client-detail__name">
-                <ContactChip value={displayName} label="sub agent name" />
+    <TooltipProvider>
+      <div
+        className={cn(elevatedPageClass, 'gap-5')}
+        data-elevated-canvas
+        aria-label={subAgent.name}
+      >
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
+          <aside
+            className="flex min-w-0 flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm lg:sticky lg:top-0 lg:z-[1] lg:max-h-[calc(100dvh-8.5rem)] lg:overflow-y-auto"
+            aria-label="Sub agent profile"
+          >
+            <div className="flex shrink-0 flex-col items-center gap-2 text-center">
+              <Avatar className="size-20">
+                {(profileDraft.photoUrl ?? subAgent.photoUrl) ? (
+                  <AvatarImage
+                    src={profileDraft.photoUrl ?? subAgent.photoUrl}
+                    alt=""
+                  />
+                ) : null}
+                <AvatarFallback>{initials(displayName)}</AvatarFallback>
+              </Avatar>
+              <h1 className="m-0 text-[1.0625rem] font-semibold leading-tight tracking-tight">
+                <ContactChip value={displayName} label="Sub Agent Name" />
               </h1>
             </div>
-          </div>
 
-          <div className="pd-client-detail__card-actions">
-            <Button size="sm" onClick={() => setCustomerOpen(true)}>
-              <Users size={14} strokeWidth={2.25} aria-hidden />
-              Add client
-            </Button>
-            <div className="pd-client-detail__card-quick">
-              <a
-                className="pd-btn pd-btn--secondary pd-btn--sm pd-btn--icon"
-                href={`tel:${displayPhone}`}
-                aria-label={`Call ${displayName}`}
-                title="Call"
-              >
-                <span className="pd-btn__label">
-                  <Phone size={14} strokeWidth={2.25} aria-hidden />
-                </span>
-              </a>
-              <a
-                className="pd-btn pd-btn--secondary pd-btn--sm pd-btn--icon pd-client-detail__whatsapp"
-                href={whatsappHref(displayPhone)}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={`WhatsApp ${displayName}`}
-                title="WhatsApp"
-              >
-                <span className="pd-btn__label">
-                  <WhatsAppIcon size={14} />
-                </span>
-              </a>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="pd-btn--icon"
-                onClick={() => selectTab('profile')}
-                aria-label="Edit profile"
-                title="Edit profile"
-              >
-                <Pencil size={14} strokeWidth={2.25} aria-hidden />
+            <div className="flex w-full shrink-0 flex-col gap-1.5">
+              <Button className="h-9 w-full rounded-lg" onClick={() => setCustomerOpen(true)}>
+                <Users size={14} strokeWidth={2.25} data-icon="inline-start" />
+                Add Client
               </Button>
+              <div className="grid grid-cols-3 gap-1.5">
+                <a
+                  className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-[color-mix(in_srgb,var(--color-text)_6%,transparent)]"
+                  href={`tel:${displayPhone}`}
+                  aria-label={`Call ${displayName}`}
+                  title="Call"
+                >
+                  <Phone size={14} strokeWidth={2.25} aria-hidden />
+                </a>
+                <a
+                  className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-[color-mix(in_srgb,var(--color-text)_6%,transparent)]"
+                  href={whatsappHref(displayPhone)}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`WhatsApp ${displayName}`}
+                  title="WhatsApp"
+                >
+                  <WhatsAppIcon size={14} />
+                </a>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => selectTab('profile')}
+                  aria-label="Edit profile"
+                  title="Edit Profile"
+                >
+                  <Pencil size={14} strokeWidth={2.25} aria-hidden />
+                </Button>
+              </div>
             </div>
-          </div>
 
-          <dl className="pd-client-detail__card-fields">
-            <div className="pd-client-detail__card-field">
-              <dt>Status</dt>
-              <dd>
-                <StatusChip status={activityStatus} />
-              </dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Phone</dt>
-              <dd>
-                <ContactChip
-                  value={displayPhone}
-                  label="phone number"
-                />
-              </dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Email</dt>
-              <dd>
-                {displayEmail ? (
-                  <ContactChip
-                    value={displayEmail}
-                    label="email address"
-                  />
-                ) : (
-                  <span className="pd-client-detail__empty">-</span>
-                )}
-              </dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>License</dt>
-              <dd>
-                {displayLicense ? (
-                  <ContactChip value={displayLicense} label="license number" />
-                ) : (
-                  <span className="pd-client-detail__empty">-</span>
-                )}
-              </dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Branch</dt>
-              <dd>
-                {displayBranch ? (
-                  <ContactChip value={displayBranch} label="branch" />
-                ) : (
-                  <span className="pd-client-detail__empty">-</span>
-                )}
-              </dd>
-            </div>
-            <div className="pd-client-detail__card-field">
-              <dt>Address</dt>
-              <dd>
-                {displayAddress ? (
-                  <ContactChip value={displayAddress} label="address" />
-                ) : (
-                  <span className="pd-client-detail__empty">-</span>
-                )}
-              </dd>
-            </div>
-          </dl>
+            <dl className="m-0 flex shrink-0 flex-col overflow-hidden rounded-[0.625rem] border border-border bg-background">
+              {(
+                [
+                  ['Status', <StatusChip status={activityStatus} />],
+                  [
+                    'Phone',
+                    <ContactChip
+                      variant="cardField"
+                      value={displayPhone}
+                      label="Phone Number"
+                    />,
+                  ],
+                  [
+                    'Email',
+                    displayEmail ? (
+                      <ContactChip
+                        variant="cardField"
+                        value={displayEmail}
+                        label="Email Address"
+                      />
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    ),
+                  ],
+                  [
+                    'License',
+                    displayLicense ? (
+                      <ContactChip
+                        variant="cardField"
+                        value={displayLicense}
+                        label="License Number"
+                      />
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    ),
+                  ],
+                  [
+                    'Branch',
+                    displayBranch ? (
+                      <ContactChip
+                        variant="cardField"
+                        value={displayBranch}
+                        label="Branch"
+                      />
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    ),
+                  ],
+                  [
+                    'Address',
+                    displayAddress ? (
+                      <ContactChip
+                        variant="cardField"
+                        value={displayAddress}
+                        label="Address"
+                      />
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    ),
+                  ],
+                ] as const
+              ).map(([label, value]) => (
+                <div
+                  key={label}
+                  className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0"
+                >
+                  <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
+                    {label}
+                  </dt>
+                  <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
 
-          <div className="pd-client-detail__card-snapshot" aria-label="Snapshot">
-            <button
-              type="button"
-              className="pd-client-detail__card-snap"
-              onClick={() => selectTab('clients')}
-            >
-              <span className="pd-client-detail__card-snap-label">Clients</span>
-              <span className="pd-client-detail__card-snap-value">
-                {clients.length}
-              </span>
-            </button>
-            <button
-              type="button"
-              className="pd-client-detail__card-snap"
-              onClick={() => selectTab('clients')}
-            >
-              <span className="pd-client-detail__card-snap-label">
-                Outstanding
-              </span>
-              <span
-                className={[
-                  'pd-client-detail__card-snap-value',
-                  outstanding > 0 ? 'is-due' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
+            <div className="grid grid-cols-2 gap-2" aria-label="Snapshot">
+              <button
+                type="button"
+                className="flex flex-col gap-0.5 rounded-lg border border-border bg-background px-2.5 py-2 text-left transition-colors hover:bg-muted/50"
+                onClick={() => selectTab('clients')}
               >
-                {formatBalance(outstanding)}
-              </span>
-            </button>
-          </div>
+                <span className="text-[0.625rem] font-medium tracking-wide text-muted-foreground">
+                  Clients
+                </span>
+                <span className="text-base font-semibold">{clients.length}</span>
+              </button>
+              <button
+                type="button"
+                className="flex flex-col gap-0.5 rounded-lg border border-border bg-background px-2.5 py-2 text-left transition-colors hover:bg-muted/50"
+                onClick={() => selectTab('clients')}
+              >
+                <span className="text-[0.625rem] font-medium tracking-wide text-muted-foreground">
+                  Outstanding
+                </span>
+                <span
+                  className={cn(
+                    'text-base font-semibold',
+                    outstanding > 0 && 'text-destructive',
+                  )}
+                >
+                  {formatBalance(outstanding)}
+                </span>
+              </button>
+            </div>
 
-          <p className="pd-client-detail__card-footer">
-            <Calendar size={12} strokeWidth={2.25} aria-hidden />
-            Member since {formatDate(subAgent.createdAt)}
-          </p>
-        </aside>
+            <p className="m-0 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Calendar size={12} strokeWidth={2.25} aria-hidden />
+              Member Since {formatDate(subAgent.createdAt)}
+            </p>
+          </aside>
 
-        <div className="pd-client-detail__main">
-          <Tabs
-            className="pd-client-detail__tabs"
-            value={activeTab}
-            onValueChange={selectTab}
-            items={[
-              {
-                id: 'overview',
-                label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
-                content: (
-                  <div className="pd-client-detail__overview">
-                    <section className="pd-client-detail__section pd-client-detail__section--compact">
-                      <div className="pd-client-detail__section-head">
-                        <SectionTitle icon={Contact}>
-                          Profile Information
-                        </SectionTitle>
-                      </div>
-                      <dl className="pd-client-detail__fields">
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={Phone}>Phone</FieldLabel>
-                          <dd>
-                            {displayPhone}
-                          </dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={Mail}>Email</FieldLabel>
-                          <dd>
-                            {displayEmail ? (
-                              <CopyableText value={displayEmail} />
-                            ) : (
-                              <span className="pd-client-detail__empty">-</span>
-                            )}
-                          </dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={MapPin}>Address</FieldLabel>
-                          <dd>
-                            {displayAddress || (
-                              <span className="pd-client-detail__empty">-</span>
-                            )}
-                          </dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={IdCard}>License</FieldLabel>
-                          <dd>
-                            {displayLicense || (
-                              <span className="pd-client-detail__empty">-</span>
-                            )}
-                          </dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={MapPin}>Branch</FieldLabel>
-                          <dd>
-                            {displayBranch || (
-                              <span className="pd-client-detail__empty">-</span>
-                            )}
-                          </dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={CircleDot}>Status</FieldLabel>
-                          <dd>
-                            <StatusChip status={activityStatus} />
-                          </dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={Wallet}>Collected</FieldLabel>
-                          <dd>{formatBalance(collected)}</dd>
-                        </div>
-                        <div className="pd-client-detail__field">
-                          <FieldLabel icon={Calendar}>Member since</FieldLabel>
-                          <dd>{formatDate(subAgent.createdAt)}</dd>
-                        </div>
-                      </dl>
-                    </section>
+          <div className="min-w-0">
+            <DetailTabs
+              value={activeTab}
+              onValueChange={selectTab}
+              items={[
+                {
+                  id: 'overview',
+                  label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
+                  content: (
+                    <div className="flex flex-col gap-4">
+                      <Card size="sm" className="shadow-sm">
+                        <CardHeader>
+                          <CardTitle>
+                            <SectionTitle icon={Contact}>Profile Information</SectionTitle>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <dl className="m-0 grid gap-4 sm:grid-cols-2">
+                            <div>
+                              <FieldLabel icon={Phone}>Phone</FieldLabel>
+                              <dd className="m-0 text-sm">{displayPhone}</dd>
+                            </div>
+                            <div>
+                              <FieldLabel icon={Mail}>Email</FieldLabel>
+                              <dd className="m-0 text-sm">
+                                {displayEmail ? (
+                                  <ContactChip value={displayEmail} label="Email Address" />
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </dd>
+                            </div>
+                            <div>
+                              <FieldLabel icon={MapPin}>Address</FieldLabel>
+                              <dd className="m-0 text-sm">
+                                {displayAddress || (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </dd>
+                            </div>
+                            <div>
+                              <FieldLabel icon={IdCard}>License</FieldLabel>
+                              <dd className="m-0 text-sm">
+                                {displayLicense || (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </dd>
+                            </div>
+                            <div>
+                              <FieldLabel icon={MapPin}>Branch</FieldLabel>
+                              <dd className="m-0 text-sm">
+                                {displayBranch || (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </dd>
+                            </div>
+                            <div>
+                              <FieldLabel icon={CircleDot}>Status</FieldLabel>
+                              <dd className="m-0 text-sm">
+                                <StatusChip status={activityStatus} />
+                              </dd>
+                            </div>
+                            <div>
+                              <FieldLabel icon={Wallet}>Collected</FieldLabel>
+                              <dd className="m-0 text-sm">{formatBalance(collected)}</dd>
+                            </div>
+                            <div>
+                              <FieldLabel icon={Calendar}>Member Since</FieldLabel>
+                              <dd className="m-0 text-sm">{formatDate(subAgent.createdAt)}</dd>
+                            </div>
+                          </dl>
+                        </CardContent>
+                      </Card>
 
-                    <Accordion
-                      className="pd-accordion--cards pd-client-detail__services-accordion"
-                      defaultOpenIds={['clients', 'settlements']}
-                      items={[
-                        {
-                          id: 'settlements',
-                          title: (
-                            <span className="pd-client-detail__services-accordion-title">
-                              <span
-                                className="pd-client-detail__section-icon"
-                                aria-hidden
-                              >
-                                <Wallet size={15} strokeWidth={2.25} />
-                              </span>
-                              Settlements
+                      <Accordion
+                        type="multiple"
+                        defaultValue={['settlements', 'clients']}
+                        className="flex flex-col gap-3"
+                      >
+                        <AccordionItem value="settlements" className="rounded-xl border bg-card px-4 shadow-sm">
+                          <AccordionTrigger className="hover:no-underline">
+                            <span className="inline-flex items-center gap-2">
+                              <SectionTitle icon={Wallet}>Settlements</SectionTitle>
+                              {pendingCommissions.length > 0 ? (
+                                <Badge variant="secondary">{pendingCommissions.length}</Badge>
+                              ) : null}
                             </span>
-                          ),
-                          meta:
-                            pendingCommissions.length > 0
-                              ? String(pendingCommissions.length)
-                              : undefined,
-                          content:
-                            pendingCommissions.length === 0 &&
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            {pendingCommissions.length === 0 &&
                             commissionSettlements.length === 0 ? (
-                              <EmptyState
-                                icon={Wallet}
-                                title="No commissions yet"
-                              />
+                              <Empty className="border-0 p-4 shadow-none">
+                                <EmptyHeader>
+                                  <EmptyMedia variant="icon">
+                                    <Wallet />
+                                  </EmptyMedia>
+                                  <EmptyTitle>No Commissions Yet</EmptyTitle>
+                                </EmptyHeader>
+                                <EmptyContent />
+                              </Empty>
                             ) : (
-                              <div className="pd-client-detail__overview">
+                              <div className="flex flex-col gap-4">
                                 {pendingCommissions.length > 0 ? (
                                   <>
-                                    <div className="pd-ops__toolbar">
-                                      <p className="pd-ops__meta">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <p className="m-0 text-sm text-muted-foreground">
                                         Pending ·{' '}
                                         {formatPaymentAmount(
                                           pendingCommissions.reduce(
@@ -744,669 +1059,631 @@ export default function SubAgentDetailPage() {
                                       </p>
                                       <Button
                                         size="sm"
+                                        className="h-8 rounded-lg"
                                         onClick={() =>
                                           settleEntries(
                                             subAgent.id,
-                                            pendingCommissions.map(
-                                              (item) => item.id,
-                                            ),
+                                            pendingCommissions.map((item) => item.id),
                                           )
                                         }
                                       >
-                                        Settle all
+                                        Settle All
                                       </Button>
                                     </div>
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead>Date</TableHead>
-                                          <TableHead>Amount</TableHead>
-                                          <TableHead>Status</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {pendingCommissions.map((entry) => (
-                                          <TableRow key={entry.id}>
-                                            <TableCell>
-                                              {formatDisplayDate(
-                                                entry.createdAt,
-                                              )}
-                                            </TableCell>
-                                            <TableCell>
-                                              {formatPaymentAmount(entry.amount)}
-                                            </TableCell>
-                                            <TableCell>Pending</TableCell>
+                                    <div className="overflow-auto rounded-xl border">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow className="hover:bg-transparent">
+                                            <TableHead className={chromeHeadClass}>Date</TableHead>
+                                            <TableHead className={chromeHeadClass}>Amount</TableHead>
+                                            <TableHead className={chromeHeadClass}>Status</TableHead>
                                           </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {pendingCommissions.map((entry) => (
+                                            <TableRow key={entry.id}>
+                                              <TableCell>
+                                                {formatDisplayDate(entry.createdAt)}
+                                              </TableCell>
+                                              <TableCell>
+                                                {formatPaymentAmount(entry.amount)}
+                                              </TableCell>
+                                              <TableCell>Pending</TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
                                   </>
                                 ) : null}
                                 {commissionSettlements.length > 0 ? (
                                   <>
-                                    <h3 className="pd-ops__section-title">
-                                      Past settlements
-                                    </h3>
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead>Date</TableHead>
-                                          <TableHead>Entries</TableHead>
-                                          <TableHead>Total</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {commissionSettlements.map((item) => (
-                                          <TableRow key={item.id}>
-                                            <TableCell>
-                                              {formatDisplayDate(item.settledAt)}
-                                            </TableCell>
-                                            <TableCell>
-                                              {item.entryIds.length}
-                                            </TableCell>
-                                            <TableCell>
-                                              {formatPaymentAmount(item.total)}
-                                            </TableCell>
+                                    <h3 className="m-0 text-sm font-semibold">Past Settlements</h3>
+                                    <div className="overflow-auto rounded-xl border">
+                                      <Table>
+                                        <TableHeader>
+                                          <TableRow className="hover:bg-transparent">
+                                            <TableHead className={chromeHeadClass}>Date</TableHead>
+                                            <TableHead className={chromeHeadClass}>Entries</TableHead>
+                                            <TableHead className={chromeHeadClass}>Total</TableHead>
                                           </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {commissionSettlements.map((item) => (
+                                            <TableRow key={item.id}>
+                                              <TableCell>
+                                                {formatDisplayDate(item.settledAt)}
+                                              </TableCell>
+                                              <TableCell>{item.entryIds.length}</TableCell>
+                                              <TableCell>
+                                                {formatPaymentAmount(item.total)}
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
                                   </>
                                 ) : null}
                               </div>
-                            ),
-                        },
-                        {
-                          id: 'clients',
-                          title: (
-                            <span className="pd-client-detail__services-accordion-title">
-                              <span
-                                className="pd-client-detail__section-icon"
-                                aria-hidden
-                              >
-                                <Users size={15} strokeWidth={2.25} />
-                              </span>
-                              Clients
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
+
+                        <AccordionItem value="clients" className="rounded-xl border bg-card px-4 shadow-sm">
+                          <AccordionTrigger className="hover:no-underline">
+                            <span className="inline-flex items-center gap-2">
+                              <SectionTitle icon={Users}>Clients</SectionTitle>
+                              {clients.length > 0 ? (
+                                <Badge variant="secondary">{clients.length}</Badge>
+                              ) : null}
                             </span>
-                          ),
-                          meta:
-                            clients.length > 0
-                              ? String(clients.length)
-                              : undefined,
-                          content:
-                            clients.length === 0 ? (
-                              <EmptyState
-                                icon={Users}
-                                title="No clients yet"
-                                action={
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            {clients.length === 0 ? (
+                              <Empty className="border-0 p-4 shadow-none">
+                                <EmptyHeader>
+                                  <EmptyMedia variant="icon">
+                                    <Users />
+                                  </EmptyMedia>
+                                  <EmptyTitle>No Clients Yet</EmptyTitle>
+                                </EmptyHeader>
+                                <EmptyContent>
                                   <AddClientSplitButton
                                     size="md"
                                     subAgentId={subAgent.id}
                                     onAddClient={() => setCustomerOpen(true)}
                                   />
-                                }
-                              />
+                                </EmptyContent>
+                              </Empty>
                             ) : (
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Mobile</TableHead>
-                                    <TableHead>Balance due</TableHead>
-                                    <TableHead>Status</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {clients.map((client) => {
-                                    const serviceStatus = statusForClient(
-                                      client.id,
-                                    )
-                                    return (
-                                      <TableRow
-                                        key={client.id}
-                                        className="pd-clients__row"
-                                        onClick={() =>
-                                          navigate(`/clients/${client.id}`)
-                                        }
-                                      >
-                                        <TableCell>
-                                          <div className="pd-clients__identity">
-                                            <Avatar
-                                              name={client.name}
-                                              src={client.avatarUrl}
-                                              size="sm"
-                                              kind="client"
-                                            />
-                                            <p className="pd-clients__name">
-                                              {client.name}
-                                            </p>
-                                          </div>
-                                        </TableCell>
-                                        <TableCell>
-                                          {normalizePhone(client.phone) ||
-                                            client.phone}
-                                        </TableCell>
-                                        <TableCell className="pd-clients__balance">
-                                          {formatBalance(client.balance)}
-                                        </TableCell>
-                                        <TableCell>
-                                          {serviceStatus ? (
-                                            <Badge
-                                              variant={caseStatusBadgeVariant(
-                                                serviceStatus,
-                                              )}
-                                            >
-                                              {serviceStatus}
-                                            </Badge>
-                                          ) : (
-                                            '-'
-                                          )}
-                                        </TableCell>
-                                      </TableRow>
-                                    )
-                                  })}
-                                </TableBody>
-                              </Table>
-                            ),
-                        },
-                      ]}
-                    />
-                  </div>
-                ),
-              },
-              {
-                id: 'profile',
-                label: <TabLabel icon={Contact}>Profile</TabLabel>,
-                content: (
-                  <div className="pd-client-detail__profile">
-                    <div className="pd-client-profile">
-                      <div className="pd-client-detail__section pd-client-detail__section--compact pd-client-profile__group">
-                        <div className="pd-client-detail__section-head">
-                          <SectionTitle icon={IdCard}>Identity</SectionTitle>
-                        </div>
-                        <div className="pd-client-profile__grid">
-                          <div
-                            className={[
-                              'pd-client-profile__field',
-                              'is-wide',
-                              profileDraft.photoUrl !== savedDraft.photoUrl
-                                ? 'is-dirty'
-                                : '',
-                            ]
-                              .filter(Boolean)
-                              .join(' ')}
-                          >
-                            <ProfilePhotoField
-                              name={profileDraft.name}
-                              fallbackName="Sub Agent"
-                              kind="subAgent"
-                              value={profileDraft.photoUrl}
-                              onChange={(photoUrl) =>
-                                setDraft((current) => ({
-                                  ...(current ?? savedDraft),
-                                  photoUrl,
-                                }))
-                              }
+                              <div className="overflow-auto rounded-xl border">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow className="hover:bg-transparent">
+                                      <TableHead className={chromeHeadClass}>Name</TableHead>
+                                      <TableHead className={chromeHeadClass}>Mobile</TableHead>
+                                      <TableHead className={chromeHeadClass}>Balance Due</TableHead>
+                                      <TableHead className={chromeHeadClass}>Status</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {clients.map((client) => {
+                                      const serviceStatus = statusForClient(client.id)
+                                      return (
+                                        <TableRow
+                                          key={client.id}
+                                          className="cursor-pointer"
+                                          onClick={() => navigate(`/clients/${client.id}`)}
+                                        >
+                                          <TableCell>
+                                            <div className="flex min-w-0 items-center gap-2.5">
+                                              <Avatar className="size-8">
+                                                {client.avatarUrl ? (
+                                                  <AvatarImage src={client.avatarUrl} alt="" />
+                                                ) : null}
+                                                <AvatarFallback>
+                                                  {initials(client.name)}
+                                                </AvatarFallback>
+                                              </Avatar>
+                                              <span className="truncate font-medium">
+                                                {client.name}
+                                              </span>
+                                            </div>
+                                          </TableCell>
+                                          <TableCell>
+                                            {normalizePhone(client.phone) || client.phone}
+                                          </TableCell>
+                                          <TableCell>{formatBalance(client.balance)}</TableCell>
+                                          <TableCell>
+                                            {serviceStatus ? (
+                                              <Badge
+                                                variant={caseStatusShadcnVariant(serviceStatus)}
+                                              >
+                                                {serviceStatus}
+                                              </Badge>
+                                            ) : (
+                                              '-'
+                                            )}
+                                          </TableCell>
+                                        </TableRow>
+                                      )
+                                    })}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </div>
+                  ),
+                },
+                {
+                  id: 'profile',
+                  label: <TabLabel icon={Contact}>Profile</TabLabel>,
+                  content: (
+                    <div className="flex flex-col gap-4">
+                      <Card size="sm" className="shadow-sm">
+                        <CardHeader>
+                          <CardTitle>
+                            <SectionTitle icon={IdCard}>Identity</SectionTitle>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div
+                              className={cn(
+                                'sm:col-span-2',
+                                fieldClass(profileDraft.photoUrl !== savedDraft.photoUrl),
+                              )}
                             >
+                              <ProfilePhotoField
+                                name={profileDraft.name}
+                                fallbackName="Sub Agent"
+                                kind="subAgent"
+                                value={profileDraft.photoUrl}
+                                onChange={(photoUrl) =>
+                                  setDraft((current) => ({
+                                    ...(current ?? savedDraft),
+                                    photoUrl,
+                                  }))
+                                }
+                              >
+                                <Input
+                                  label="Sub Agent Name"
+                                  required
+                                  value={profileDraft.name}
+                                  onChange={(event) =>
+                                    setDraft((current) => ({
+                                      ...(current ?? savedDraft),
+                                      name: event.target.value,
+                                    }))
+                                  }
+                                  onBlur={blur('name')}
+                                  error={
+                                    showError('name') ? subAgentErrors.name : undefined
+                                  }
+                                />
+                              </ProfilePhotoField>
+                            </div>
+                            <div className={fieldClass(profileDraft.phone !== savedDraft.phone)}>
                               <Input
-                                label="Sub agent name"
+                                label="Phone"
                                 required
-                                value={profileDraft.name}
+                                type="tel"
+                                value={profileDraft.phone}
                                 onChange={(event) =>
                                   setDraft((current) => ({
                                     ...(current ?? savedDraft),
-                                    name: event.target.value,
+                                    phone: event.target.value,
                                   }))
                                 }
-                                onBlur={blur('name')}
+                                onBlur={blur('phone')}
                                 error={
-                                  showError('name')
-                                    ? subAgentErrors.name
+                                  showError('phone') ? subAgentErrors.phone : undefined
+                                }
+                              />
+                            </div>
+                            <div className={fieldClass(profileDraft.email !== savedDraft.email)}>
+                              <Input
+                                label="Email"
+                                type="email"
+                                value={profileDraft.email}
+                                onChange={(event) =>
+                                  setDraft((current) => ({
+                                    ...(current ?? savedDraft),
+                                    email: event.target.value,
+                                  }))
+                                }
+                                onBlur={blur('email')}
+                                error={
+                                  showError('email') ? subAgentErrors.email : undefined
+                                }
+                              />
+                            </div>
+                            <div
+                              className={fieldClass(
+                                profileDraft.address !== savedDraft.address,
+                              )}
+                            >
+                              <Input
+                                label="Address"
+                                value={profileDraft.address}
+                                onChange={(event) =>
+                                  setDraft((current) => ({
+                                    ...(current ?? savedDraft),
+                                    address: event.target.value,
+                                  }))
+                                }
+                                onBlur={blur('address')}
+                                error={
+                                  showError('address')
+                                    ? subAgentErrors.address
                                     : undefined
                                 }
                               />
-                            </ProfilePhotoField>
-                          </div>
-                          <div
-                            className={
-                              profileDraft.phone !== savedDraft.phone
-                                ? 'pd-client-profile__field is-dirty'
-                                : 'pd-client-profile__field'
-                            }
-                          >
-                            <Input
-                              label="Phone"
-                              required
-                              type="tel"
-                              value={profileDraft.phone}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...(current ?? savedDraft),
-                                  phone: event.target.value,
-                                }))
-                              }
-                              onBlur={blur('phone')}
-                              error={
-                                showError('phone')
-                                  ? subAgentErrors.phone
-                                  : undefined
-                              }
-                            />
-                          </div>
-                          <div
-                            className={
-                              profileDraft.email !== savedDraft.email
-                                ? 'pd-client-profile__field is-dirty'
-                                : 'pd-client-profile__field'
-                            }
-                          >
-                            <Input
-                              label="Email"
-                              type="email"
-                              value={profileDraft.email}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...(current ?? savedDraft),
-                                  email: event.target.value,
-                                }))
-                              }
-                              onBlur={blur('email')}
-                              error={
-                                showError('email')
-                                  ? subAgentErrors.email
-                                  : undefined
-                              }
-                            />
-                          </div>
-                          <div
-                            className={
-                              profileDraft.address !== savedDraft.address
-                                ? 'pd-client-profile__field is-dirty'
-                                : 'pd-client-profile__field'
-                            }
-                          >
-                            <Input
-                              label="Address"
-                              value={profileDraft.address}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...(current ?? savedDraft),
-                                  address: event.target.value,
-                                }))
-                              }
-                              onBlur={blur('address')}
-                              error={
-                                showError('address')
-                                  ? subAgentErrors.address
-                                  : undefined
-                              }
-                            />
-                          </div>
-                          <div
-                            className={
-                              profileDraft.licenseNumber !==
-                              savedDraft.licenseNumber
-                                ? 'pd-client-profile__field is-dirty'
-                                : 'pd-client-profile__field'
-                            }
-                          >
-                            <Input
-                              label="License"
-                              value={profileDraft.licenseNumber}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...(current ?? savedDraft),
-                                  licenseNumber: event.target.value,
-                                }))
-                              }
-                              onBlur={blur('licenseNumber')}
-                              error={
-                                showError('licenseNumber')
-                                  ? subAgentErrors.licenseNumber
-                                  : undefined
-                              }
-                            />
-                          </div>
-                          <div
-                            className={
-                              profileDraft.branch !== savedDraft.branch
-                                ? 'pd-client-profile__field is-dirty'
-                                : 'pd-client-profile__field'
-                            }
-                          >
-                            <Input
-                              label="Branch"
-                              value={profileDraft.branch}
-                              onChange={(event) =>
-                                setDraft((current) => ({
-                                  ...(current ?? savedDraft),
-                                  branch: event.target.value,
-                                }))
-                              }
-                              onBlur={blur('branch')}
-                              error={
-                                showError('branch')
-                                  ? subAgentErrors.branch
-                                  : undefined
-                              }
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {isDirty ? (
-                      <div className="pd-client-detail__profile-actions">
-                        <Button variant="secondary" onClick={discardChanges}>
-                          Discard changes
-                        </Button>
-                        <Button onClick={saveProfile}>
-                          <Check size={16} strokeWidth={2.25} aria-hidden />
-                          Save
-                        </Button>
-                      </div>
-                    ) : null}
-                  </div>
-                ),
-              },
-              {
-                id: 'clients',
-                label: <TabLabel icon={Users}>Clients</TabLabel>,
-                content: (
-                  <div className="pd-sub-agent-clients">
-                    <div className="pd-clients__toolbar">
-                      <SearchField
-                        className="pd-clients__search"
-                        placeholder="Search clients…"
-                        value={clientSearch}
-                        onChange={(event) => setClientSearch(event.target.value)}
-                        onClear={() => setClientSearch('')}
-                      />
-
-                      <div className="pd-clients__toolbar-end">
-                        <div className="pd-clients__filters">
-                          <Select
-                            className="pd-clients__filter"
-                            label="Service"
-                            multiple
-                            searchable
-                            placeholder="All services"
-                            searchPlaceholder="Search services…"
-                            value={clientServiceFilters}
-                            onChange={(event) =>
-                              setClientServiceFilters(event.target.value)
-                            }
-                            options={getEnabledServiceTypeOptions()}
-                          />
-                          <Select
-                            className="pd-clients__filter"
-                            label="Status"
-                            multiple
-                            searchable
-                            placeholder="All statuses"
-                            searchPlaceholder="Search statuses…"
-                            value={clientStatusFilters}
-                            onChange={(event) =>
-                              setClientStatusFilters(event.target.value)
-                            }
-                            options={CLIENT_STATUS_FILTERS}
-                          />
-                          {hasClientFilters ? (
-                            <button
-                              type="button"
-                              className="pd-clients__clear"
-                              onClick={() => {
-                                setClientServiceFilters([])
-                                setClientStatusFilters([])
-                              }}
+                            </div>
+                            <div
+                              className={fieldClass(
+                                profileDraft.licenseNumber !== savedDraft.licenseNumber,
+                              )}
                             >
-                              Clear
-                            </button>
-                          ) : null}
+                              <Input
+                                label="License"
+                                value={profileDraft.licenseNumber}
+                                onChange={(event) =>
+                                  setDraft((current) => ({
+                                    ...(current ?? savedDraft),
+                                    licenseNumber: event.target.value,
+                                  }))
+                                }
+                                onBlur={blur('licenseNumber')}
+                                error={
+                                  showError('licenseNumber')
+                                    ? subAgentErrors.licenseNumber
+                                    : undefined
+                                }
+                              />
+                            </div>
+                            <div
+                              className={fieldClass(
+                                profileDraft.branch !== savedDraft.branch,
+                              )}
+                            >
+                              <Input
+                                label="Branch"
+                                value={profileDraft.branch}
+                                onChange={(event) =>
+                                  setDraft((current) => ({
+                                    ...(current ?? savedDraft),
+                                    branch: event.target.value,
+                                  }))
+                                }
+                                onBlur={blur('branch')}
+                                error={
+                                  showError('branch')
+                                    ? subAgentErrors.branch
+                                    : undefined
+                                }
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      {isDirty ? (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            className="h-9 rounded-lg"
+                            onClick={discardChanges}
+                          >
+                            Discard Changes
+                          </Button>
+                          <Button className="h-9 rounded-lg" onClick={saveProfile}>
+                            <Check size={16} strokeWidth={2.25} data-icon="inline-start" />
+                            Save
+                          </Button>
                         </div>
-                        <div
-                          className="pd-clients__views"
-                          role="group"
+                      ) : null}
+                    </div>
+                  ),
+                },
+                {
+                  id: 'clients',
+                  label: <TabLabel icon={Users}>Clients</TabLabel>,
+                  content: (
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <SearchInput
+                          className={cn(whiteControlClass, 'max-w-sm')}
+                          placeholder="Search clients…"
+                          value={clientSearch}
+                          onChange={(event) => setClientSearch(event.target.value)}
+                          aria-label="Search clients"
+                        />
+                        <MultiFilterButton
+                          label="Service"
+                          options={getEnabledServiceTypeOptions()}
+                          selected={clientServiceFilters}
+                          onChange={setClientServiceFilters}
+                        />
+                        <MultiFilterButton
+                          label="Status"
+                          options={CLIENT_STATUS_FILTERS}
+                          selected={clientStatusFilters}
+                          onChange={setClientStatusFilters}
+                        />
+                        {hasClientFilters ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-9"
+                            onClick={() => {
+                              setClientServiceFilters([])
+                              setClientStatusFilters([])
+                            }}
+                          >
+                            Clear
+                          </Button>
+                        ) : null}
+                        <ToggleGroup
+                          type="single"
+                          value={clientsListView}
+                          onValueChange={(value) => {
+                            if (value === 'table' || value === 'grid') {
+                              selectClientsListView(value)
+                            }
+                          }}
+                          className="ml-auto"
                           aria-label="Client list view"
                         >
-                          <Tooltip content="Table view">
-                            <button
-                              type="button"
-                              className={
-                                clientsListView === 'table'
-                                  ? 'pd-clients__view is-active'
-                                  : 'pd-clients__view'
-                              }
-                              aria-pressed={clientsListView === 'table'}
-                              aria-label="Table view"
-                              onClick={() => selectClientsListView('table')}
-                            >
-                              <Table2 size={16} strokeWidth={2.25} aria-hidden />
-                            </button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <ToggleGroupItem
+                                value="table"
+                                aria-label="Table view"
+                                className={whiteControlClass}
+                              >
+                                <Table2 size={16} strokeWidth={2.25} aria-hidden />
+                              </ToggleGroupItem>
+                            </TooltipTrigger>
+                            <TooltipContent>Table View</TooltipContent>
                           </Tooltip>
-                          <Tooltip content="Grid view">
-                            <button
-                              type="button"
-                              className={
-                                clientsListView === 'grid'
-                                  ? 'pd-clients__view is-active'
-                                  : 'pd-clients__view'
-                              }
-                              aria-pressed={clientsListView === 'grid'}
-                              aria-label="Grid view"
-                              onClick={() => selectClientsListView('grid')}
-                            >
-                              <LayoutGrid
-                                size={16}
-                                strokeWidth={2.25}
-                                aria-hidden
-                              />
-                            </button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <ToggleGroupItem
+                                value="grid"
+                                aria-label="Grid view"
+                                className={whiteControlClass}
+                              >
+                                <LayoutGrid size={16} strokeWidth={2.25} aria-hidden />
+                              </ToggleGroupItem>
+                            </TooltipTrigger>
+                            <TooltipContent>Grid View</TooltipContent>
                           </Tooltip>
-                        </div>
+                        </ToggleGroup>
                         <AddClientSplitButton
                           size="md"
-                          label="New client"
+                          label="New Client"
                           subAgentId={subAgent.id}
                           onAddClient={() => setCustomerOpen(true)}
                         />
                       </div>
-                    </div>
 
-                    {clients.length === 0 ? (
-                      <EmptyState
-                        icon={Users}
-                        title="No customers yet"
-                        action={
-                          <AddClientSplitButton
-                            size="md"
-                            subAgentId={subAgent.id}
-                            onAddClient={() => setCustomerOpen(true)}
-                          />
-                        }
-                      />
-                    ) : filteredClients.length === 0 ? (
-                      <EmptyState
-                        icon={Users}
-                        title="No clients match"
-                        action={
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={resetClientFilters}
-                          >
-                            Reset filters
-                          </Button>
-                        }
-                      />
-                    ) : clientsListView === 'grid' ? (
-                      <div className="pd-clients__grid">
-                        {filteredClients.map((client) => {
-                          const serviceStatus = deriveClientServiceStatus(
-                            casesByClientId.get(client.id) ?? [],
-                          )
-                          return (
-                            <button
-                              key={client.id}
-                              type="button"
-                              className="pd-clients__card"
-                              onClick={() => navigate(`/clients/${client.id}`)}
+                      {clients.length === 0 ? (
+                        <Empty className="bg-card shadow-sm">
+                          <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                              <Users />
+                            </EmptyMedia>
+                            <EmptyTitle>No Customers Yet</EmptyTitle>
+                          </EmptyHeader>
+                          <EmptyContent>
+                            <AddClientSplitButton
+                              size="md"
+                              subAgentId={subAgent.id}
+                              onAddClient={() => setCustomerOpen(true)}
+                            />
+                          </EmptyContent>
+                        </Empty>
+                      ) : filteredClients.length === 0 ? (
+                        <Empty className="bg-card shadow-sm">
+                          <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                              <Users />
+                            </EmptyMedia>
+                            <EmptyTitle>No Clients Match</EmptyTitle>
+                          </EmptyHeader>
+                          <EmptyContent>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 rounded-lg"
+                              onClick={resetClientFilters}
                             >
-                              <div className="pd-clients__card-top">
-                                <div className="pd-clients__identity">
-                                  <Avatar
-                                    name={client.name}
-                                    src={client.avatarUrl}
-                                    size="md"
-                                    kind="client"
-                                  />
-                                  <p className="pd-clients__name">
-                                    {client.name}
-                                  </p>
-                                </div>
-                                {serviceStatus ? (
-                                  <Badge
-                                    variant={caseStatusBadgeVariant(
-                                      serviceStatus,
-                                    )}
-                                  >
-                                    {serviceStatus}
-                                  </Badge>
-                                ) : null}
-                              </div>
-                              <dl className="pd-clients__card-meta">
-                                <div className="pd-clients__card-row">
-                                  <dt>Mobile</dt>
-                                  <dd>{formatMobile(client.phone)}</dd>
-                                </div>
-                                <div className="pd-clients__card-row">
-                                  <dt>Passport</dt>
-                                  <dd>{client.passport || '-'}</dd>
-                                </div>
-                                <div className="pd-clients__card-row">
-                                  <dt>Country</dt>
-                                  <dd>{client.preferredCountry || '-'}</dd>
-                                </div>
-                                <div className="pd-clients__card-row">
-                                  <dt>Balance due</dt>
-                                  <dd className="pd-clients__balance">
-                                    {formatBalance(client.balance)}
-                                  </dd>
-                                </div>
-                              </dl>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Mobile</TableHead>
-                            <TableHead>Passport</TableHead>
-                            <TableHead>Country</TableHead>
-                            <TableHead>Balance due</TableHead>
-                            <TableHead>Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                              Reset Filters
+                            </Button>
+                          </EmptyContent>
+                        </Empty>
+                      ) : clientsListView === 'grid' ? (
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                           {filteredClients.map((client) => {
-                            const serviceStatus = statusForClient(client.id)
+                            const serviceStatus = deriveClientServiceStatus(
+                              casesByClientId.get(client.id) ?? [],
+                            )
                             return (
-                              <TableRow
+                              <Card
                                 key={client.id}
-                                className="pd-clients__row"
-                                onClick={() =>
-                                  navigate(`/clients/${client.id}`)
-                                }
+                                className="cursor-pointer shadow-sm"
+                                onClick={() => navigate(`/clients/${client.id}`)}
                               >
-                                <TableCell>
-                                  <div className="pd-clients__identity">
-                                    <Avatar
-                                      name={client.name}
-                                      src={client.avatarUrl}
-                                      size="sm"
-                                      kind="client"
-                                    />
-                                    <p className="pd-clients__name">
-                                      {client.name}
-                                    </p>
+                                <CardHeader>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex min-w-0 items-center gap-2">
+                                      <Avatar className="size-9">
+                                        {client.avatarUrl ? (
+                                          <AvatarImage src={client.avatarUrl} alt="" />
+                                        ) : null}
+                                        <AvatarFallback>
+                                          {initials(client.name)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <CardTitle className="truncate">{client.name}</CardTitle>
+                                    </div>
+                                    {serviceStatus ? (
+                                      <Badge
+                                        variant={caseStatusShadcnVariant(serviceStatus)}
+                                      >
+                                        {serviceStatus}
+                                      </Badge>
+                                    ) : null}
                                   </div>
-                                </TableCell>
-                                <TableCell>
-                                  {normalizePhone(client.phone) || client.phone}
-                                </TableCell>
-                                <TableCell>{client.passport || '-'}</TableCell>
-                                <TableCell>
-                                  {client.preferredCountry || '-'}
-                                </TableCell>
-                                <TableCell className="pd-clients__balance">
-                                  {formatBalance(client.balance)}
-                                </TableCell>
-                                <TableCell>
-                                  {serviceStatus ? (
-                                    <Badge
-                                      variant={caseStatusBadgeVariant(
-                                        serviceStatus,
-                                      )}
-                                    >
-                                      {serviceStatus}
-                                    </Badge>
-                                  ) : (
-                                    '-'
-                                  )}
-                                </TableCell>
-                              </TableRow>
+                                </CardHeader>
+                                <CardContent className="grid gap-1 text-sm text-muted-foreground">
+                                  <div className="flex justify-between gap-2">
+                                    <span>Mobile</span>
+                                    <span className="text-foreground">
+                                      {formatMobile(client.phone)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <span>Passport</span>
+                                    <span className="text-foreground">
+                                      {client.passport || '-'}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <span>Country</span>
+                                    <span className="text-foreground">
+                                      {client.preferredCountry || '-'}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <span>Balance Due</span>
+                                    <span className="text-foreground">
+                                      {formatBalance(client.balance)}
+                                    </span>
+                                  </div>
+                                </CardContent>
+                              </Card>
                             )
                           })}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </div>
-                ),
-              },
-              {
-                id: 'report',
-                label: <TabLabel icon={FileText}>Report</TabLabel>,
-                content: (
-                  <SubAgentClientReportPanel
-                    subAgent={subAgent}
-                    clients={clients}
-                    casesByClientId={casesByClientId}
-                  />
-                ),
-              },
-              {
-                id: 'login',
-                label: <TabLabel icon={KeyRound}>Login</TabLabel>,
-                content: (
-                  <SubAgentLoginSection
-                    subAgent={subAgent}
-                    onEmailSaved={(email) => {
-                      if (subAgent.email !== email) {
-                        updateSubAgent(subAgent.id, { email })
-                      }
-                    }}
-                  />
-                ),
-              },
-            ]}
-          />
+                        </div>
+                      ) : (
+                        <div className="overflow-auto rounded-xl border bg-card shadow-md">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="hover:bg-transparent">
+                                <TableHead className={chromeHeadClass}>Name</TableHead>
+                                <TableHead className={chromeHeadClass}>Mobile</TableHead>
+                                <TableHead className={chromeHeadClass}>Passport</TableHead>
+                                <TableHead className={chromeHeadClass}>Country</TableHead>
+                                <TableHead className={chromeHeadClass}>Balance Due</TableHead>
+                                <TableHead className={chromeHeadClass}>Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredClients.map((client) => {
+                                const serviceStatus = statusForClient(client.id)
+                                return (
+                                  <TableRow
+                                    key={client.id}
+                                    className="cursor-pointer"
+                                    onClick={() => navigate(`/clients/${client.id}`)}
+                                  >
+                                    <TableCell>
+                                      <div className="flex min-w-0 items-center gap-2.5">
+                                        <Avatar className="size-8">
+                                          {client.avatarUrl ? (
+                                            <AvatarImage src={client.avatarUrl} alt="" />
+                                          ) : null}
+                                          <AvatarFallback>
+                                            {initials(client.name)}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <span className="truncate font-medium">
+                                          {client.name}
+                                        </span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      {normalizePhone(client.phone) || client.phone}
+                                    </TableCell>
+                                    <TableCell>{client.passport || '-'}</TableCell>
+                                    <TableCell>
+                                      {client.preferredCountry || '-'}
+                                    </TableCell>
+                                    <TableCell>{formatBalance(client.balance)}</TableCell>
+                                    <TableCell>
+                                      {serviceStatus ? (
+                                        <Badge
+                                          variant={caseStatusShadcnVariant(serviceStatus)}
+                                        >
+                                          {serviceStatus}
+                                        </Badge>
+                                      ) : (
+                                        '-'
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  id: 'report',
+                  label: <TabLabel icon={FileText}>Report</TabLabel>,
+                  content: (
+                    <SubAgentClientReportPanel
+                      subAgent={subAgent}
+                      clients={clients}
+                      casesByClientId={casesByClientId}
+                    />
+                  ),
+                },
+                {
+                  id: 'login',
+                  label: <TabLabel icon={KeyRound}>Login</TabLabel>,
+                  content: (
+                    <SubAgentLoginSection
+                      subAgent={subAgent}
+                      onEmailSaved={(email) => {
+                        if (subAgent.email !== email) {
+                          updateSubAgent(subAgent.id, { email })
+                        }
+                      }}
+                    />
+                  ),
+                },
+              ]}
+            />
+          </div>
         </div>
-      </div>
 
-      <SideDrawer
-        open={customerOpen}
-        onClose={() => setCustomerOpen(false)}
-        title="Add client"
-        className="pd-clients-drawer"
-      >
-        <NewClientForm
-          defaultSubAgentId={subAgent.id}
-          onCancel={() => setCustomerOpen(false)}
-          onSubmit={handleCreateClient}
-        />
-      </SideDrawer>
-    </div>
+        <Sheet
+          open={customerOpen}
+          onOpenChange={(open) => {
+            if (!open) setCustomerOpen(false)
+          }}
+        >
+          <SheetContent className={cn(floatingSheetClass, floatingSheetWideClass)}>
+            <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+              <SheetTitle className="text-base font-semibold">Add Client</SheetTitle>
+            </SheetHeader>
+            <NewClientForm
+              defaultSubAgentId={subAgent.id}
+              onCancel={() => setCustomerOpen(false)}
+              onSubmit={handleCreateClient}
+            />
+          </SheetContent>
+        </Sheet>
+      </div>
+    </TooltipProvider>
   )
 }

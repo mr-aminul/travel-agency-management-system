@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useParams } from 'react-router-dom'
-import { Check, Share2 } from 'lucide-react'
+import { Link, Navigate, useParams } from 'react-router-dom'
+import { ArrowLeft, Check, Share2 } from 'lucide-react'
 import { BusinessProfileSetupNotice } from '@/components/BusinessProfileSetupNotice'
 import { InvoicePageView } from '@/components/invoices/InvoicePageView'
 import { InvoicePrintActions } from '@/components/invoices/InvoicePrintActions'
+import { Button } from '@/components/shadcn/button'
 import { buildCaseInvoice } from '@/lib/caseInvoice'
 import { getCaseById, useCases } from '@/lib/casesStore'
 import { getClientById } from '@/lib/clientsStore'
-import { BackButton, Button } from '@/components/ui'
 import {
   copyText,
   createPublicInvoiceShare,
@@ -72,11 +72,18 @@ export default function CaseInvoicePage() {
       }
       toolbar={
         <>
-          <BackButton to={workDetailPath(caseItem)} label="Service" />
+          <Link
+            to={workDetailPath(caseItem)}
+            className="inline-flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+            aria-label="Back to Service"
+          >
+            <ArrowLeft size={18} strokeWidth={2.25} aria-hidden />
+          </Link>
           <div className="pd-invoice-page__actions">
             <Button
               size="sm"
-              variant="secondary"
+              variant="outline"
+              className="h-9 rounded-lg"
               disabled={profileIncomplete}
               title={
                 profileIncomplete
@@ -90,7 +97,7 @@ export default function CaseInvoicePage() {
               ) : (
                 <Share2 size={14} strokeWidth={2.25} aria-hidden />
               )}
-              {copied ? 'Link copied' : 'Share'}
+              {copied ? 'Link Copied' : 'Share'}
             </Button>
             <InvoicePrintActions invoiceNumber={invoice.invoiceNumber} />
           </div>

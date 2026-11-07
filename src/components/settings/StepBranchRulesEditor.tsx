@@ -1,6 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Trash2 } from 'lucide-react'
-import { Button, SideDrawer } from '@/components/ui'
+import { floatingSheetClass } from '@/components/clients/shadcnChrome'
+import { Button } from '@/components/shadcn/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
 import {
   listBranchSlotsForStep,
   unwireBranchSlot,
@@ -156,44 +164,45 @@ export function StepBranchRulesEditor({
         </ul>
       )}
 
-      <SideDrawer
+      <Sheet
         open={draft != null}
-        onClose={() => setDraft(null)}
-        title="Wire branch"
-        className="pd-settings-branch-drawer"
-        footer={
-          <div className="pd-settings-template__branch-drawer-actions">
-            <span />
-            <div className="pd-settings-template__branch-drawer-actions-end">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setDraft(null)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        }
+        onOpenChange={(next) => {
+          if (!next) setDraft(null)
+        }}
       >
-        {draft ? (
-          <div className="pd-settings-template__branch-drawer-fields">
-            {nextStepOptions.length === 0 ? (
-              <p className="pd-settings-template__branch-drawer-empty">
-                Add another status step first, then wire this branch.
-              </p>
-            ) : (
-              <ChoiceList
-                label="go to"
-                ariaLabel="Branch next step"
-                value={draft.nextStepId}
-                options={nextStepOptions}
-                onChange={(nextStepId) => wireSlot(draft, nextStepId)}
-              />
-            )}
-          </div>
-        ) : null}
-      </SideDrawer>
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">Wire Branch</SheetTitle>
+          </SheetHeader>
+          {draft ? (
+            <div className="flex flex-col gap-4 p-5">
+              {nextStepOptions.length === 0 ? (
+                <p className="m-0 text-sm text-muted-foreground">
+                  Add another status step first, then wire this branch.
+                </p>
+              ) : (
+                <ChoiceList
+                  label="Go To"
+                  ariaLabel="Branch next step"
+                  value={draft.nextStepId}
+                  options={nextStepOptions}
+                  onChange={(nextStepId) => wireSlot(draft, nextStepId)}
+                />
+              )}
+            </div>
+          ) : null}
+          <SheetFooter className="border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 rounded-lg"
+              onClick={() => setDraft(null)}
+            >
+              Cancel
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </section>
   )
 }

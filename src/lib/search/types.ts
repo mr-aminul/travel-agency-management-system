@@ -1,5 +1,13 @@
 import type { LucideIcon } from 'lucide-react'
-import { type BadgeVariant } from '@/components/ui'
+
+/** Status chip tone for global search rows (CSS under layout-search). */
+export type SearchStatusVariant =
+  | 'neutral'
+  | 'completed'
+  | 'pending'
+  | 'in-progress'
+  | 'on-hold'
+  | 'danger'
 
 export type SearchKind =
   | 'action'
@@ -30,7 +38,7 @@ export type SearchItem = {
   avatarUrl?: string
   avatarName?: string
   status?: string
-  statusVariant?: BadgeVariant
+  statusVariant?: SearchStatusVariant
 }
 
 export type HighlightRange = {

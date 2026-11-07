@@ -3,7 +3,9 @@ import { FileViewer } from '@/components/cases/FileViewer'
 import { formatDisplayDate } from '@/lib/formatDate'
 import type { DocumentFormDef } from '@/lib/caseDocumentForms'
 import type { CaseDocument } from '@/types/case'
-import { FileDropzone, Input, Select } from '@/components/ui'
+import { FileDropzone } from '@/components/shadcn/file-dropzone'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
+import { cn } from '@/lib/utils'
 
 function ReadOnlyField({
   label,
@@ -15,9 +17,11 @@ function ReadOnlyField({
   isDate?: boolean
 }) {
   return (
-    <div className="pd-step-view__field">
-      <dt>{label}</dt>
-      <dd>{isDate ? formatDisplayDate(value) : value || '-'}</dd>
+    <div className="flex min-w-0 flex-col gap-1">
+      <dt className="text-xs font-semibold text-muted-foreground">{label}</dt>
+      <dd className="m-0 text-sm">
+        {isDate ? formatDisplayDate(value) : value || '-'}
+      </dd>
     </div>
   )
 }
@@ -80,7 +84,7 @@ export function DocumentRecordFields({
   )
 
   const fieldBlock = isView ? (
-    <dl className="pd-step-view__fields pd-doc-inspect__fields">
+    <dl className="m-0 grid gap-3 sm:grid-cols-2">
       {form.fields.map((field) => (
         <ReadOnlyField
           key={field.key}
@@ -92,7 +96,7 @@ export function DocumentRecordFields({
       {showSummary ? <ReadOnlyField label="Summary" value={summary ?? ''} /> : null}
     </dl>
   ) : (
-    <div className="pd-doc-inspect__form-fields">
+    <div className="grid gap-3 sm:grid-cols-2">
       {form.fields.map((field) =>
         field.type === 'select' ? (
           <Select
@@ -140,7 +144,7 @@ export function DocumentRecordFields({
         hideMeta={hideFileMeta}
       />
     ) : (
-      <p className="pd-step-view__empty">No file attached.</p>
+      <p className="m-0 text-sm text-muted-foreground">No file attached.</p>
     )
   ) : hasFile ? (
     <FileViewer
@@ -153,9 +157,10 @@ export function DocumentRecordFields({
     />
   ) : (
     <div
-      className={
-        highlightNeedsFile ? 'pd-doc-inspect__drop is-attention' : undefined
-      }
+      className={cn(
+        highlightNeedsFile &&
+          'rounded-xl border border-[color-mix(in_srgb,var(--color-danger)_45%,var(--color-border))]',
+      )}
     >
       <FileDropzone onFile={onAttachFile} />
     </div>
@@ -170,8 +175,8 @@ export function DocumentRecordFields({
 
   const labeledFile =
     isView && hasFile && !hideFileMeta ? (
-      <div className="pd-step-view__files-block">
-        <p className="pd-step-panel__uploads-title">File</p>
+      <div className="flex flex-col gap-2">
+        <p className="m-0 text-xs font-semibold text-muted-foreground">File</p>
         {fileBlock}
       </div>
     ) : (
@@ -197,7 +202,7 @@ export function DocumentRecordFields({
   return (
     <form
       id={formId}
-      className="pd-doc-modal__form"
+      className="flex flex-col gap-3"
       onSubmit={onSubmit}
       noValidate
     >

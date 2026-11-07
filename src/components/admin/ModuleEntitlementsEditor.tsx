@@ -3,7 +3,19 @@ import { MODULE_GROUPS, type ModuleCatalogItem } from '@/lib/modules'
 import { iconForModule } from '@/lib/moduleIcons'
 import { setTenantModuleEnabled, useTenantById } from '@/lib/tenantsStore'
 import type { ModuleId, Tenant } from '@/types/tenant'
-import { ConfirmDialog, Switch } from '@/components/ui'
+import { LabeledSwitch } from '@/components/clients/LabeledSwitch'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import {
+  adminModuleGroupClass,
+  adminModuleGroupTitleClass,
+  adminModuleIconClass,
+  adminModuleLabelClass,
+  adminModuleListGridClass,
+  adminModuleMetaClass,
+  adminModuleRowClass,
+  adminModuleSwitchClass,
+  adminModulesClass,
+} from '@/components/admin/adminChrome'
 
 type PendingToggle = {
   moduleId: ModuleId
@@ -23,16 +35,16 @@ function ModuleRow({
   const Icon = iconForModule(module.id)
 
   return (
-    <li className="pd-admin__module-row">
-      <div className="pd-admin__module-meta">
-        <span className="pd-admin__module-icon" aria-hidden>
+    <li className={adminModuleRowClass}>
+      <div className={adminModuleMetaClass}>
+        <span className={adminModuleIconClass} aria-hidden>
           <Icon size={16} strokeWidth={2.1} />
         </span>
-        <span className="pd-admin__module-label">{module.label}</span>
+        <span className={adminModuleLabelClass}>{module.label}</span>
       </div>
-      <Switch
+      <LabeledSwitch
         label={module.label}
-        className="pd-admin__module-switch"
+        className={adminModuleSwitchClass}
         checked={checked}
         onChange={(event) =>
           onToggle(module.id, event.target.checked, module.label)
@@ -81,19 +93,19 @@ export function ModuleEntitlementsEditor({
   }
 
   return (
-    <div className="pd-admin__modules" aria-label="Modules">
+    <div className={adminModulesClass} aria-label="Modules">
       {servicesGroup ? (
         <section
-          className="pd-admin__module-group"
+          className={adminModuleGroupClass}
           aria-labelledby="pd-admin-modules-services"
         >
           <h3
             id="pd-admin-modules-services"
-            className="pd-admin__module-group-title"
+            className={adminModuleGroupTitleClass}
           >
             Services
           </h3>
-          <ul className="pd-admin__module-list pd-admin__module-list--grid">
+          <ul className={adminModuleListGridClass}>
             {servicesGroup.modules.map((module) => (
               <ModuleRow
                 key={module.id}
@@ -108,16 +120,16 @@ export function ModuleEntitlementsEditor({
 
       {workspaceModules.length > 0 ? (
         <section
-          className="pd-admin__module-group"
+          className={adminModuleGroupClass}
           aria-labelledby="pd-admin-modules-workspaces"
         >
           <h3
             id="pd-admin-modules-workspaces"
-            className="pd-admin__module-group-title"
+            className={adminModuleGroupTitleClass}
           >
             Workspaces
           </h3>
-          <ul className="pd-admin__module-list pd-admin__module-list--grid">
+          <ul className={adminModuleListGridClass}>
             {workspaceModules.map((module) => (
               <ModuleRow
                 key={module.id}

@@ -5,8 +5,9 @@ import { useDocumentRecordEditor } from '@/components/cases/documentRecordEditor
 import { documentIcon } from '@/lib/caseDocuments'
 import { documentHasFile, type IdentityKind } from '@/lib/clientDocuments'
 import type { CaseDocument } from '@/types/case'
-import '@/styles/layout-cases.css'
-import { Badge, Button, type BadgeVariant } from '@/components/ui'
+import { Badge } from '@/components/shadcn/badge'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/shadcn/button'
 
 function statusCopy(
   document: CaseDocument,
@@ -14,20 +15,19 @@ function statusCopy(
   hasFile: boolean,
 ): {
   label: string
-  variant: BadgeVariant
+  variant: 'default' | 'secondary' | 'destructive'
 } {
-  if (locked) return { label: 'Later', variant: 'on-hold' }
+  if (locked) return { label: 'Later', variant: 'secondary' }
   if (!hasFile) {
-    // Match Service catalog Required — optional docs are not "Needed".
     return document.required
-      ? { label: 'Needed', variant: 'danger' }
-      : { label: 'Optional', variant: 'pending' }
+      ? { label: 'Needed', variant: 'destructive' }
+      : { label: 'Optional', variant: 'secondary' }
   }
-  if (document.status === 'approved') return { label: 'Uploaded', variant: 'completed' }
+  if (document.status === 'approved') return { label: 'Uploaded', variant: 'default' }
   if (document.status === 'under_review') {
-    return { label: 'In review', variant: 'in-progress' }
+    return { label: 'In Review', variant: 'secondary' }
   }
-  return { label: 'Missing', variant: 'pending' }
+  return { label: 'Missing', variant: 'secondary' }
 }
 
 export function DocumentWorkspace({
@@ -68,23 +68,35 @@ export function DocumentWorkspace({
 
   return (
     <article
-      className={['pd-doc-inspect', needsFile ? 'is-attention' : '']
-        .filter(Boolean)
-        .join(' ')}
+      className={cn(
+        'flex flex-col gap-3 rounded-xl border border-border bg-background p-4',
+        needsFile &&
+          'border-[color-mix(in_srgb,var(--color-danger)_45%,var(--color-border))]',
+      )}
       aria-label={document.name}
     >
-      <header className="pd-doc-inspect__head">
-        <span className="pd-doc-inspect__icon" aria-hidden>
+      <header className="flex items-center gap-2">
+        <span
+          className={cn(
+            'inline-flex size-8 items-center justify-center rounded-lg bg-muted',
+            needsFile && 'bg-destructive/10 text-destructive',
+          )}
+          aria-hidden
+        >
           <Icon size={16} strokeWidth={2.25} />
         </span>
-        <h2 className="pd-doc-inspect__title">{document.name}</h2>
+        <h2 className="m-0 min-w-0 flex-1 text-base font-semibold">
+          {document.name}
+        </h2>
         <Badge variant={status.variant}>{status.label}</Badge>
       </header>
-      {hint ? <p className="pd-doc-inspect__hint">{hint}</p> : null}
+      {hint ? (
+        <p className="m-0 text-sm text-muted-foreground">{hint}</p>
+      ) : null}
 
       <form
         id={formId}
-        className="pd-doc-inspect__record"
+        className="flex flex-col gap-3"
         onSubmit={handleSubmit}
         noValidate
       >
@@ -107,15 +119,16 @@ export function DocumentWorkspace({
           embedded
           afterFields={
             allowEdit && editor.isDirty ? (
-              <div className="pd-doc-inspect__actions">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="outline"
+                  className="h-9 rounded-lg"
                   onClick={editor.discard}
                 >
-                  Discard changes
+                  Discard Changes
                 </Button>
-                <Button type="submit">
+                <Button type="submit" className="h-9 rounded-lg">
                   <Check size={16} strokeWidth={2.25} aria-hidden />
                   Save
                 </Button>

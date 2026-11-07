@@ -1,4 +1,4 @@
-import { ConfirmDialog } from '@/components/ui'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
 
 interface SignOutConfirmModalProps {
   open: boolean
@@ -16,8 +16,8 @@ export function SignOutConfirmModal({
       open={open}
       onClose={onClose}
       onConfirm={onConfirm}
-      title="Sign out?"
-      confirmLabel="Sign out"
+      title="Sign Out?"
+      confirmLabel="Sign Out"
       confirmVariant="danger"
     />
   )

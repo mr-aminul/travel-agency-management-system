@@ -1,12 +1,20 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useId, useMemo, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { ServiceJourney } from '@/components/cases/ServiceJourney'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+} from '@/components/shadcn/card'
+import { Field, FieldError, FieldLabel } from '@/components/shadcn/field'
+import { Input } from '@/components/shadcn/input'
 import { layoutConfig } from '@/config/layout'
 import { apiFetch } from '@/lib/apiClient'
 import { findCasesByClientIdAnyTenant } from '@/lib/casesStore'
 import { findClientByPassport } from '@/lib/clientsStore'
-import { cx } from '@/lib/cx'
 import { shouldUseApiDataBackend } from '@/lib/data'
 import { validateRequiredPassport } from '@/lib/fieldValidation'
 import { publicUrl } from '@/lib/publicUrl'
@@ -16,9 +24,8 @@ import {
   type JourneyStepDefInput,
 } from '@/lib/serviceJourney'
 import { useTouchedFields } from '@/lib/useTouchedFields'
+import { cn } from '@/lib/utils'
 import type { Case, CaseStatus, CaseStepRecord } from '@/types/case'
-import '@/styles/layout-track.css'
-import { Badge, Button, Input } from '@/components/ui'
 
 type PublicTrackService = {
   id: string
@@ -135,7 +142,17 @@ function serviceChipLabel(item: TrackServiceChip, items: TrackServiceChip[]): st
   return `${item.service} (${item.caseId})`
 }
 
+const trackPageBackgroundStyle = {
+  backgroundColor: 'color-mix(in srgb, var(--color-theme) 55%, #040806)',
+  backgroundImage: [
+    'radial-gradient(48rem 34rem at 14% 10%, color-mix(in srgb, var(--color-theme) 88%, #06281c) 0%, transparent 58%)',
+    'radial-gradient(40rem 30rem at 90% 90%, color-mix(in srgb, var(--color-theme) 70%, #041910) 0%, transparent 55%)',
+    'linear-gradient(165deg, color-mix(in srgb, var(--color-theme) 65%, #03140e) 0%, color-mix(in srgb, var(--color-theme) 40%, #070b0f) 50%, #050807 100%)',
+  ].join(', '),
+} as const
+
 export default function TrackClientPage() {
+  const passportFieldId = useId()
   const [params, setSearchParams] = useSearchParams()
   const initialPassport = (params.get('passport') ?? '').trim()
   const tenantFilter = (params.get('tenant') ?? '').trim()
@@ -246,6 +263,7 @@ export default function TrackClientPage() {
     journey?.steps[journey.steps.length - 1]?.label ??
     selected?.statusLabel
   const hasMultipleServices = chips.length > 1
+  const showWideSheet = Boolean(clientName)
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -284,129 +302,180 @@ export default function TrackClientPage() {
     chips.length === 0 &&
     remoteStatus !== 'loading'
 
+  const passportFieldInvalid = showError('passport') && passportError
+
   return (
-    <div className="pd-track">
+    <div
+      className={cn(
+        'relative isolate flex min-h-full flex-col items-center overflow-auto',
+        'pt-[calc(4.5rem+env(safe-area-inset-top,0px))] px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]',
+        'text-[#0a0a0a] [color-scheme:light]',
+        '[--journey-ink:#0a0a0a] [--journey-ink-muted:#64748b] [--journey-line:#e5e7eb] [--journey-surface:#ffffff]',
+      )}
+      style={trackPageBackgroundStyle}
+    >
       <img
         src={publicUrl('images/logo.svg')}
         alt={layoutConfig.brand.name}
-        className="pd-track__corner-logo"
+        className="absolute left-5 top-5 z-[2] h-[1.625rem] w-auto object-contain opacity-[0.92]"
         width={86}
         height={44}
         decoding="async"
       />
 
-      <main
-        className={
-          clientName ? 'pd-track__sheet pd-track__sheet--wide' : 'pd-track__sheet'
-        }
+      <Card
+        className={cn(
+          'relative z-[1] my-auto w-full gap-5 rounded-[1.25rem] border-border bg-white py-7 text-[#0a0a0a] shadow-[0_18px_48px_color-mix(in_srgb,black_28%,transparent),0_2px_8px_color-mix(in_srgb,black_12%,transparent)] ring-0',
+          showWideSheet ? 'max-w-[40rem]' : 'max-w-[26.5rem]',
+        )}
       >
-        <header className="pd-track__intro">
-          <h1 className="pd-track__title">
+        <CardHeader className="gap-1 px-6 pb-0 text-center">
+          <h1 className="m-0 text-balance font-[family-name:var(--font-heading)] text-[clamp(1.5rem,2.6vw,1.85rem)] font-extrabold leading-[1.15] tracking-[-0.03em]">
             {clientName ? 'Application status' : 'Track an application'}
           </h1>
-        </header>
+        </CardHeader>
 
-        <form className="pd-track__form" onSubmit={handleSubmit}>
-          <Input
-            id="track-passport"
-            label="Passport number"
-            required
-            value={passport}
-            onChange={(event) => setPassport(event.target.value)}
-            onBlur={blur('passport')}
-            placeholder="e.g. A12345678"
-            autoComplete="off"
-            autoCapitalize="characters"
-            spellCheck={false}
-            error={showError('passport') ? passportError : undefined}
-          />
-          <Button type="submit" size="lg">
-            <Search size={18} strokeWidth={2.25} aria-hidden />
-            Search
-          </Button>
-        </form>
+        <CardContent className="flex flex-col gap-5 px-6">
+          <form
+            className={cn(
+              'grid w-full gap-3.5',
+              showWideSheet && 'md:grid-cols-[minmax(0,1fr)_auto] md:items-end',
+            )}
+            onSubmit={handleSubmit}
+          >
+            <Field data-invalid={passportFieldInvalid ? true : undefined}>
+              <FieldLabel htmlFor={passportFieldId}>
+                Passport Number
+                <span className="text-destructive"> *</span>
+              </FieldLabel>
+              <Input
+                id={passportFieldId}
+                required
+                value={passport}
+                onChange={(event) => setPassport(event.target.value)}
+                onBlur={blur('passport')}
+                placeholder="e.g. A12345678"
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                aria-invalid={passportFieldInvalid ? true : undefined}
+                className="h-[2.875rem] rounded-xl md:text-base"
+              />
+              {passportFieldInvalid ? (
+                <FieldError>{passportError}</FieldError>
+              ) : null}
+            </Field>
+            <Button
+              type="submit"
+              size="lg"
+              className={cn(
+                'h-[2.875rem] w-full rounded-xl font-semibold',
+                showWideSheet && 'md:w-auto md:min-w-[7.5rem]',
+              )}
+            >
+              <Search size={18} strokeWidth={2.25} aria-hidden />
+              Search
+            </Button>
+          </form>
 
-        {remoteStatus === 'loading' ? (
-          <p className="pd-track__lede" role="status">
-            Looking up passport…
-          </p>
-        ) : null}
+          {remoteStatus === 'loading' ? (
+            <p
+              className="m-0 mx-auto max-w-96 text-pretty text-sm leading-snug text-[#64748b]"
+              role="status"
+            >
+              Looking up passport…
+            </p>
+          ) : null}
 
-        {remoteStatus === 'error' ? (
-          <p className="pd-field__error" role="alert">
-            Could not look up this passport right now. Check your connection and
-            try again.
-          </p>
-        ) : null}
+          {remoteStatus === 'error' ? (
+            <p className="m-0 text-sm text-destructive" role="alert">
+              Could not look up this passport right now. Check your connection and
+              try again.
+            </p>
+          ) : null}
 
-        {searchedAndMissing ? (
-          <p className="pd-field__error" role="status">
-            No match found for passport {submitted}. Check the number and try
-            again, or ask the agency if the file has been registered.
-          </p>
-        ) : null}
+          {searchedAndMissing ? (
+            <p className="m-0 text-sm text-destructive" role="status">
+              No match found for passport {submitted}. Check the number and try
+              again, or ask the agency if the file has been registered.
+            </p>
+          ) : null}
 
-        {foundWithoutServices ? (
-          <p className="pd-field__error" role="status">
-            {clientName} is registered, but no service journey is available to
-            show yet. Ask the agency if the file has been opened.
-          </p>
-        ) : null}
+          {foundWithoutServices ? (
+            <p className="m-0 text-sm text-destructive" role="status">
+              {clientName} is registered, but no service journey is available to
+              show yet. Ask the agency if the file has been opened.
+            </p>
+          ) : null}
 
-        {clientName && selected ? (
-          <section className="pd-track__result" aria-live="polite">
-            <div className="pd-track__identity">
-              <div className="pd-track__identity-copy">
-                <h2 className="pd-track__name">{clientName}</h2>
-                <p className="pd-track__meta">
-                  Passport {clientPassport}
-                  {selected.destination ? ` · ${selected.destination}` : ''}
-                  {hasMultipleServices ? '' : ` · ${selected.service}`}
+          {clientName && selected ? (
+            <section
+              className="flex flex-col gap-4 border-t border-border pt-1"
+              aria-live="polite"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3 gap-x-5">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <h2 className="m-0 font-[family-name:var(--font-heading)] text-xl font-extrabold leading-snug tracking-[-0.03em]">
+                    {clientName}
+                  </h2>
+                  <p className="m-0 text-sm text-[#64748b]">
+                    Passport {clientPassport}
+                    {selected.destination ? ` · ${selected.destination}` : ''}
+                    {hasMultipleServices ? '' : ` · ${selected.service}`}
+                  </p>
+                </div>
+                <p className="m-0 flex flex-col items-start gap-1.5 text-[0.7rem] font-bold uppercase tracking-[0.08em] text-[#64748b] md:items-end">
+                  <span>Current Stage</span>
+                  <Badge variant="secondary">{currentLabel}</Badge>
                 </p>
               </div>
-              <p className="pd-track__current">
-                <span>Current stage</span>
-                <Badge variant="in-progress">{currentLabel}</Badge>
-              </p>
-            </div>
 
-            {hasMultipleServices ? (
-              <nav
-                className="pd-track__services"
-                aria-label="Services for this passport"
-              >
-                {chips.map((item) => {
-                  const isSelected = item.id === selected.id
-                  const ServiceIcon = iconForService(item.service)
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={cx(
-                        'pd-track__service-chip',
-                        isSelected && 'is-active',
-                      )}
-                      aria-pressed={isSelected}
-                      onClick={() => selectService(item.id)}
-                    >
-                      <ServiceIcon size={15} strokeWidth={2} aria-hidden />
-                      {serviceChipLabel(item, chips)}
-                    </button>
-                  )
-                })}
-              </nav>
-            ) : null}
+              {hasMultipleServices ? (
+                <nav
+                  className="flex flex-wrap gap-1.5"
+                  aria-label="Services for this passport"
+                >
+                  {chips.map((item) => {
+                    const isSelected = item.id === selected.id
+                    const ServiceIcon = iconForService(item.service)
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={cn(
+                          'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-[0.8125rem] font-semibold leading-snug transition-colors',
+                          'border-border bg-[color-mix(in_srgb,var(--color-theme)_6%,white)] text-[#64748b]',
+                          'hover:border-[color-mix(in_srgb,var(--color-theme)_35%,#e5e7eb)] hover:text-[#0a0a0a]',
+                          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--color-theme)_55%,transparent)]',
+                          isSelected &&
+                            'border-[color-mix(in_srgb,var(--color-theme)_45%,#e5e7eb)] bg-[color-mix(in_srgb,var(--color-theme)_14%,white)] text-[#0a0a0a]',
+                        )}
+                        aria-pressed={isSelected}
+                        onClick={() => selectService(item.id)}
+                      >
+                        <ServiceIcon
+                          size={15}
+                          strokeWidth={2}
+                          aria-hidden
+                          className="shrink-0"
+                        />
+                        {serviceChipLabel(item, chips)}
+                      </button>
+                    )
+                  })}
+                </nav>
+              ) : null}
 
-            {selected.caseItem && journey ? (
-              <ServiceJourney
-                item={selected.caseItem}
-                stepDefs={selected.stepDefs}
-              />
-            ) : null}
-          </section>
-        ) : null}
-
-      </main>
+              {selected.caseItem && journey ? (
+                <ServiceJourney
+                  item={selected.caseItem}
+                  stepDefs={selected.stepDefs}
+                />
+              ) : null}
+            </section>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   )
 }

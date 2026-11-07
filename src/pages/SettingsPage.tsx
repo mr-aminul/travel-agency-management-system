@@ -5,7 +5,7 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom'
-import { ConfirmDialog } from '@/components/ui'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
 import {
   Briefcase,
   Building2,

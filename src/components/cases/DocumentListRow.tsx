@@ -1,14 +1,25 @@
 import { Check, Circle, Eye, Plus } from 'lucide-react'
-import { cx } from '@/lib/cx'
-import { Badge, Button, type BadgeVariant } from '@/components/ui'
+import { cn } from '@/lib/utils'
+import { Badge } from '@/components/shadcn/badge'
+import { Button } from '@/components/shadcn/button'
 
 export type DocumentRowTone = 'done' | 'wait' | 'need' | 'idle'
 
-const TONE_BADGE: Record<DocumentRowTone, BadgeVariant> = {
-  done: 'completed',
-  wait: 'in-progress',
-  need: 'pending',
-  idle: 'on-hold',
+const TONE_BADGE: Record<
+  DocumentRowTone,
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
+  done: 'default',
+  wait: 'secondary',
+  need: 'destructive',
+  idle: 'outline',
+}
+
+const TONE_MARK: Record<DocumentRowTone, string> = {
+  done: 'bg-emerald-500/15 text-emerald-700',
+  wait: 'bg-amber-500/15 text-amber-700',
+  need: 'bg-destructive/15 text-destructive',
+  idle: 'bg-muted text-muted-foreground',
 }
 
 export function DocumentListRow({
@@ -29,33 +40,41 @@ export function DocumentListRow({
   onUpload?: () => void
 }) {
   return (
-    <li className={cx('pd-doc-check__item', locked && 'is-later')}>
-      <span className="pd-doc-check__main">
+    <li
+      className={cn(
+        'flex flex-wrap items-center justify-between gap-3 border-b border-border py-2.5 last:border-b-0',
+        locked && 'opacity-60',
+      )}
+    >
+      <span className="flex min-w-0 flex-1 items-start gap-2">
         <span
-          className={cx('pd-doc-check__mark', tone !== 'idle' && `is-${tone}`)}
+          className={cn(
+            'mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full',
+            TONE_MARK[tone],
+          )}
           aria-hidden
         >
           {tone === 'done' || tone === 'wait' ? (
-            <Check size={14} strokeWidth={2.5} />
+            <Check size={12} strokeWidth={2.5} />
           ) : (
-            <Circle size={10} strokeWidth={2.25} />
+            <Circle size={8} strokeWidth={2.25} />
           )}
         </span>
-        <span className="pd-doc-check__text">
-          <span className="pd-doc-check__name">{name}</span>
-          {detail ? <span className="pd-doc-check__file">{detail}</span> : null}
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-sm font-medium">{name}</span>
+          {detail ? <span className="truncate text-xs text-muted-foreground">{detail}</span> : null}
         </span>
       </span>
-      <span className="pd-doc-check__side">
+      <span className="flex flex-wrap items-center gap-2">
         <Badge variant={TONE_BADGE[tone]}>{status}</Badge>
         {onView ? (
-          <Button variant="secondary" size="sm" onClick={onView}>
+          <Button variant="outline" size="sm" className="h-8 rounded-lg" onClick={onView}>
             <Eye size={14} strokeWidth={2.25} aria-hidden />
             View
           </Button>
         ) : null}
         {onUpload ? (
-          <Button size="sm" onClick={onUpload}>
+          <Button size="sm" className="h-8 rounded-lg" onClick={onUpload}>
             <Plus size={14} strokeWidth={2.5} aria-hidden />
             Upload
           </Button>

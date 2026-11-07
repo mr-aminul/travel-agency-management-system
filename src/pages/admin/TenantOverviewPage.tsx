@@ -13,7 +13,19 @@ import {
   useTenantById,
 } from '@/lib/tenantsStore'
 import type { TenantStatus } from '@/types/tenant'
-import { Button, Input, Select } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import { Input } from '@/components/shadcn/input'
+import {
+  adminQuietClass,
+  adminRowActionsClass,
+} from '@/components/admin/adminChrome'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
 
 const STATUS_OPTIONS: { value: TenantStatus; label: string }[] = [
   { value: 'trial', label: 'Trial' },
@@ -94,14 +106,22 @@ export default function TenantOverviewPage() {
             <FieldLabel icon={CircleDot}>Status</FieldLabel>
             <dd>
               <Select
-                aria-label="Status"
                 value={tenant.status}
-                options={STATUS_OPTIONS}
-                onChange={(event) => {
-                  const next = event.target.value as TenantStatus
-                  setTenantStatus(tenant.id, next)
-                }}
-              />
+                onValueChange={(next) =>
+                  setTenantStatus(tenant.id, next as TenantStatus)
+                }
+              >
+                <SelectTrigger aria-label="Status" className="h-9 w-full min-w-[10rem]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </dd>
           </div>
           <div className="pd-client-detail__field">
@@ -109,18 +129,24 @@ export default function TenantOverviewPage() {
             <dd>
               <Input
                 aria-label="Name"
+                aria-invalid={nameError ? true : undefined}
                 value={displayName}
                 onChange={(event) => setNameDraft(event.target.value)}
-                error={nameError}
               />
+              {nameError ? (
+                <p className="m-0 mt-1 text-sm text-destructive" role="alert">
+                  {nameError}
+                </p>
+              ) : null}
               {nameDraft != null && nameDraft.trim() !== tenant.name ? (
-                <div className="pd-admin__row-actions">
-                  <Button size="sm" onClick={handleRename}>
+                <div className={adminRowActionsClass}>
+                  <Button size="sm" className="h-9 rounded-lg" onClick={handleRename}>
                     Save
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
+                    className="h-9 rounded-lg"
                     onClick={() => {
                       setNameDraft(null)
                       setNameError(undefined)
@@ -134,7 +160,7 @@ export default function TenantOverviewPage() {
           </div>
         </dl>
         {!owner ? (
-          <p className="pd-admin__quiet">
+          <p className={adminQuietClass}>
             No active user for Support Mode.{' '}
             <Link to={adminAgencyPath(tenant.id, 'people')}>Add people</Link>.
           </p>

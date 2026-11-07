@@ -1,7 +1,31 @@
 import { useState, type FormEvent } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { SettingsInfo } from '@/components/settings/SettingsInfo'
-import { Button, Checkbox, ConfirmDialog, EmptyState, Input, Select, SideDrawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@/components/ui'
+import {
+  chromeHeadClass,
+  floatingSheetClass,
+  tableShellClass,
+} from '@/components/clients/shadcnChrome'
+import { Input, Select, Textarea } from '@/components/clients/clientShadcnFields'
+import { Button } from '@/components/shadcn/button'
+import { Checkbox } from '@/components/shadcn/checkbox'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import { Empty, EmptyHeader, EmptyTitle } from '@/components/shadcn/empty'
+import { Field, FieldLabel } from '@/components/shadcn/field'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/shadcn/table'
 import {
   createClientProfileField,
   deleteClientProfileField,
@@ -18,7 +42,7 @@ const TYPE_OPTIONS: { value: ClientProfileFieldType; label: string }[] = [
   { value: 'text', label: 'Text' },
   { value: 'date', label: 'Date' },
   { value: 'country', label: 'Country' },
-  { value: 'select', label: 'Choice list' },
+  { value: 'select', label: 'Choice List' },
 ]
 
 function typeLabel(type: ClientProfileFieldType): string {
@@ -99,131 +123,146 @@ export function ClientProfileFieldsSection({
         <div className="pd-settings-panel__actions">
           <Button
             type="button"
-            size="sm"
+            className="h-9 rounded-lg"
             onClick={() => {
               setComposerOpen(true)
               setError(null)
             }}
           >
             <Plus size={14} />
-            Add field
+            Add Field
           </Button>
         </div>
       </header>
 
       <div className="pd-settings-catalog">
         {fields.length ? (
-          <Table aria-label={title}>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Field</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Required</TableHead>
-                <TableHead aria-label="Actions" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {fields.map((field) => (
-                <TableRow key={field.id}>
-                  <TableCell>{field.label}</TableCell>
-                  <TableCell>{typeLabel(field.type)}</TableCell>
-                  <TableCell>{field.required ? 'Yes' : 'No'}</TableCell>
-                  <TableCell>
-                    <div className="pd-settings-catalog__row-actions">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-label={`Remove ${field.label}`}
-                        onClick={() => setPendingDeleteId(field.id)}
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className={tableShellClass}>
+            <Table aria-label={title}>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-0">
+                  <TableHead className={chromeHeadClass}>Field</TableHead>
+                  <TableHead className={chromeHeadClass}>Type</TableHead>
+                  <TableHead className={chromeHeadClass}>Required</TableHead>
+                  <TableHead className={chromeHeadClass} aria-label="Actions" />
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {fields.map((field) => (
+                  <TableRow key={field.id}>
+                    <TableCell>{field.label}</TableCell>
+                    <TableCell>{typeLabel(field.type)}</TableCell>
+                    <TableCell>{field.required ? 'Yes' : 'No'}</TableCell>
+                    <TableCell>
+                      <div className="pd-settings-catalog__row-actions">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Remove ${field.label}`}
+                          onClick={() => setPendingDeleteId(field.id)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         ) : (
-          <EmptyState title="No custom fields yet" />
+          <Empty className="border border-dashed">
+            <EmptyHeader>
+              <EmptyTitle>No Custom Fields Yet</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </div>
 
-      <SideDrawer
+      <Sheet
         open={composerOpen}
-        onClose={closeComposer}
-        title="Add field"
-        className="pd-settings-drawer"
+        onOpenChange={(next) => {
+          if (!next) closeComposer()
+        }}
       >
-        <form
-          className="pd-settings-catalog__composer"
-          onSubmit={handleSubmit}
-        >
-          <Input
-            label="Field name"
-            name="customFieldLabel"
-            required
-            placeholder="e.g. Profession"
-            value={label}
-            autoFocus
-            onChange={(event) => {
-              setLabel(event.target.value)
-              setError(null)
-            }}
-            onBlur={blur('label')}
-            error={showError('label') ? labelError : undefined}
-          />
-          <Select
-            label="Type"
-            name="customFieldType"
-            value={type}
-            onChange={(event) =>
-              setType(event.target.value as ClientProfileFieldType)
-            }
-            options={TYPE_OPTIONS}
-          />
-          {type === 'select' ? (
-            <Textarea
-              label="Choices"
-              name="customFieldOptions"
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">Add Field</SheetTitle>
+          </SheetHeader>
+          <form
+            className="flex flex-col gap-4 p-5"
+            onSubmit={handleSubmit}
+          >
+            <Input
+              label="Field Name"
+              name="customFieldLabel"
               required
-              rows={3}
-              placeholder={'Mason\nElectrician\nDriver'}
-              value={optionsText}
-              onChange={(event) => setOptionsText(event.target.value)}
-              onBlur={blur('options')}
-              error={showError('options') ? optionsError : undefined}
+              placeholder="e.g. Profession"
+              value={label}
+              autoFocus
+              onChange={(event) => {
+                setLabel(event.target.value)
+                setError(null)
+              }}
+              onBlur={blur('label')}
+              error={showError('label') ? labelError : undefined}
             />
-          ) : null}
-          <Checkbox
-            label="Required on new clients"
-            checked={required}
-            onChange={(event) => setRequired(event.target.checked)}
-          />
-          {error ? (
-            <p
-              className="pd-settings-form__status pd-settings-form__status--error"
-              role="alert"
-            >
-              {error}
-            </p>
-          ) : null}
-          <div className="pd-settings-catalog__composer-actions">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={closeComposer}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" size="sm">
-              Add field
-            </Button>
-          </div>
-        </form>
-      </SideDrawer>
+            <Select
+              label="Type"
+              value={type}
+              onChange={(event) =>
+                setType(event.target.value as ClientProfileFieldType)
+              }
+              options={TYPE_OPTIONS}
+            />
+            {type === 'select' ? (
+              <Textarea
+                label="Choices"
+                name="customFieldOptions"
+                required
+                rows={3}
+                placeholder={'Mason\nElectrician\nDriver'}
+                value={optionsText}
+                onChange={(event) => setOptionsText(event.target.value)}
+                onBlur={blur('options')}
+                error={showError('options') ? optionsError : undefined}
+              />
+            ) : null}
+            <Field orientation="horizontal">
+              <Checkbox
+                id="custom-field-required"
+                checked={required}
+                onCheckedChange={(checked) => setRequired(checked === true)}
+              />
+              <FieldLabel htmlFor="custom-field-required">
+                Required On New Clients
+              </FieldLabel>
+            </Field>
+            {error ? (
+              <p
+                className="m-0 text-sm text-destructive"
+                role="alert"
+              >
+                {error}
+              </p>
+            ) : null}
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 rounded-lg"
+                onClick={closeComposer}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" className="h-9 rounded-lg">
+                Add Field
+              </Button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={pendingDelete != null}

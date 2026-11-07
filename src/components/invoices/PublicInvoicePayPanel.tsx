@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Button } from '@/components/shadcn/button'
 import { formatInvoiceAmount, type CaseInvoice } from '@/lib/caseInvoice'
 import {
   INVOICE_PAY_METHODS,
@@ -47,14 +48,11 @@ export function PublicInvoicePayPanel({
           </ul>
         </div>
         <div className="pd-invoice-pay__cta">
-          <Link
-            className="pd-btn pd-btn--primary pd-btn--lg"
-            to={publicInvoicePayPath(token)}
-          >
-            <span className="pd-btn__label">
+          <Button asChild size="lg" className="h-11 w-full rounded-xl font-semibold">
+            <Link to={publicInvoicePayPath(token)}>
               Pay {formatInvoiceAmount(invoice.balanceDue)} now
-            </span>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
     </aside>

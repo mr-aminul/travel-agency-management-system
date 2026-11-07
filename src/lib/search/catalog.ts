@@ -1,4 +1,3 @@
-import { type BadgeVariant } from '@/components/ui'
 import {
   Briefcase,
   FileText,
@@ -29,7 +28,7 @@ import {
   workBoardPath,
   workDetailPath,
 } from '@/lib/workPaths'
-import type { SearchItem } from './types'
+import type { SearchItem, SearchStatusVariant } from './types'
 
 export type SearchCatalogUser = Pick<AuthUser, 'name' | 'role'>
 
@@ -56,7 +55,7 @@ function uniqueKeywords(values: Array<string | number | undefined | null>): stri
   return keywords
 }
 
-function caseStatusVariant(status: CaseStatus): BadgeVariant {
+function caseStatusVariant(status: CaseStatus): SearchStatusVariant {
   if (status === 'Completed') return 'completed'
   if (status === 'Pending') return 'pending'
   if (status === 'In-Progress') return 'in-progress'

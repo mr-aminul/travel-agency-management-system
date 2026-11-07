@@ -16,7 +16,7 @@ import {
   normalizeAnnouncementKind,
 } from '@/lib/announcementTemplates'
 import { cx } from '@/lib/cx'
-import { Button } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
 import { AnnouncementRichBody } from '@/components/announcements/AnnouncementRichBody'
 import type { ActiveAnnouncement } from '@/types/announcement'
 import '@/styles/layout-announcements.css'
@@ -200,8 +200,8 @@ export function AnnouncementPopupHost({
         </div>
 
         <footer className="pd-announce-dialog__footer">
-          <Button onClick={dismissCurrent}>
-            {remaining > 0 ? `Got it · ${remaining} more` : 'Got it'}
+          <Button className="h-9 rounded-lg" onClick={dismissCurrent}>
+            {remaining > 0 ? `Got It · ${remaining} More` : 'Got It'}
           </Button>
         </footer>
       </div>

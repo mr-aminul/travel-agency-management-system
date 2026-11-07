@@ -9,14 +9,13 @@ import {
 import { StepBranchRulesEditor } from '@/components/settings/StepBranchRulesEditor'
 import { StepFieldsEditor } from '@/components/settings/StepFieldsEditor'
 import { cx } from '@/lib/cx'
-import {
-  Button,
-  Checkbox,
-  ConfirmDialog,
-  Input,
-  Select,
-  Switch,
-} from '@/components/ui'
+import { LabeledSwitch } from '@/components/clients/LabeledSwitch'
+import { Input, Select } from '@/components/clients/clientShadcnFields'
+import { Button } from '@/components/shadcn/button'
+import { Checkbox } from '@/components/shadcn/checkbox'
+import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
+import { Field, FieldLabel } from '@/components/shadcn/field'
+import { Input as PlainInput } from '@/components/shadcn/input'
 import {
   getDefaultDocumentForm,
   getEditableDocumentFields,
@@ -385,8 +384,6 @@ export function ServiceTemplateEditor({
           <div className="pd-settings-template__add-country">
             <Select
               label="Country"
-              searchable
-              searchPlaceholder="Search countries…"
               placeholder="Choose a country"
               value={
                 countryOptions.some((option) => option.value === newCountry)
@@ -591,7 +588,7 @@ export function ServiceTemplateEditor({
               {selectedStep ? (
                 <div className="pd-settings-template__step-panel">
                   <Input
-                    label="Step name"
+                    label="Step Name"
                     aria-label={`Step ${selectedIndex + 1}`}
                     placeholder="e.g. Medical"
                     value={selectedStep.label}
@@ -677,19 +674,22 @@ export function ServiceTemplateEditor({
                               key={doc.id}
                               className="pd-service-flow__doc-pick-row"
                             >
-                              <Checkbox
-                                label={
-                                  ownedElsewhere && !checked
+                              <Field orientation="horizontal">
+                                <Checkbox
+                                  id={`need-doc-${doc.id}`}
+                                  checked={checked}
+                                  onCheckedChange={() =>
+                                    setStepNeedsDoc(selectedStep.id, doc.id)
+                                  }
+                                />
+                                <FieldLabel htmlFor={`need-doc-${doc.id}`}>
+                                  {ownedElsewhere && !checked
                                     ? `${doc.name || 'Untitled'} (move here)`
-                                    : doc.name || 'Untitled'
-                                }
-                                checked={checked}
-                                onChange={() =>
-                                  setStepNeedsDoc(selectedStep.id, doc.id)
-                                }
-                              />
+                                    : doc.name || 'Untitled'}
+                                </FieldLabel>
+                              </Field>
                               {checked ? (
-                                <Switch
+                                <LabeledSwitch
                                   className="pd-service-flow__doc-required"
                                   label="Required"
                                   checked={doc.required}
@@ -771,7 +771,7 @@ export function ServiceTemplateEditor({
                 return (
                   <li key={doc.id} className="pd-settings-template__doc">
                     <div className="pd-settings-template__row">
-                      <Input
+                      <PlainInput
                         aria-label="Document name"
                         placeholder="e.g. Police clearance"
                         value={doc.name}
@@ -785,7 +785,7 @@ export function ServiceTemplateEditor({
                           markDirty()
                         }}
                       />
-                      <Switch
+                      <LabeledSwitch
                         className="pd-settings-template__need-switch"
                         label="Required"
                         checked={doc.required}
@@ -888,7 +888,7 @@ export function ServiceTemplateEditor({
         ) : null}
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="sm"
           onClick={() => setResetOpen(true)}
         >

@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, FileText, Folder } from 'lucide-react'
-import { Button, SideDrawer } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
+import { floatingSheetClass } from '@/components/clients/shadcnChrome'
 import { readAgencyProfile } from '@/lib/agencyProfile'
 import { getActiveTenantId } from '@/lib/authApi'
 import { fillSmsTemplate } from '@/lib/smsTemplateFill'
@@ -29,7 +36,7 @@ export function SmsTemplatePicker({
     [client, agencyName],
   )
 
-  const label = channel === 'sms' ? 'SMS template' : 'Email template'
+  const label = channel === 'sms' ? 'SMS Template' : 'Email Template'
   const emptyCopy =
     channel === 'sms'
       ? 'No SMS templates yet. Add them under Settings → SMS/Email.'
@@ -46,84 +53,81 @@ export function SmsTemplatePicker({
     <>
       <Button
         type="button"
-        size="sm"
-        variant="secondary"
+        variant="outline"
+        className="h-9 rounded-lg"
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
         {label}
       </Button>
 
-      <SideDrawer
-        open={open}
-        onClose={() => setOpen(false)}
-        title={label}
-        className="pd-settings-drawer"
-      >
-        {folders.length === 0 ? (
-          <p className="pd-sms-template-preview">{emptyCopy}</p>
-        ) : (
-          <ul
-            className="pd-sms-template-picker"
-            aria-label={`${label} folders`}
-          >
-            {folders.map((group) => {
-              const isOpen = expanded[group.folder] ?? true
-              return (
-                <li key={group.folder} className="pd-sms-template-picker__folder">
-                  <button
-                    type="button"
-                    className="pd-sms-template-picker__folder-btn"
-                    aria-expanded={isOpen}
-                    onClick={() => toggleFolder(group.folder)}
-                  >
-                    {isOpen ? (
-                      <ChevronDown size={16} strokeWidth={2.25} aria-hidden />
-                    ) : (
-                      <ChevronRight size={16} strokeWidth={2.25} aria-hidden />
-                    )}
-                    <Folder size={16} strokeWidth={2.25} aria-hidden />
-                    <span>{group.folder}</span>
-                    <span className="pd-sms-template-picker__count">
-                      {group.templates.length}
-                    </span>
-                  </button>
-                  {isOpen ? (
-                    <ul className="pd-sms-template-picker__list">
-                      {group.templates.map((template) => (
-                        <li key={template.id}>
-                          <button
-                            type="button"
-                            className="pd-sms-template-picker__item"
-                            onClick={() => {
-                              onPick(
-                                fillSmsTemplate(template.body, fillContext),
-                              )
-                              setOpen(false)
-                            }}
-                          >
-                            <FileText size={15} strokeWidth={2.25} aria-hidden />
-                            <span className="pd-sms-template-picker__item-copy">
-                              <span className="pd-sms-template-picker__item-name">
-                                {template.name}
-                              </span>
-                              <span className="pd-sms-template-picker__item-body">
-                                {template.body.length > 90
-                                  ? `${template.body.slice(0, 90)}…`
-                                  : template.body}
-                              </span>
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </SideDrawer>
+      <Sheet open={open} onOpenChange={(next) => { if (!next) setOpen(false) }}>
+        <SheetContent className={floatingSheetClass}>
+          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-base font-semibold">{label}</SheetTitle>
+          </SheetHeader>
+          <div className="p-5">
+            {folders.length === 0 ? (
+              <p className="m-0 text-sm text-muted-foreground">{emptyCopy}</p>
+            ) : (
+              <ul className="m-0 flex list-none flex-col gap-2 p-0" aria-label={`${label} folders`}>
+                {folders.map((group) => {
+                  const isOpen = expanded[group.folder] ?? true
+                  return (
+                    <li key={group.folder} className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-left text-sm font-medium hover:bg-muted"
+                        aria-expanded={isOpen}
+                        onClick={() => toggleFolder(group.folder)}
+                      >
+                        {isOpen ? (
+                          <ChevronDown size={16} strokeWidth={2.25} aria-hidden />
+                        ) : (
+                          <ChevronRight size={16} strokeWidth={2.25} aria-hidden />
+                        )}
+                        <Folder size={16} strokeWidth={2.25} aria-hidden />
+                        <span className="min-w-0 flex-1 truncate">{group.folder}</span>
+                        <span className="tabular-nums text-xs text-muted-foreground">
+                          {group.templates.length}
+                        </span>
+                      </button>
+                      {isOpen ? (
+                        <ul className="m-0 flex list-none flex-col gap-1 p-0 ps-2">
+                          {group.templates.map((template) => (
+                            <li key={template.id}>
+                              <button
+                                type="button"
+                                className="flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-muted"
+                                onClick={() => {
+                                  onPick(
+                                    fillSmsTemplate(template.body, fillContext),
+                                  )
+                                  setOpen(false)
+                                }}
+                              >
+                                <FileText size={15} strokeWidth={2.25} className="mt-0.5 shrink-0" aria-hidden />
+                                <span className="flex min-w-0 flex-col gap-0.5">
+                                  <span className="font-medium">{template.name}</span>
+                                  <span className="line-clamp-2 text-xs text-muted-foreground">
+                                    {template.body.length > 90
+                                      ? `${template.body.slice(0, 90)}…`
+                                      : template.body}
+                                  </span>
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   )
 }

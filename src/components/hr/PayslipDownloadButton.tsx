@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { Download } from 'lucide-react'
 import { downloadPayslipPdf } from '@/lib/downloadPayslipPdf'
 import type { EmployeePayslip } from '@/lib/payslip'
-import { Button } from '@/components/ui'
+import { Button } from '@/components/shadcn/button'
 
 type PayslipDownloadButtonProps = {
   payslip: Pick<EmployeePayslip, 'employeeId' | 'yearMonth'>
-  size?: 'sm' | 'md'
+  size?: 'sm' | 'default'
 }
 
 export function PayslipDownloadButton({
@@ -29,7 +29,8 @@ export function PayslipDownloadButton({
       type="button"
       size={size}
       variant="secondary"
-      loading={isDownloading}
+      className="h-9 rounded-lg"
+      disabled={isDownloading}
       onClick={() => void handleDownload()}
     >
       <Download size={14} strokeWidth={2.25} aria-hidden />
