@@ -137,11 +137,10 @@ export function buildBrandedEmailHtml(input: BrandedEmailInput): string {
           </tr>
           <tr>
             <td style="padding:32px 28px 12px;font:400 16px/1.65 Inter,Segoe UI,Arial,sans-serif;color:#1f2937;">
-              ${
-                greetingName
-                  ? `<p style="margin:0 0 18px;font-size:15px;color:#64748b;">To ${escapeHtml(greetingName)}</p>`
-                  : ''
-              }
+              ${greetingName
+      ? `<p style="margin:0 0 18px;font-size:15px;color:#64748b;">To ${escapeHtml(greetingName)}</p>`
+      : ''
+    }
               ${paragraphs || `<p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#1f2937;">${escapeHtml(input.body.trim())}</p>`}
               ${ctaBlock}
             </td>

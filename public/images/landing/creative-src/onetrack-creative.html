@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, initial-scale=1" />
+  <title>OneTrack — Desk Software creative</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #0c2d79;
+      --navy-deep: #061636;
+      --navy-mid: #2a4f9e;
+      --sage: #c9d9c8;
+      --sage-deep: #b7cbb8;
+      --ink: #0a1f4d;
+      --amber: #f5c518;
+      --cream: #f7faf7;
+      --ok: #1f7a4d;
+      --warn: #c47a14;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 1080px;
+      height: 1440px;
+      overflow: hidden;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: #b9ceb9;
+      color: var(--ink);
+    }
+
+    .poster {
+      position: relative;
+      width: 1080px;
+      height: 1440px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(201, 217, 200, 0.55) 0%, rgba(183, 203, 184, 0.92) 55%, #aec4b0 100%),
+        url("./office-glass.jpg") center 18% / 140% no-repeat;
+    }
+
+    .poster::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          -32deg,
+          transparent 0 18px,
+          rgba(255, 255, 255, 0.18) 18px 19px
+        );
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .poster::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 45% at 50% 18%, rgba(255, 255, 255, 0.35), transparent 70%),
+        linear-gradient(180deg, rgba(185, 206, 185, 0.35) 0%, rgba(174, 196, 176, 0.75) 42%, #a8c0ab 100%);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .ui-shell {
+      position: absolute;
+      left: 56px;
+      top: 118px;
+      width: 968px;
+      height: 620px;
+      border-radius: 28px;
+      overflow: hidden;
+      transform: perspective(1400px) rotateX(8deg) rotateY(-6deg) skewX(-2deg);
+      box-shadow:
+        0 40px 80px rgba(6, 22, 54, 0.28),
+        0 8px 24px rgba(6, 22, 54, 0.16);
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      z-index: 2;
+      backdrop-filter: blur(8px);
+    }
+
+    .ui-chrome {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 42px;
+      padding: 0 16px;
+      background: linear-gradient(180deg, #f4f6fb, #e8ecf5);
+      border-bottom: 1px solid #d7ddea;
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.r { background: #ff5f57; }
+    .dot.y { background: #febc2e; }
+    .dot.g { background: #28c840; }
+
+    .ui-url {
+      margin-left: 12px;
+      flex: 1;
+      height: 24px;
+      border-radius: 6px;
+      background: #fff;
+      border: 1px solid #d5dbe8;
+      color: #6b7690;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+    }
+
+    .ui-body {
+      display: grid;
+      grid-template-columns: 196px 1fr;
+      height: calc(100% - 42px);
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, var(--navy-deep), var(--navy));
+      color: #fff;
+      padding: 18px 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .brand img { width: 28px; height: 28px; border-radius: 7px; }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.78);
+      margin-bottom: 4px;
+    }
+
+    .nav-item.active {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .nav-ico {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .main {
+      padding: 18px 22px 22px;
+      background: linear-gradient(180deg, #fbfcfe, #eef2f8);
+    }
+
+    .main-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    .main-head h2 {
+      font-size: 22px;
+      letter-spacing: -0.03em;
+      color: var(--navy-deep);
+    }
+
+    .main-head p {
+      font-size: 12px;
+      color: #6a758f;
+      margin-top: 2px;
+    }
+
+    .pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #e7eefc;
+      color: var(--navy);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .col {
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid #e2e8f2;
+      border-radius: 14px;
+      padding: 10px;
+      min-height: 360px;
+    }
+
+    .col-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #5b6782;
+      margin-bottom: 10px;
+    }
+
+    .count {
+      background: #edf1f8;
+      color: #44506a;
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 10px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e6ebf4;
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 8px;
+      box-shadow: 0 4px 10px rgba(12, 45, 121, 0.04);
+    }
+
+    .card strong {
+      display: block;
+      font-size: 12px;
+      color: var(--navy-deep);
+      margin-bottom: 4px;
+    }
+
+    .card span {
+      display: block;
+      font-size: 11px;
+      color: #6b7690;
+      line-height: 1.35;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 6px;
+    }
+
+    .tag.blue { background: #e5eefc; color: var(--navy); }
+    .tag.amber { background: #fff1d6; color: var(--warn); }
+    .tag.green { background: #dff3e8; color: var(--ok); }
+    .tag.slate { background: #eef1f6; color: #556178; }
+
+    .person {
+      position: absolute;
+      left: 40px;
+      bottom: 40px;
+      width: 620px;
+      height: 780px;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .person img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: bottom left;
+      filter: drop-shadow(0 28px 40px rgba(6, 22, 54, 0.28));
+    }
+
+    .glow {
+      position: absolute;
+      left: 210px;
+      bottom: 280px;
+      width: 220px;
+      height: 110px;
+      background: radial-gradient(ellipse, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 70%);
+      filter: blur(8px);
+      z-index: 6;
+      pointer-events: none;
+    }
+
+    .float {
+      position: absolute;
+      z-index: 7;
+      width: 230px;
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 18px 40px rgba(6, 22, 54, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+    }
+
+    .float.one { left: 390px; bottom: 460px; transform: rotate(-4deg); }
+    .float.two { left: 450px; bottom: 310px; transform: rotate(3deg); }
+
+    .float .label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .float.one .label { color: var(--ok); }
+    .float.two .label { color: var(--warn); }
+
+    .float .title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--navy-deep);
+      letter-spacing: -0.02em;
+    }
+
+    .float .meta {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #667289;
+    }
+
+    .copy {
+      position: absolute;
+      right: 48px;
+      top: 720px;
+      width: 460px;
+      z-index: 8;
+      text-align: right;
+    }
+
+    .headline {
+      line-height: 0.88;
+      color: var(--navy-deep);
+      letter-spacing: -0.055em;
+    }
+
+    .headline .big {
+      display: block;
+      font-size: 96px;
+      font-weight: 800;
+    }
+
+    .headline .smart-row {
+      display: flex;
+      justify-content: flex-end;
+      margin: -2px 12px 0 0;
+    }
+
+    .headline .smart {
+      display: inline-block;
+      font-size: 36px;
+      font-weight: 700;
+      font-style: italic;
+      color: var(--navy-mid);
+      transform: rotate(-10deg);
+      letter-spacing: -0.02em;
+    }
+
+    .tagline {
+      margin-top: 20px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #1d4a3a;
+    }
+
+    .cta {
+      position: absolute;
+      left: 50%;
+      bottom: 48px;
+      transform: translateX(-50%);
+      z-index: 9;
+      background: var(--amber);
+      color: #111;
+      font-weight: 800;
+      font-size: 18px;
+      padding: 16px 34px;
+      border-radius: 999px;
+      box-shadow: 0 12px 28px rgba(12, 45, 121, 0.18);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+
+    .mark {
+      position: absolute;
+      left: 48px;
+      top: 42px;
+      z-index: 8;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--navy-deep);
+      letter-spacing: -0.03em;
+    }
+
+    .mark img {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      box-shadow: 0 6px 16px rgba(12, 45, 121, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="poster">
+    <div class="mark">
+      <img src="../../logo.svg" alt="" />
+      OneTrack
+    </div>
+
+    <div class="ui-shell" aria-hidden="true">
+      <div class="ui-chrome">
+        <span class="dot r"></span>
+        <span class="dot y"></span>
+        <span class="dot g"></span>
+        <div class="ui-url">app.inventivelab.bd / board</div>
+      </div>
+      <div class="ui-body">
+        <aside class="sidebar">
+          <div class="brand">
+            <img src="../../logo.svg" alt="" />
+            OneTrack
+          </div>
+          <div class="nav-item"><span class="nav-ico"></span>Dashboard</div>
+          <div class="nav-item active"><span class="nav-ico"></span>Board</div>
+          <div class="nav-item"><span class="nav-ico"></span>Clients</div>
+          <div class="nav-item"><span class="nav-ico"></span>Documents</div>
+          <div class="nav-item"><span class="nav-ico"></span>Payments</div>
+          <div class="nav-item"><span class="nav-ico"></span>Sub agents</div>
+        </aside>
+        <section class="main">
+          <div class="main-head">
+            <div>
+              <h2>Service board</h2>
+              <p>Every client file in one place</p>
+            </div>
+            <span class="pill">Today · 18 open</span>
+          </div>
+          <div class="board">
+            <div class="col">
+              <div class="col-title">Intake <span class="count">5</span></div>
+              <div class="card">
+                <strong>N. Akter · Umrah</strong>
+                <span>Passport on file</span>
+                <span class="tag blue">New</span>
+              </div>
+              <div class="card">
+                <strong>R. Hasan · UK Visit</strong>
+                <span>Awaiting NID</span>
+                <span class="tag slate">Waiting</span>
+              </div>
+              <div class="card">
+                <strong>S. Rahman · Ticket</strong>
+                <span>DAC → DXB</span>
+                <span class="tag blue">New</span>
+              </div>
+            </div>
+            <div class="col">
+              <div class="col-title">Docs in <span class="count">4</span></div>
+              <div class="card">
+                <strong>N. Akter · Umrah</strong>
+                <span>NID verified</span>
+                <span class="tag amber">Balance ৳65,000</span>
+              </div>
+              <div class="card">
+                <strong>M. Chowdhury · Schengen</strong>
+                <span>Bank statement due</span>
+                <span class="tag amber">Docs</span>
+              </div>
+            </div>
+            <div class="col">
+              <div class="col-title">Submitted <span class="count">6</span></div>
+              <div class="card">
+                <strong>A. Islam · Student</strong>
+                <span>Embassy queue</span>
+                <span class="tag blue">In review</span>
+              </div>
+              <div class="card">
+                <strong>T. Begum · Package</strong>
+                <span>Turkey tour</span>
+                <span class="tag slate">Filed</span>
+              </div>
+            </div>
+            <div class="col">
+              <div class="col-title">Ready <span class="count">3</span></div>
+              <div class="card">
+                <strong>F. Karim · Visit</strong>
+                <span>Visa stamped</span>
+                <span class="tag green">Complete</span>
+              </div>
+              <div class="card">
+                <strong>H. Ali · Umrah</strong>
+                <span>Paid in full</span>
+                <span class="tag green">Ready</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="person">
+      <img src="./hero-character.png" alt="" />
+    </div>
+    <div class="glow"></div>
+
+    <div class="float one">
+      <div class="label">Stage updated</div>
+      <div class="title">Intake → Docs in</div>
+      <div class="meta">N. Akter · Umrah</div>
+    </div>
+    <div class="float two">
+      <div class="label">Payment</div>
+      <div class="title">Received ৳35,000</div>
+      <div class="meta">Just now · SMS sent</div>
+    </div>
+
+    <div class="copy">
+      <div class="headline">
+        <span class="big">DESK</span>
+        <span class="smart-row"><span class="smart">SMART</span></span>
+        <span class="big">SOFTWARE</span>
+      </div>
+      <p class="tagline">One board for every client file.</p>
+    </div>
+
+    <div class="cta">Start free trial</div>
+  </div>
+</body>
+</html>

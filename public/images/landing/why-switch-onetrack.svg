@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" fill="none" role="img" aria-label="Calm OneTrack client file">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#050d22"/>
+      <stop offset="55%" stop-color="#0c2d79"/>
+      <stop offset="100%" stop-color="#1a4fbf"/>
+    </linearGradient>
+    <radialGradient id="beacon" cx="58%" cy="38%" r="42%">
+      <stop offset="0%" stop-color="#ffb000" stop-opacity="0.35"/>
+      <stop offset="55%" stop-color="#3b6fe0" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#3b6fe0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fffcf7"/>
+      <stop offset="100%" stop-color="#f2ecdf"/>
+    </linearGradient>
+    <filter id="lift" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#020814" flood-opacity="0.45"/>
+    </filter>
+    <pattern id="stars" width="160" height="160" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="20" r="1.2" fill="#fff" opacity="0.35"/>
+      <circle cx="78" cy="48" r="1" fill="#fff" opacity="0.25"/>
+      <circle cx="130" cy="18" r="1.4" fill="#ffcf6b" opacity="0.35"/>
+      <circle cx="40" cy="110" r="1" fill="#fff" opacity="0.2"/>
+      <circle cx="110" cy="128" r="1.1" fill="#fff" opacity="0.28"/>
+    </pattern>
+  </defs>
+
+  <rect width="960" height="720" fill="url(#sky)"/>
+  <rect width="960" height="720" fill="url(#beacon)"/>
+  <rect width="960" height="720" fill="url(#stars)"/>
+
+  <!-- soft horizon band -->
+  <path d="M0 560 C180 520, 320 580, 480 540 C640 500, 780 560, 960 520 L960 720 L0 720 Z" fill="#081638" opacity="0.55"/>
+
+  <!-- runway lights / stage path -->
+  <g opacity="0.9">
+    <rect x="120" y="590" width="56" height="8" rx="4" fill="#ffb000"/>
+    <rect x="210" y="590" width="56" height="8" rx="4" fill="#ffb000" opacity="0.75"/>
+    <rect x="300" y="590" width="56" height="8" rx="4" fill="#ffb000" opacity="0.5"/>
+    <rect x="390" y="590" width="56" height="8" rx="4" fill="#8fb4ff" opacity="0.45"/>
+    <rect x="480" y="590" width="56" height="8" rx="4" fill="#8fb4ff" opacity="0.28"/>
+  </g>
+
+  <!-- orbit ring -->
+  <ellipse cx="560" cy="310" rx="270" ry="170" stroke="#8fb4ff" stroke-opacity="0.22" stroke-width="1.5" stroke-dasharray="6 12"/>
+  <ellipse cx="560" cy="310" rx="210" ry="130" stroke="#ffb000" stroke-opacity="0.16" stroke-width="1" stroke-dasharray="3 10"/>
+
+  <!-- floating file card -->
+  <g transform="translate(290 150)" filter="url(#lift)">
+    <rect width="420" height="360" rx="28" fill="url(#card)"/>
+    <rect x="28" y="28" width="364" height="70" rx="18" fill="#0c2d79"/>
+    <circle cx="64" cy="63" r="18" fill="#ffb000"/>
+    <text x="64" y="68" text-anchor="middle" font-family="Geist, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#0c2d79">NA</text>
+    <rect x="96" y="48" width="170" height="12" rx="6" fill="#f2ecdf" opacity="0.92"/>
+    <rect x="96" y="68" width="110" height="8" rx="4" fill="#8fb4ff" opacity="0.7"/>
+    <rect x="300" y="50" width="72" height="26" rx="13" fill="#ffb000"/>
+    <rect x="314" y="59" width="44" height="8" rx="4" fill="#0c2d79" opacity="0.75"/>
+
+    <!-- journey pills -->
+    <g transform="translate(28 126)">
+      <rect width="64" height="10" rx="5" fill="#0c2d79"/>
+      <rect x="74" width="64" height="10" rx="5" fill="#0c2d79"/>
+      <rect x="148" width="64" height="10" rx="5" fill="#ffb000"/>
+      <rect x="222" width="64" height="10" rx="5" fill="#121a2e" opacity="0.12"/>
+      <rect x="296" width="64" height="10" rx="5" fill="#121a2e" opacity="0.12"/>
+    </g>
+
+    <!-- rows -->
+    <g transform="translate(28 168)">
+      <rect width="364" height="48" rx="14" fill="#fff" stroke="#121a2e" stroke-opacity="0.08"/>
+      <circle cx="28" cy="24" r="12" fill="#0c2d79"/>
+      <path d="M22 24 L26 28 L35 19" stroke="#ffb000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="52" y="15" width="150" height="10" rx="5" fill="#121a2e" opacity="0.55"/>
+      <rect x="52" y="30" width="96" height="7" rx="3.5" fill="#121a2e" opacity="0.18"/>
+
+      <g transform="translate(0 60)">
+        <rect width="364" height="48" rx="14" fill="#fff" stroke="#121a2e" stroke-opacity="0.08"/>
+        <circle cx="28" cy="24" r="12" fill="#0c2d79"/>
+        <path d="M22 24 L26 28 L35 19" stroke="#ffb000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="52" y="15" width="132" height="10" rx="5" fill="#121a2e" opacity="0.55"/>
+        <rect x="52" y="30" width="84" height="7" rx="3.5" fill="#121a2e" opacity="0.18"/>
+      </g>
+
+      <g transform="translate(0 120)">
+        <rect width="364" height="48" rx="14" fill="#fff8e8" stroke="#ffb000" stroke-opacity="0.35"/>
+        <circle cx="28" cy="24" r="12" fill="#ffb000"/>
+        <circle cx="28" cy="24" r="4" fill="#0c2d79"/>
+        <rect x="52" y="15" width="168" height="10" rx="5" fill="#8a5a00" opacity="0.7"/>
+        <rect x="52" y="30" width="110" height="7" rx="3.5" fill="#8a5a00" opacity="0.28"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- small orbiting chips -->
+  <g filter="url(#lift)">
+    <g transform="translate(170 250)">
+      <rect width="120" height="44" rx="22" fill="#f2ecdf"/>
+      <circle cx="24" cy="22" r="8" fill="#62e0ad"/>
+      <rect x="40" y="14" width="62" height="8" rx="4" fill="#0c2d79" opacity="0.55"/>
+      <rect x="40" y="26" width="42" height="6" rx="3" fill="#0c2d79" opacity="0.2"/>
+    </g>
+    <g transform="translate(700 420)">
+      <rect width="130" height="44" rx="22" fill="#f2ecdf"/>
+      <circle cx="24" cy="22" r="8" fill="#8fb4ff"/>
+      <rect x="40" y="14" width="70" height="8" rx="4" fill="#0c2d79" opacity="0.55"/>
+      <rect x="40" y="26" width="48" height="6" rx="3" fill="#0c2d79" opacity="0.2"/>
+    </g>
+  </g>
+
+  <!-- tiny plane silhouette -->
+  <g transform="translate(780 150) rotate(18)" opacity="0.7">
+    <path d="M0 18 L70 12 L92 0 L86 18 L92 36 L70 24 L0 18 Z" fill="#ffcf6b"/>
+    <path d="M18 18 L34 8 L40 18 L34 28 Z" fill="#0c2d79" opacity="0.35"/>
+  </g>
+</svg>

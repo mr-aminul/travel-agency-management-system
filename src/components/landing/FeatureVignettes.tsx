@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Check, Clock3, Link2, Search, X } from 'lucide-react'
 
 const BOARD_COLUMNS = [
@@ -35,26 +36,55 @@ const BOARD_COLUMNS = [
   },
 ]
 
+function Chrome({
+  title,
+  children,
+  className = '',
+}: {
+  title: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div className={`lp-vg-chrome ${className}`.trim()} aria-hidden>
+      <div className="lp-vg-chrome__bar">
+        <span className="lp-vg-chrome__dots" aria-hidden>
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="lp-vg-chrome__title">{title}</span>
+      </div>
+      <div className="lp-vg-chrome__body">{children}</div>
+    </div>
+  )
+}
+
 export function ServiceBoardVignette() {
   return (
-    <div className="lp-vg lp-vg--board" aria-hidden>
-      {BOARD_COLUMNS.map((column) => (
-        <div className="lp-vg-board__col" key={column.stage}>
-          <div className="lp-vg-board__head">
-            <span>{column.stage}</span>
-            <b>{column.count}</b>
-          </div>
-          {column.cards.map((card) => (
-            <div className="lp-vg-board__card" key={card.client}>
-              <span className="lp-vg-board__country">{card.country}</span>
-              <span className="lp-vg-board__service">{card.service}</span>
-              <span className="lp-vg-board__client">{card.client}</span>
-              <span className="lp-vg-board__tag">{card.tag}</span>
+    <Chrome title="Service board" className="lp-vg lp-vg--board">
+      <div className="lp-vg-board">
+        {BOARD_COLUMNS.map((column) => (
+          <div className="lp-vg-board__col" key={column.stage}>
+            <div className="lp-vg-board__head">
+              <span>{column.stage}</span>
+              <b>{column.count}</b>
             </div>
-          ))}
-        </div>
-      ))}
-    </div>
+            {column.cards.map((card) => (
+              <div className="lp-vg-board__card" key={card.client}>
+                <div className="lp-vg-board__card-top">
+                  <span className="lp-vg-board__avatar">{card.client.slice(0, 1)}</span>
+                  <span className="lp-vg-board__country">{card.country}</span>
+                </div>
+                <span className="lp-vg-board__service">{card.service}</span>
+                <span className="lp-vg-board__client">{card.client}</span>
+                <span className="lp-vg-board__tag">{card.tag}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </Chrome>
   )
 }
 
@@ -66,7 +96,7 @@ const RECEIPTS = [
 
 export function InvoiceVignette() {
   return (
-    <div className="lp-vg lp-vg--payments" aria-hidden>
+    <Chrome title="Payments" className="lp-vg lp-vg--payments">
       <InvoiceCard />
       <ul className="lp-vg-receipts">
         {RECEIPTS.map((receipt) => (
@@ -77,7 +107,7 @@ export function InvoiceVignette() {
           </li>
         ))}
       </ul>
-    </div>
+    </Chrome>
   )
 }
 
@@ -124,18 +154,25 @@ const DOCUMENT_CHECKLIST = [
 
 export function DocumentsVignette() {
   return (
-    <ul className="lp-vg lp-vg--docs" aria-hidden>
-      {DOCUMENT_CHECKLIST.map((item) => (
-        <li key={item.name} className={`lp-vg-docs__item lp-vg-docs__item--${item.state}`}>
-          <span className="lp-vg-docs__mark">
-            {item.state === 'done' ? <Check size={12} strokeWidth={3} /> : null}
-            {item.state === 'pending' ? <Clock3 size={12} strokeWidth={2.5} /> : null}
-            {item.state === 'missing' ? <X size={12} strokeWidth={3} /> : null}
-          </span>
-          {item.name}
-        </li>
-      ))}
-    </ul>
+    <Chrome title="Documents · N. Akter" className="lp-vg lp-vg--docs">
+      <ul className="lp-vg-docs">
+        {DOCUMENT_CHECKLIST.map((item) => (
+          <li key={item.name} className={`lp-vg-docs__item lp-vg-docs__item--${item.state}`}>
+            <span className="lp-vg-docs__mark">
+              {item.state === 'done' ? <Check size={12} strokeWidth={3} /> : null}
+              {item.state === 'pending' ? <Clock3 size={12} strokeWidth={2.5} /> : null}
+              {item.state === 'missing' ? <X size={12} strokeWidth={3} /> : null}
+            </span>
+            <span className="lp-vg-docs__name">{item.name}</span>
+            <span className="lp-vg-docs__state">
+              {item.state === 'done' ? 'On file' : null}
+              {item.state === 'pending' ? 'Waiting' : null}
+              {item.state === 'missing' ? 'Missing' : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Chrome>
   )
 }
 
@@ -147,7 +184,7 @@ const SUB_AGENTS = [
 
 export function SubAgentsVignette() {
   return (
-    <div className="lp-vg lp-vg--agents" aria-hidden>
+    <Chrome title="Sub agents" className="lp-vg lp-vg--agents">
       {SUB_AGENTS.map((agent) => (
         <div className="lp-vg-agents__row" key={agent.name}>
           <span className="lp-vg-agents__avatar">{agent.initials}</span>
@@ -161,13 +198,13 @@ export function SubAgentsVignette() {
       <div className="lp-vg-agents__queue">
         <span className="lp-vg-agents__pulse" />3 submissions waiting for approval
       </div>
-    </div>
+    </Chrome>
   )
 }
 
 export function TrackingVignette() {
   return (
-    <div className="lp-vg lp-vg--track" aria-hidden>
+    <Chrome title="Client tracking" className="lp-vg lp-vg--track">
       <div className="lp-vg-track__input">
         <Search size={13} strokeWidth={2.5} />
         A0••••4512
@@ -177,17 +214,62 @@ export function TrackingVignette() {
         <li className="is-done">Submitted to embassy</li>
         <li className="is-current">Awaiting decision</li>
       </ol>
-    </div>
+    </Chrome>
   )
 }
 
 export function SmsVignette() {
   return (
-    <div className="lp-vg lp-vg--sms" aria-hidden>
+    <Chrome title="SMS to client" className="lp-vg lp-vg--sms">
       <div className="lp-vg-sms__bubble">
         Dear Rahim, your Canada student visa has been submitted. — Skyline Travels
       </div>
       <span className="lp-vg-sms__meta">Sent · 2:14 PM</span>
+    </Chrome>
+  )
+}
+
+/** Compact peeks for the features grid — less clutter than full product chrome. */
+export function FeatureBoardPeek() {
+  const peeks = [
+    { stage: 'Intake', name: 'R. Hossain', tag: 'New' },
+    { stage: 'Documents', name: 'N. Akter', tag: 'Docs' },
+    { stage: 'Ready', name: 'S. Islam', tag: 'Ready' },
+  ]
+  return (
+    <div className="lp-peek lp-peek--board" aria-hidden>
+      {peeks.map((item) => (
+        <div className="lp-peek__col" key={item.stage}>
+          <span className="lp-peek__stage">{item.stage}</span>
+          <div className="lp-peek__card">
+            <b>{item.name}</b>
+            <i>{item.tag}</i>
+          </div>
+        </div>
+      ))}
     </div>
+  )
+}
+
+export function FeaturePayPeek() {
+  return (
+    <div className="lp-peek lp-peek--pay" aria-hidden>
+      <span className="lp-peek__label">N. Akter · Umrah</span>
+      <strong>৳65,000 due</strong>
+      <div className="lp-peek__bar">
+        <span style={{ width: '65%' }} />
+      </div>
+      <small>৳1,20,000 paid of ৳1,85,000</small>
+    </div>
+  )
+}
+
+export function FeatureTrackPeek() {
+  return (
+    <ol className="lp-peek lp-peek--track" aria-hidden>
+      <li className="is-done">Documents received</li>
+      <li className="is-done">Submitted</li>
+      <li className="is-current">Awaiting decision</li>
+    </ol>
   )
 }

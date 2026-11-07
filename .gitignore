@@ -5,6 +5,9 @@ node_modules
 dist
 *.local
 
+# Local film / HyperFrames projects (large media, not product code)
+films/
+
 # Env (keep examples tracked)
 .env
 .env.local

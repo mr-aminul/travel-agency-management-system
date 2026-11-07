@@ -83,6 +83,7 @@ import {
 } from './smsqWebhook.js'
 import { sendSmsToClient } from './smsqSend.js'
 import { sendEmailToClient } from './clientEmailSend.js'
+import { isMailConfigured, sendMail } from './mail.js'
 import { registerBillingRoutes } from './billing/routes.js'
 import {
   resolveAgencyIntake,
@@ -1539,6 +1540,99 @@ app.get('/api/platform/announcements/public', async (_req, res) => {
     })
   }
 })
+
+/** Landing “Ask us” chat — emails Inventive Lab support. */
+const contactRateByIp = new Map()
+
+app.post('/api/platform/public/contact', async (req, res) => {
+  try {
+    const name = String(req.body?.name || '')
+      .trim()
+      .slice(0, 120)
+    const email = String(req.body?.email || '')
+      .trim()
+      .slice(0, 200)
+      .toLowerCase()
+    const message = String(req.body?.message || '')
+      .trim()
+      .slice(0, 4000)
+
+    if (!name) {
+      res.status(400).json({ error: 'Name is required.' })
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ error: 'A valid email is required.' })
+      return
+    }
+    if (message.length < 5) {
+      res.status(400).json({ error: 'Please write a short message.' })
+      return
+    }
+
+    const ip = String(req.ip || req.socket?.remoteAddress || 'unknown')
+    const now = Date.now()
+    const last = contactRateByIp.get(ip) || 0
+    if (now - last < 45_000) {
+      res.status(429).json({ error: 'Please wait a moment before sending again.' })
+      return
+    }
+
+    if (!isMailConfigured()) {
+      res.status(503).json({
+        error: 'Chat email is not configured. Email support@inventivelab.bd instead.',
+      })
+      return
+    }
+
+    const supportTo =
+      String(process.env.BILLING_SUPPORT_EMAIL || '').trim() ||
+      'support@inventivelab.bd'
+
+    const subject = `OneTrack chat — ${name}`
+    const text = [
+      'New message from the OneTrack landing chat.',
+      '',
+      `Name: ${name}`,
+      `Email: ${email}`,
+      `IP: ${ip}`,
+      '',
+      message,
+    ].join('\n')
+
+    await sendMail({
+      to: supportTo,
+      subject,
+      text,
+      html: `<p>New message from the OneTrack landing chat.</p>
+<p><strong>Name:</strong> ${escapeHtml(name)}<br/>
+<strong>Email:</strong> ${escapeHtml(email)}</p>
+<p>${escapeHtml(message).replace(/\n/g, '<br/>')}</p>`,
+    })
+
+    contactRateByIp.set(ip, now)
+    if (contactRateByIp.size > 2000) {
+      const cutoff = now - 60 * 60 * 1000
+      for (const [key, at] of contactRateByIp) {
+        if (at < cutoff) contactRateByIp.delete(key)
+      }
+    }
+
+    res.json({ ok: true })
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Could not send message.',
+    })
+  }
+})
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
 
 app.get(
   '/api/platform/admin/announcements',

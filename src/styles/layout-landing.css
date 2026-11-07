@@ -344,9 +344,7 @@ html:has(.lp) {
   min-height: 100svh;
   min-height: 100dvh;
   padding:
-    max(clamp(100px, 14vh, 180px), calc(env(safe-area-inset-top) + 72px))
-    clamp(16px, 4vw, 48px)
-    clamp(64px, 10vh, 120px);
+    max(clamp(100px, 14vh, 180px), calc(env(safe-area-inset-top) + 72px)) clamp(16px, 4vw, 48px) clamp(64px, 10vh, 120px);
   overflow: hidden;
   background: #000;
 }
@@ -387,7 +385,7 @@ html:has(.lp) {
   text-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
 }
 
-.lp-hero__title > span {
+.lp-hero__title>span {
   display: block;
 }
 
@@ -423,10 +421,7 @@ html:has(.lp) {
   --lp-board-columns: 5;
   --lp-cell-gap: 2px;
   --lp-col-gap: 10px;
-  --cell: calc(
-    (100cqi - 36px - (var(--lp-board-columns) - 1) * var(--lp-col-gap)) / var(--lp-board-cells) -
-      var(--lp-cell-gap)
-  );
+  --cell: calc((100cqi - 36px - (var(--lp-board-columns) - 1) * var(--lp-col-gap)) / var(--lp-board-cells) - var(--lp-cell-gap));
 
   margin: 0;
   padding: 16px 18px 20px;
@@ -480,11 +475,7 @@ html:has(.lp) {
 .lp-board__row {
   display: grid;
   grid-template-columns:
-    calc(5 * (var(--cell) + var(--lp-cell-gap)))
-    calc(12 * (var(--cell) + var(--lp-cell-gap)))
-    calc(12 * (var(--cell) + var(--lp-cell-gap)))
-    calc(9 * (var(--cell) + var(--lp-cell-gap)))
-    calc(9 * (var(--cell) + var(--lp-cell-gap)));
+    calc(5 * (var(--cell) + var(--lp-cell-gap))) calc(12 * (var(--cell) + var(--lp-cell-gap))) calc(12 * (var(--cell) + var(--lp-cell-gap))) calc(9 * (var(--cell) + var(--lp-cell-gap))) calc(9 * (var(--cell) + var(--lp-cell-gap)));
   gap: var(--lp-col-gap);
   align-items: center;
 }
@@ -564,13 +555,12 @@ html:has(.lp) {
 
   .lp-board__row {
     grid-template-columns:
-      calc(12 * (var(--cell) + var(--lp-cell-gap)))
-      calc(12 * (var(--cell) + var(--lp-cell-gap)))
-      calc(9 * (var(--cell) + var(--lp-cell-gap)));
+      calc(12 * (var(--cell) + var(--lp-cell-gap))) calc(12 * (var(--cell) + var(--lp-cell-gap))) calc(9 * (var(--cell) + var(--lp-cell-gap)));
   }
 }
 
 @media (max-width: 1080px) {
+
   .lp-board,
   .lp-board:hover {
     transform: none;
@@ -824,9 +814,17 @@ html:has(.lp) {
   transform: none;
 }
 
-.lp-vg-board__col:nth-child(2) .lp-vg-board__card { transition-delay: 0.15s; }
-.lp-vg-board__col:nth-child(3) .lp-vg-board__card { transition-delay: 0.3s; }
-.lp-vg-board__col:nth-child(4) .lp-vg-board__card { transition-delay: 0.45s; }
+.lp-vg-board__col:nth-child(2) .lp-vg-board__card {
+  transition-delay: 0.15s;
+}
+
+.lp-vg-board__col:nth-child(3) .lp-vg-board__card {
+  transition-delay: 0.3s;
+}
+
+.lp-vg-board__col:nth-child(4) .lp-vg-board__card {
+  transition-delay: 0.45s;
+}
 
 .lp-vg-board__country {
   font-family: var(--lp-label);
@@ -860,9 +858,20 @@ html:has(.lp) {
   background: #dfe8ff;
 }
 
-.lp-vg-board__col:nth-child(2) .lp-vg-board__tag { color: var(--lp-warn-ink); background: var(--lp-warn-bg); }
-.lp-vg-board__col:nth-child(3) .lp-vg-board__tag { color: #4b2ea8; background: #e9e2ff; }
-.lp-vg-board__col:nth-child(4) .lp-vg-board__tag { color: #146b45; background: #d9f6e8; }
+.lp-vg-board__col:nth-child(2) .lp-vg-board__tag {
+  color: var(--lp-warn-ink);
+  background: var(--lp-warn-bg);
+}
+
+.lp-vg-board__col:nth-child(3) .lp-vg-board__tag {
+  color: #4b2ea8;
+  background: #e9e2ff;
+}
+
+.lp-vg-board__col:nth-child(4) .lp-vg-board__tag {
+  color: #146b45;
+  background: #d9f6e8;
+}
 
 @media (max-width: 767px) {
   .lp-vg--board {
@@ -1194,7 +1203,7 @@ html:has(.lp) {
   font-size: 13.5px;
 }
 
-.lp-vg-track__steps li + li {
+.lp-vg-track__steps li+li {
   margin-top: 14px;
 }
 
@@ -1408,7 +1417,7 @@ html:has(.lp) {
 .lp-ticket {
   --lp-display: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
   --lp-label: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
-  --stub: 124px;
+  --stub: 156px;
   --cut: calc(100% - var(--stub));
 
   display: grid;
@@ -1534,7 +1543,7 @@ html:has(.lp) {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 28px 16px 22px;
+  padding: 28px 14px 22px;
 }
 
 .lp-ticket__stub .lp-mono {
@@ -1559,33 +1568,45 @@ html:has(.lp) {
   min-height: 80px;
   border-radius: 2px;
   opacity: 0.85;
-  background: repeating-linear-gradient(
-    90deg,
-    currentColor 0 2px,
-    transparent 2px 4px,
-    currentColor 4px 5px,
-    transparent 5px 9px,
-    currentColor 9px 12px,
-    transparent 12px 14px,
-    currentColor 14px 15px,
-    transparent 15px 18px
-  );
+  background: repeating-linear-gradient(90deg,
+      currentColor 0 2px,
+      transparent 2px 4px,
+      currentColor 4px 5px,
+      transparent 5px 9px,
+      currentColor 9px 12px,
+      transparent 12px 14px,
+      currentColor 14px 15px,
+      transparent 15px 18px);
 }
 
 .lp-ticket__board {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
   height: 44px;
+  padding: 0 20px;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
   color: var(--lp-paper);
   background: var(--lp-paper-ink);
   transition:
     transform 0.25s var(--lp-ease),
     background-color 0.2s ease;
+}
+
+.lp-ticket__board svg {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  display: block;
 }
 
 .lp-ticket__board:hover {

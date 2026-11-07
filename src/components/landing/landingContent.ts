@@ -53,12 +53,27 @@ export const JOURNEY_STOPS: readonly JourneyStop[] = [
   { code: 'DLV', title: 'Delivered' },
 ]
 
+export type PricingPerkIcon =
+  | 'seats'
+  | 'services'
+  | 'payments'
+  | 'storage'
+  | 'sms'
+  | 'subAgents'
+  | 'links'
+  | 'hr'
+
+export type PricingPerk = {
+  label: string
+  icon: PricingPerkIcon
+}
+
 export type PricingPlan = {
   id: string
   name: string
   priceBdt: number
   seatCode: string
-  perks: readonly string[]
+  perks: readonly PricingPerk[]
   isFeatured?: boolean
 }
 
@@ -70,11 +85,11 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     priceBdt: 3000,
     seatCode: '05A',
     perks: [
-      '5 team seats',
-      'All 8 services',
-      'Payments & invoices',
-      '10 GB storage',
-      '300 SMS / month',
+      { label: '5 team seats', icon: 'seats' },
+      { label: 'All 8 services', icon: 'services' },
+      { label: 'Payments & invoices', icon: 'payments' },
+      { label: '10 GB storage', icon: 'storage' },
+      { label: '300 SMS / month', icon: 'sms' },
     ],
   },
   {
@@ -84,11 +99,11 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     seatCode: '20K',
     isFeatured: true,
     perks: [
-      '20 team seats',
-      '30 sub agents',
-      'Links & approvals',
-      '40 GB storage',
-      '2,000 SMS / month',
+      { label: '20 team seats', icon: 'seats' },
+      { label: '30 sub agents', icon: 'subAgents' },
+      { label: 'Links & approvals', icon: 'links' },
+      { label: '40 GB storage', icon: 'storage' },
+      { label: '2,000 SMS / month', icon: 'sms' },
     ],
   },
   {
@@ -97,11 +112,11 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
     priceBdt: 14000,
     seatCode: '60F',
     perks: [
-      '60 team seats',
-      '100 sub agents',
-      'HR & payroll',
-      '100 GB storage',
-      '8,000 SMS / month',
+      { label: '60 team seats', icon: 'seats' },
+      { label: '100 sub agents', icon: 'subAgents' },
+      { label: 'HR & payroll', icon: 'hr' },
+      { label: '100 GB storage', icon: 'storage' },
+      { label: '8,000 SMS / month', icon: 'sms' },
     ],
   },
 ]

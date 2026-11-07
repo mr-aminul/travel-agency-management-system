@@ -64,6 +64,7 @@ const ChooseWorkspacePage = lazy(() => import('@/pages/auth/ChooseWorkspacePage'
 const BillingPage = lazy(() => import('@/pages/BillingPage'))
 const SubscribePage = lazy(() => import('@/pages/SubscribePage'))
 const LandingPage = lazy(() => import('@/pages/LandingPage'))
+const LandingPageV2 = lazy(() => import('@/pages/LandingPageV2'))
 
 function RouteFallback() {
   return <div className="pd-route-fallback" aria-busy="true" aria-live="polite" />
@@ -112,7 +113,7 @@ function ProductRoot() {
     return <AuthenticatedLayout />
   }
   if (pathname === '/' || pathname === '') {
-    return <LandingPage />
+    return <LandingPageV2 />
   }
   return <Navigate to="/login" replace />
 }
@@ -125,7 +126,9 @@ function MarketingApp() {
     <BrowserRouter basename={routerBasename}>
       <Suspense fallback={<RouteFallback />}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<LandingPageV2 />} />
+          <Route path="/v1" element={<LandingPage />} />
+          <Route path="/v2" element={<LandingPageV2 />} />
           <Route path="*" element={<MarketingToAppRedirect />} />
         </Routes>
       </Suspense>
@@ -140,6 +143,8 @@ function ProductApp() {
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/v1" element={<LandingPage />} />
+          <Route path="/v2" element={<LandingPageV2 />} />
           <Route path="/subscribe" element={<SubscribePage />} />
           <Route path="/choose-workspace" element={<ChooseWorkspacePage />} />
           <Route path="/billing" element={<BillingPage />} />

@@ -32,25 +32,25 @@ function platformApiProxy(env: Record<string, string>) {
       secure: false,
       ...(usesIp
         ? {
-            headers: { Host: apiHost },
-            agent: new https.Agent({
-              rejectUnauthorized: false,
-              servername: apiHost,
-            }),
-            configure(proxy: {
-              on: (
-                event: string,
-                listener: (...args: unknown[]) => void,
-              ) => void
-            }) {
-              proxy.on('proxyReq', (...args: unknown[]) => {
-                const proxyReq = args[0] as {
-                  setHeader: (name: string, value: string) => void
-                }
-                proxyReq.setHeader('Host', apiHost)
-              })
-            },
-          }
+          headers: { Host: apiHost },
+          agent: new https.Agent({
+            rejectUnauthorized: false,
+            servername: apiHost,
+          }),
+          configure(proxy: {
+            on: (
+              event: string,
+              listener: (...args: unknown[]) => void,
+            ) => void
+          }) {
+            proxy.on('proxyReq', (...args: unknown[]) => {
+              const proxyReq = args[0] as {
+                setHeader: (name: string, value: string) => void
+              }
+              proxyReq.setHeader('Host', apiHost)
+            })
+          },
+        }
         : {}),
     },
   }

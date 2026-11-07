@@ -11,39 +11,6 @@
   gap: 1.25rem;
 }
 
-/* ── Ink placement compare toggle ──────────────────────────── */
-
-.pd-service-board__ink-toggle {
-  display: inline-flex;
-  padding: 0.15rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.7rem;
-  background: var(--color-surface);
-}
-
-.pd-service-board__ink-option {
-  padding: 0.35rem 0.65rem;
-  border: 0;
-  border-radius: 0.55rem;
-  background: transparent;
-  appearance: none;
-  font: inherit;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.pd-service-board__ink-option:hover:not(.is-selected) {
-  color: var(--color-text);
-}
-
-.pd-service-board__ink-option.is-selected {
-  background: var(--color-theme);
-  color: var(--color-on-theme, #fff);
-}
-
 /* ── Service switcher ──────────────────────────────────────── */
 
 .pd-board-switcher {
@@ -147,10 +114,7 @@
 }
 
 /* ── Service board ─────────────────────────────────────────── */
-/*
-  Default = Deep desk  (--ink-desk):  very light theme well; pale lanes.
-  Flip    = Deep lanes (--ink-lanes): solid theme column bodies; light chrome.
-*/
+/* Deep desk (--ink-desk): very light theme well; pale lanes. */
 
 .pd-board {
   display: flex;

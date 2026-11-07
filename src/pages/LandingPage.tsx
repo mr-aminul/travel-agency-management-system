@@ -277,7 +277,7 @@ function PricingTicket({ plan, index }: { plan: PricingPlan; index: number }) {
         </p>
         <ul className="lp-ticket__perks">
           {plan.perks.map((perk) => (
-            <li key={perk}>{perk}</li>
+            <li key={perk.label}>{perk.label}</li>
           ))}
         </ul>
       </div>
@@ -293,7 +293,7 @@ function PricingTicket({ plan, index }: { plan: PricingPlan; index: number }) {
         <Barcode />
         <a className="lp-ticket__board" href={subscribeUrl(plan.id)}>
           Board
-          <ArrowUpRight size={16} strokeWidth={2.25} />
+          <ArrowUpRight size={15} strokeWidth={2.25} aria-hidden="true" />
         </a>
       </div>
     </article>

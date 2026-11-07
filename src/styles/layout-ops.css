@@ -109,7 +109,7 @@
   transform: rotate(-8deg);
 }
 
-.pd-ops-metric-link > :not(.pd-ops-metric-link__watermark) {
+.pd-ops-metric-link> :not(.pd-ops-metric-link__watermark) {
   position: relative;
   z-index: 1;
 }
@@ -534,11 +534,9 @@
   border: 1px solid var(--color-border);
   border-radius: 1rem;
   background:
-    linear-gradient(
-      165deg,
+    linear-gradient(165deg,
       color-mix(in srgb, var(--color-theme) 7%, var(--color-surface, #fff)) 0%,
-      var(--color-surface, #fff) 42%
-    );
+      var(--color-surface, #fff) 42%);
   box-shadow: var(--shadow-low);
 }
 
@@ -700,6 +698,7 @@
 }
 
 @media (max-width: 1100px) {
+
   .pd-ops__metrics,
   .pd-ops__metrics--grid,
   .pd-subAgent-grid,
@@ -709,6 +708,7 @@
 }
 
 @media (max-width: 767px) {
+
   /* 2×2 KPI tiles so labels stay readable on phones. */
   .pd-ops__metrics,
   .pd-ops__metrics--grid {
@@ -763,7 +763,7 @@
     align-items: stretch;
   }
 
-  .pd-ops__toolbar > * {
+  .pd-ops__toolbar>* {
     min-width: 0;
   }
 }

@@ -313,8 +313,6 @@ export function ServiceBoardView({ viewToggle }: ServiceBoardViewProps) {
   const [serviceFilters, setServiceFilters] = useState<string[]>(() =>
     urlService ? [urlService] : [],
   )
-  /** Compare deep-blue placement: lanes vs desk. */
-  const [inkPlace, setInkPlace] = useState<'lanes' | 'desk'>('desk')
   /** `all` shows every board; otherwise focus one service. */
   const [focusService, setFocusService] = useState<string>(
     () => urlService ?? 'all',
@@ -518,7 +516,7 @@ export function ServiceBoardView({ viewToggle }: ServiceBoardViewProps) {
 
   return (
     <div
-      className={`pd-page pd-service-board pd-service-board--ink-${inkPlace}`}
+      className="pd-page pd-service-board pd-service-board--ink-desk"
       aria-label="Services board"
     >
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -527,28 +525,6 @@ export function ServiceBoardView({ viewToggle }: ServiceBoardViewProps) {
           {viewToggle}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div
-            className="pd-service-board__ink-toggle"
-            role="group"
-            aria-label="Color placement"
-          >
-            <button
-              type="button"
-              className={`pd-service-board__ink-option${inkPlace === 'desk' ? ' is-selected' : ''}`}
-              aria-pressed={inkPlace === 'desk'}
-              onClick={() => setInkPlace('desk')}
-            >
-              Deep Desk
-            </button>
-            <button
-              type="button"
-              className={`pd-service-board__ink-option${inkPlace === 'lanes' ? ' is-selected' : ''}`}
-              aria-pressed={inkPlace === 'lanes'}
-              onClick={() => setInkPlace('lanes')}
-            >
-              Deep Lanes
-            </button>
-          </div>
           <Popover>
             <PopoverTrigger asChild>
               <Button
