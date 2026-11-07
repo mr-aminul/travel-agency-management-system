@@ -126,6 +126,9 @@ export default defineConfig(({ mode }) => {
           navigateFallback: 'index.html',
           navigateFallbackDenylist: [/^\/api\//],
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,webp}'],
+          // Marketing art is large and online-only; keep the SW install lean.
+          globIgnores: ['**/images/landing/**'],
+          maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
           runtimeCaching: [
             {
               urlPattern: /\/api\//,
