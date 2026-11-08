@@ -3,12 +3,14 @@ import {
   needsAttention,
 } from '@/lib/dashboardInsights'
 import { formatBdt } from '@/lib/dashboardMetrics'
+import { formatDisplayDate } from '@/lib/formatDate'
 import { workDetailPath } from '@/lib/workPaths'
 import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { StatusUpdateRequest } from '@/types/request'
+import type { SubAgentPendingChange } from '@/types/subAgentAccess'
 
-export type TodayBucketId = 'money' | 'docs' | 'stuck'
+export type TodayBucketId = 'money' | 'docs' | 'stuck' | 'approvals'
 
 export type TodayFollowUpItem = {
   id: string
@@ -29,6 +31,7 @@ export type TodayFollowUpsSummary = {
   money: TodayBucketSummary
   docs: TodayBucketSummary
   stuck: TodayBucketSummary
+  approvals: TodayBucketSummary
 }
 
 export const TODAY_BUCKETS: {
@@ -38,18 +41,23 @@ export const TODAY_BUCKETS: {
 }[] = [
   {
     id: 'money',
-    label: 'Money due',
-    empty: 'No open balances to chase today.',
+    label: 'Payments due',
+    empty: 'No payments due.',
   },
   {
     id: 'docs',
     label: 'Missing docs',
-    empty: 'No files waiting on documents.',
+    empty: 'No missing documents.',
   },
   {
     id: 'stuck',
-    label: 'Stuck',
-    empty: 'Nothing on hold or going stale.',
+    label: 'Needs action',
+    empty: 'No files need action.',
+  },
+  {
+    id: 'approvals',
+    label: 'Approvals',
+    empty: 'No pending approvals.',
   },
 ]
 
@@ -64,16 +72,35 @@ function missingRequiredCount(item: Case): number {
   ).length
 }
 
+function approvalDetail(
+  change: SubAgentPendingChange,
+  resolveSubAgentName?: (id: string) => string | undefined,
+): string {
+  const bits: string[] = []
+  const subAgentName = resolveSubAgentName?.(change.subAgentId)?.trim()
+  if (subAgentName) bits.push(subAgentName)
+  bits.push(`${change.action} ${change.entityType}`)
+  const when = formatDisplayDate(change.createdAt)
+  if (when) bits.push(when)
+  return bits.join(' · ')
+}
+
 /**
- * Daily chase list: money due, missing docs, and stuck / on-hold files.
- * Built from live cases — no separate to-do store.
- * Returns every matching item; the UI scrolls instead of truncating.
+ * Daily chase list: payments due, missing docs, files needing action,
+ * and (optionally) pending sub-agent approvals.
+ * Built from live stores — no separate to-do store.
  */
 export function buildTodayFollowUps(input: {
   cases: Case[]
   clients: Client[]
   requests: StatusUpdateRequest[]
   asOf?: Date
+  /** When omitted, the approvals queue stays empty. */
+  pendingChanges?: SubAgentPendingChange[]
+  /** Sub-agent portal: only that sub-agent's pending rows. */
+  approvalsScopeSubAgentId?: string
+  resolveSubAgentName?: (id: string) => string | undefined
+  includeApprovals?: boolean
 }): TodayFollowUpsSummary {
   const asOf = input.asOf ?? new Date()
 
@@ -130,10 +157,31 @@ export function buildTodayFollowUps(input: {
       href: item.href,
     }))
 
+  let approvalItems: TodayFollowUpItem[] = []
+  if (input.includeApprovals) {
+    const open = (input.pendingChanges ?? []).filter(
+      (row) => row.status === 'pending',
+    )
+    const scoped = input.approvalsScopeSubAgentId
+      ? open.filter((row) => row.subAgentId === input.approvalsScopeSubAgentId)
+      : open
+    approvalItems = scoped
+      .slice()
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((row) => ({
+        id: `approvals:${row.id}`,
+        bucket: 'approvals' as const,
+        title: row.summary,
+        detail: approvalDetail(row, input.resolveSubAgentName),
+        href: '/approvals',
+      }))
+  }
+
   return {
     money: { items: moneyItems },
     docs: { items: docsItems },
     stuck: { items: stuckItems },
+    approvals: { items: approvalItems },
   }
 }
 
@@ -141,31 +189,47 @@ export function todayFollowUpsTotal(summary: TodayFollowUpsSummary): number {
   return (
     summary.money.items.length +
     summary.docs.items.length +
-    summary.stuck.items.length
+    summary.stuck.items.length +
+    summary.approvals.items.length
   )
 }
 
 export function todayFollowUpsHeadline(summary: TodayFollowUpsSummary): string {
   const parts: string[] = []
   if (summary.money.items.length > 0) {
-    parts.push(`${summary.money.items.length} owe money`)
+    parts.push(`${summary.money.items.length} payments due`)
   }
   if (summary.docs.items.length > 0) {
-    parts.push(`${summary.docs.items.length} need docs`)
+    parts.push(`${summary.docs.items.length} missing docs`)
   }
   if (summary.stuck.items.length > 0) {
-    parts.push(`${summary.stuck.items.length} stuck`)
+    parts.push(`${summary.stuck.items.length} need action`)
   }
-  if (parts.length === 0) return 'You are clear for now.'
+  if (summary.approvals.items.length > 0) {
+    parts.push(`${summary.approvals.items.length} approvals`)
+  }
+  if (parts.length === 0) return 'Nothing due today.'
   if (parts.length === 1) return parts[0] ?? ''
   if (parts.length === 2) return `${parts[0]} · ${parts[1]}`
-  return `${parts[0]} · ${parts[1]} · ${parts[2]}`
+  return parts.join(' · ')
 }
 
 export function pickDefaultTodayBucket(
   summary: TodayFollowUpsSummary,
 ): TodayBucketId {
-  if (summary.money.items.length > 0) return 'money'
-  if (summary.docs.items.length > 0) return 'docs'
-  return 'stuck'
+  for (const bucket of TODAY_BUCKETS) {
+    if (summary[bucket.id].items.length > 0) return bucket.id
+  }
+  return 'money'
+}
+
+/** Buckets that currently have work, in desk order. */
+export function todayBucketsWithWork(
+  summary: TodayFollowUpsSummary,
+  options?: { includeApprovals?: boolean },
+): typeof TODAY_BUCKETS {
+  return TODAY_BUCKETS.filter((bucket) => {
+    if (bucket.id === 'approvals' && !options?.includeApprovals) return false
+    return summary[bucket.id].items.length > 0
+  })
 }

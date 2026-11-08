@@ -21,10 +21,10 @@ export const PLATFORM_TOUR_STEPS: PlatformTourStep[] = [
     placement: 'bottom',
   },
   {
-    id: 'quick-links',
-    title: 'Jump into everyday work',
-    body: 'These tiles open the areas staff use most: clients, services, payments, documents, and more.',
-    selector: '[data-tour="home-quick-links"]',
+    id: 'today',
+    title: 'Today desk',
+    body: 'Home lists payments due, missing documents, files that need action, and approvals when your plan includes them.',
+    selector: '[data-tour="home-today"]',
     placement: 'top',
   },
   {
@@ -44,6 +44,6 @@ export const PLATFORM_TOUR_STEPS: PlatformTourStep[] = [
   {
     id: 'done',
     title: 'You are ready to explore',
-    body: 'Start with Clients or Services whenever you are ready. You can dismiss this tour permanently. It will not keep asking.',
+    body: 'Start with Today on Home whenever you open the app. You can dismiss this tour permanently. It will not keep asking.',
   },
 ]

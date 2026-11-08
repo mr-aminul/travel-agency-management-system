@@ -1,50 +1,19 @@
-import { Link, Navigate } from 'react-router-dom'
-import {
-  ClipboardList,
-  FileText,
-  Handshake,
-  LayoutDashboard,
-  UserRoundSearch,
-  Users,
-  UsersRound,
-  Wallet,
-  type LucideIcon,
-} from 'lucide-react'
+import { Navigate } from 'react-router-dom'
 import { BusinessProfileSetupNotice } from '@/components/BusinessProfileSetupNotice'
 import { HomeGlobalSearch } from '@/components/home/HomeGlobalSearch'
 import { TodayFollowUps } from '@/components/home/TodayFollowUps'
 import { PlatformTour } from '@/components/onboarding/PlatformTour'
 import { useAgencyProfile } from '@/layout/useAgencyProfile'
 import { agencyProfileIsIncomplete } from '@/lib/agencyProfileGaps'
-import { isPathAllowed } from '@/lib/modules'
 import {
   dismissBusinessProfileNudge,
   useBusinessProfileNudgeState,
 } from '@/lib/onboardingStore'
-import { useActiveTenant } from '@/lib/useActiveTenant'
 import { useAuth } from '@/lib/useAuth'
 import '@/styles/layout-home.css'
 
-type QuickLink = {
-  path: string
-  label: string
-  icon: LucideIcon
-}
-
-const QUICK_LINKS: QuickLink[] = [
-  { path: '/clients', label: 'Clients', icon: Users },
-  { path: '/services', label: 'Services', icon: ClipboardList },
-  { path: '/dashboard', label: 'Insights', icon: LayoutDashboard },
-  { path: '/payments', label: 'Payments', icon: Wallet },
-  { path: '/documents', label: 'Documents', icon: FileText },
-  { path: '/hr', label: 'HR', icon: UsersRound },
-  { path: '/sub-agents', label: 'Sub Agents', icon: Handshake },
-  { path: '/track', label: 'Track client', icon: UserRoundSearch },
-]
-
 export default function HomePage() {
   const { user } = useAuth()
-  const tenant = useActiveTenant()
   const agencyProfile = useAgencyProfile()
   const { dismissed: profileNudgeDismissed } = useBusinessProfileNudgeState()
   const showProfileNudge =
@@ -54,16 +23,8 @@ export default function HomePage() {
     return <Navigate to="/admin" replace />
   }
 
-  const links = QUICK_LINKS.filter((item) =>
-    isPathAllowed(
-      item.path,
-      tenant.enabledModules,
-      user?.role ?? 'agency_user',
-    ),
-  )
-
   return (
-    <div className="pd-page pd-home" aria-label="Home">
+    <div className="pd-page pd-page--elevated pd-home" aria-label="Home">
       {showProfileNudge ? (
         <BusinessProfileSetupNotice
           profile={agencyProfile}
@@ -74,34 +35,9 @@ export default function HomePage() {
 
       <HomeGlobalSearch />
 
-      <TodayFollowUps variant="summary" />
+      <TodayFollowUps />
 
       <PlatformTour />
-
-      <nav
-        className="pd-home-quick"
-        aria-label="Quick links"
-        data-tour="home-quick-links"
-      >
-        {links.map((item) => {
-          const Icon = item.icon
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className="pd-home-quick__tile"
-            >
-              <span className="pd-home-quick__watermark" aria-hidden="true">
-                <Icon size={148} strokeWidth={1.15} />
-              </span>
-              <span className="pd-home-quick__icon" aria-hidden="true">
-                <Icon size={26} strokeWidth={1.6} />
-              </span>
-              <span className="pd-home-quick__label">{item.label}</span>
-            </Link>
-          )
-        })}
-      </nav>
     </div>
   )
 }

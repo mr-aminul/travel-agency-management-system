@@ -7,7 +7,6 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { filterChipClass } from '@/components/clients/shadcnChrome'
-import { TodayFollowUps } from '@/components/home/TodayFollowUps'
 import { BentoTile } from '@/components/dashboard/BentoTile'
 import { TrendChart } from '@/components/dashboard/TrendChart'
 import { StatCards } from '@/components/StatCards'
@@ -128,8 +127,6 @@ export default function DashboardPage() {
 
       <div className="pd-dash__layout">
         <div className="pd-dash__chase">
-          <TodayFollowUps variant="panel" />
-
           <BentoTile
             title="Collect"
             icon={HandCoins}

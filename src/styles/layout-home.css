@@ -1,19 +1,21 @@
-/* Home: theme-filled quick-link tiles (portal style) */
+/* Home: Today desk — search + action queues */
 
 .pd-home {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1.75rem;
+  align-items: stretch;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 44rem;
+  margin-inline: auto;
   padding-block: 0.5rem 1.5rem;
 }
 
-/* Same GlobalSearchPalette as the top bar, sized for the home hero. */
+/* Same GlobalSearchPalette as the top bar, sized for the home desk. */
 .pd-home-search {
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 36rem;
 }
 
 .pd-home-search .pd-topbar__search-wrap {
@@ -103,129 +105,11 @@
   width: 100%;
 }
 
-.pd-home-quick {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1.125rem;
-  width: 100%;
-  max-width: 68rem;
-}
-
-.pd-home-quick__tile {
-  --tile-ink: var(--color-on-theme);
-  --tile-ink-soft: color-mix(in srgb, var(--color-on-theme) 72%, transparent);
-
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.625rem;
-  min-height: 11.5rem;
-  padding: 1.5rem 1.25rem;
-  border: 0;
-  border-radius: 1.375rem;
-  background: linear-gradient(150deg,
-      var(--color-theme) 0%,
-      color-mix(in srgb, var(--color-theme) 88%, black) 100%);
-  color: var(--tile-ink);
-  box-shadow:
-    0 1px 2px color-mix(in srgb, black 28%, transparent),
-    0 12px 28px color-mix(in srgb, var(--color-theme) 35%, transparent);
-  text-decoration: none;
-  text-align: center;
-  transition:
-    box-shadow 0.15s ease-out,
-    transform 0.12s ease-out,
-    background 0.15s ease-out;
-}
-
-/* Large icon rising from lower-right, behind content */
-.pd-home-quick__watermark {
-  position: absolute;
-  right: -1.75rem;
-  bottom: -2.25rem;
-  z-index: 0;
-  display: flex;
-  color: var(--tile-ink);
-  opacity: 0.1;
-  pointer-events: none;
-  transform: rotate(-8deg);
-}
-
-.pd-home-quick__tile> :not(.pd-home-quick__watermark) {
-  position: relative;
-  z-index: 1;
-}
-
-.pd-home-quick__tile:hover {
-  background: linear-gradient(150deg,
-      color-mix(in srgb, var(--color-theme) 92%, white) 0%,
-      var(--color-theme) 100%);
-  box-shadow:
-    0 1px 2px color-mix(in srgb, black 32%, transparent),
-    0 16px 34px color-mix(in srgb, var(--color-theme) 42%, transparent);
-}
-
-.pd-home-quick__tile:active {
-  transform: scale(0.98);
-}
-
-.pd-home-quick__tile:focus-visible {
-  outline: 0.125rem solid var(--color-theme);
-  outline-offset: 0.2rem;
-}
-
-.pd-home-quick__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  margin-bottom: 0.25rem;
-  border-radius: 0.875rem;
-  background: color-mix(in srgb, var(--tile-ink) 12%, transparent);
-  color: var(--tile-ink);
-}
-
-.pd-home-quick__label {
-  font-family: var(--font-heading);
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--tile-ink);
-  line-height: 1.2;
-}
-
-@media (max-width: 56rem) {
-  .pd-home-quick {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-width: 36rem;
-  }
-}
-
 @media (max-width: 767px) {
   .pd-home {
-    gap: 1.25rem;
-    padding-block: 0.25rem 1rem;
-  }
-
-  .pd-home-quick {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
     max-width: none;
-    gap: 0.75rem;
-  }
-
-  .pd-home-quick__tile {
-    min-height: 9.5rem;
-    padding: 1.125rem 0.875rem;
-  }
-
-  .pd-home-quick__label {
-    font-size: 0.875rem;
+    padding-block: 0.25rem 1rem;
   }
 
   .pd-home-search .pd-topbar__search {
@@ -233,93 +117,13 @@
   }
 }
 
-/* ── Today summary strip (Home) ──────────────────────────────────── */
-
-.pd-today-strip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  width: fit-content;
-  max-width: min(36rem, 100%);
-  padding: 0.45rem 0.75rem 0.45rem 0.65rem;
-  border-radius: 999px;
-  border: 0.0625rem solid var(--color-border);
-  background: var(--color-surface);
-  color: inherit;
-  text-decoration: none;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text) 5%, transparent);
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    background-color 0.15s ease;
-}
-
-.pd-today-strip:hover {
-  border-color: color-mix(in srgb, var(--color-theme) 40%, var(--color-border));
-  background: color-mix(in srgb, var(--color-theme) 6%, var(--color-surface));
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-theme) 12%, transparent);
-}
-
-.pd-today-strip:focus-visible {
-  outline: 0.125rem solid var(--color-theme);
-  outline-offset: 0.15rem;
-}
-
-.pd-today-strip__label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--color-theme-ink);
-}
-
-.pd-today-strip__stats {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.65rem;
-  min-width: 0;
-}
-
-.pd-today-strip__stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 550;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-}
-
-.pd-today-strip__go {
-  display: inline-flex;
-  flex-shrink: 0;
-  margin-left: auto;
-  color: var(--color-text-secondary);
-}
-
-.pd-home .pd-today-strip {
-  align-self: center;
-}
-
-@media (max-width: 767px) {
-  .pd-today-strip {
-    width: 100%;
-    border-radius: 0.75rem;
-  }
-}
-
-/* ── Today follow-ups panel (Dashboard) ──────────────────────────── */
+/* ── Today desk ──────────────────────────────────────────────────── */
 
 .pd-today {
   width: 100%;
-  max-width: 36rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
   padding: 1rem 1.1rem;
   border-radius: var(--radius-card, 0.85rem);
   border: 0.0625rem solid var(--color-border);
@@ -328,7 +132,7 @@
   text-align: left;
 }
 
-.pd-today--compact {
+.pd-today--desk {
   max-width: none;
 }
 
@@ -357,7 +161,7 @@
 .pd-today__title {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--color-text);
@@ -377,33 +181,53 @@
   background: var(--color-theme);
 }
 
-.pd-today__chips {
-  flex-wrap: wrap;
-}
-
-.pd-today__chip-count {
-  margin-left: 0.3rem;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.8;
-}
-
 .pd-today__empty {
   margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.pd-today__queues {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.pd-today__queue {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.pd-today__queue-title {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.pd-today__queue-label {
   font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--color-text);
+}
+
+.pd-today__queue-count {
+  font-size: 0.75rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
 }
 
 .pd-today__list {
   list-style: none;
   margin: 0;
-  padding: 0 0.15rem 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  max-height: min(28rem, 55vh);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
 }
 
 .pd-today__row {
@@ -424,6 +248,11 @@
 .pd-today__row:hover {
   border-color: color-mix(in srgb, var(--color-theme) 28%, var(--color-border));
   background: color-mix(in srgb, var(--color-theme) 9%, white);
+}
+
+.pd-today__row:focus-visible {
+  outline: 0.125rem solid var(--color-theme);
+  outline-offset: 0.1rem;
 }
 
 .pd-today__row-icon {
@@ -450,15 +279,27 @@
   font-size: 0.875rem;
   font-weight: 650;
   color: var(--color-text);
+  overflow-wrap: anywhere;
 }
 
 .pd-today__row-detail {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .pd-today__row-go {
   color: var(--color-text-secondary);
   flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .pd-today {
+    padding: 0.85rem 0.85rem;
+  }
+
+  .pd-today__row {
+    padding: 0.65rem 0.7rem;
+  }
 }

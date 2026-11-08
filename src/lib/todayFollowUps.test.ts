@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   buildTodayFollowUps,
   pickDefaultTodayBucket,
+  todayBucketsWithWork,
   todayFollowUpsHeadline,
   todayFollowUpsTotal,
 } from '@/lib/todayFollowUps'
 import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
+import type { SubAgentPendingChange } from '@/types/subAgentAccess'
 import { TENANT_IDS } from '@/types/tenant'
 
 function caseStub(overrides: Partial<Case> & Pick<Case, 'id' | 'clientName'>): Case {
@@ -38,13 +40,34 @@ const clients: Client[] = [
   } as Client,
 ]
 
+function pendingStub(
+  overrides: Partial<SubAgentPendingChange> & Pick<SubAgentPendingChange, 'id'>,
+): SubAgentPendingChange {
+  return {
+    tenantId: TENANT_IDS.demo,
+    subAgentId: 'sa-1',
+    submittedByUserId: 'u-1',
+    submittedByName: 'Karim',
+    entityType: 'client',
+    action: 'create',
+    summary: 'New client: Farhana',
+    payload: {},
+    status: 'pending',
+    createdAt: '2026-10-14T10:00:00.000Z',
+    ...overrides,
+  }
+}
+
 describe('todayFollowUps', () => {
-  it('buckets money, docs, and stuck files', () => {
+  it('buckets payments, docs, needs-action, and approvals', () => {
     const asOf = new Date('2026-10-15T12:00:00.000Z')
     const summary = buildTodayFollowUps({
       asOf,
       clients,
       requests: [],
+      includeApprovals: true,
+      resolveSubAgentName: () => 'Delta Travels',
+      pendingChanges: [pendingStub({ id: 'pc-1' })],
       cases: [
         caseStub({
           id: 'case-money',
@@ -82,9 +105,44 @@ describe('todayFollowUps', () => {
     expect(summary.money.items.map((row) => row.title)).toEqual(['Rahim'])
     expect(summary.docs.items.map((row) => row.title)).toEqual(['Nusrat'])
     expect(summary.stuck.items.some((row) => row.title === 'Imran')).toBe(true)
-    expect(todayFollowUpsTotal(summary)).toBeGreaterThanOrEqual(3)
-    expect(todayFollowUpsHeadline(summary)).toMatch(/owe money/i)
+    expect(summary.approvals.items).toHaveLength(1)
+    expect(summary.approvals.items[0]?.href).toBe('/approvals')
+    expect(summary.approvals.items[0]?.detail).toMatch(/Delta Travels/)
+    expect(todayFollowUpsTotal(summary)).toBeGreaterThanOrEqual(4)
+    expect(todayFollowUpsHeadline(summary)).toMatch(/payments due/i)
     expect(pickDefaultTodayBucket(summary)).toBe('money')
+    expect(todayBucketsWithWork(summary, { includeApprovals: true }).map((b) => b.id)).toEqual(
+      expect.arrayContaining(['money', 'docs', 'stuck', 'approvals']),
+    )
+  })
+
+  it('hides approvals unless includeApprovals is set', () => {
+    const summary = buildTodayFollowUps({
+      cases: [],
+      clients,
+      requests: [],
+      pendingChanges: [pendingStub({ id: 'pc-2' })],
+      asOf: new Date('2026-10-15T12:00:00.000Z'),
+    })
+    expect(summary.approvals.items).toHaveLength(0)
+  })
+
+  it('scopes approvals to a sub-agent when asked', () => {
+    const summary = buildTodayFollowUps({
+      cases: [],
+      clients,
+      requests: [],
+      includeApprovals: true,
+      approvalsScopeSubAgentId: 'sa-mine',
+      pendingChanges: [
+        pendingStub({ id: 'pc-mine', subAgentId: 'sa-mine' }),
+        pendingStub({ id: 'pc-other', subAgentId: 'sa-other' }),
+      ],
+      asOf: new Date('2026-10-15T12:00:00.000Z'),
+    })
+    expect(summary.approvals.items.map((row) => row.id)).toEqual([
+      'approvals:pc-mine',
+    ])
   })
 
   it('returns every docs item without truncating', () => {
@@ -112,7 +170,7 @@ describe('todayFollowUps', () => {
     })
 
     expect(summary.docs.items).toHaveLength(12)
-    expect(todayFollowUpsHeadline(summary)).toBe('12 need docs')
+    expect(todayFollowUpsHeadline(summary)).toBe('12 missing docs')
     expect(todayFollowUpsTotal(summary)).toBe(12)
   })
 
@@ -157,6 +215,7 @@ describe('todayFollowUps', () => {
       asOf: new Date('2026-10-15T12:00:00.000Z'),
     })
     expect(todayFollowUpsTotal(summary)).toBe(0)
-    expect(todayFollowUpsHeadline(summary)).toMatch(/clear/i)
+    expect(todayFollowUpsHeadline(summary)).toMatch(/nothing due/i)
+    expect(todayBucketsWithWork(summary)).toEqual([])
   })
 })
