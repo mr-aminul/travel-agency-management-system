@@ -143,11 +143,11 @@ function serviceChipLabel(item: TrackServiceChip, items: TrackServiceChip[]): st
 }
 
 const trackPageBackgroundStyle = {
-  backgroundColor: 'color-mix(in srgb, var(--color-theme) 55%, #040806)',
+  backgroundColor: 'color-mix(in srgb, var(--color-theme) 55%, #04060c)',
   backgroundImage: [
-    'radial-gradient(48rem 34rem at 14% 10%, color-mix(in srgb, var(--color-theme) 88%, #06281c) 0%, transparent 58%)',
-    'radial-gradient(40rem 30rem at 90% 90%, color-mix(in srgb, var(--color-theme) 70%, #041910) 0%, transparent 55%)',
-    'linear-gradient(165deg, color-mix(in srgb, var(--color-theme) 65%, #03140e) 0%, color-mix(in srgb, var(--color-theme) 40%, #070b0f) 50%, #050807 100%)',
+    'radial-gradient(48rem 34rem at 14% 10%, color-mix(in srgb, var(--color-theme) 88%, #061228) 0%, transparent 58%)',
+    'radial-gradient(40rem 30rem at 90% 90%, color-mix(in srgb, var(--color-theme) 70%, #040a18) 0%, transparent 55%)',
+    'linear-gradient(165deg, color-mix(in srgb, var(--color-theme) 65%, #030c18) 0%, color-mix(in srgb, var(--color-theme) 40%, #070b12) 50%, #05070c 100%)',
   ].join(', '),
 } as const
 

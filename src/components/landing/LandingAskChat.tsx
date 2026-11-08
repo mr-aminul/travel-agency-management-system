@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { ChatCircle, PaperPlaneTilt, X } from '@phosphor-icons/react'
 import { ApiError, apiFetch } from '@/lib/apiClient'
-import { SALES_EMAIL, SALES_MAILTO } from '@/components/landing/landingV2Content'
+import { SALES_EMAIL, SALES_MAILTO } from '@/components/landing/landingContent'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
 
 type LandingAskChatProps = {
