@@ -1,6 +1,10 @@
 import { useMemo } from 'react'
 import { useSyncExternalStore } from 'react'
-import { getActiveTenantId } from '@/lib/authApi'
+import {
+  getActiveTenantId,
+  readSession,
+  sessionActor,
+} from '@/lib/authApi'
 import { getClientById } from '@/lib/clientsStore'
 import { DATA_KEYS, loadJsonParsed, removeJson, saveJson } from '@/lib/data'
 import { useAuth } from '@/lib/useAuth'
@@ -52,6 +56,14 @@ function normalizeItem(value: unknown): ClientActionItem | undefined {
     typeof value.completedAt === 'string' && value.completedAt.trim()
       ? value.completedAt.trim()
       : undefined
+  const createdByUserId =
+    typeof value.createdByUserId === 'string' && value.createdByUserId.trim()
+      ? value.createdByUserId.trim()
+      : undefined
+  const createdByName =
+    typeof value.createdByName === 'string' && value.createdByName.trim()
+      ? value.createdByName.trim()
+      : undefined
   return {
     id,
     tenantId,
@@ -60,6 +72,8 @@ function normalizeItem(value: unknown): ClientActionItem | undefined {
     done: value.done === true,
     createdAt,
     completedAt,
+    createdByUserId,
+    createdByName,
   }
 }
 
@@ -143,6 +157,7 @@ export function addClientActionItem(
   const error = validateClientActionItemText(input.text)
   if (error) throw new Error(error)
 
+  const author = sessionActor(readSession())
   const created: ClientActionItem = {
     id: `action-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     tenantId: tenantId(),
@@ -150,6 +165,8 @@ export function addClientActionItem(
     text: input.text.trim(),
     done: false,
     createdAt: new Date().toISOString(),
+    createdByUserId: author?.id,
+    createdByName: author?.name?.trim() || author?.email?.trim() || undefined,
   }
   replaceAll([...items, created])
   return created

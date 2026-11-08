@@ -38,6 +38,22 @@ const clients: Client[] = [
     activeCases: 1,
     createdAt: '2026-01-01',
   } as Client,
+  {
+    id: 'c-2',
+    tenantId: TENANT_IDS.demo,
+    name: 'Nusrat',
+    phone: '01700000001',
+    activeCases: 1,
+    createdAt: '2026-01-02',
+  } as Client,
+  {
+    id: 'c-3',
+    tenantId: TENANT_IDS.demo,
+    name: 'Imran',
+    phone: '01700000002',
+    activeCases: 1,
+    createdAt: '2026-01-03',
+  } as Client,
 ]
 
 function pendingStub(
@@ -161,10 +177,21 @@ describe('todayFollowUps', () => {
         ],
       }),
     )
+    const docsClients = cases.map(
+      (item) =>
+        ({
+          id: item.clientId,
+          tenantId: TENANT_IDS.demo,
+          name: item.clientName,
+          phone: '01700000000',
+          activeCases: 1,
+          createdAt: '2026-01-01',
+        }) as Client,
+    )
 
     const summary = buildTodayFollowUps({
       cases,
-      clients,
+      clients: docsClients,
       requests: [],
       asOf: new Date('2026-10-15T12:00:00.000Z'),
     })
@@ -172,6 +199,38 @@ describe('todayFollowUps', () => {
     expect(summary.docs.items).toHaveLength(12)
     expect(todayFollowUpsHeadline(summary)).toBe('12 missing docs')
     expect(todayFollowUpsTotal(summary)).toBe(12)
+  })
+
+  it('hides pending requests when the client was deleted', () => {
+    const summary = buildTodayFollowUps({
+      cases: [
+        caseStub({
+          id: 'case-cancel',
+          clientId: 'c-mv9yedor',
+          clientName: 'Abdul Jabbar',
+          service: 'Tourist Visa',
+          status: 'Pending',
+          updatedAt: '2026-10-14',
+        }),
+      ],
+      clients: [],
+      requests: [
+        {
+          id: 'req-orphan',
+          tenantId: TENANT_IDS.demo,
+          clientId: 'c-mv9yedor',
+          caseId: 'case-cancel',
+          fromStatus: 'Pending',
+          toStatus: 'Cancelled',
+          requestedAt: '2026-10-14T10:00:00.000Z',
+          reviewStatus: 'Pending',
+        },
+      ],
+      asOf: new Date('2026-10-15T12:00:00.000Z'),
+    })
+
+    expect(summary.stuck.items).toHaveLength(0)
+    expect(todayFollowUpsTotal(summary)).toBe(0)
   })
 
   it('ignores not_due required docs when building the docs bucket', () => {

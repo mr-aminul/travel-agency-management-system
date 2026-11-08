@@ -30,7 +30,7 @@ export function ClientServicesWorkspace({
   if (cases.length === 0) {
     return (
       <section
-        className="flex min-h-[18rem] items-center justify-center rounded-xl border border-border bg-card p-6 shadow-sm"
+        className="flex min-h-[22rem] items-center justify-center rounded-xl border border-border bg-card p-6 shadow-sm"
         aria-label={`${clientName} services`}
       >
         <Empty>
@@ -51,25 +51,27 @@ export function ClientServicesWorkspace({
 
   return (
     <section
-      className="grid min-h-[22rem] grid-cols-1 gap-3 md:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]"
+      className="grid min-h-[22rem] min-w-0 grid-cols-1 gap-0 overflow-hidden rounded-xl border border-border bg-card shadow-sm md:grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)]"
       aria-label={`${clientName} services`}
     >
-      <aside className="flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-card p-3 shadow-sm">
-        <div className="flex items-center justify-between gap-2">
-          <p className="m-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <aside className="flex min-w-0 flex-col border-b border-border bg-[color-mix(in_srgb,var(--color-surface)_70%,var(--color-bg))] md:border-r md:border-b-0">
+        <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
+          <p className="m-0 text-xs font-semibold text-muted-foreground">
             Services
           </p>
           <Button
             variant="ghost"
-            className="h-9"
+            size="icon-sm"
             onClick={onAddService}
-            aria-label="Add service"
+            aria-label="Add Service"
           >
             <Plus size={14} strokeWidth={2.25} aria-hidden />
-            Add
           </Button>
         </div>
-        <nav className="flex flex-col gap-1" aria-label="Service files">
+        <nav
+          className="flex flex-row gap-1 overflow-x-auto p-2 md:flex-col"
+          aria-label="Service files"
+        >
           {cases.map((item) => {
             const selected = item.id === selectedId
             const Icon = iconForService(item.service)
@@ -78,29 +80,36 @@ export function ClientServicesWorkspace({
                 key={item.id}
                 to={workDetailPath(item)}
                 className={cn(
-                  'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-muted',
-                  selected && 'bg-muted font-semibold',
+                  'inline-flex min-w-[10rem] max-w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-sm transition-colors md:min-w-0',
+                  selected
+                    ? 'border-primary/25 bg-primary/10 font-semibold text-foreground'
+                    : 'hover:bg-muted',
                 )}
                 aria-current={selected ? 'page' : undefined}
                 aria-label={`${item.service}, ${item.caseId}`}
               >
                 <span
                   className={cn(
-                    'inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground',
-                    selected && 'bg-primary/10 text-primary',
+                    'inline-flex size-7 shrink-0 items-center justify-center rounded-md',
+                    selected
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground',
                   )}
                   aria-hidden
                 >
                   <Icon size={14} strokeWidth={2.25} />
                 </span>
                 <span className="min-w-0 flex-1 truncate">{item.service}</span>
-                <Badge variant="secondary">{item.status}</Badge>
+                <Badge variant="secondary" className="shrink-0">
+                  {item.status}
+                </Badge>
               </Link>
             )
           })}
         </nav>
       </aside>
-      <div className="min-w-0 rounded-xl border border-border bg-card p-3 shadow-sm">
+
+      <div className="min-w-0 p-3 sm:p-4">
         {selectedId ? (
           children
         ) : (

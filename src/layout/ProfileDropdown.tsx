@@ -6,18 +6,13 @@ import {
   IdCard,
   LogOut,
   Settings,
-  Trash2,
   Undo2,
 } from 'lucide-react'
 import { SignOutConfirmModal } from '@/components/ConfirmModal'
 import { CopyableText } from '@/components/CopyableText'
 import type { AvatarKind } from '@/components/ProfilePhotoField'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/shadcn/avatar'
-import {
-  settingsNavItem,
-  profileNavItem,
-  trashNavItem,
-} from '@/config/layout'
+import { settingsNavItem, profileNavItem } from '@/config/layout'
 import { settingsNavAlertCount } from '@/lib/agencyProfileGaps'
 import { getActiveTenantId } from '@/lib/authApi'
 import { findTenantMemberForUser } from '@/lib/tenantMembersStore'
@@ -172,15 +167,6 @@ export function ProfileDropdown({
                     {settingsBadge}
                   </span>
                 ) : null}
-              </Link>
-              <Link
-                to={trashNavItem.path}
-                className="pd-topbar__dropdown-item"
-                onClick={() => setOpen(false)}
-                role="menuitem"
-              >
-                <Trash2 size={14} strokeWidth={2} />
-                {trashNavItem.label}
               </Link>
             </>
           ) : null}

@@ -96,10 +96,11 @@ export function LandingAskChat({ open, onOpen, onClose }: LandingAskChatProps) {
         className="lp2-ask button-sm"
         aria-expanded={open}
         aria-controls={open ? titleId : undefined}
+        aria-label={open ? 'Close chat' : 'Ask us'}
         onClick={() => (open ? onClose() : onOpen())}
       >
         {open ? <X size={20} weight="bold" /> : <ChatCircle size={20} weight="fill" />}
-        <span>{open ? 'Close' : 'Ask us'}</span>
+        <span aria-hidden>{open ? 'Close' : 'Ask us'}</span>
       </button>
 
       {open ? (

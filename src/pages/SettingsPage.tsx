@@ -87,7 +87,7 @@ const SETTINGS_SECTIONS: {
     {
       id: 'clientFields',
       label: 'Client fields',
-      info: 'Standard client profiles keep identity and passport. Add extra fields this agency needs, such as profession or preferred country. They appear on the client profile and new-client form.',
+      info: 'Contact, Identity, Family, and Work are built in. Add extra fields this agency needs. They appear on the client profile and new-client form.',
       icon: Contact,
     },
     {

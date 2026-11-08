@@ -834,6 +834,7 @@ export function permanentlyDeleteFromTrash(id: string): boolean {
   trash = trash.filter((item) => item.client.id !== id)
   removedClientIds.add(id)
   emit()
+  purgeClientSideEffects(id)
   return true
 }
 
@@ -844,15 +845,30 @@ export function emptyClientTrash(): number {
   trash = trash.filter((entry) => !ids.has(entry.client.id))
   for (const id of ids) removedClientIds.add(id)
   emit()
+  for (const id of ids) purgeClientSideEffects(id)
   return activeTrash.length
 }
 
 /** Drop expired trash entries. Returns how many were removed. */
 export function purgeExpiredClientTrash(now = Date.now()): number {
   const before = trash.length
+  const expiredIds = trash
+    .filter((entry) => isTrashExpired(entry.deletedAt, now))
+    .map((entry) => entry.client.id)
   if (!purgeExpiredTrashEntries(now)) return 0
   emit()
+  for (const id of expiredIds) purgeClientSideEffects(id)
   return before - trash.length
+}
+
+/** Clear leftover requests/cases so Today cannot chase a deleted client. */
+function purgeClientSideEffects(clientId: string): void {
+  void import('@/lib/requestsStore').then((mod) => {
+    mod.removeRequestsForClient(clientId)
+  })
+  void import('@/lib/casesStore').then((mod) => {
+    mod.deleteCasesForClient(clientId)
+  })
 }
 
 export function getTrashedClientById(id: string): TrashedClient | undefined {

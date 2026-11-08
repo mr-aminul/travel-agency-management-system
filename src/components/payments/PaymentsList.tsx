@@ -10,6 +10,7 @@ import { Input, Select } from '@/components/clients/clientShadcnFields'
 import {
   chromeHeadClass,
   floatingSheetClass,
+  tableShellClass,
 } from '@/components/clients/shadcnChrome'
 import {
   Sheet,
@@ -37,6 +38,7 @@ import {
   usePaymentsByClientId,
 } from '@/lib/paymentsStore'
 import { useTouchedFields } from '@/lib/useTouchedFields'
+import { cn } from '@/lib/utils'
 import type { Case } from '@/types/case'
 
 function formatDate(value: string): string {
@@ -172,67 +174,95 @@ export function PaymentsList({
 
   const canRecord = caseOptions.length > 0
 
+  const paidTotal = payments.reduce((sum, payment) => sum + payment.amount, 0)
+
   return (
     <div className="flex flex-col gap-4">
-      {dueTotal > 0 ? (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div
-          className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[color-mix(in_srgb,var(--color-red)_30%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-red)_7%,var(--color-surface))] px-4 py-3.5"
+          className={
+            dueTotal > 0
+              ? 'flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[color-mix(in_srgb,var(--color-red)_30%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-red)_7%,var(--color-surface))] px-4 py-3.5'
+              : 'flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3.5 shadow-sm'
+          }
           role="status"
         >
           <div className="flex min-w-0 flex-col gap-0.5">
-            <p className="m-0 text-[0.625rem] font-medium uppercase tracking-wide text-[var(--color-red)]">
+            <p
+              className={
+                dueTotal > 0
+                  ? 'm-0 text-[0.625rem] font-medium uppercase tracking-wide text-[var(--color-red)]'
+                  : 'm-0 text-[0.625rem] font-medium uppercase tracking-wide text-muted-foreground'
+              }
+            >
               Still Due
             </p>
             <p className="m-0 text-xl font-semibold leading-tight text-foreground">
               {formatPaymentAmount(dueTotal)}
             </p>
           </div>
-          <Button className="h-9 rounded-lg" onClick={beginRecording} disabled={!canRecord}>
+          <Button
+            className="h-9 rounded-lg"
+            variant={dueTotal > 0 ? 'default' : 'outline'}
+            onClick={beginRecording}
+            disabled={!canRecord}
+          >
             <Wallet size={14} strokeWidth={2.25} aria-hidden />
-            Collect Payment
+            {dueTotal > 0 ? 'Collect Payment' : 'Record Payment'}
           </Button>
         </div>
-      ) : null}
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="m-0 text-[0.9375rem] font-semibold leading-snug text-foreground">
-          Payment History ({payments.length})
-        </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          {caseId ? (
-            <Link
-              to={workInvoicePath({ id: caseId, clientId })}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-sm no-underline"
-            >
-              <FileText size={14} strokeWidth={2.25} aria-hidden />
-              View Invoice
-            </Link>
-          ) : null}
-          {dueTotal > 0 ? null : (
-            <Button
-              variant="outline"
-              className="h-9 rounded-lg"
-              onClick={beginRecording}
-              disabled={!canRecord}
-            >
-              <Plus size={14} strokeWidth={2.25} aria-hidden />
-              Record Payment
-            </Button>
-          )}
+        <div className="flex flex-col justify-center gap-0.5 rounded-xl border border-border bg-card px-4 py-3.5 shadow-sm">
+          <p className="m-0 text-[0.625rem] font-medium uppercase tracking-wide text-muted-foreground">
+            Collected
+          </p>
+          <p className="m-0 text-xl font-semibold leading-tight text-foreground">
+            {formatPaymentAmount(paidTotal)}
+          </p>
         </div>
       </div>
 
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <h2 className="m-0 text-[0.9375rem] font-semibold leading-snug text-foreground">
+            Payment History ({payments.length})
+          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            {caseId ? (
+              <Link
+                to={workInvoicePath({ id: caseId, clientId })}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-sm no-underline"
+              >
+                <FileText size={14} strokeWidth={2.25} aria-hidden />
+                View Invoice
+              </Link>
+            ) : null}
+            {dueTotal > 0 ? null : (
+              <Button
+                variant="outline"
+                className="h-9 rounded-lg"
+                onClick={beginRecording}
+                disabled={!canRecord}
+              >
+                <Plus size={14} strokeWidth={2.25} aria-hidden />
+                Record Payment
+              </Button>
+            )}
+          </div>
+        </div>
+
       {payments.length === 0 ? (
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <Wallet />
-            </EmptyMedia>
-            <EmptyTitle>No Payments Yet</EmptyTitle>
-          </EmptyHeader>
-        </Empty>
+        <div className="px-4 py-10">
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Wallet />
+              </EmptyMedia>
+              <EmptyTitle>No Payments Yet</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
+        </div>
       ) : (
-        <div className="overflow-auto rounded-xl border border-border bg-card">
+        <div className={cn(tableShellClass, 'rounded-none border-0 shadow-none')}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -279,6 +309,7 @@ export function PaymentsList({
         </Table>
         </div>
       )}
+      </div>
 
       <Sheet open={recording} onOpenChange={(open) => { if (!open) endRecording() }}>
         <SheetContent className={floatingSheetClass}>

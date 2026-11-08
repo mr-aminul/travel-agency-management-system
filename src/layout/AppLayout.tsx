@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { profileNavItem } from '@/config/layout'
+import { profileNavItem, trashNavItem } from '@/config/layout'
 import { ADMIN_AGENCIES } from '@/lib/adminPaths'
 import { APP_VERSION_LABEL } from '@/lib/appVersion'
 import { useTenantById } from '@/lib/tenantsStore'
@@ -22,6 +22,7 @@ interface AppLayoutProps extends AppLayoutConfig {
   profileSubtext?: string
   onSignOut?: () => void
   userName?: string
+  showTrash?: boolean
 }
 
 function matchNavItem(
@@ -48,6 +49,7 @@ export function AppLayout({
   profileSubtext,
   onSignOut,
   userName,
+  showTrash = false,
 }: AppLayoutProps) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -100,7 +102,10 @@ export function AppLayout({
     pathname === profileNavItem.path ||
       pathname.startsWith(`${profileNavItem.path}/`)
       ? profileNavItem
-      : (matchNavItem(pathname, navItems) ?? navItems[0])
+      : pathname === trashNavItem.path ||
+          pathname.startsWith(`${trashNavItem.path}/`)
+        ? trashNavItem
+        : (matchNavItem(pathname, navItems) ?? navItems[0])
 
   const agencyId = adminAgencyIdFromPath(pathname)
   const agencyTenant = useTenantById(agencyId ?? '')
@@ -149,6 +154,7 @@ export function AppLayout({
           <Sidebar
             navItems={navItems}
             brand={brand}
+            showTrash={showTrash}
             isMobile={isMobile}
             isMobileOpen={isMobileOpen}
             onMobileClose={() => setIsMobileOpen(false)}

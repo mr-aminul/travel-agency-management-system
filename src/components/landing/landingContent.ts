@@ -135,37 +135,39 @@ export const LANDING_AUDIENCES = [
 export const LANDING_FEATURES = [
   {
     title: 'See every file at a glance',
+    detail: 'One board for tourist, student, work, Hajj, tickets, and more.',
     peek: 'board' as const,
+    isPrimary: true,
   },
   {
     title: 'Collect what is still due',
+    detail: 'Advance, balance, and due amount on the same file.',
     peek: 'pay' as const,
+    isPrimary: false,
   },
   {
     title: 'Let clients check themselves',
+    detail: 'Share a tracking link instead of answering the same call twice.',
     peek: 'track' as const,
+    isPrimary: false,
   },
 ] as const
 
 export const LANDING_CUSTOMIZATIONS = [
   {
-    title: 'Your own services',
-    detail: 'Add the lines you sell. Keep or hide the built-in ones.',
+    title: 'Any services you sell',
     icon: 'services' as const,
   },
   {
-    title: 'Stages your way',
-    detail: 'Rename and reorder each journey. Set a different path by country.',
+    title: 'Stages you define',
     icon: 'stages' as const,
   },
   {
-    title: 'Document checklists',
-    detail: 'Required and optional papers per service, unlocked by stage.',
+    title: 'Checklists you set',
     icon: 'docs' as const,
   },
   {
-    title: 'Client fields',
-    detail: 'Capture the profile details your desk already asks for.',
+    title: 'Fields you need',
     icon: 'fields' as const,
   },
 ] as const
@@ -174,19 +176,19 @@ export const LANDING_SWITCH_STEPS = [
   {
     number: '01',
     title: 'Create your agency',
-    detail: 'Invite your team. Set your stages.',
+    detail: 'Name the desk, invite the team, set stages.',
     icon: 'agency' as const,
   },
   {
     number: '02',
     title: 'Add client files',
-    detail: 'Docs and payment on one record.',
+    detail: 'Passport, payment, and status on one board.',
     icon: 'files' as const,
   },
   {
     number: '03',
     title: 'Share a tracking link',
-    detail: 'Clients check progress themselves.',
+    detail: 'Clients check themselves. You get fewer calls.',
     icon: 'link' as const,
   },
 ] as const

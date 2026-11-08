@@ -108,15 +108,15 @@ describe('client messages panel', () => {
     renderMessages('sms')
 
     expect(
-      screen.queryByRole('button', { name: 'Email template' }),
+      screen.queryByRole('button', { name: 'Email Template' }),
     ).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'SMS template' }))
+    fireEvent.click(screen.getByRole('button', { name: 'SMS Template' }))
     expect(
-      await screen.findByRole('heading', { name: 'SMS template' }),
+      await screen.findByRole('heading', { name: 'SMS Template' }),
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^Client ID/i }))
     expect(screen.getByRole('textbox', { name: 'Message' })).toHaveValue(
-      'Dear Md. Rahim Uddin, your Client ID is c-284. Please quote this ID when you contact us. — OneTrack',
+      'Dear Md. Rahim Uddin, your Client ID is c-284. Please quote this ID when you contact us. — ABC Travel Agency',
     )
   })
 
@@ -124,13 +124,13 @@ describe('client messages panel', () => {
     renderMessages('email')
 
     expect(
-      screen.queryByRole('button', { name: 'SMS template' }),
+      screen.queryByRole('button', { name: 'SMS Template' }),
     ).not.toBeInTheDocument()
     expect(screen.getByText(/Email · rahim\.uddin@email\.com/i)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Email template' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Email Template' }))
     expect(
-      await screen.findByRole('heading', { name: 'Email template' }),
+      await screen.findByRole('heading', { name: 'Email Template' }),
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^Welcome email/i }))
 

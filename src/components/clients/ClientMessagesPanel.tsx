@@ -3,6 +3,10 @@ import { Button } from '@/components/shadcn/button'
 import { Input } from '@/components/shadcn/input'
 import { Textarea } from '@/components/shadcn/textarea'
 import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@/components/shadcn/toggle-group'
+import {
   useEffect,
   useId,
   useMemo,
@@ -11,8 +15,9 @@ import {
   type ChangeEvent,
   type KeyboardEvent,
 } from 'react'
-import { ImagePlus, X } from 'lucide-react'
+import { ImagePlus, MessageSquare, X } from 'lucide-react'
 import { SmsTemplatePicker } from '@/components/clients/SmsTemplatePicker'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/shadcn/empty'
 import { readAgencyProfile } from '@/lib/agencyProfile'
 import { getActiveTenantId } from '@/lib/authApi'
 import {
@@ -82,9 +87,11 @@ function emailSubjectForAgency(agencyName: string, plainBody: string): string {
 export function ClientMessagesPanel({
   client,
   channel = 'sms',
+  onChannelChange,
 }: {
   client: Client
   channel?: ClientMessageChannel
+  onChannelChange?: (channel: ClientMessageChannel) => void
 }) {
   const thread = useClientMessages(client.id, channel)
   const chronological = useMemo(() => [...thread].reverse(), [thread])
@@ -257,20 +264,53 @@ export function ClientMessagesPanel({
 
   return (
     <div className="flex flex-col">
-      <div className="flex min-h-[22rem] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <p className="m-0 border-b border-border px-3.5 py-2.5 text-xs font-semibold text-muted-foreground">
-          {channelCopy(channel, address)}
-        </p>
+      <div className="flex min-h-[28rem] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
+          <div className="min-w-0">
+            <p className="m-0 text-xs font-semibold text-muted-foreground">
+              {channelCopy(channel, address)}
+            </p>
+          </div>
+          {onChannelChange ? (
+            <ToggleGroup
+              type="single"
+              value={channel}
+              onValueChange={(value) => {
+                if (value === 'sms' || value === 'email') {
+                  onChannelChange(value)
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              aria-label="Reply channel"
+            >
+              <ToggleGroupItem value="sms" className="px-3">
+                Reply via SMS
+              </ToggleGroupItem>
+              <ToggleGroupItem value="email" className="px-3">
+                Send Email
+              </ToggleGroupItem>
+            </ToggleGroup>
+          ) : null}
+        </div>
 
         <div
           ref={threadRef}
-          className="min-h-[14rem] max-h-[24rem] flex-1 overflow-y-auto bg-background p-3.5"
+          className="min-h-[16rem] max-h-[28rem] flex-1 overflow-y-auto bg-[color-mix(in_srgb,var(--color-bg)_88%,var(--color-surface))] p-4"
           aria-live="polite"
         >
           {chronological.length === 0 ? (
-            <p className="m-0 flex min-h-[12rem] items-center justify-center text-sm text-muted-foreground">
-              {emptyLabel}
-            </p>
+            <div className="flex min-h-[14rem] items-center justify-center">
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <MessageSquare />
+                  </EmptyMedia>
+                  <EmptyTitle>{emptyLabel}</EmptyTitle>
+                </EmptyHeader>
+              </Empty>
+            </div>
           ) : (
             <ul
               className="m-0 flex list-none flex-col gap-3 p-0"
@@ -279,13 +319,13 @@ export function ClientMessagesPanel({
               {chronological.map((item) => (
                 <li
                   key={item.id}
-                  className="flex max-w-[min(22rem,82%)] flex-col items-end gap-1 self-end"
+                  className="flex max-w-[min(24rem,88%)] flex-col items-end gap-1 self-end"
                 >
                   <div
                     className={cn(
-                      'm-0 flex flex-col gap-2 whitespace-pre-wrap rounded-[0.75rem_0.75rem_0.25rem_0.75rem] bg-primary px-3 py-2 text-sm leading-snug text-primary-foreground',
+                      'm-0 flex flex-col gap-2 whitespace-pre-wrap rounded-[1rem_1rem_0.3rem_1rem] bg-primary px-3.5 py-2.5 text-sm leading-snug text-primary-foreground shadow-sm',
                       isBrandedEmailHtml(item.body) &&
-                        'max-w-[min(100%,28rem)] overflow-hidden bg-[#eef2f6] p-0 text-inherit',
+                        'max-w-[min(100%,28rem)] overflow-hidden bg-[#eef2f6] p-0 text-inherit shadow-none',
                     )}
                   >
                     {item.body ? (
@@ -319,7 +359,7 @@ export function ClientMessagesPanel({
 
         {isEmail ? (
           <form
-            className="flex flex-col gap-3 border-t border-border p-3.5"
+            className="flex flex-col gap-3 border-t border-border bg-card p-3.5"
             onSubmit={(event) => event.preventDefault()}
             noValidate
           >
@@ -430,7 +470,7 @@ export function ClientMessagesPanel({
           </form>
         ) : (
           <form
-            className="flex flex-col gap-3 border-t border-border p-3.5"
+            className="flex flex-col gap-3 border-t border-border bg-card p-3.5"
             onSubmit={(event) => event.preventDefault()}
             noValidate
           >
@@ -446,7 +486,7 @@ export function ClientMessagesPanel({
                 }}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-end gap-2">
               <Input
                 className="min-w-[12rem] flex-1"
                 value={body}
@@ -477,6 +517,11 @@ export function ClientMessagesPanel({
                 {isSendingSms ? 'Sending…' : 'Send SMS'}
               </Button>
             </div>
+            {error ? (
+              <p className="m-0 text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
           </form>
         )}
       </div>

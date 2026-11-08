@@ -60,6 +60,29 @@ export function formatDisplayDate(
   )
 }
 
+/** Relative time for feeds, e.g. 3h ago. Falls back to a display date. */
+export function formatRelativeTime(
+  value?: string | null,
+  empty = '-',
+): string {
+  if (value == null) return empty
+  const trimmed = value.trim()
+  if (!trimmed) return empty
+  const date = new Date(trimmed)
+  if (Number.isNaN(date.getTime())) return formatDisplayDate(trimmed, empty)
+
+  const seconds = Math.round((Date.now() - date.getTime()) / 1000)
+  if (seconds < 45) return 'just now'
+  if (seconds < 90) return '1m ago'
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.round(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return formatDisplayDate(trimmed, empty)
+}
+
 /** Display timestamps as DD-MMM-YYYY h:mm AM/PM, e.g. 05-Oct-2026 2:30 PM. */
 export function formatDisplayDateTime(
   value?: string | null,

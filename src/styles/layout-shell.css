@@ -776,7 +776,6 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
 }
 
 .pd-sidebar-footer--collapsed {
-  padding-inline: var(--rail-pill-inset);
   align-items: stretch;
 }
 
@@ -789,7 +788,8 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
 
 .pd-sidebar-footer--collapsed .pd-sidebar-footer__toggle {
   align-self: stretch;
-  width: 100%;
+  width: calc(100% + var(--rail-pill-grow) * 2);
+  margin-inline: calc(-1 * var(--rail-pill-grow));
 }
 
 .pd-app-sidebar:hover .pd-sidebar-footer__toggle,

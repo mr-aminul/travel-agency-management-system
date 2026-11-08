@@ -122,8 +122,15 @@ export function buildTodayFollowUps(input: {
     }
   })
 
+  const liveClientIds = new Set(input.clients.map((client) => client.id))
+
   const docsItems: TodayFollowUpItem[] = input.cases
-    .filter((item) => isOpenCase(item) && missingRequiredCount(item) > 0)
+    .filter(
+      (item) =>
+        liveClientIds.has(item.clientId) &&
+        isOpenCase(item) &&
+        missingRequiredCount(item) > 0,
+    )
     .map((item) => {
       const missing = missingRequiredCount(item)
       return {

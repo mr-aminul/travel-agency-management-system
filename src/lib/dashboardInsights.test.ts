@@ -331,8 +331,24 @@ describe('owner dashboard insights', () => {
       'request:req-1',
       'hold:case-hold',
     ])
+    expect(items[0]?.title).toBe('Nadia')
     expect(items[0]?.severity).toBe('high')
     expect(items[1]?.reason).toBe('on-hold')
+  })
+
+  it('skips pending requests when the client record is missing', () => {
+    const orphanRequest: StatusUpdateRequest = {
+      id: 'req-orphan',
+      tenantId: TENANT_IDS.demo,
+      clientId: 'c-missing',
+      caseId: 'case-open',
+      fromStatus: 'Pending',
+      toStatus: 'Cancelled',
+      requestedAt: '2026-10-02T10:00:00.000Z',
+      reviewStatus: 'Pending',
+    }
+    const items = needsAttention(cases, [orphanRequest], [], 8, asOf)
+    expect(items.some((item) => item.reason === 'pending-request')).toBe(false)
   })
 
   it('lists recent collections, top outstanding, departures, subAgents, and workload', () => {

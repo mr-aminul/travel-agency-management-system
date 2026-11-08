@@ -731,12 +731,14 @@ export function needsAttention(
 
   for (const request of requests) {
     if (request.reviewStatus !== 'Pending') continue
-    const caseItem = caseById.get(request.caseId)
+    // Deleted / trashed clients must not appear on Today.
     const client = clientById.get(request.clientId)
+    if (!client) continue
+    const caseItem = caseById.get(request.caseId)
     items.push({
       id: `request:${request.id}`,
       reason: 'pending-request',
-      title: client?.name ?? request.clientId,
+      title: client.name.trim() || caseItem?.clientName?.trim() || 'Client',
       detail: `${request.fromStatus} → ${request.toStatus}${
         caseItem ? ` · ${caseItem.service}` : ''
       }`,
@@ -752,6 +754,7 @@ export function needsAttention(
 
   for (const item of cases) {
     if (item.status !== 'On-Hold') continue
+    if (!clientById.has(item.clientId)) continue
     items.push({
       id: `hold:${item.id}`,
       reason: 'on-hold',
@@ -766,6 +769,7 @@ export function needsAttention(
 
   for (const item of cases) {
     if (seenCases.has(item.id) || !isOpenCase(item)) continue
+    if (!clientById.has(item.clientId)) continue
     const missing = missingRequiredCount(item)
     if (missing === 0) continue
     items.push({
@@ -782,6 +786,7 @@ export function needsAttention(
 
   for (const item of cases) {
     if (seenCases.has(item.id) || !isStaleCase(item, asOf)) continue
+    if (!clientById.has(item.clientId)) continue
     items.push({
       id: `stale:${item.id}`,
       reason: 'stale',

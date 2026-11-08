@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   NavLink,
   Navigate,
@@ -6,6 +6,7 @@ import {
   useLocation,
   useNavigate,
   useParams,
+  useSearchParams,
 } from 'react-router-dom'
 import {
   Boxes,
@@ -22,8 +23,11 @@ import { readAgencyProfile } from '@/lib/agencyProfile'
 import {
   ADMIN_AGENCIES,
   adminAgencyPath,
+  adminViewAsAgencyPath,
+  safeSupportNextPath,
   setSupportReturnPath,
 } from '@/lib/adminPaths'
+import { clientPath } from '@/lib/workPaths'
 import { countCasesForTenant, latestCaseActivityForTenant } from '@/lib/casesStore'
 import { countClientsForTenant } from '@/lib/clientsStore'
 import { formatDisplayDate } from '@/lib/formatDate'
@@ -115,11 +119,13 @@ function latestActivity(tenantId: string): string | undefined {
 export default function TenantAdminLayout() {
   const { user, startViewAs } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { tenantId } = useParams()
   const liveTenant = useTenantById(tenantId ?? '')
   // Keep the last known agency while KV rehydrates so People sync cannot
   // bounce the admin back to the agencies list mid-open.
   const cachedTenantRef = useRef(liveTenant)
+  const autoViewAsStarted = useRef(false)
   if (liveTenant) {
     cachedTenantRef.current = liveTenant
   } else if (cachedTenantRef.current?.id !== tenantId) {
@@ -129,6 +135,65 @@ export default function TenantAdminLayout() {
   const members = useTenantMembersByTenantId(tenantId ?? '')
   const [supportBusy, setSupportBusy] = useState(false)
   const [supportError, setSupportError] = useState<string | undefined>()
+
+  const owner =
+    members.find((m) => m.role === 'owner' && m.status === 'active') ??
+    members.find((m) => m.role === 'manager' && m.status === 'active') ??
+    members.find((m) => m.status === 'active')
+
+  const openAgencyAsOwner = useCallback(
+    async (nextPath: string) => {
+      if (!tenant) return
+      if (!owner) {
+        setSupportError('Add an active owner before opening Support Mode.')
+        return
+      }
+      setSupportError(undefined)
+      setSupportBusy(true)
+      try {
+        setSupportReturnPath(adminAgencyPath(tenant.id, 'all'))
+        await startViewAs({
+          userId: owner.id,
+          email: owner.email,
+          name: owner.name,
+          role: 'agency_user',
+          tenantId: tenant.id,
+        })
+        navigate(nextPath, { replace: true })
+      } catch (error) {
+        setSupportError(
+          error instanceof Error
+            ? error.message
+            : 'Could not start Support Mode.',
+        )
+      } finally {
+        setSupportBusy(false)
+      }
+    },
+    [navigate, owner, startViewAs, tenant],
+  )
+
+  useEffect(() => {
+    if (user?.role !== 'platform_admin') return
+    if (searchParams.get('viewAs') !== '1') return
+    if (!tenant || !owner || autoViewAsStarted.current || supportBusy) return
+
+    autoViewAsStarted.current = true
+    const nextPath = safeSupportNextPath(searchParams.get('next')) ?? '/'
+    const cleaned = new URLSearchParams(searchParams)
+    cleaned.delete('viewAs')
+    cleaned.delete('next')
+    setSearchParams(cleaned, { replace: true })
+    void openAgencyAsOwner(nextPath)
+  }, [
+    openAgencyAsOwner,
+    owner,
+    searchParams,
+    setSearchParams,
+    supportBusy,
+    tenant,
+    user?.role,
+  ])
 
   if (user?.role !== 'platform_admin') {
     return null
@@ -143,37 +208,10 @@ export default function TenantAdminLayout() {
   const caseCount = countCasesForTenant(tenant.id)
   const paymentCount = countPaymentsForTenant(tenant.id)
   const activity = latestActivity(tenant.id)
-  const owner =
-    members.find((m) => m.role === 'owner' && m.status === 'active') ??
-    members.find((m) => m.role === 'manager' && m.status === 'active') ??
-    members.find((m) => m.status === 'active')
+  const clientHref = adminViewAsAgencyPath(tenant.id, clientPath('c-284'))
 
-  const handleOpenAgency = async () => {
-    if (!owner) {
-      setSupportError('Add an active owner before opening Support Mode.')
-      return
-    }
-    setSupportError(undefined)
-    setSupportBusy(true)
-    try {
-      setSupportReturnPath(adminAgencyPath(tenant.id, 'all'))
-      await startViewAs({
-        userId: owner.id,
-        email: owner.email,
-        name: owner.name,
-        role: 'agency_user',
-        tenantId: tenant.id,
-      })
-      navigate('/', { replace: true })
-    } catch (error) {
-      setSupportError(
-        error instanceof Error
-          ? error.message
-          : 'Could not start Support Mode.',
-      )
-    } finally {
-      setSupportBusy(false)
-    }
+  const handleOpenAgency = () => {
+    void openAgencyAsOwner('/')
   }
 
   return (
@@ -204,6 +242,17 @@ export default function TenantAdminLayout() {
             >
               <ExternalLink size={14} strokeWidth={2.25} aria-hidden />
               {supportBusy ? 'Opening…' : 'Open Agency'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={supportBusy || !owner}
+              asChild
+            >
+              <NavLink to={clientHref}>
+                <ExternalLink size={14} strokeWidth={2.25} aria-hidden />
+                Open Client
+              </NavLink>
             </Button>
             <Select
               value={tenant.status}

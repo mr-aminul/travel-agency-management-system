@@ -1,14 +1,20 @@
-/* Home: Today desk — search + action queues */
+/* Home: Today desk + quick-link tiles */
 
 .pd-home {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   gap: 1.25rem;
   width: 100%;
-  max-width: 44rem;
+  max-width: 68rem;
   margin-inline: auto;
   padding-block: 0.5rem 1.5rem;
+}
+
+.pd-home > .pd-home-search,
+.pd-home > .pd-today {
+  width: 100%;
+  max-width: 44rem;
 }
 
 /* Same GlobalSearchPalette as the top bar, sized for the home desk. */
@@ -301,5 +307,127 @@
 
   .pd-today__row {
     padding: 0.65rem 0.7rem;
+  }
+}
+
+/* ── Quick-link tiles ────────────────────────────────────────────── */
+
+.pd-home-quick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.125rem;
+  width: 100%;
+  max-width: 68rem;
+}
+
+.pd-home-quick__tile {
+  --tile-ink: var(--color-on-theme);
+  --tile-ink-soft: color-mix(in srgb, var(--color-on-theme) 72%, transparent);
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: 11.5rem;
+  padding: 1.5rem 1.25rem;
+  border: 0;
+  border-radius: 1.375rem;
+  background: linear-gradient(150deg,
+      var(--color-theme) 0%,
+      color-mix(in srgb, var(--color-theme) 88%, black) 100%);
+  color: var(--tile-ink);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, black 28%, transparent),
+    0 12px 28px color-mix(in srgb, var(--color-theme) 35%, transparent);
+  text-decoration: none;
+  text-align: center;
+  transition:
+    box-shadow 0.15s ease-out,
+    transform 0.12s ease-out,
+    background 0.15s ease-out;
+}
+
+.pd-home-quick__watermark {
+  position: absolute;
+  right: -1.75rem;
+  bottom: -2.25rem;
+  z-index: 0;
+  display: flex;
+  color: var(--tile-ink);
+  opacity: 0.1;
+  pointer-events: none;
+  transform: rotate(-8deg);
+}
+
+.pd-home-quick__tile > :not(.pd-home-quick__watermark) {
+  position: relative;
+  z-index: 1;
+}
+
+.pd-home-quick__tile:hover {
+  background: linear-gradient(150deg,
+      color-mix(in srgb, var(--color-theme) 92%, white) 0%,
+      var(--color-theme) 100%);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, black 32%, transparent),
+    0 16px 34px color-mix(in srgb, var(--color-theme) 42%, transparent);
+}
+
+.pd-home-quick__tile:active {
+  transform: scale(0.98);
+}
+
+.pd-home-quick__tile:focus-visible {
+  outline: 0.125rem solid var(--color-theme);
+  outline-offset: 0.2rem;
+}
+
+.pd-home-quick__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 0.25rem;
+  border-radius: 0.875rem;
+  background: color-mix(in srgb, var(--tile-ink) 12%, transparent);
+  color: var(--tile-ink);
+}
+
+.pd-home-quick__label {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tile-ink);
+  line-height: 1.2;
+}
+
+@media (max-width: 56rem) {
+  .pd-home-quick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 36rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .pd-home-quick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: none;
+    gap: 0.75rem;
+  }
+
+  .pd-home-quick__tile {
+    min-height: 9.5rem;
+    padding: 1.125rem 0.875rem;
+  }
+
+  .pd-home-quick__label {
+    font-size: 0.875rem;
   }
 }

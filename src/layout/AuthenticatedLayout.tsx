@@ -281,6 +281,7 @@ export default function AuthenticatedLayout() {
         userName={user.name}
         profileSubtext={user.email}
         onSignOut={handleSignOut}
+        showTrash={user.role === 'agency_user'}
       />
       <AgencyAnnouncementPopup />
     </QueryClientProvider>

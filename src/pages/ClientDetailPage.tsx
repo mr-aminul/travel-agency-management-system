@@ -1,27 +1,23 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 import { Badge } from '@/components/shadcn/badge'
 import { Button } from '@/components/shadcn/button'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/shadcn/accordion'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/shadcn/card'
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from '@/components/shadcn/sheet'
-import { Input, Select } from '@/components/clients/clientShadcnFields'
 import { cn } from '@/lib/utils'
+import type { ClientMessageChannel } from '@/types/clientMessage'
 import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import {
   Link,
@@ -32,31 +28,39 @@ import {
   useSearchParams,
 } from 'react-router-dom'
 import {
-  BookUser,
   Calendar,
   Check,
   Contact,
   Copy,
   FileText,
   Folder,
-  IdCard,
   LayoutDashboard,
   Mail,
-  MapPin,
   MessageSquare,
   Phone,
-  UserRound,
   Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { CasesList } from '@/components/cases/CasesList'
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon'
 import { ClientServicesWorkspace } from '@/components/cases/ClientServicesWorkspace'
 import { NewCaseForm } from '@/components/cases/NewCaseForm'
 import { ClientActionItems } from '@/components/clients/ClientActionItems'
-import { ClientCustomFieldControl } from '@/components/clients/ClientCustomFieldControl'
+import { ClientDealStrip } from '@/components/clients/ClientDealStrip'
+import { ClientIdentityExtras } from '@/components/clients/ClientIdentityExtras'
+import { ClientOverviewAttention } from '@/components/clients/ClientOverviewAttention'
 import { ClientDocumentsPanel } from '@/components/clients/ClientDocumentsPanel'
 import { ClientMessagesPanel } from '@/components/clients/ClientMessagesPanel'
+import { ClientProfileWorkspace } from '@/components/clients/ClientProfileWorkspace'
+import { ClientRecentActivity } from '@/components/clients/ClientRecentActivity'
+import {
+  EDITABLE_PROFILE_KEYS,
+  parseMaritalStatus,
+  profileFieldError,
+  sectionForGap,
+  toClientProfileDraft,
+  type ClientProfileDraft,
+  type ClientProfileSectionId,
+} from '@/components/clients/clientProfileDraft'
 import { PaymentsList } from '@/components/payments/PaymentsList'
 import {
   createCase,
@@ -67,7 +71,6 @@ import {
 import { countClientDocumentAlerts } from '@/lib/clientDocuments'
 import {
   listClientInfoGaps,
-  type ClientInfoGap,
   type ClientInfoGapId,
 } from '@/lib/clientMissingInfo'
 import { toServiceBoardItem } from '@/lib/clientServiceBoard'
@@ -75,42 +78,23 @@ import { deriveClientServiceStatus } from '@/lib/clientServiceStatus'
 import { useRequests } from '@/lib/requestsStore'
 import { notifyIfPendingApproval } from '@/lib/notifyPendingApproval'
 import { clientPath, workDetailPath } from '@/lib/workPaths'
-import { getSubAgentById, useSubAgents } from '@/lib/subAgentsStore'
+import { useSubAgents } from '@/lib/subAgentsStore'
 import {
-  formatBalance,
   getClientById,
   getClientByPhone,
   normalizePhone,
   updateClient,
   useClients,
 } from '@/lib/clientsStore'
-import {
-  compactCustomFieldValues,
-  emptyCustomFieldValues,
-} from '@/lib/clientCustomFields'
+import { useClientMessages } from '@/lib/clientMessagesStore'
+import { usePaymentsByClientId } from '@/lib/paymentsStore'
+import { compactCustomFieldValues } from '@/lib/clientCustomFields'
 import { validateCustomFieldValue } from '@/lib/clientCustomFieldValidation'
 import { useClientProfileFields } from '@/lib/clientProfileFieldsStore'
-import {
-  validateOptionalDateOfBirth,
-  validateOptionalEmail,
-  validateOptionalNid,
-  validateOptionalPassport,
-  validateOptionalPersonName,
-  validateOptionalText,
-  validatePassportDates,
-  validateRequiredName,
-  validateRequiredPhone,
-} from '@/lib/fieldValidation'
 import { formatDisplayDate } from '@/lib/formatDate'
 import { flashAndReveal } from '@/lib/scrollWithin'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import type { ServiceType, CreateCaseInput } from '@/types/case'
-import type {
-  Client,
-  ClientGender,
-  ClientMaritalStatus,
-} from '@/types/client'
-import type { ClientProfileField } from '@/types/clientProfileField'
 import {
   elevatedPageClass,
   floatingSheetClass,
@@ -126,11 +110,47 @@ const CLIENT_TABS = [
   'email',
 ] as const
 
+const MAIN_TABS = [
+  'overview',
+  'profile',
+  'services',
+  'documents',
+  'payments',
+  'messages',
+] as const
+
+const PROFILE_SECTIONS = new Set<ClientProfileSectionId>([
+  'reach',
+  'travel',
+  'personal',
+  'family',
+  'work',
+  'places',
+  'extra',
+])
+
 function tabFromSearch(searchParams: URLSearchParams): string {
   const tab = searchParams.get('tab')
+  if (tab === 'email') return 'messages'
   return tab && CLIENT_TABS.includes(tab as (typeof CLIENT_TABS)[number])
     ? tab
     : 'overview'
+}
+
+function messageChannelFromSearch(
+  searchParams: URLSearchParams,
+): ClientMessageChannel {
+  return searchParams.get('channel') === 'email' ? 'email' : 'sms'
+}
+
+function profileSectionFromSearch(
+  searchParams: URLSearchParams,
+): ClientProfileSectionId | undefined {
+  const section = searchParams.get('section')
+  if (section && PROFILE_SECTIONS.has(section as ClientProfileSectionId)) {
+    return section as ClientProfileSectionId
+  }
+  return undefined
 }
 
 function primaryServiceType(services: ServiceType[]): ServiceType {
@@ -155,359 +175,6 @@ function whatsappHref(phone: string): string {
         ? `88${digits}`
         : digits
   return `https://wa.me/${withCountry}`
-}
-
-const GENDER_OPTIONS = [
-  { value: 'Male', label: 'Male' },
-  { value: 'Female', label: 'Female' },
-  { value: 'Other', label: 'Other' },
-]
-
-const MARITAL_VALUES = ['Single', 'Married', 'Divorced', 'Widowed'] as const
-
-const MARITAL_OPTIONS = [
-  { value: '', label: '-' },
-  ...MARITAL_VALUES.map((value) => ({ value, label: value })),
-]
-
-function parseMaritalStatus(value: string): ClientMaritalStatus | undefined {
-  return MARITAL_VALUES.find((entry) => entry === value)
-}
-
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const
-
-const BLOOD_GROUP_OPTIONS = [
-  { value: '', label: '-' },
-  ...BLOOD_GROUPS.map((value) => ({ value, label: value })),
-]
-
-type ProfileDraft = {
-  name: string
-  banglaName: string
-  phone: string
-  email: string
-  address: string
-  nid: string
-  passport: string
-  fatherName: string
-  motherName: string
-  dateOfBirth: string
-  gender: ClientGender
-  maritalStatus: string
-  nationality: string
-  placeOfBirth: string
-  spouseName: string
-  bloodGroup: string
-  passportExpiry: string
-  passportIssuedOn: string
-  passportPlaceOfIssue: string
-  /** Empty string = agency-direct (no referring sub agent). */
-  subAgentId: string
-  customFields: Record<string, string>
-}
-
-type ProfileFieldDef = {
-  key: keyof ProfileDraft
-  label: string
-  kind?: 'text' | 'date' | 'gender' | 'marital' | 'blood' | 'subAgent'
-  /** Share of a 6-column row. Defaults to 2 (one-third). */
-  span?: 1 | 2 | 3 | 6
-  wide?: boolean
-}
-
-function profileFieldLayoutClass(field: Pick<ProfileFieldDef, 'span' | 'wide'>): string {
-  if (field.wide) return 'col-span-4'
-  if (field.span === 1) return 'col-span-1'
-  if (field.span === 3) return 'col-span-3'
-  if (field.span === 6) return 'col-span-6'
-  return 'col-span-2'
-}
-
-/** Profile draft keys that map to missing-info gap ids. */
-const PROFILE_GAP_FIELD: Record<ClientInfoGapId, keyof ProfileDraft> = {
-  passport: 'passport',
-  passportIssuedOn: 'passportIssuedOn',
-  passportExpiry: 'passportExpiry',
-  nid: 'nid',
-  address: 'address',
-  email: 'email',
-}
-
-const PROFILE_GROUPS: {
-  title: string
-  icon: LucideIcon
-  fields: ProfileFieldDef[]
-}[] = [
-  {
-    title: 'Person',
-    icon: UserRound,
-    fields: [
-      { key: 'name', label: 'Full Name' },
-      { key: 'banglaName', label: 'Bangla Name' },
-      { key: 'dateOfBirth', label: 'Date of Birth', kind: 'date', span: 1 },
-      { key: 'gender', label: 'Gender', kind: 'gender', span: 1 },
-      { key: 'placeOfBirth', label: 'Place of Birth' },
-      { key: 'maritalStatus', label: 'Marital Status', kind: 'marital', span: 1 },
-      { key: 'spouseName', label: 'Spouse Name' },
-      { key: 'bloodGroup', label: 'Blood Group', kind: 'blood', span: 1 },
-      { key: 'fatherName', label: 'Father Name' },
-      { key: 'motherName', label: 'Mother Name' },
-      { key: 'nationality', label: 'Nationality' },
-    ],
-  },
-  {
-    title: 'Contact',
-    icon: Phone,
-    fields: [
-      { key: 'phone', label: 'Mobile Number' },
-      { key: 'email', label: 'Email' },
-      { key: 'subAgentId', label: 'Sub Agent', kind: 'subAgent' },
-      { key: 'address', label: 'Address', span: 6 },
-    ],
-  },
-  {
-    title: 'Identity',
-    icon: IdCard,
-    fields: [
-      { key: 'passport', label: 'Passport Number' },
-      { key: 'nid', label: 'NID Number', span: 1 },
-      { key: 'passportPlaceOfIssue', label: 'Place of Issue', span: 1 },
-      { key: 'passportIssuedOn', label: 'Date of Issue', kind: 'date', span: 1 },
-      { key: 'passportExpiry', label: 'Date of Expiry', kind: 'date', span: 1 },
-    ],
-  },
-]
-
-function toProfileDraft(
-  client: Client,
-  customFieldDefs: ClientProfileField[],
-): ProfileDraft {
-  return {
-    name: client.name,
-    banglaName: client.banglaName ?? '',
-    phone: client.phone,
-    email: client.email ?? '',
-    address: client.address ?? '',
-    nid: client.nid ?? '',
-    passport: client.passport ?? '',
-    fatherName: client.fatherName ?? '',
-    motherName: client.motherName ?? '',
-    dateOfBirth: client.dateOfBirth ?? '',
-    gender: client.gender ?? 'Male',
-    maritalStatus: client.maritalStatus ?? '',
-    nationality: client.nationality ?? '',
-    placeOfBirth: client.placeOfBirth ?? '',
-    spouseName: client.spouseName ?? '',
-    bloodGroup: client.bloodGroup ?? '',
-    passportExpiry: client.passportExpiry ?? '',
-    passportIssuedOn: client.passportIssuedOn ?? '',
-    passportPlaceOfIssue: client.passportPlaceOfIssue ?? '',
-    subAgentId: client.subAgentId ?? '',
-    customFields: emptyCustomFieldValues(
-      customFieldDefs,
-      client.customFields,
-    ),
-  }
-}
-
-function profileDraftsEqual(a: ProfileDraft, b: ProfileDraft): boolean {
-  return JSON.stringify(a) === JSON.stringify(b)
-}
-
-const IDENTITY_PROFILE_KEYS = new Set<keyof ProfileDraft>([
-  'passport',
-  'passportPlaceOfIssue',
-  'passportIssuedOn',
-  'passportExpiry',
-  'nid',
-])
-
-function isIdentityProfileField(key: keyof ProfileDraft): boolean {
-  return IDENTITY_PROFILE_KEYS.has(key)
-}
-
-const IDENTITY_READOUT: {
-  key: keyof ProfileDraft
-  label: string
-  icon: LucideIcon
-  date?: boolean
-}[] = [
-  { key: 'passport', label: 'Passport', icon: BookUser },
-  { key: 'nid', label: 'NID', icon: IdCard },
-  { key: 'passportPlaceOfIssue', label: 'Place of Issue', icon: MapPin },
-  { key: 'passportIssuedOn', label: 'Date of Issue', icon: Calendar, date: true },
-  { key: 'passportExpiry', label: 'Date of Expiry', icon: Calendar, date: true },
-]
-
-function ProfileFieldControl({
-  field,
-  value,
-  onChange,
-  onBlur,
-  error,
-  required,
-  readOnly,
-  subAgentOptions,
-}: {
-  field: ProfileFieldDef
-  value: string
-  onChange: (value: string) => void
-  onBlur?: () => void
-  error?: string
-  required?: boolean
-  readOnly?: boolean
-  subAgentOptions?: { value: string; label: string }[]
-}) {
-  if (field.kind === 'gender') {
-    return (
-      <Select
-        label={field.label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        options={GENDER_OPTIONS}
-        error={error}
-        readOnly={readOnly}
-      />
-    )
-  }
-  if (field.kind === 'marital') {
-    return (
-      <Select
-        label={field.label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        options={MARITAL_OPTIONS}
-        error={error}
-        readOnly={readOnly}
-      />
-    )
-  }
-  if (field.kind === 'blood') {
-    return (
-      <Select
-        label={field.label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        options={BLOOD_GROUP_OPTIONS}
-        error={error}
-        readOnly={readOnly}
-      />
-    )
-  }
-  if (field.kind === 'subAgent') {
-    return (
-      <Select
-        label={field.label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        options={subAgentOptions ?? [{ value: '', label: 'None' }]}
-        error={error}
-        readOnly={readOnly}
-      />
-    )
-  }
-  return (
-    <Input
-      label={field.label}
-      required={required}
-      type={
-        field.kind === 'date'
-          ? 'date'
-          : field.key === 'email'
-            ? 'email'
-            : field.key === 'phone'
-              ? 'tel'
-              : 'text'
-      }
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      onBlur={onBlur}
-      error={error}
-      readOnly={readOnly}
-    />
-  )
-}
-
-function gapForProfileField(
-  gaps: ClientInfoGap[],
-  fieldKey: keyof ProfileDraft,
-): ClientInfoGap | undefined {
-  return gaps.find((gap) => PROFILE_GAP_FIELD[gap.id] === fieldKey)
-}
-
-function profileFieldError(
-  key: keyof ProfileDraft,
-  draft: ProfileDraft,
-  duplicateName?: string,
-): string | undefined {
-  switch (key) {
-    case 'name':
-      return validateRequiredName(draft.name)
-    case 'phone':
-      return validateRequiredPhone(draft.phone, { duplicateName })
-    case 'email':
-      return validateOptionalEmail(draft.email)
-    case 'banglaName':
-      return validateOptionalPersonName(draft.banglaName, 'Bangla Name')
-    case 'fatherName':
-      return validateOptionalPersonName(draft.fatherName, 'Father Name')
-    case 'motherName':
-      return validateOptionalPersonName(draft.motherName, 'Mother Name')
-    case 'spouseName':
-      return validateOptionalPersonName(draft.spouseName, 'Spouse Name')
-    case 'dateOfBirth':
-      return validateOptionalDateOfBirth(draft.dateOfBirth)
-    case 'placeOfBirth':
-      return validateOptionalText(draft.placeOfBirth, 'Place of Birth')
-    case 'nationality':
-      return validateOptionalText(draft.nationality, 'Nationality')
-    case 'address':
-      return validateOptionalText(draft.address, 'Address')
-    case 'passport':
-      return validateOptionalPassport(draft.passport)
-    case 'passportPlaceOfIssue':
-      return validateOptionalText(draft.passportPlaceOfIssue, 'Place of Issue')
-    case 'passportIssuedOn':
-      return validatePassportDates(
-        draft.passportIssuedOn,
-        draft.passportExpiry,
-        draft.passport,
-      ).issuedOn
-    case 'passportExpiry':
-      return validatePassportDates(
-        draft.passportIssuedOn,
-        draft.passportExpiry,
-        draft.passport,
-      ).expiry
-    case 'nid':
-      return validateOptionalNid(draft.nid)
-    default:
-      return undefined
-  }
-}
-
-function FieldLabel({
-  icon: Icon,
-  children,
-}: {
-  icon: LucideIcon
-  children: ReactNode
-}) {
-  return (
-    <dt className="mb-1.5 flex items-center gap-1.5 text-[0.6875rem] font-medium tracking-wide text-muted-foreground">
-      <span
-        className="inline-flex size-5 shrink-0 items-center justify-center rounded-[0.35rem] bg-muted text-muted-foreground"
-        aria-hidden
-      >
-        <Icon size={13} strokeWidth={2.25} />
-      </span>
-      {children}
-    </dt>
-  )
 }
 
 function TabLabel({
@@ -535,26 +202,6 @@ function TabLabel({
         </span>
       ) : null}
     </>
-  )
-}
-
-function SectionTitle({
-  icon: Icon,
-  children,
-}: {
-  icon: LucideIcon
-  children: ReactNode
-}) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span
-        className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-theme-subtle)] text-[var(--color-theme-ink)]"
-        aria-hidden
-      >
-        <Icon size={15} strokeWidth={2.25} />
-      </span>
-      {children}
-    </span>
   )
 }
 
@@ -649,10 +296,13 @@ export default function ClientDetailPage() {
   const customFieldDefs = useClientProfileFields()
   const client = getClientById(id)
   const clientCases = useCasesByClientId(id)
+  const clientPayments = usePaymentsByClientId(id)
+  const smsMessages = useClientMessages(id, 'sms')
+  const emailMessages = useClientMessages(id, 'email')
   const requests = useRequests()
   const activeTab = serviceOutlet ? 'services' : tabFromSearch(searchParams)
   const [newCaseOpen, setNewCaseOpen] = useState(false)
-  const [draft, setDraft] = useState<ProfileDraft | null>(null)
+  const [draft, setDraft] = useState<ClientProfileDraft | null>(null)
   const [docsFlash, setDocsFlash] = useState(false)
   const { markAllTouched, showError, blur } = useTouchedFields<string>()
   const subAgentOptions = useMemo(
@@ -712,7 +362,7 @@ export default function ClientDetailPage() {
 
   useEffect(() => {
     if (!client) return
-    setDraft(toProfileDraft(client, customFieldDefs))
+    setDraft(toClientProfileDraft(client, customFieldDefs))
   }, [client?.id, customFieldDefs])
 
   // Identity is owned by Documents. Keep Profile fields mirrored from the client.
@@ -738,7 +388,7 @@ export default function ClientDetailPage() {
   ])
 
   const savedDraft = useMemo(
-    () => (client ? toProfileDraft(client, customFieldDefs) : null),
+    () => (client ? toClientProfileDraft(client, customFieldDefs) : null),
     [client, customFieldDefs],
   )
 
@@ -754,14 +404,10 @@ export default function ClientDetailPage() {
   }
 
   const profileDraft = draft ?? savedDraft
-  const isDirty = !profileDraftsEqual(profileDraft, savedDraft)
-
-  const subAgent = profileDraft.subAgentId
-    ? getSubAgentById(profileDraft.subAgentId)
-    : undefined
 
   const selectTab = (tab: string) => {
-    if (tab === 'services') {
+    const resolved = tab === 'email' ? 'messages' : tab
+    if (resolved === 'services') {
       const open =
         clientCases.find((item) => item.id === caseId) ?? clientCases[0]
       if (open) {
@@ -770,14 +416,57 @@ export default function ClientDetailPage() {
       }
     }
     if (serviceOutlet) {
-      navigate(clientPath(id, tab))
+      navigate(clientPath(id, resolved))
       return
     }
     const next = new URLSearchParams(searchParams)
-    if (tab === 'overview') next.delete('tab')
-    else next.set('tab', tab)
-    if (tab !== 'payments') next.delete('record')
+    if (resolved === 'overview') next.delete('tab')
+    else next.set('tab', resolved)
+    if (resolved !== 'payments') next.delete('record')
+    if (resolved !== 'messages') next.delete('channel')
+    if (resolved !== 'profile') {
+      next.delete('section')
+      next.delete('field')
+    }
     setSearchParams(next, { replace: true })
+  }
+
+  const openMessages = (channel: ClientMessageChannel) => {
+    const params = new URLSearchParams()
+    params.set('tab', 'messages')
+    if (channel === 'email') params.set('channel', 'email')
+    navigate(`/clients/${id}?${params.toString()}`)
+  }
+
+  const setMessageChannel = (channel: ClientMessageChannel) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('tab', 'messages')
+    if (channel === 'email') next.set('channel', 'email')
+    else next.delete('channel')
+    setSearchParams(next, { replace: true })
+  }
+
+  const openMissingGap = (gapId: ClientInfoGapId) => {
+    const target = sectionForGap(gapId)
+    if (target === 'documents') {
+      const next = new URLSearchParams()
+      next.set('tab', 'documents')
+      if (gapId !== 'nid') next.set('focus', 'passport')
+      navigate(`/clients/${id}?${next.toString()}`)
+      return
+    }
+    const next = new URLSearchParams()
+    next.set('tab', 'profile')
+    next.set('section', target)
+    if (gapId === 'email' || gapId === 'address') next.set('field', gapId)
+    navigate(`/clients/${id}?${next.toString()}`)
+  }
+
+  const openDocumentsFromProfile = (focus?: 'passport' | 'nid') => {
+    const next = new URLSearchParams()
+    next.set('tab', 'documents')
+    if (focus === 'passport') next.set('focus', 'passport')
+    navigate(`/clients/${id}?${next.toString()}`)
   }
 
   const clearRecordIntent = () => {
@@ -829,16 +518,11 @@ export default function ClientDetailPage() {
     return getClientByPhone(phone, client.id)?.name
   })()
 
-  const profileFieldKeys = PROFILE_GROUPS.flatMap((group) =>
-    group.fields
-      .map((field) => field.key)
-      .filter((key) => !isIdentityProfileField(key)),
-  )
   const customFieldKeys = customFieldDefs.map((field) => `custom:${field.id}`)
 
-  const saveProfile = () => {
-    markAllTouched([...profileFieldKeys, ...customFieldKeys])
-    const hasProfileError = profileFieldKeys.some((key) =>
+  const saveProfile = (): boolean => {
+    markAllTouched([...EDITABLE_PROFILE_KEYS, ...customFieldKeys])
+    const hasProfileError = EDITABLE_PROFILE_KEYS.some((key) =>
       profileFieldError(key, profileDraft, duplicatePhoneOwner),
     )
     const hasCustomError = customFieldDefs.some(
@@ -848,8 +532,9 @@ export default function ClientDetailPage() {
           profileDraft.customFields[field.id] ?? '',
         ) != null,
     )
-    if (hasProfileError || hasCustomError) return
+    if (hasProfileError || hasCustomError) return false
     const phone = normalizePhone(profileDraft.phone)
+    const address = profileDraft.address.trim() || undefined
     // Identity (passport/NID) is owned by Documents. Do not overwrite from Profile.
     try {
       const updated = updateClient(client.id, {
@@ -857,7 +542,12 @@ export default function ClientDetailPage() {
         banglaName: profileDraft.banglaName.trim() || undefined,
         phone,
         email: profileDraft.email.trim() || undefined,
-        address: profileDraft.address.trim() || undefined,
+        address,
+        presentAddress:
+          profileDraft.presentAddress.trim() || address || undefined,
+        permanentAddress: profileDraft.permanentAddress.trim() || undefined,
+        district: profileDraft.district.trim() || undefined,
+        upazila: profileDraft.upazila.trim() || undefined,
         fatherName: profileDraft.fatherName.trim() || undefined,
         motherName: profileDraft.motherName.trim() || undefined,
         dateOfBirth: profileDraft.dateOfBirth.trim() || undefined,
@@ -867,6 +557,16 @@ export default function ClientDetailPage() {
         placeOfBirth: profileDraft.placeOfBirth.trim() || undefined,
         spouseName: profileDraft.spouseName.trim() || undefined,
         bloodGroup: profileDraft.bloodGroup.trim() || undefined,
+        education: profileDraft.education.trim() || undefined,
+        profession: profileDraft.profession.trim() || undefined,
+        skillTrade: profileDraft.skillTrade.trim() || undefined,
+        experience: profileDraft.experience.trim() || undefined,
+        previousOverseasExp:
+          profileDraft.previousOverseasExp.trim() || undefined,
+        preferredCountry: profileDraft.preferredCountry.trim() || undefined,
+        preferredJob: profileDraft.preferredJob.trim() || undefined,
+        expectedSalary: profileDraft.expectedSalary.trim() || undefined,
+        branch: profileDraft.branch.trim() || undefined,
         subAgentId: profileDraft.subAgentId.trim() || undefined,
         customFields: compactCustomFieldValues({
           ...Object.fromEntries(
@@ -875,29 +575,36 @@ export default function ClientDetailPage() {
                 !customFieldDefs.some((field) => field.id === fieldId),
             ),
           ),
-          ...emptyCustomFieldValues(customFieldDefs, {
-            ...client.customFields,
-            ...profileDraft.customFields,
-          }),
+          ...profileDraft.customFields,
         }),
       })
-      if (updated) setDraft(toProfileDraft(updated, customFieldDefs))
+      if (updated) setDraft(toClientProfileDraft(updated, customFieldDefs))
+      return true
     } catch (error) {
       notifyIfPendingApproval(error)
+      return false
     }
   }
 
   const displayName = profileDraft.name || client.name
   const displayStatus = deriveClientServiceStatus(clientCases)
   const displayPhone = profileDraft.phone
-  const displayEmail = profileDraft.email
-  const displayPassport = profileDraft.passport
-  const displayNid = profileDraft.nid
   const displayWhatsapp = client.whatsapp?.trim() || displayPhone
+  const messageChannel = messageChannelFromSearch(searchParams)
+  const profileSection = profileSectionFromSearch(searchParams)
+  const focusFieldParam = searchParams.get('field')
+  const focusField =
+    focusFieldParam === 'email' || focusFieldParam === 'address'
+      ? focusFieldParam
+      : undefined
   const openCases = clientCases.filter(
     (item) => item.status !== 'Completed' && item.status !== 'Cancelled',
   )
   const dueBalance = openCases.reduce((sum, item) => sum + item.balance, 0)
+  const paidTotal = clientPayments.reduce((sum, item) => sum + item.amount, 0)
+  const recentMessages = [...smsMessages, ...emailMessages].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  )
 
   const profileGaps = listClientInfoGaps({
     passport: profileDraft.passport,
@@ -905,7 +612,7 @@ export default function ClientDetailPage() {
     passportExpiry: profileDraft.passportExpiry,
     nid: profileDraft.nid,
     address: profileDraft.address,
-    presentAddress: client.presentAddress,
+    presentAddress: profileDraft.presentAddress || client.presentAddress,
     email: profileDraft.email,
   })
   const profileAlertCount = profileGaps.length
@@ -921,20 +628,25 @@ export default function ClientDetailPage() {
       (boardItem.state === 'blocked' || boardItem.state === 'on-hold')
     )
   }).length
-  const pendingStatusRequests = requests.filter(
+  const pendingStatusRequestsList = requests.filter(
     (request) =>
       request.clientId === client.id && request.reviewStatus === 'Pending',
-  ).length
-  const servicesAlertCount = servicesAttentionCases + pendingStatusRequests
+  )
+  const servicesAlertCount =
+    servicesAttentionCases + pendingStatusRequestsList.length
 
   return (
-    <div className={cn(elevatedPageClass, 'gap-5')} data-elevated-canvas aria-label={client.name}>
+    <div
+      className={cn(elevatedPageClass, 'gap-5')}
+      data-elevated-canvas
+      aria-label={client.name}
+    >
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
         <aside
-          className="flex min-w-0 flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm lg:sticky lg:top-0 lg:z-[1] lg:max-h-[calc(100dvh-8.5rem)] lg:overflow-y-auto"
+          className="flex min-w-0 flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-card shadow-sm lg:sticky lg:top-0 lg:z-[1] lg:max-h-[calc(100dvh-8.5rem)] lg:overflow-y-auto"
           aria-label="Client profile"
         >
-          <div className="flex shrink-0 flex-col items-center gap-2 text-center">
+          <div className="flex shrink-0 flex-col items-center gap-2 bg-[color-mix(in_srgb,var(--color-theme)_8%,var(--color-surface))] px-4 pt-5 pb-4 text-center">
             <ProfilePhotoField
               name={displayName}
               fallbackName="Client"
@@ -961,16 +673,23 @@ export default function ClientDetailPage() {
                 </p>
               ) : null}
             </div>
+            {displayStatus ? (
+              <Badge
+                variant={displayStatus === 'Completed' ? 'default' : 'secondary'}
+                className="shrink-0"
+              >
+                {displayStatus}
+              </Badge>
+            ) : null}
+            <p className="m-0 flex shrink-0 justify-center text-[0.8125rem] font-normal leading-snug text-foreground">
+              <ContactChip value={displayPhone} label="Phone Number" />
+            </p>
           </div>
 
-          <div className="flex w-full shrink-0 flex-col gap-1.5">
-            <Button className="h-9 w-full rounded-lg" onClick={openNewCase}>
-              <Folder data-icon="inline-start" />
-              Add Service
-            </Button>
-            <div className="grid grid-cols-4 gap-1.5">
+          <div className="flex flex-col gap-3 px-4 pb-4">
+            <div className="grid shrink-0 grid-cols-4 gap-1.5">
               <a
-                className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-[color-mix(in_srgb,var(--color-text)_6%,transparent)]"
+                className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-background text-foreground transition-colors hover:bg-muted"
                 href={`tel:${displayPhone}`}
                 aria-label={`Call ${displayName}`}
                 title="Call"
@@ -978,7 +697,7 @@ export default function ClientDetailPage() {
                 <Phone size={14} strokeWidth={2.25} aria-hidden />
               </a>
               <a
-                className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-[color-mix(in_srgb,var(--color-text)_6%,transparent)]"
+                className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-background text-foreground transition-colors hover:bg-muted"
                 href={whatsappHref(displayWhatsapp)}
                 target="_blank"
                 rel="noreferrer"
@@ -990,7 +709,7 @@ export default function ClientDetailPage() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => selectTab('messages')}
+                onClick={() => openMessages('sms')}
                 aria-label="Open messages"
                 title="Messages"
               >
@@ -999,170 +718,55 @@ export default function ClientDetailPage() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => selectTab('email')}
+                onClick={() => openMessages('email')}
                 aria-label="Open email"
                 title="Email"
               >
                 <Mail size={14} strokeWidth={2.25} aria-hidden />
               </Button>
             </div>
+
+            <Button className="h-9 w-full shrink-0 rounded-lg" onClick={openNewCase}>
+              <Folder data-icon="inline-start" />
+              Add Service
+            </Button>
+            <Button
+              variant="outline"
+              className="h-9 w-full shrink-0 justify-start rounded-lg"
+              onClick={() => selectTab('profile')}
+            >
+              <Contact data-icon="inline-start" />
+              Edit Profile
+              {profileAlertCount > 0 ? (
+                <Badge variant="destructive" className="ms-auto">
+                  {profileAlertCount}
+                </Badge>
+              ) : null}
+            </Button>
+
+            <p className="m-0 inline-flex items-center justify-center gap-1.5 text-[0.6875rem] font-medium text-muted-foreground">
+              <Calendar size={12} strokeWidth={2.25} aria-hidden />
+              Member Since {formatDate(client.createdAt)}
+            </p>
           </div>
 
-          <dl className="m-0 flex shrink-0 flex-col overflow-hidden rounded-[0.625rem] border border-border bg-background">
-            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
-              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
-                Status
-              </dt>
-              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
-                {displayStatus ? (
-                  <Badge variant={displayStatus === 'Completed' ? 'default' : 'secondary'}>
-                    {displayStatus}
-                  </Badge>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </dd>
-            </div>
-            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
-              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
-                Phone
-              </dt>
-              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
-                <ContactChip
-                  variant="cardField"
-                  value={displayPhone}
-                  label="Phone Number"
-                />
-              </dd>
-            </div>
-            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
-              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
-                Email
-              </dt>
-              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
-                {displayEmail ? (
-                  <ContactChip
-                    variant="cardField"
-                    value={displayEmail}
-                    label="Email Address"
-                  />
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </dd>
-            </div>
-            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
-              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
-                NID
-              </dt>
-              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
-                {displayNid ? (
-                  <ContactChip variant="cardField" value={displayNid} label="NID Number" />
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </dd>
-            </div>
-            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
-              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
-                Passport
-              </dt>
-              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
-                {displayPassport ? (
-                  <ContactChip
-                    variant="cardField"
-                    value={displayPassport}
-                    label="Passport Number"
-                  />
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </dd>
-            </div>
-            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
-              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
-                Gender
-              </dt>
-              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
-                {profileDraft.gender}
-              </dd>
-            </div>
-            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
-              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
-                Address
-              </dt>
-              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
-                {profileDraft.address || client.address ? (
-                  <ContactChip
-                    variant="cardField"
-                    value={profileDraft.address || client.address || ''}
-                    label="Address"
-                  />
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </dd>
-            </div>
-            <div className="grid min-w-0 grid-cols-[4.5rem_minmax(0,1fr)] items-start gap-2 border-b border-border px-2.5 py-1.5 last:border-b-0">
-              <dt className="m-0 pt-0.5 text-[0.625rem] font-medium tracking-wide text-muted-foreground leading-snug">
-                Sub Agent
-              </dt>
-              <dd className="m-0 flex min-w-0 flex-col gap-0.5 text-[0.8125rem] font-normal leading-snug text-foreground break-words">
-                {subAgent ? (
-                  <ContactChip
-                    variant="cardField"
-                    to={`/sub-agents/${subAgent.id}`}
-                    value={subAgent.name}
-                    label="Sub Agent"
-                  />
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </dd>
-            </div>
-          </dl>
-
-          <div className="grid shrink-0 grid-cols-2 gap-1.5" aria-label="Snapshot">
-            <button
-              type="button"
-              className="m-0 flex min-w-0 cursor-pointer flex-col gap-0.5 rounded-[0.625rem] border border-border bg-background px-2.5 py-1.5 text-start font-inherit text-inherit transition-colors hover:border-[color-mix(in_srgb,var(--color-theme)_35%,var(--color-border))] hover:bg-[color-mix(in_srgb,var(--color-theme)_6%,var(--color-surface))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-theme)]"
-              onClick={() => selectTab('services')}
-            >
-              <span className="text-[0.625rem] font-semibold tracking-wide text-muted-foreground">
-                Services
-              </span>
-              <span className="text-sm font-medium leading-tight text-foreground">
-                {openCases.length}
-              </span>
-            </button>
-            <button
-              type="button"
-              className="m-0 flex min-w-0 cursor-pointer flex-col gap-0.5 rounded-[0.625rem] border border-border bg-background px-2.5 py-1.5 text-start font-inherit text-inherit transition-colors hover:border-[color-mix(in_srgb,var(--color-theme)_35%,var(--color-border))] hover:bg-[color-mix(in_srgb,var(--color-theme)_6%,var(--color-surface))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-theme)]"
-              onClick={() => selectTab('payments')}
-            >
-              <span className="text-[0.625rem] font-semibold tracking-wide text-muted-foreground">
-                Due Balance
-              </span>
-              <span
-                className={cn(
-                  'text-sm font-medium leading-tight text-foreground',
-                  dueBalance > 0 && 'text-destructive',
-                )}
-              >
-                {formatBalance(dueBalance)}
-              </span>
-            </button>
-          </div>
-
-          <p className="m-0 inline-flex items-center justify-center gap-1.5 text-[0.6875rem] font-medium text-muted-foreground">
-            <Calendar size={12} strokeWidth={2.25} aria-hidden />
-            Member Since {formatDate(client.createdAt)}
-          </p>
+          <ClientIdentityExtras
+            client={client}
+            dueBalance={dueBalance}
+            paidTotal={paidTotal}
+            onOpenPayments={() => selectTab('payments')}
+            onOpenDocuments={(focus) => openDocumentsFromProfile(focus)}
+            onOpenProfile={() => selectTab('profile')}
+          />
         </aside>
 
         <div className="flex min-w-0 flex-col gap-3">
           <DetailTabs
-            value={activeTab}
+            value={
+              MAIN_TABS.includes(activeTab as (typeof MAIN_TABS)[number])
+                ? activeTab
+                : 'overview'
+            }
             onValueChange={selectTab}
             items={[
               {
@@ -1170,125 +774,39 @@ export default function ClientDetailPage() {
                 label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
                 content: (
                   <div className="flex flex-col gap-4">
-                    <ClientActionItems clientId={client.id} />
-
-                    <Card size="sm" className="shadow-sm">
-                      <CardHeader>
-                        <CardTitle>
-                          <SectionTitle icon={Contact}>Profile Information</SectionTitle>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <div className="min-w-0">
-                            <FieldLabel icon={Phone}>Phone</FieldLabel>
-                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
-                              {displayPhone}
-                            </dd>
-                          </div>
-                          <div className="min-w-0">
-                            <FieldLabel icon={Mail}>Email</FieldLabel>
-                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
-                              {displayEmail ? (
-                                displayEmail
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </dd>
-                          </div>
-                          <div className="min-w-0">
-                            <FieldLabel icon={MapPin}>Address</FieldLabel>
-                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
-                              {client.address || (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </dd>
-                          </div>
-                          <div className="min-w-0">
-                            <FieldLabel icon={IdCard}>NID</FieldLabel>
-                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
-                              {client.nid || (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </dd>
-                          </div>
-                          <div className="min-w-0">
-                            <FieldLabel icon={BookUser}>Passport</FieldLabel>
-                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
-                              {client.passport || (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </dd>
-                          </div>
-                          <div className="min-w-0">
-                            <FieldLabel icon={Calendar}>Member Since</FieldLabel>
-                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
-                              {formatDate(client.createdAt)}
-                            </dd>
-                          </div>
-                          <div className="min-w-0">
-                            <FieldLabel icon={UserRound}>Sub Agent</FieldLabel>
-                            <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
-                              {subAgent ? (
-                                <Link
-                                  to={`/sub-agents/${subAgent.id}`}
-                                  className="text-primary underline-offset-2 hover:underline"
-                                >
-                                  {subAgent.name}
-                                </Link>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </dd>
-                          </div>
-                        </dl>
-                      </CardContent>
-                    </Card>
-
-                    <Accordion
-                      type="single"
-                      collapsible
-                      defaultValue="services"
-                      className="rounded-xl border border-border bg-card px-4 shadow-sm"
-                    >
-                      <AccordionItem value="services" className="border-0">
-                        <AccordionTrigger className="hover:no-underline">
-                          <span className="inline-flex items-center gap-2">
-                            <span
-                              className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-theme-subtle)] text-[var(--color-theme-ink)]"
-                              aria-hidden
-                            >
-                              <Folder size={15} strokeWidth={2.25} />
-                            </span>
-                            Services
-                            {clientCases.length > 0 ? (
-                              <span className="text-muted-foreground">{clientCases.length}</span>
-                            ) : null}
-                          </span>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <CasesList
-                            cases={clientCases}
-                            label={`${client.name} services`}
-                            showClientColumn={false}
-                            showServiceColumn
-                            defaultClientId={client.id}
-                            lockClient
-                            defaultService={primaryServiceType(client.services)}
-                            embedded
-                            showToolbar={false}
-                            allowDelete
-                            emptyTitle="No Services Yet"
-                            emptyAction={
-                              <Button className="h-9 rounded-lg" onClick={openNewCase}>
-                                <Folder data-icon="inline-start" />
-                                Add Service
-                              </Button>
-                            }
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
+                    <ClientDealStrip
+                      cases={clientCases}
+                      onCollectPayment={() => {
+                        const next = new URLSearchParams()
+                        next.set('tab', 'payments')
+                        next.set('record', '1')
+                        navigate(`/clients/${id}?${next.toString()}`)
+                      }}
+                    />
+                    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,20rem)]">
+                      <div className="flex min-w-0 flex-col gap-4">
+                        <ClientOverviewAttention
+                          clientName={client.name}
+                          gaps={profileGaps}
+                          cases={clientCases}
+                          dueBalance={dueBalance}
+                          documentsAlertCount={documentsAlertCount}
+                          pendingRequests={pendingStatusRequestsList}
+                          onOpenGap={openMissingGap}
+                          onOpenPayments={() => selectTab('payments')}
+                          onOpenProfile={() => selectTab('profile')}
+                          onOpenDocuments={() => selectTab('documents')}
+                          onOpenServices={() => selectTab('services')}
+                        />
+                        <ClientRecentActivity
+                          messages={recentMessages}
+                          payments={clientPayments}
+                          onOpenMessages={() => openMessages('sms')}
+                          onOpenPayments={() => selectTab('payments')}
+                        />
+                      </div>
+                      <ClientActionItems clientId={client.id} />
+                    </div>
                   </div>
                 ),
               },
@@ -1300,209 +818,51 @@ export default function ClientDetailPage() {
                   </TabLabel>
                 ),
                 content: (
-                  <div className="flex min-w-0 flex-col gap-4">
-                    <div className="flex flex-col gap-3">
-                      {PROFILE_GROUPS.map((group) => (
-                        <Card
-                          key={group.title}
-                          id={
-                            group.title === 'Identity'
-                              ? 'client-profile-identity'
-                              : undefined
-                          }
-                          size="sm"
-                          className="min-w-0 shadow-sm"
-                        >
-                          <CardHeader>
-                            <CardTitle>
-                              <SectionTitle icon={group.icon}>
-                                {group.title}
-                              </SectionTitle>
-                            </CardTitle>
-                            {group.title === 'Identity' ? (
-                              <CardAction>
-                                <Button variant="outline" size="sm" className="h-8" asChild>
-                                  <Link to={`/clients/${client.id}?tab=documents&focus=passport`}>
-                                    <FileText size={14} strokeWidth={2.25} aria-hidden />
-                                    Edit In Documents
-                                  </Link>
-                                </Button>
-                              </CardAction>
-                            ) : null}
-                          </CardHeader>
-                          <CardContent>
-                            {group.title === 'Identity' ? (
-                              <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                {IDENTITY_READOUT.map((row) => {
-                                  const raw = String(
-                                    profileDraft[row.key] ?? '',
-                                  ).trim()
-                                  const gap = gapForProfileField(
-                                    profileGaps,
-                                    row.key,
-                                  )
-                                  const display = raw
-                                    ? row.date
-                                      ? formatDate(raw)
-                                      : raw
-                                    : null
-                                  return (
-                                    <div
-                                      key={row.key}
-                                      className={cn(
-                                        'min-w-0',
-                                        gap && '[&_dd]:text-destructive',
-                                        gap?.blocksProgress &&
-                                          '[&_dd]:font-semibold [&_dd]:text-destructive',
-                                      )}
-                                    >
-                                      <FieldLabel icon={row.icon}>
-                                        {row.label}
-                                      </FieldLabel>
-                                      <dd className="m-0 ps-[1.65rem] text-[0.9375rem] leading-snug">
-                                        {display ? (
-                                          display
-                                        ) : (
-                                          <span className="text-muted-foreground">-</span>
-                                        )}
-                                      </dd>
-                                    </div>
-                                  )
-                                })}
-                              </dl>
-                            ) : (
-                              <div className="m-0 grid grid-cols-6 gap-x-3 gap-y-[0.95rem]">
-                                {group.fields.map((field) => {
-                                  const gap = gapForProfileField(
-                                    profileGaps,
-                                    field.key,
-                                  )
-                                  return (
-                                    <div
-                                      key={field.key}
-                                      className={cn(
-                                        'min-w-0',
-                                        profileFieldLayoutClass(field),
-                                        String(profileDraft[field.key] ?? '') !==
-                                          String(savedDraft[field.key] ?? '') &&
-                                          '[&_input]:border-[var(--color-theme-ink)] [&_button]:border-[var(--color-theme-ink)]',
-                                        gap &&
-                                          '[&_input]:border-[color-mix(in_srgb,var(--color-danger)_55%,var(--color-border))] [&_input]:bg-[color-mix(in_srgb,var(--color-danger)_5%,var(--color-surface))]',
-                                        gap?.blocksProgress &&
-                                          '[&_input]:border-[var(--color-danger)]',
-                                      )}
-                                    >
-                                      <ProfileFieldControl
-                                        field={field}
-                                        value={String(profileDraft[field.key] ?? '')}
-                                        required={
-                                          field.key === 'name' ||
-                                          field.key === 'phone'
-                                        }
-                                        subAgentOptions={
-                                          field.kind === 'subAgent'
-                                            ? subAgentOptions
-                                            : undefined
-                                        }
-                                        error={
-                                          showError(field.key)
-                                            ? profileFieldError(
-                                              field.key,
-                                              profileDraft,
-                                              duplicatePhoneOwner,
-                                            )
-                                            : undefined
-                                        }
-                                        onBlur={blur(field.key)}
-                                        onChange={(value) => {
-                                          setDraft((current) => ({
-                                            ...(current ?? savedDraft),
-                                            [field.key]:
-                                              field.kind === 'gender'
-                                                ? (value as ClientGender)
-                                                : value,
-                                          }))
-                                        }}
-                                      />
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
-                      {customFieldDefs.length ? (
-                        <Card size="sm" className="min-w-0 shadow-sm">
-                          <CardHeader>
-                            <CardTitle>
-                              <SectionTitle icon={FileText}>
-                                Additional Information
-                              </SectionTitle>
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="m-0 grid grid-cols-6 gap-x-3 gap-y-[0.95rem]">
-                              {customFieldDefs.map((field) => {
-                                const key = `custom:${field.id}`
-                                return (
-                                  <div
-                                    key={field.id}
-                                    className={cn(
-                                      'col-span-2 min-w-0',
-                                      (profileDraft.customFields[field.id] ?? '') !==
-                                        (savedDraft.customFields[field.id] ?? '') &&
-                                        '[&_input]:border-[var(--color-theme-ink)] [&_button]:border-[var(--color-theme-ink)]',
-                                    )}
-                                  >
-                                    <ClientCustomFieldControl
-                                      field={field}
-                                      value={
-                                        profileDraft.customFields[field.id] ?? ''
-                                      }
-                                      error={
-                                        showError(key)
-                                          ? validateCustomFieldValue(
-                                            field,
-                                            profileDraft.customFields[field.id] ??
-                                            '',
-                                          )
-                                          : undefined
-                                      }
-                                      onBlur={blur(key)}
-                                      onChange={(value) =>
-                                        setDraft((current) => {
-                                          const base = current ?? savedDraft
-                                          return {
-                                            ...base,
-                                            customFields: {
-                                              ...base.customFields,
-                                              [field.id]: value,
-                                            },
-                                          }
-                                        })
-                                      }
-                                    />
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ) : null}
-                    </div>
-                    {isDirty ? (
-                      <div className="flex items-center justify-start gap-3 pt-0.5">
-                        <Button variant="outline" className="h-9 rounded-lg" onClick={discardChanges}>
-                          Discard Changes
-                        </Button>
-                        <Button className="h-9 rounded-lg" onClick={saveProfile}>
-                          <Check size={16} strokeWidth={2.25} aria-hidden />
-                          Save
-                        </Button>
-                      </div>
-                    ) : null}
-                  </div>
+                  <ClientProfileWorkspace
+                    draft={profileDraft}
+                    savedDraft={savedDraft}
+                    gaps={profileGaps}
+                    customFieldDefs={customFieldDefs}
+                    subAgentOptions={subAgentOptions}
+                    showError={showError}
+                    fieldError={(key) =>
+                      profileFieldError(key, profileDraft, duplicatePhoneOwner)
+                    }
+                    customFieldError={(fieldId) => {
+                      const field = customFieldDefs.find(
+                        (entry) => entry.id === fieldId,
+                      )
+                      if (!field) return undefined
+                      return validateCustomFieldValue(
+                        field,
+                        profileDraft.customFields[fieldId] ?? '',
+                      )
+                    }}
+                    blur={blur}
+                    onChange={(key, value) => {
+                      setDraft((current) => ({
+                        ...(current ?? savedDraft),
+                        [key]: value,
+                      }))
+                    }}
+                    onCustomChange={(fieldId, value) => {
+                      setDraft((current) => {
+                        const base = current ?? savedDraft
+                        return {
+                          ...base,
+                          customFields: {
+                            ...base.customFields,
+                            [fieldId]: value,
+                          },
+                        }
+                      })
+                    }}
+                    onDiscard={discardChanges}
+                    onSave={saveProfile}
+                    onOpenDocuments={openDocumentsFromProfile}
+                    initialSection={profileSection}
+                    focusField={focusField}
+                  />
                 ),
               },
               {
@@ -1570,19 +930,25 @@ export default function ClientDetailPage() {
               {
                 id: 'messages',
                 label: <TabLabel icon={MessageSquare}>Messages</TabLabel>,
-                content: <ClientMessagesPanel client={client} channel="sms" />,
-              },
-              {
-                id: 'email',
-                label: <TabLabel icon={Mail}>Email</TabLabel>,
-                content: <ClientMessagesPanel client={client} channel="email" />,
+                content: (
+                  <ClientMessagesPanel
+                    client={client}
+                    channel={messageChannel}
+                    onChannelChange={setMessageChannel}
+                  />
+                ),
               },
             ]}
           />
         </div>
       </div>
 
-      <Sheet open={newCaseOpen} onOpenChange={(open) => { if (!open) closeNewCase() }}>
+      <Sheet
+        open={newCaseOpen}
+        onOpenChange={(open) => {
+          if (!open) closeNewCase()
+        }}
+      >
         <SheetContent className={floatingSheetClass}>
           <SheetHeader className="border-b border-border px-5 py-4 pr-12">
             <SheetTitle className="text-base font-semibold">Add Service</SheetTitle>
@@ -1612,7 +978,10 @@ function DetailTabs({
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
   const buttonRefs = useRef(new Map<string, HTMLButtonElement>())
-  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null)
+  const [indicator, setIndicator] = useState<{
+    left: number
+    width: number
+  } | null>(null)
 
   const updateIndicator = useCallback(() => {
     const button = buttonRefs.current.get(value)
@@ -1626,7 +995,7 @@ function DetailTabs({
 
   useEffect(() => {
     const root = rootRef.current
-    if (!root) return
+    if (!root || typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(() => updateIndicator())
     observer.observe(root)
     window.addEventListener('resize', updateIndicator)
@@ -1644,13 +1013,18 @@ function DetailTabs({
         ref={rootRef}
         role="tablist"
         aria-label="Client sections"
-        className="relative inline-flex h-9 max-w-full items-stretch self-start overflow-x-auto rounded-lg border border-input bg-card p-0.5"
+        className="relative inline-flex h-10 max-w-full items-stretch self-start overflow-x-auto rounded-xl border border-border bg-card p-1 shadow-sm"
       >
         {indicator ? (
           <span
             aria-hidden
             className="pointer-events-none absolute top-0.5 bottom-0.5 z-0 rounded-md bg-primary transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={{ left: indicator.left, width: indicator.width } as CSSProperties}
+            style={
+              {
+                left: indicator.left,
+                width: indicator.width,
+              } as CSSProperties
+            }
           />
         ) : null}
         {items.map((item) => {

@@ -51,3 +51,29 @@ export function takeSupportReturnPath(fallback = ADMIN_HOME): string {
   }
   return fallback
 }
+
+/**
+ * In-app path for Support Mode / View as. Relative only; blocks // and /admin
+ * loops.
+ */
+export function safeSupportNextPath(raw: string | null | undefined): string | null {
+  if (!raw) return null
+  const path = raw.trim()
+  if (!path.startsWith('/') || path.startsWith('//')) return null
+  if (path === '/admin' || path.startsWith('/admin/')) return null
+  return path
+}
+
+/** Admin deep link: start View as on this agency, then open `next`. */
+export function adminViewAsAgencyPath(
+  tenantId: string,
+  nextPath = '/',
+): string {
+  const params = new URLSearchParams()
+  params.set('viewAs', '1')
+  const safeNext = safeSupportNextPath(nextPath)
+  if (safeNext && safeNext !== '/') {
+    params.set('next', safeNext)
+  }
+  return `${adminAgencyPath(tenantId, 'all')}?${params.toString()}`
+}

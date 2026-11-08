@@ -28,6 +28,13 @@ export const PLATFORM_TOUR_STEPS: PlatformTourStep[] = [
     placement: 'top',
   },
   {
+    id: 'quick-links',
+    title: 'Jump into everyday work',
+    body: 'These tiles open the areas staff use most: clients, services, payments, documents, and more.',
+    selector: '[data-tour="home-quick-links"]',
+    placement: 'top',
+  },
+  {
     id: 'sidebar',
     title: 'Full navigation',
     body: 'The sidebar is always available. Use it to move between modules even when you are not on Home.',

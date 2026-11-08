@@ -51,14 +51,18 @@ function renderHome() {
 }
 
 describe('Home Today desk', () => {
-  it('shows Today queues instead of quick-link tiles', () => {
+  it('shows Today queues and quick-link tiles', () => {
     renderHome()
 
     expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument()
     expect(screen.getByTestId('home-search')).toBeInTheDocument()
     expect(
-      screen.queryByRole('navigation', { name: 'Quick links' }),
-    ).not.toBeInTheDocument()
+      screen.getByRole('navigation', { name: 'Quick links' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Clients/i })).toHaveAttribute(
+      'href',
+      '/clients',
+    )
   })
 
   it('lists a pending approval that opens Approvals', () => {

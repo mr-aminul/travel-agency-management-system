@@ -16,6 +16,7 @@ import { iconForService } from '@/lib/serviceIcons'
 import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { ComplianceDocument } from '@/lib/caseDocuments'
+
 const IDENTITY_GROUP_ID = 'identity'
 
 const markToneClass = (tone: 'done' | 'need' | 'idle') =>
@@ -138,29 +139,28 @@ export function ClientDocumentsPanel({
     <section
       id="client-documents"
       className={cn(
-        'grid min-h-[22rem] grid-cols-1 gap-3 md:grid-cols-[minmax(14rem,18rem)_minmax(0,1fr)]',
+        'grid min-h-[22rem] grid-cols-1 overflow-hidden rounded-xl border border-border bg-card shadow-sm md:grid-cols-[minmax(14rem,17rem)_minmax(0,1fr)]',
         highlight && 'animate-pulse ring-2 ring-primary/40',
       )}
       aria-label={`${client.name} documents`}
     >
-      <aside className="flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-card p-3 shadow-sm">
-        <div className="flex items-center justify-between gap-2">
-          <p className="m-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <aside className="flex min-w-0 flex-col border-b border-border bg-[color-mix(in_srgb,var(--color-surface)_70%,var(--color-bg))] md:border-r md:border-b-0">
+        <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
+          <p className="m-0 text-xs font-semibold text-muted-foreground">
             Documents
           </p>
           <Button
             variant="ghost"
-            className="h-9"
+            size="icon-sm"
             onClick={onAddService}
             aria-label="Add service"
           >
             <Plus size={14} strokeWidth={2.25} aria-hidden />
-            Add
           </Button>
         </div>
-        <nav className="flex flex-col gap-2" aria-label="Document groups">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1 rounded-lg">
+        <nav className="flex flex-col gap-1 overflow-y-auto p-2" aria-label="Document groups">
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-0.5 rounded-lg">
               <button
                 type="button"
                 className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted"
@@ -178,7 +178,7 @@ export function ClientDocumentsPanel({
                 </span>
                 <span className="min-w-0 truncate font-medium">Identity</span>
               </button>
-              <span className="text-xs text-muted-foreground tabular-nums" aria-hidden>
+              <span className="px-1 text-xs text-muted-foreground tabular-nums" aria-hidden>
                 {identityDocs.length}
               </span>
               <button
@@ -216,8 +216,8 @@ export function ClientDocumentsPanel({
                       type="button"
                       className={cn(
                         'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted',
-                        active && 'bg-muted font-medium',
-                        tone === 'need' && 'text-destructive',
+                        active && 'bg-primary/10 font-medium text-foreground',
+                        tone === 'need' && !active && 'text-destructive',
                       )}
                       aria-current={active ? 'page' : undefined}
                       onClick={() => selectIdentityDoc(doc.id as IdentityKind)}
@@ -241,10 +241,10 @@ export function ClientDocumentsPanel({
             const open = isGroupOpen(group.caseId)
             const Icon = iconForService(group.service)
             return (
-              <div key={group.caseId} className="flex flex-col gap-1">
+              <div key={group.caseId} className="flex flex-col gap-0.5">
                 <div
                   className={cn(
-                    'flex items-center gap-1 rounded-lg',
+                    'flex items-center gap-0.5 rounded-lg',
                     highlight &&
                       group.caseId === focusCaseId &&
                       'ring-2 ring-primary/40',
@@ -269,7 +269,7 @@ export function ClientDocumentsPanel({
                       {group.service}
                     </span>
                   </button>
-                  <span className="text-xs text-muted-foreground tabular-nums" aria-hidden>
+                  <span className="px-1 text-xs text-muted-foreground tabular-nums" aria-hidden>
                     {group.papers.length}
                   </span>
                   <button
@@ -314,8 +314,8 @@ export function ClientDocumentsPanel({
                           className={cn(
                             'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted',
                             doc.locked && 'opacity-60',
-                            active && 'bg-muted font-medium',
-                            tone === 'need' && 'text-destructive',
+                            active && 'bg-primary/10 font-medium text-foreground',
+                            tone === 'need' && !active && 'text-destructive',
                           )}
                           aria-current={active ? 'page' : undefined}
                           onClick={() => selectServiceDoc(group.caseId, doc.id)}
@@ -339,7 +339,7 @@ export function ClientDocumentsPanel({
         </nav>
       </aside>
 
-      <div className="min-w-0 rounded-xl border border-border bg-card p-3 shadow-sm">
+      <div className="min-w-0 p-3 sm:p-4">
         {selectedIdentity ? (
           <DocumentWorkspace
             key={`identity:${selectedIdentity.id}`}

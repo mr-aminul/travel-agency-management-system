@@ -12,6 +12,7 @@ import {
   PanelLeftOpen,
   X,
 } from 'lucide-react'
+import { trashNavItem } from '@/config/layout'
 import type { NavItem, BrandConfig } from './types'
 import { applySidebarExpanded } from '@/lib/sidebarPrefs'
 import { useSidebarPrefs } from './useSidebarPrefs'
@@ -26,6 +27,7 @@ const HOVER_CLOSE_DELAY_MS = 140
 interface SidebarProps {
   navItems: NavItem[]
   brand: BrandConfig
+  showTrash?: boolean
   isMobile?: boolean
   isMobileOpen?: boolean
   onMobileClose?: () => void
@@ -269,6 +271,7 @@ function NavItemGroup({
 export function Sidebar({
   navItems,
   brand,
+  showTrash = false,
   isMobile = false,
   isMobileOpen = false,
   onMobileClose,
@@ -432,7 +435,7 @@ export function Sidebar({
           })}
         </nav>
 
-        {!isMobile && isManual && (
+        {(showTrash || (!isMobile && isManual)) && (
           <div
             className={[
               'pd-sidebar-footer',
@@ -441,31 +444,40 @@ export function Sidebar({
               .filter(Boolean)
               .join(' ')}
           >
-            <button
-              type="button"
-              className="pd-sidebar-btn pd-sidebar-footer__toggle"
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              aria-expanded={!collapsed}
-              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              onClick={(e) => {
-                e.stopPropagation()
-                toggleExpanded()
-              }}
-            >
-              {collapsed ? (
-                <PanelLeftOpen
-                  size={NAV_ICON_SIZE}
-                  strokeWidth={NAV_ICON_STROKE}
-                  aria-hidden="true"
-                />
-              ) : (
-                <PanelLeftClose
-                  size={NAV_ICON_SIZE}
-                  strokeWidth={NAV_ICON_STROKE}
-                  aria-hidden="true"
-                />
-              )}
-            </button>
+            {showTrash ? (
+              <NavItemLink
+                item={trashNavItem}
+                collapsed={collapsed}
+                onNavigate={closeMobile}
+              />
+            ) : null}
+            {!isMobile && isManual ? (
+              <button
+                type="button"
+                className="pd-sidebar-btn pd-sidebar-footer__toggle"
+                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-expanded={!collapsed}
+                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleExpanded()
+                }}
+              >
+                {collapsed ? (
+                  <PanelLeftOpen
+                    size={NAV_ICON_SIZE}
+                    strokeWidth={NAV_ICON_STROKE}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <PanelLeftClose
+                    size={NAV_ICON_SIZE}
+                    strokeWidth={NAV_ICON_STROKE}
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+            ) : null}
           </div>
         )}
       </div>

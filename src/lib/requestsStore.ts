@@ -99,6 +99,19 @@ export function submitStatusRequest(
   return created
 }
 
+/** Drop status requests for a client that was permanently removed. */
+export function removeRequestsForClient(clientId: string): number {
+  const id = clientId.trim()
+  if (!id) return 0
+  const before = requests.length
+  requests = requests.filter((item) => item.clientId !== id)
+  const removed = before - requests.length
+  if (removed === 0) return 0
+  persist()
+  emit()
+  return removed
+}
+
 export function reviewStatusRequest(
   id: string,
   reviewStatus: Exclude<RequestReviewStatus, 'Pending'>,

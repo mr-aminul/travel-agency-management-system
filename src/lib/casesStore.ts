@@ -840,6 +840,16 @@ export function deleteCase(id: string): boolean {
   return true
 }
 
+/** Hard-delete every service file for a client (used when emptying trash). */
+export function deleteCasesForClient(clientId: string): number {
+  const ids = getCasesByClientId(clientId).map((item) => item.id)
+  let removed = 0
+  for (const id of ids) {
+    if (deleteCase(id)) removed += 1
+  }
+  return removed
+}
+
 export type CompleteStepResult =
   | { ok: true; case: Case }
   | { ok: false; errors: Record<string, string> }

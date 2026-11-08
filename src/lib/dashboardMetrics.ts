@@ -200,7 +200,10 @@ export function buildDashboardRows(
       id: `request:${request.id}`,
       filters,
       typeLabel: 'Request',
-      name: client?.name ?? request.clientId,
+      name:
+        client?.name?.trim() ||
+        caseItem?.clientName?.trim() ||
+        'Unknown client',
       detail: `${request.fromStatus} → ${request.toStatus}${
         caseItem ? ` · ${caseItem.service}` : ''
       }`,

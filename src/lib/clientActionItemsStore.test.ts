@@ -37,8 +37,15 @@ describe('client action items', () => {
     })
     expect(created.text).toBe('Call about medical')
     expect(created.done).toBe(false)
+    expect(created.createdByUserId).toBe(DEMO_USER.id)
+    expect(created.createdByName).toBe(DEMO_USER.name)
     expect(listClientActionItems('c-284')).toEqual([
-      expect.objectContaining({ id: created.id, text: 'Call about medical' }),
+      expect.objectContaining({
+        id: created.id,
+        text: 'Call about medical',
+        createdByUserId: DEMO_USER.id,
+        createdByName: DEMO_USER.name,
+      }),
     ])
     expect(countOpenClientActionItems('c-284')).toBe(1)
   })
