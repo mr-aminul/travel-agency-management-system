@@ -37,12 +37,19 @@ export type FileViewerProps = {
   mimeType?: string | null
   /** Compact preview inside drawers. */
   compact?: boolean
+  /** Grow into leftover sheet height instead of a fixed frame. */
+  fill?: boolean
   /** Hide filename / type / size above the preview. */
   hideMeta?: boolean
   /** When set, an Upload action opens the file picker. */
   onUpload?: (file: File) => void
   /** When set, Delete removes the current attachment. */
   onDelete?: () => void
+}
+
+function viewerHeightClass(compact: boolean, fill: boolean) {
+  if (fill) return 'min-h-64 flex-1'
+  return compact ? 'h-64' : 'h-[28rem]'
 }
 
 const MIN_ZOOM = 0.5
@@ -454,10 +461,12 @@ export function FileViewer({
   fileName,
   mimeType,
   compact = false,
+  fill = false,
   hideMeta = false,
   onUpload,
   onDelete,
 }: FileViewerProps) {
+  const heightClass = viewerHeightClass(compact, fill)
   const stored = getStoredFile(fileId)
   const name = fileName || stored?.fileName || 'Attachment'
   const type = mimeType || stored?.mimeType || ''
@@ -490,15 +499,42 @@ export function FileViewer({
   }, [url, type])
 
   if (!sourceUrl || previewFailed) {
+    if (hideMeta) {
+      return (
+        <div
+          className={cn(
+            'group/viewer relative flex min-h-0 flex-col',
+            viewerStageClass,
+            heightClass,
+          )}
+        >
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-muted-foreground">
+            <FileWarning size={20} strokeWidth={2} aria-hidden />
+            <p className="m-0 text-xs leading-snug">
+              Preview unavailable. Re-upload the file to view it here.
+            </p>
+          </div>
+          {onUpload || onDelete ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/25 via-black/8 to-transparent pt-14">
+              <div className="pointer-events-auto flex justify-end p-3">
+                <FileViewerActions
+                  onUpload={onUpload}
+                  onDelete={onDelete}
+                  overlay
+                />
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )
+    }
     return (
       <div className="flex items-start gap-3 rounded-xl border bg-card p-3 text-muted-foreground">
         <FileWarning size={20} strokeWidth={2} aria-hidden />
         <div className="min-w-0">
-          {hideMeta ? null : (
-            <p className="m-0 break-words text-sm font-semibold text-foreground">
-              {name}
-            </p>
-          )}
+          <p className="m-0 break-words text-sm font-semibold text-foreground">
+            {name}
+          </p>
           <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
             Preview unavailable. Re-upload the file to view it here.
           </p>
@@ -561,9 +597,9 @@ export function FileViewer({
       {hideMeta ? (
         <div
           className={cn(
-            'group/viewer',
+            'group/viewer min-h-0',
             viewerStageClass,
-            compact ? 'h-64' : 'h-[28rem]',
+            heightClass,
           )}
         >
           {stage}
@@ -576,8 +612,13 @@ export function FileViewer({
           ) : null}
         </div>
       ) : (
-        <div className="flex flex-col overflow-hidden rounded-xl border border-border/90 bg-card">
-          <header className="flex items-center justify-between gap-2 px-3 py-2.5">
+        <div
+          className={cn(
+            'flex min-h-0 flex-col overflow-hidden rounded-xl border border-border/90 bg-card',
+            fill && 'flex-1',
+          )}
+        >
+          <header className="flex shrink-0 items-center justify-between gap-2 px-3 py-2.5">
             <div className="min-w-0">
               <p className="m-0 break-words text-sm font-semibold text-foreground">
                 {name}
@@ -593,8 +634,8 @@ export function FileViewer({
           <div
             className={cn(
               viewerStageClass,
-              'rounded-none border-0 border-t border-border/70',
-              compact ? 'h-64' : 'h-[28rem]',
+              'min-h-0 rounded-none border-0 border-t border-border/70',
+              heightClass,
             )}
           >
             {stage}

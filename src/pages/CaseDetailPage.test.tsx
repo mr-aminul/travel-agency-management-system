@@ -193,10 +193,11 @@ describe('service detail', () => {
     expect(within(work).queryByRole('tablist')).not.toBeInTheDocument()
     expect(within(work).queryByLabelText('Service documents')).not.toBeInTheDocument()
 
-    expect(within(work).getByLabelText('Current step')).toBeInTheDocument()
     expect(within(work).queryByText('SR-00101')).not.toBeInTheDocument()
-    expect(within(work).getByText('Stage 5 of 9')).toBeInTheDocument()
-    expect(within(work).getByText('Medical')).toBeInTheDocument()
+    expect(
+      within(work).getByLabelText('Journey').textContent,
+    ).toMatch(/Medical/)
+    expect(within(work).getByLabelText('Documents')).toBeInTheDocument()
     expect(
       within(work).getByRole('button', { name: 'More service actions' }),
     ).toBeInTheDocument()
@@ -207,7 +208,7 @@ describe('service detail', () => {
     ).toBeInTheDocument()
   })
 
-  it('edits service details while the current step stays visible', () => {
+  it('edits service details while the stage tree stays visible', () => {
     renderClient('/clients/c-284/services/case-101')
 
     const service = screen.getByLabelText('Work Permit Visa (SR-00101)')
@@ -221,7 +222,7 @@ describe('service detail', () => {
     expect(within(details).getByLabelText('Departure')).toBeInTheDocument()
     expect(within(details).getByLabelText('Notes')).toBeInTheDocument()
     expect(within(details).getByLabelText('Service fee')).toBeInTheDocument()
-    expect(within(service).getByLabelText('Current step')).toBeInTheDocument()
+    expect(within(service).getByLabelText('Journey')).toBeInTheDocument()
     expect(within(service).getByRole('button', { name: 'Save' })).toBeInTheDocument()
     expect(
       within(service).getByRole('button', { name: 'Cancel' }),
@@ -247,41 +248,36 @@ describe('service detail', () => {
     expect(writeText).toHaveBeenCalledWith(clientTrackingUrl('A12345678'))
   })
 
-  it('shows a compact current step and opens service papers from the sidebar', () => {
+  it('shows documents beside journey and opens a selected paper', () => {
     renderClient('/clients/c-284/services/case-101')
 
     const service = screen.getByLabelText('Work Permit Visa (SR-00101)')
-    const now = within(service).getByLabelText('Current step')
-    expect(within(now).getByText('Medical')).toBeInTheDocument()
-    expect(within(now).getByText(/Stage \d+ of \d+/)).toBeInTheDocument()
-    expect(within(now).getByRole('button', { name: 'Complete' })).toBeInTheDocument()
-    expect(within(now).getByRole('button', { name: 'Journey' })).toBeInTheDocument()
-    expect(within(service).queryByLabelText('Service journey')).not.toBeInTheDocument()
+    const documents = within(service).getByLabelText('Documents')
+    const journey = within(service).getByLabelText('Journey')
 
-    fireEvent.click(within(now).getByRole('button', { name: 'Journey' }))
-    expect(screen.getByLabelText('Service journey')).toBeInTheDocument()
+    expect(within(journey).getByText('Medical')).toBeInTheDocument()
+    expect(
+      within(journey).getByRole('button', { name: 'Mark complete' }),
+    ).toBeInTheDocument()
+    expect(
+      within(journey).getByRole('button', { name: /Medical Fitness Report/i }),
+    ).toBeInTheDocument()
+    expect(
+      within(documents).getByRole('button', { name: 'Medical Fitness Report' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(
+      within(documents).getByRole('button', { name: 'Medical Fitness Report' }),
+    )
+    const paperSheet = screen.getByRole('dialog', {
+      name: 'Medical Fitness Report',
+    })
+    expect(paperSheet).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
 
-    expect(within(service).queryByLabelText('Service documents')).not.toBeInTheDocument()
-
-    const papers = within(service).getByLabelText('Papers')
-    expect(
-      within(papers).getByRole('button', { name: 'Medical Fitness Report' }),
-    ).toBeInTheDocument()
-    fireEvent.click(
-      within(papers).getByRole('button', { name: 'Medical Fitness Report' }),
-    )
-    expect(
-      screen.getByRole('heading', { name: 'Medical Fitness Report' }),
-    ).toBeInTheDocument()
-
     fireEvent.click(within(service).getByRole('button', { name: /Blocked/i }))
-    expect(screen.getByRole('tab', { name: 'Services' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    )
     expect(
-      screen.getByRole('heading', { name: 'Demand Letter' }),
+      screen.getByRole('dialog', { name: 'Demand Letter' }),
     ).toBeInTheDocument()
   })
 
@@ -354,15 +350,29 @@ describe('client identity documents', () => {
     expect(within(passport).queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
   })
 
-  it('redirects legacy Services identity focus into Profile', async () => {
+  it('opens passport on Services without leaving the tab', async () => {
     renderClient('/clients/c-284?tab=services&focus=passport')
 
     expect(
       await screen.findByRole('dialog', { name: 'Passport' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('tab', { name: /Profile/i, hidden: true }),
+      screen.getByRole('tab', { name: /Services/i, hidden: true }),
     ).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('opens passport from a service file while staying on the service', async () => {
+    renderClient('/clients/c-284/services/case-101?focus=passport')
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Passport' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('tab', { name: /Services/i, hidden: true }),
+    ).toHaveAttribute('aria-selected', 'true')
+    expect(
+      screen.getByLabelText('Work Permit Visa (SR-00101)', { hidden: true }),
+    ).toBeInTheDocument()
   })
 
   it('redirects the legacy documents tab into Services', () => {

@@ -40,8 +40,8 @@ const STATUS_BADGE: Record<
   CaseDocumentStatus,
   { label: string; variant: 'secondary' }
 > = {
-  approved: { label: 'On File', variant: 'secondary' },
-  under_review: { label: 'Saved', variant: 'secondary' },
+  approved: { label: '', variant: 'secondary' },
+  under_review: { label: '', variant: 'secondary' },
   missing: { label: 'Open', variant: 'secondary' },
   not_due: { label: 'Later', variant: 'secondary' },
 }
@@ -85,11 +85,11 @@ function manpowerTemplate(): DocTemplate[] {
   return [
     {
       id: 'passport',
-      name: 'Machine Readable Passport',
+      name: 'Passport',
       required: true,
       icon: 'passport',
       defaultStatus: 'missing',
-      defaultDetail: 'Valid MRP required',
+      defaultDetail: 'Valid passport required',
       fromClient: 'passport',
     },
     {
@@ -136,7 +136,7 @@ function studentTemplate(): DocTemplate[] {
   return [
     {
       id: 'passport',
-      name: 'Machine Readable Passport',
+      name: 'Passport',
       required: true,
       icon: 'passport',
       defaultStatus: 'missing',
@@ -177,7 +177,7 @@ function hajjTemplate(): DocTemplate[] {
   return [
     {
       id: 'passport',
-      name: 'Machine Readable Passport',
+      name: 'Passport',
       required: true,
       icon: 'passport',
       defaultStatus: 'missing',
@@ -260,7 +260,7 @@ function ticketingTemplate(): DocTemplate[] {
   return [
     {
       id: 'passport',
-      name: 'Machine Readable Passport',
+      name: 'Passport',
       required: true,
       icon: 'passport',
       defaultStatus: 'missing',
@@ -292,7 +292,7 @@ function touristVisaTemplate(): DocTemplate[] {
   return [
     {
       id: 'passport',
-      name: 'Machine Readable Passport',
+      name: 'Passport',
       required: true,
       icon: 'passport',
       defaultStatus: 'missing',
@@ -324,7 +324,7 @@ function medicalVisaTemplate(): DocTemplate[] {
   return [
     {
       id: 'passport',
-      name: 'Machine Readable Passport',
+      name: 'Passport',
       required: true,
       icon: 'passport',
       defaultStatus: 'missing',
@@ -553,8 +553,16 @@ function findProgressUploadForDocument(item: Case, documentId: string) {
   )
 }
 
-/** Live catalog documents for this file (country → all-countries → builtin). */
+/** Checklist for this file: pinned journey docs, else live catalog. */
 function catalogDocumentsFor(item: Case): ServiceDocumentConfig[] {
+  if (item.journey?.documents?.length) {
+    return item.journey.documents.map((doc) => ({
+      id: doc.id,
+      name: doc.name,
+      required: doc.required === true,
+      unlockStepId: doc.unlockStepId,
+    }))
+  }
   const country = templateCountry(item)
   const exact = country
     ? getServiceTemplateOverride(item.service, country)
@@ -576,11 +584,36 @@ function catalogRequiredForDocument(
   return match.required === true
 }
 
+/** Canonical labels for identity passport + known catalog renames. */
+export function normalizeDocumentDisplayName(
+  documentId: string,
+  name: string,
+): string {
+  if (documentId === 'passport') return 'Passport'
+  const trimmed = name.trim()
+  if (trimmed === 'Machine Readable Passport') return 'Passport'
+  if (trimmed === 'National Identity Card') return 'National ID'
+  return trimmed || name
+}
+
+/** Live display name from Service catalog (keeps renames like Passport in sync). */
+function catalogNameForDocument(
+  item: Case,
+  documentId: string,
+  fallback: string,
+): string {
+  const match = catalogDocumentsFor(item).find((doc) => doc.id === documentId)
+  const name = match?.name?.trim()
+  return normalizeDocumentDisplayName(documentId, name || fallback)
+}
+
 export function syncDocumentsWithProgress(item: Case): CaseDocument[] {
   return item.documents.map((doc) => {
     const required = catalogRequiredForDocument(item, doc.id, doc.required)
+    const name = catalogNameForDocument(item, doc.id, doc.name)
     const withCatalog: CaseDocument = {
       ...doc,
+      name,
       required,
       detail:
         required === doc.required

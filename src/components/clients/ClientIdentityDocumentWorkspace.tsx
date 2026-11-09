@@ -21,7 +21,10 @@ export function ClientIdentityDocumentWorkspace({
   const document = buildIdentityCaseDocument(client, cases, identityKind)
 
   return (
-    <div id="client-identity-document" className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+    <div
+      id="client-identity-document"
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-3"
+    >
       <DocumentWorkspace
         key={`identity:${document.id}`}
         document={document}

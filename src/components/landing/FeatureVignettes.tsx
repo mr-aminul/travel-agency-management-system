@@ -22,8 +22,8 @@ const BOARD_COLUMNS = [
     stage: 'Processing',
     count: 42,
     cards: [
-      { country: 'AE', service: 'Work permit', client: 'M. Rahman', tag: 'In review' },
-      { country: 'IN', service: 'Medical visa', client: 'F. Chowdhury', tag: 'In review' },
+      { country: 'AE', service: 'Work permit', client: 'M. Rahman', tag: 'Done' },
+      { country: 'IN', service: 'Medical visa', client: 'F. Chowdhury', tag: 'Done' },
     ],
   },
   {
@@ -165,7 +165,6 @@ export function DocumentsVignette() {
             </span>
             <span className="lp-vg-docs__name">{item.name}</span>
             <span className="lp-vg-docs__state">
-              {item.state === 'done' ? 'On file' : null}
               {item.state === 'pending' ? 'Waiting' : null}
               {item.state === 'missing' ? 'Missing' : null}
             </span>

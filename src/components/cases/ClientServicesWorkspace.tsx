@@ -2,7 +2,13 @@ import { useEffect } from 'react'
 import { Folder, Plus } from 'lucide-react'
 import { ServiceFileCard } from '@/components/cases/ServiceFileCard'
 import { Button } from '@/components/shadcn/button'
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/shadcn/empty'
+import {
+  Empty,
+  EmptyContent,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/shadcn/empty'
 import { flashAndReveal } from '@/lib/scrollWithin'
 import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
@@ -35,15 +41,9 @@ export function ClientServicesWorkspace({
   return (
     <section
       id="client-services"
-      className="flex min-w-0 flex-col gap-4"
+      className="flex min-w-0 flex-col gap-3"
       aria-label={`${client.name} services`}
     >
-      <div className="flex items-center justify-end">
-        <Button type="button" className="h-9 rounded-lg" onClick={onAddService}>
-          <Plus data-icon="inline-start" />
-          Add Service
-        </Button>
-      </div>
       {cases.length === 0 ? (
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <Empty>
@@ -53,16 +53,37 @@ export function ClientServicesWorkspace({
               </EmptyMedia>
               <EmptyTitle>No Services Yet</EmptyTitle>
             </EmptyHeader>
+            <EmptyContent>
+              <Button
+                type="button"
+                className="h-9 rounded-lg"
+                onClick={onAddService}
+              >
+                <Plus data-icon="inline-start" />
+                Add Service
+              </Button>
+            </EmptyContent>
           </Empty>
         </div>
       ) : (
-        cases.map((item) => (
-          <ServiceFileCard
-            key={item.id}
-            caseId={item.id}
-            selectedDocId={selectedId === item.id ? selectedDocId : null}
-          />
-        ))
+        <>
+          {cases.map((item) => (
+            <ServiceFileCard
+              key={item.id}
+              caseId={item.id}
+              selectedDocId={selectedId === item.id ? selectedDocId : null}
+            />
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 w-full justify-center rounded-xl border-dashed shadow-none"
+            onClick={onAddService}
+          >
+            <Plus data-icon="inline-start" />
+            Add Service
+          </Button>
+        </>
       )}
     </section>
   )

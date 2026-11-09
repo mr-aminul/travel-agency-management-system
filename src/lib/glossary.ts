@@ -18,7 +18,7 @@ export const PRODUCT_GLOSSARY: GlossaryTerm[] = [
   {
     term: 'Service template',
     meaning:
-      'The status journey and documents for a catalog line. Open Settings → Service catalog, then a service, to edit the checklist. New files pick up what you save. Add a country when that destination needs a different journey or documents.',
+      'The status journey and documents for a catalog line. Open Settings → Service catalog, then a service, to edit the checklist. New files pick up what you save. Open files keep the journey they started on; completed files keep the path they actually ran. Add a country when that destination needs a different journey or documents.',
   },
   {
     term: 'Status',

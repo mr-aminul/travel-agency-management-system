@@ -66,7 +66,7 @@ export function DocumentListRow({
         </span>
       </span>
       <span className="flex flex-wrap items-center gap-2">
-        <Badge variant={TONE_BADGE[tone]}>{status}</Badge>
+        {status ? <Badge variant={TONE_BADGE[tone]}>{status}</Badge> : null}
         {onView ? (
           <Button variant="outline" size="sm" className="h-8 rounded-lg" onClick={onView}>
             <Eye size={14} strokeWidth={2.25} aria-hidden />

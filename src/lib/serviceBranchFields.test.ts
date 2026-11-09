@@ -70,7 +70,7 @@ describe('listBranchSlotsForStep', () => {
         label: 'Registered',
         requiredDocumentIds: ['passport'],
       },
-      [{ id: 'passport', name: 'Machine Readable Passport', required: true }],
+      [{ id: 'passport', name: 'Passport', required: true }],
       {
         passport: [
           {
@@ -85,7 +85,7 @@ describe('listBranchSlotsForStep', () => {
     expect(slots).toEqual([
       {
         documentId: 'passport',
-        documentName: 'Machine Readable Passport',
+        documentName: 'Passport',
         fieldKey: 'status',
         fieldLabel: 'Status',
         equals: 'Fit',
@@ -93,7 +93,7 @@ describe('listBranchSlotsForStep', () => {
       },
       {
         documentId: 'passport',
-        documentName: 'Machine Readable Passport',
+        documentName: 'Passport',
         fieldKey: 'status',
         fieldLabel: 'Status',
         equals: 'Unfit',

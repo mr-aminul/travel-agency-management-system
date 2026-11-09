@@ -48,6 +48,7 @@ export function DocumentRecordFields({
   hideFileMeta = false,
   highlightNeedsFile = false,
   compact = false,
+  fillPreview = false,
   afterFields,
 }: {
   document: CaseDocument
@@ -70,6 +71,8 @@ export function DocumentRecordFields({
   /** Soft highlight on the dropzone when a scan is still required. */
   highlightNeedsFile?: boolean
   compact?: boolean
+  /** Preview grows into leftover sheet height; fields stay visible. */
+  fillPreview?: boolean
   afterFields?: ReactNode
 }) {
   const isView = mode === 'view'
@@ -146,6 +149,18 @@ export function DocumentRecordFields({
     </div>
   )
 
+  /** Same bordered preview stage passport / NID use in the right sheet. */
+  const documentStageClass = cn(
+    'relative flex overflow-hidden rounded-xl border border-border/90 bg-[color-mix(in_srgb,var(--muted)_55%,var(--background))] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent),inset_0_0_0_1px_color-mix(in_srgb,var(--foreground)_5%,transparent)]',
+    fillPreview
+      ? 'min-h-64 flex-1'
+      : compact
+        ? 'min-h-64'
+        : 'min-h-[28rem]',
+    highlightNeedsFile &&
+      'border-[color-mix(in_srgb,var(--color-danger)_45%,var(--color-border))]',
+  )
+
   const fileBlock = isView ? (
     hasFile ? (
       <FileViewer
@@ -153,7 +168,13 @@ export function DocumentRecordFields({
         fileName={fileName || document.detail}
         mimeType={mimeType}
         hideMeta={hideFileMeta}
+        compact={compact}
+        fill={fillPreview}
       />
+    ) : hideFileMeta ? (
+      <div className={cn(documentStageClass, 'items-center justify-center p-4')}>
+        <p className="m-0 text-sm text-muted-foreground">No file attached.</p>
+      </div>
     ) : (
       <p className="m-0 text-sm text-muted-foreground">No file attached.</p>
     )
@@ -163,9 +184,17 @@ export function DocumentRecordFields({
       fileName={fileName}
       mimeType={mimeType}
       hideMeta={hideFileMeta}
+      compact={compact}
+      fill={fillPreview}
       onUpload={onAttachFile}
       onDelete={onRemoveFile}
     />
+  ) : hideFileMeta ? (
+    <div className={cn(documentStageClass, 'items-center justify-center p-3')}>
+      <div className="w-full max-w-sm">
+        <FileDropzone onFile={onAttachFile} />
+      </div>
+    </div>
   ) : (
     <div
       className={cn(
@@ -178,16 +207,23 @@ export function DocumentRecordFields({
   )
 
   const fieldsWithActions = (
-    <>
+    <div className={cn('shrink-0', fillPreview && 'pt-0.5')}>
       {fieldBlock}
       {afterFields}
-    </>
+    </div>
   )
 
   const labeledFile =
     isView && hasFile && !hideFileMeta ? (
-      <div className="flex flex-col gap-2">
-        <p className="m-0 text-xs font-semibold text-muted-foreground">File</p>
+      <div
+        className={cn(
+          'flex flex-col gap-2',
+          fillPreview && 'min-h-0 flex-1',
+        )}
+      >
+        <p className="m-0 shrink-0 text-xs font-semibold text-muted-foreground">
+          File
+        </p>
         {fileBlock}
       </div>
     ) : (
@@ -206,17 +242,19 @@ export function DocumentRecordFields({
     </>
   )
 
+  const stackClass = cn(
+    'flex flex-col',
+    compact ? 'gap-2.5' : 'gap-3',
+    fillPreview && 'min-h-full flex-1',
+  )
+
   if (isView || embedded) {
+    // Parent form/article owns spacing; keep preview + fields as flex siblings.
     return <>{body}</>
   }
 
   return (
-    <form
-      id={formId}
-      className="flex flex-col gap-3"
-      onSubmit={onSubmit}
-      noValidate
-    >
+    <form id={formId} className={stackClass} onSubmit={onSubmit} noValidate>
       {body}
     </form>
   )

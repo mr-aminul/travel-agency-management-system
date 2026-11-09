@@ -23,11 +23,8 @@ function statusCopy(
       ? { label: 'Needed', variant: 'destructive' }
       : { label: 'Optional', variant: 'secondary' }
   }
-  if (document.status === 'approved') return { label: 'Uploaded', variant: 'default' }
-  if (document.status === 'under_review') {
-    return { label: 'In Review', variant: 'secondary' }
-  }
-  return { label: 'Missing', variant: 'secondary' }
+  // File present — checkmark/context is enough; no "On file" chip.
+  return { label: '', variant: 'secondary' }
 }
 
 export function DocumentWorkspace({
@@ -75,11 +72,14 @@ export function DocumentWorkspace({
 
   if (!editor.form) return null
 
+  const fillPreview = embedded && compact
+
   return (
     <article
       className={cn(
         'flex flex-col',
         compact ? 'gap-2.5' : 'gap-3',
+        fillPreview && 'min-h-full',
         embedded
           ? 'bg-transparent'
           : 'rounded-xl border border-border bg-background p-4',
@@ -90,7 +90,7 @@ export function DocumentWorkspace({
       aria-label={document.name}
     >
       {hideHeader ? null : (
-        <header className="flex items-center gap-2">
+        <header className="flex shrink-0 items-center gap-2">
           <span
             className={cn(
               'inline-flex size-8 items-center justify-center rounded-lg bg-muted',
@@ -103,16 +103,22 @@ export function DocumentWorkspace({
           <h2 className="m-0 min-w-0 flex-1 text-base font-semibold">
             {document.name}
           </h2>
-          <Badge variant={status.variant}>{status.label}</Badge>
+          {status.label ? (
+            <Badge variant={status.variant}>{status.label}</Badge>
+          ) : null}
         </header>
       )}
       {hint ? (
-        <p className="m-0 text-sm text-muted-foreground">{hint}</p>
+        <p className="m-0 shrink-0 text-sm text-muted-foreground">{hint}</p>
       ) : null}
 
       <form
         id={formId}
-        className={cn('flex flex-col', compact ? 'gap-2.5' : 'gap-3')}
+        className={cn(
+          'flex flex-col',
+          compact ? 'gap-2.5' : 'gap-3',
+          fillPreview && 'min-h-full flex-1',
+        )}
         onSubmit={handleSubmit}
         noValidate
       >
@@ -134,6 +140,7 @@ export function DocumentWorkspace({
           hideFileMeta
           embedded
           compact={compact}
+          fillPreview={fillPreview}
           fileFirst
           afterFields={
             allowEdit && editor.isDirty ? (

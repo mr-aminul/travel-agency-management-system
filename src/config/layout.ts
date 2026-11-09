@@ -12,6 +12,7 @@ import {
   IdCard,
   Inbox,
   LayoutDashboard,
+  LayoutList,
   ListChecks,
   Settings,
   CreditCard,
@@ -62,6 +63,12 @@ export const layoutConfig: AppLayoutConfig = {
   navItems: [
     { path: '/', label: 'Home', icon: Home, end: true },
     { path: '/clients', label: 'Clients', icon: Users, section: 'Work' },
+    {
+      path: '/clients-v2',
+      label: 'Clients v2',
+      icon: LayoutList,
+      section: 'Work',
+    },
     {
       path: '/services',
       label: 'Services',

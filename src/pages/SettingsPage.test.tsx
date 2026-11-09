@@ -126,7 +126,7 @@ describe('settings service catalog', () => {
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: /set fields for machine readable passport/i,
+        name: /set fields for passport/i,
       }),
     )
     expect(screen.getByText('Fields to fill in')).toBeInTheDocument()

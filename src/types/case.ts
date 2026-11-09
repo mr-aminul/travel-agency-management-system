@@ -112,6 +112,26 @@ export type CaseDocument = {
   mimeType?: string
 }
 
+/** Playbook frozen on this file when it was opened (or when first migrated). */
+export type CaseJourneyStepSnapshot = {
+  id: string
+  label: string
+}
+
+export type CaseJourneyDocumentSnapshot = {
+  id: string
+  name: string
+  required: boolean
+  unlockStepId?: string
+}
+
+export type CaseJourneySnapshot = {
+  /** When this playbook was pinned to the file. */
+  pinnedAt: string
+  steps: CaseJourneyStepSnapshot[]
+  documents: CaseJourneyDocumentSnapshot[]
+}
+
 /** One piece of work on a client. Generic across service templates. */
 export type ServiceRequest = {
   id: string
@@ -128,6 +148,11 @@ export type ServiceRequest = {
   /** Completion records keyed by service step id. */
   steps: Record<string, CaseStepRecord>
   documents: CaseDocument[]
+  /**
+   * Journey + checklist this file follows.
+   * Catalog edits do not rewrite pinned files; new files get a fresh snapshot.
+   */
+  journey?: CaseJourneySnapshot
   destination?: string
   /** Country used to pick this file’s status journey and document checklist. */
   serviceCountry?: string
@@ -175,11 +200,13 @@ export type UpdateCaseInput = Partial<
     | 'clientId'
     | 'steps'
     | 'documents'
+    | 'journey'
   >
 > & {
   steps?: Record<string, CaseStepRecord>
   documents?: CaseDocument[]
   currentStepId?: string
+  journey?: CaseJourneySnapshot
 }
 
 /** Nav slug ↔ built-in service */

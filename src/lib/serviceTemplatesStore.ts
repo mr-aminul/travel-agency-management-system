@@ -136,14 +136,21 @@ function normalizeStep(value: unknown): ServiceStepConfig | undefined {
   }
 }
 
+function canonicalDocumentName(id: string, name: string): string {
+  if (id === 'passport') return 'Passport'
+  if (name === 'Machine Readable Passport') return 'Passport'
+  if (name === 'National Identity Card') return 'National ID'
+  return name
+}
+
 function normalizeDocument(value: unknown): ServiceDocumentConfig | undefined {
   if (!isRecord(value)) return undefined
   const id = typeof value.id === 'string' ? value.id.trim() : ''
-  const name = typeof value.name === 'string' ? value.name.trim() : ''
-  if (!id || !name) return undefined
+  const rawName = typeof value.name === 'string' ? value.name.trim() : ''
+  if (!id || !rawName) return undefined
   return {
     id,
-    name,
+    name: canonicalDocumentName(id, rawName),
     // Explicit catalog Required only (false stays false).
     required: value.required === true,
     unlockStepId:
@@ -324,12 +331,15 @@ export function saveServiceTemplate(input: {
     })
     .filter((step) => step.label.length > 0)
   const rawDocuments = input.documents
-    .map((doc) => ({
-      id: doc.id.trim() || nextTemplateItemId(doc.name, []),
-      name: doc.name.trim(),
-      required: doc.required,
-      unlockStepId: doc.unlockStepId,
-    }))
+    .map((doc) => {
+      const id = doc.id.trim() || nextTemplateItemId(doc.name, [])
+      return {
+        id,
+        name: canonicalDocumentName(id, doc.name.trim()),
+        required: doc.required,
+        unlockStepId: doc.unlockStepId,
+      }
+    })
     .filter((doc) => doc.name.length > 0)
 
   if (!serviceName) throw new Error('Choose a service to configure.')

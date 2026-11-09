@@ -14,8 +14,9 @@ function statusCopy(
   required: boolean,
 ): { label: string; tone: DocumentRowTone } {
   if (locked) return { label: 'Later', tone: 'idle' }
-  if (status === 'approved') return { label: 'Uploaded', tone: 'done' }
-  if (status === 'under_review') return { label: 'In review', tone: 'wait' }
+  if (status === 'approved' || status === 'under_review') {
+    return { label: '', tone: 'done' }
+  }
   if (!required) return { label: 'Optional', tone: 'idle' }
   return { label: 'Needed', tone: 'need' }
 }

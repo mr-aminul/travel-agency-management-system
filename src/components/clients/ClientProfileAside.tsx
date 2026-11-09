@@ -51,7 +51,7 @@ function paperTone(hasFile: boolean) {
 }
 
 function paperStatus(tone: 'done' | 'need') {
-  return tone === 'done' ? 'On file' : 'Needed'
+  return tone === 'done' ? '' : 'Needed'
 }
 
 function whatsappHref(phone: string): string {
@@ -90,10 +90,12 @@ export function ClientProfileAside({
 
   return (
     <aside
-      className="flex min-w-0 flex-col lg:sticky lg:top-0 lg:z-[1] lg:max-h-[calc(100dvh-8.5rem)] lg:overflow-y-auto"
+      className="flex min-w-0 flex-col lg:sticky lg:top-0 lg:z-[1] lg:max-h-[calc(100dvh-8.5rem)]"
       aria-label="Client profile"
     >
-      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      {/* Padding keeps the card shadow inside the sticky scroller so it isn’t clipped. */}
+      <div className="min-h-0 lg:overflow-y-auto lg:p-2 lg:-m-2">
+        <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-md">
         <div
           className="relative h-[4.75rem] w-full overflow-hidden"
           style={{
@@ -298,14 +300,16 @@ export function ClientProfileAside({
                       )}
                     </span>
                     <span className="min-w-0 flex-1 truncate">{doc.label}</span>
-                    <span
-                      className={cn(
-                        'max-w-[9rem] shrink-0 truncate text-xs tabular-nums text-muted-foreground',
-                        !doc.value && tone === 'need' && 'text-destructive',
-                      )}
-                    >
-                      {detail}
-                    </span>
+                    {detail ? (
+                      <span
+                        className={cn(
+                          'max-w-[9rem] shrink-0 truncate text-xs tabular-nums text-muted-foreground',
+                          !doc.value && tone === 'need' && 'text-destructive',
+                        )}
+                      >
+                        {detail}
+                      </span>
+                    ) : null}
                   </button>
                 </li>
               )
@@ -313,6 +317,7 @@ export function ClientProfileAside({
           </ul>
         </section>
       </section>
+      </div>
     </aside>
   )
 }

@@ -11,13 +11,9 @@ import {
   Trash2,
   UserRound,
 } from 'lucide-react'
-import { CasePipeline } from '@/components/cases/CasePipeline'
-import { DocumentWorkspace } from '@/components/cases/DocumentWorkspace'
+import { ServiceTaskWorkspace } from '@/components/cases/ServiceTaskWorkspace'
 import { serviceDetailAriaLabel } from '@/lib/serviceDisplay'
-import {
-  documentHasFile,
-  getCaseServicePapers,
-} from '@/lib/clientDocuments'
+import { getCaseServicePapers } from '@/lib/clientDocuments'
 import { listCaseInfoGaps } from '@/lib/caseServiceRules'
 import { Input, Select, Textarea } from '@/components/clients/clientShadcnFields'
 import { Badge } from '@/components/shadcn/badge'
@@ -158,17 +154,6 @@ function Fact({
   )
 }
 
-function paperTone(locked: boolean, hasFile: boolean, required = true) {
-  if (locked || !required) return 'idle' as const
-  return hasFile ? ('done' as const) : ('need' as const)
-}
-
-function paperStatus(tone: 'done' | 'need' | 'idle') {
-  if (tone === 'done') return 'On file'
-  if (tone === 'need') return 'Needed'
-  return 'Later'
-}
-
 /**
  * Goals-style teal bar: paid on the left, payable (due) on the right.
  */
@@ -194,7 +179,7 @@ function PaymentMeter({
 
   return (
     <div
-      className="flex min-w-[11rem] max-w-[14rem] items-center gap-2.5"
+      className="flex min-w-[9rem] max-w-[12rem] items-center gap-1.5"
       aria-label={
         safeFee <= 0
           ? 'No service fee set'
@@ -203,11 +188,11 @@ function PaymentMeter({
             : `${formatBalance(safePaid)} paid, ${formatBalance(safeDue)} due of ${formatBalance(safeFee)}`
       }
     >
-      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+      <span className="shrink-0 text-[0.6875rem] tabular-nums text-muted-foreground">
         {left}
       </span>
       <div
-        className="h-[0.32rem] min-w-10 flex-1 overflow-hidden rounded-full bg-border"
+        className="h-[0.25rem] min-w-8 flex-1 overflow-hidden rounded-full bg-border"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
@@ -221,7 +206,7 @@ function PaymentMeter({
       </div>
       <span
         className={cn(
-          'shrink-0 text-xs tabular-nums',
+          'shrink-0 text-[0.6875rem] tabular-nums',
           settled || safeFee <= 0
             ? 'text-muted-foreground'
             : 'font-medium text-foreground',
@@ -269,7 +254,6 @@ export function ServiceFileCard({
   const [flashTarget, setFlashTarget] = useState<
     'status' | 'pipeline' | 'documents' | null
   >(null)
-
   const catalogCountries = useMemo(
     () => (item ? listServiceCountries(item.service) : []),
     [item],
@@ -358,9 +342,6 @@ export function ServiceFileCard({
   const showNotes =
     editing || Boolean(item.description?.trim())
   const servicePapers = getCaseServicePapers(item)
-  const selectedPaper = selectedDocId
-    ? servicePapers.find((doc) => doc.id === selectedDocId) ?? null
-    : null
   const ServiceIcon = iconForService(item.service)
   const boardItem = toServiceBoardItem(item)
 
@@ -416,10 +397,6 @@ export function ServiceFileCard({
     }
   }
 
-  const openPaper = (docId: string) => {
-    navigate(`${workDetailPath(item)}?doc=${encodeURIComponent(docId)}`)
-  }
-
   const openServiceBoardTarget = () => {
     if (!boardItem) return
     if (boardItem.focus === 'profile') {
@@ -459,127 +436,126 @@ export function ServiceFileCard({
 
   const serviceHeader = (
     <header className="flex flex-col">
-      <div className="flex flex-wrap items-start gap-4 px-5 pt-5 pb-4">
+      <div className="flex flex-wrap items-center gap-2.5 px-4 py-2.5">
         <span
-          className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground"
+          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-foreground"
           aria-hidden
         >
-          <ServiceIcon size={16} strokeWidth={2.25} />
+          <ServiceIcon size={14} strokeWidth={2.25} />
         </span>
-        <div className="flex min-w-0 flex-1 flex-col gap-2.5 [flex-basis:12rem]">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-foreground">
-              {item.service}
-            </h2>
-            <Badge variant={caseStatusShadcnVariant(displayStatus)}>
-              {displayStatus}
-            </Badge>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                'inline-flex h-6 max-w-full items-center gap-1 rounded-full px-2 text-[0.6875rem] font-medium leading-none',
-                missingCountry
-                  ? 'bg-destructive/10 text-destructive'
-                  : 'bg-muted text-foreground',
-              )}
-            >
-              {displayCountry && countryFlagEmoji(displayCountry) ? (
-                <span className="text-sm leading-none" aria-hidden>
-                  {countryFlagEmoji(displayCountry)}
-                </span>
-              ) : null}
-              <span className="min-w-0 truncate">
-                {displayCountry || 'Country'}
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
+          <h2 className="m-0 text-sm font-semibold tracking-tight text-foreground">
+            {item.service}
+          </h2>
+          <Badge
+            variant={caseStatusShadcnVariant(displayStatus)}
+            className="h-5 px-1.5 text-[0.625rem]"
+          >
+            {displayStatus}
+          </Badge>
+          <span
+            className={cn(
+              'inline-flex h-5 max-w-full items-center gap-1 rounded-full px-1.5 text-[0.625rem] font-medium leading-none',
+              missingCountry
+                ? 'bg-destructive/10 text-destructive'
+                : 'bg-muted text-foreground',
+            )}
+          >
+            {displayCountry && countryFlagEmoji(displayCountry) ? (
+              <span className="text-xs leading-none" aria-hidden>
+                {countryFlagEmoji(displayCountry)}
               </span>
+            ) : null}
+            <span className="min-w-0 truncate">
+              {displayCountry || 'Country'}
             </span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    'inline-flex h-6 max-w-full items-center gap-1 rounded-full border px-2 text-[0.6875rem] font-medium leading-none transition-colors',
-                    'hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35',
-                    missingAssignee
-                      ? 'border-dashed border-destructive/45 bg-destructive/5 text-destructive'
-                      : 'border-border bg-card text-foreground shadow-xs',
-                  )}
-                  aria-label={
-                    assignedName
-                      ? `Change assignee, ${assignedName}`
-                      : 'Assign someone'
-                  }
-                >
-                  <UserRound
-                    size={11}
-                    strokeWidth={2.25}
-                    className="shrink-0"
-                    aria-hidden
-                  />
-                  <span className="min-w-0 truncate">
-                    {assignedName || 'Assign'}
-                  </span>
-                  <ChevronDown
-                    size={11}
-                    strokeWidth={2.25}
-                    className="shrink-0 opacity-60"
-                    aria-hidden
-                  />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="min-w-48 p-1">
-                <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                  Assign to
-                </p>
-                {employeeAssignmentOptions(employees, item.assignedTo).map(
-                  (option) => {
-                    const selected = item.assignedTo === option.value
-                    return (
-                      <DropdownMenuItem
-                        key={option.value}
-                        className="gap-2"
-                        onSelect={() => {
-                          updateCase(item.id, { assignedTo: option.value })
-                        }}
-                      >
-                        <UserRound
-                          size={14}
-                          strokeWidth={2.25}
-                          className="shrink-0 text-muted-foreground"
-                          aria-hidden
-                        />
-                        <span className="min-w-0 flex-1 truncate">
-                          {option.label}
-                        </span>
-                        {selected ? (
-                          <Check
-                            size={14}
-                            strokeWidth={2.5}
-                            className="shrink-0 text-primary"
-                            aria-hidden
-                          />
-                        ) : null}
-                      </DropdownMenuItem>
-                    )
-                  },
+          </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  'inline-flex h-5 max-w-full items-center gap-1 rounded-full border px-1.5 text-[0.625rem] font-medium leading-none transition-colors',
+                  'hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35',
+                  missingAssignee
+                    ? 'border-dashed border-destructive/45 bg-destructive/5 text-destructive'
+                    : 'border-border bg-card text-foreground shadow-xs',
                 )}
-                {item.assignedTo ? (
-                  <>
-                    <DropdownMenuSeparator />
+                aria-label={
+                  assignedName
+                    ? `Change assignee, ${assignedName}`
+                    : 'Assign someone'
+                }
+              >
+                <UserRound
+                  size={10}
+                  strokeWidth={2.25}
+                  className="shrink-0"
+                  aria-hidden
+                />
+                <span className="min-w-0 truncate">
+                  {assignedName || 'Assign'}
+                </span>
+                <ChevronDown
+                  size={10}
+                  strokeWidth={2.25}
+                  className="shrink-0 opacity-60"
+                  aria-hidden
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-48 p-1">
+              <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                Assign to
+              </p>
+              {employeeAssignmentOptions(employees, item.assignedTo).map(
+                (option) => {
+                  const selected = item.assignedTo === option.value
+                  return (
                     <DropdownMenuItem
+                      key={option.value}
+                      className="gap-2"
                       onSelect={() => {
-                        updateCase(item.id, { assignedTo: '' })
+                        updateCase(item.id, { assignedTo: option.value })
                       }}
                     >
-                      Clear
+                      <UserRound
+                        size={14}
+                        strokeWidth={2.25}
+                        className="shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
+                      <span className="min-w-0 flex-1 truncate">
+                        {option.label}
+                      </span>
+                      {selected ? (
+                        <Check
+                          size={14}
+                          strokeWidth={2.5}
+                          className="shrink-0 text-primary"
+                          aria-hidden
+                        />
+                      ) : null}
                     </DropdownMenuItem>
-                  </>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+                  )
+                },
+              )}
+              {item.assignedTo ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      updateCase(item.id, { assignedTo: '' })
+                    }}
+                  >
+                    Clear
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <div className="ms-auto flex flex-wrap items-center gap-4 max-md:ms-0">
+        <div className="ms-auto flex flex-wrap items-center gap-2.5 max-md:ms-0">
           {editing ? null : (
             <PaymentMeter
               fee={serviceFee}
@@ -588,25 +564,47 @@ export function ServiceFileCard({
             />
           )}
           {editing ? (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 rounded-lg"
+                className="h-8 rounded-lg"
                 onClick={() => setEditing(false)}
               >
                 Cancel
               </Button>
-              <Button size="sm" className="h-9 rounded-lg" onClick={finishEditing}>
+              <Button size="sm" className="h-8 rounded-lg" onClick={finishEditing}>
                 Save
               </Button>
             </div>
           ) : (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {pipelineAttention ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'h-8 max-w-[12rem] rounded-lg',
+                    pipelineAttention.state === 'blocked' &&
+                      'border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive',
+                    pipelineAttention.state === 'on-hold' &&
+                      'border-[color-mix(in_srgb,var(--color-status-on-hold)_40%,var(--color-border))] text-[var(--color-status-on-hold)] hover:bg-[color-mix(in_srgb,var(--color-status-on-hold)_8%,var(--color-surface))]',
+                  )}
+                  title={pipelineAttention.action}
+                  onClick={pipelineAttention.onResolve}
+                >
+                  <span className="truncate">
+                    {pipelineAttention.state === 'blocked'
+                      ? 'Blocked'
+                      : 'On Hold'}
+                  </span>
+                </Button>
+              ) : null}
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 rounded-lg"
+                className="h-8 rounded-lg"
                 onClick={startEditing}
               >
                 <SquarePen data-icon="inline-start" />
@@ -621,7 +619,7 @@ export function ServiceFileCard({
                   <Button
                     variant="outline"
                     size="icon-sm"
-                    className="rounded-lg"
+                    className="size-8 rounded-lg"
                     aria-label="More service actions"
                   >
                     <Ellipsis size={14} strokeWidth={2.25} aria-hidden />
@@ -802,108 +800,13 @@ export function ServiceFileCard({
         {serviceHeader}
         <div
           id={`case-pipeline-${item.id}`}
-          className={cn(
-            'border-t border-border px-5 py-3',
-            flashTarget === 'pipeline' && FOCUS_FLASH_CLASS,
-          )}
+          className={cn(flashTarget === 'pipeline' && FOCUS_FLASH_CLASS)}
         >
-          <CasePipeline
+          <ServiceTaskWorkspace
             item={item}
-            embedded
-            compact
-            attention={pipelineAttention}
+            selectedDocId={selectedDocId}
           />
         </div>
-        {servicePapers.length > 0 ? (
-          <div
-            className={cn(
-              'grid border-t border-border',
-              selectedPaper && 'lg:grid-cols-[16.5rem_minmax(0,1fr)]',
-            )}
-          >
-            <section aria-label="Papers">
-              <h3 className="m-0 border-b border-border px-5 py-2.5 text-sm font-semibold">
-                Papers
-              </h3>
-              <ul className="m-0 flex list-none flex-col p-0">
-                {servicePapers.map((doc) => {
-                  const active = selectedPaper?.id === doc.id
-                  const tone = paperTone(
-                    doc.locked,
-                    documentHasFile(doc),
-                    doc.required === true,
-                  )
-                  return (
-                    <li
-                      key={doc.id}
-                      className="border-b border-border last:border-b-0"
-                    >
-                      <button
-                        type="button"
-                        className={cn(
-                          'flex w-full items-center gap-3 px-5 py-2.5 text-left text-sm hover:bg-muted/70',
-                          doc.locked && 'opacity-60',
-                          active && 'bg-primary/10 font-medium',
-                        )}
-                        aria-current={active ? 'page' : undefined}
-                        onClick={() =>
-                          active
-                            ? navigate(workDetailPath(item))
-                            : openPaper(doc.id)
-                        }
-                      >
-                        <span
-                          className={cn(
-                            'inline-flex size-4 shrink-0 items-center justify-center rounded-full',
-                            tone === 'done' &&
-                              'bg-emerald-500/15 text-emerald-700',
-                            tone === 'need' &&
-                              'bg-destructive/15 text-destructive',
-                            tone === 'idle' &&
-                              'bg-muted text-muted-foreground',
-                          )}
-                          aria-hidden
-                        >
-                          {tone === 'done' ? (
-                            <Check size={12} strokeWidth={2.5} />
-                          ) : (
-                            <span className="size-1.5 rounded-full bg-current" />
-                          )}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate">{doc.name}</span>
-                        <span
-                          className={cn(
-                            'shrink-0 text-xs text-muted-foreground',
-                            tone === 'need' && 'text-destructive',
-                          )}
-                          aria-hidden
-                        >
-                          {paperStatus(tone)}
-                        </span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-            {selectedPaper ? (
-              <div className="border-t border-border p-5 lg:border-t-0 lg:border-l">
-                <DocumentWorkspace
-                  key={`${item.id}:${selectedPaper.id}`}
-                  document={selectedPaper}
-                  caseId={item.id}
-                  canEdit={
-                    !selectedPaper.locked &&
-                    selectedPaper.status !== 'approved'
-                  }
-                  locked={selectedPaper.locked}
-                  hint={selectedPaper.collectionHint}
-                  embedded
-                />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
       </article>
       <Dialog
         open={requestOpen}

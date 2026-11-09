@@ -97,6 +97,14 @@ export function workDetailPath(item: ServiceRecordRef): string {
   return `/clients/${item.clientId}/services/${item.id}`
 }
 
+/** Passport / NID sheet while staying on a service file. */
+export function workIdentityFocusPath(
+  item: ServiceRecordRef,
+  focus: 'passport' | 'nid' = 'passport',
+): string {
+  return `${workDetailPath(item)}?focus=${focus}`
+}
+
 export function workInvoicePath(item: ServiceRecordRef): string {
   return `${workDetailPath(item)}/invoice`
 }

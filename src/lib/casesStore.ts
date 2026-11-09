@@ -17,6 +17,10 @@ import {
   withSeedDocumentStatuses,
 } from '@/lib/caseDocuments'
 import {
+  captureJourneySnapshot,
+  resolveCaseJourneySnapshot,
+} from '@/lib/caseJourneySnapshot'
+import {
   summarizeStepCompletion,
   validateStepCompletion,
   type StepCompletionInput,
@@ -107,6 +111,9 @@ function seedCase(
     partial.status,
     country,
   )
+  const journey =
+    partial.journey ??
+    captureJourneySnapshot(partial.service, country, partial.createdAt)
   const drafted: Case = {
     ...partial,
     serviceFee: partial.serviceFee ?? partial.balance,
@@ -114,6 +121,7 @@ function seedCase(
     currentStepId: progress.currentStepId,
     steps: progress.steps,
     documents,
+    journey,
   }
   return { ...drafted, documents: syncDocumentsWithProgress(drafted) }
 }
@@ -647,6 +655,11 @@ export function createCase(input: CreateCaseInput): Case {
     resolveServiceCountry(input.service, input.destination)
   const progress = buildInitialSteps(input.service, createdAt, serviceCountry)
   const status = input.status ?? 'Pending'
+  const journey = captureJourneySnapshot(
+    input.service,
+    serviceCountry,
+    createdAt,
+  )
   const created: Case = {
     id: `case-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     tenantId: tenantId(),
@@ -664,6 +677,7 @@ export function createCase(input: CreateCaseInput): Case {
     currentStepId: progress.currentStepId,
     steps: progress.steps,
     documents: buildCaseDocuments(input.service, client, serviceCountry),
+    journey,
     destination: input.destination?.trim() || undefined,
     serviceCountry: serviceCountry || undefined,
     serviceFee: Math.max(0, input.serviceFee ?? input.balance ?? 0),
@@ -732,6 +746,8 @@ export function updateCase(
       currentStepId: nextStepId,
       steps: patch.steps ?? item.steps,
       documents: patch.documents ?? item.documents,
+      journey:
+        patch.journey !== undefined ? patch.journey : item.journey,
       stage: deriveStageFromStep(
         item.service,
         nextStepId,
@@ -1026,10 +1042,20 @@ export function updateCaseStep(
 export function ensureCaseAlignedWithCatalog(caseId: string): Case | undefined {
   const item = getCaseById(caseId)
   if (!item || item.status === 'Cancelled') return item
-  const aligned = alignCaseProgressToCatalog(item)
-  if (!aligned.changed) return item
+
+  const journey = item.journey?.steps?.length
+    ? item.journey
+    : resolveCaseJourneySnapshot(item)
+  const working: Case = item.journey?.steps?.length
+    ? item
+    : { ...item, journey }
+  const aligned = alignCaseProgressToCatalog(working)
+  const journeyChanged = journey !== item.journey
+  if (!aligned.changed && !journeyChanged) return item
+
   const country = templateCountry(item)
   return updateCase(caseId, {
+    ...(journeyChanged ? { journey } : {}),
     currentStepId: aligned.currentStepId,
     steps: aligned.steps,
     stage: deriveStageFromStep(

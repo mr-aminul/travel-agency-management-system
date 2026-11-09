@@ -112,9 +112,6 @@ const MAIN_TABS = [
 
 function tabFromSearch(searchParams: URLSearchParams): string {
   const tab = searchParams.get('tab')
-  const focus = searchParams.get('focus')
-  // Passport / NID always open under Profile (including legacy Services links).
-  if (focus === 'passport' || focus === 'nid') return 'profile'
   // Legacy Documents tab (papers) lives inside Services now.
   if (tab === 'documents') return 'services'
   // Legacy Messages / Email tabs open as a write window.
@@ -329,18 +326,6 @@ export default function ClientDetailPage() {
     next.delete('channel')
     next.set('write', channel)
     setSearchParams(next, { replace: true })
-  }, [searchParams, setSearchParams])
-
-  useEffect(() => {
-    const focus = searchParams.get('focus')
-    if (focus !== 'passport' && focus !== 'nid') return
-
-    // Legacy Services deep-links for identity → Profile sheet.
-    if (searchParams.get('tab') !== 'profile') {
-      const next = new URLSearchParams(searchParams)
-      next.set('tab', 'profile')
-      setSearchParams(next, { replace: true })
-    }
   }, [searchParams, setSearchParams])
 
   useEffect(() => {
@@ -614,7 +599,7 @@ export default function ClientDetailPage() {
   const selectedDocId = searchParams.get('doc')
   return (
     <div
-      className={cn(elevatedPageClass, 'mx-auto w-full max-w-[80%] gap-5')}
+      className={cn(elevatedPageClass, 'mx-auto w-full max-w-full gap-5')}
       data-elevated-canvas
       aria-label={client.name}
     >

@@ -77,9 +77,9 @@ export function getStepsForStage(
  */
 export function isPipelineStepComplete(item: Case, stepId: string): boolean {
   if (item.status === 'Completed') return true
-  const country = templateCountry(item)
-  const stepIndex = getStepIndex(item.service, stepId, country)
-  const currentIndex = getStepIndex(item.service, item.currentStepId, country)
+  const defs = getStepDefsForCase(item)
+  const stepIndex = defs.findIndex((step) => step.id === stepId)
+  const currentIndex = defs.findIndex((step) => step.id === item.currentStepId)
   if (stepIndex < 0) return false
   if (currentIndex < 0) return Boolean(item.steps[stepId]?.completedAt)
   return stepIndex < currentIndex
@@ -208,7 +208,7 @@ export function templateCountry(
   return fromDestination || undefined
 }
 
-/** Pipeline steps always mirror Settings → Service catalog for this country. */
+/** Live Service catalog steps for this country (not pinned to a file). */
 export function getStepDefs(
   service: ServiceType,
   country?: string,
@@ -226,22 +226,40 @@ export function getStepDefs(
   })
 }
 
+function stepDefsFromSnapshots(
+  service: ServiceType,
+  snapshots: { id: string; label: string }[],
+): StepDef[] {
+  const builtin = getBuiltinStepDefs(service)
+  return snapshots.map((step, index, all) => {
+    const match = builtin.find((item) => item.id === step.id)
+    return {
+      id: step.id,
+      label: step.label,
+      icon: match?.icon ?? FileCheck2,
+      stage: match?.stage ?? stageFromPosition(index, all.length),
+    }
+  })
+}
+
+/** Steps this file follows — pinned journey when present, else live catalog. */
 export function getStepDefsForCase(item: Case): StepDef[] {
+  if (item.journey?.steps?.length) {
+    return stepDefsFromSnapshots(item.service, item.journey.steps)
+  }
   return getStepDefs(item.service, templateCountry(item))
 }
 
 /**
- * Repair progress when catalog steps change (rename/reorder) or currentStepId
- * is missing from the catalog. Past steps stay done; current is open; future
- * never keep a completed stamp.
+ * Repair progress against this file’s journey (pinned playbook when set).
+ * Past steps stay done; current is open; future never keep a completed stamp.
  */
 export function alignCaseProgressToCatalog(item: Case): {
   currentStepId: string
   steps: Record<string, CaseStepRecord>
   changed: boolean
 } {
-  const country = templateCountry(item)
-  const defs = getStepDefs(item.service, country)
+  const defs = getStepDefsForCase(item)
   if (defs.length === 0) {
     return {
       currentStepId: item.currentStepId,
