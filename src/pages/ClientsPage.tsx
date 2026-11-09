@@ -73,6 +73,10 @@ import {
   groupCasesByClientId,
 } from '@/lib/clientServiceStatus'
 import {
+  deriveClientActiveCases,
+  deriveClientBalance,
+} from '@/lib/clientDerived'
+import {
   archiveClient,
   createClient,
   formatBalance,
@@ -200,14 +204,12 @@ export default function ClientsPage() {
     let completed = 0
     let outstanding = 0
     for (const client of activeClients) {
-      if (client.activeCases > 0) open += 1
-      if (
-        deriveClientServiceStatus(casesByClientId.get(client.id) ?? []) ===
-        'Completed'
-      ) {
+      const clientCases = casesByClientId.get(client.id) ?? []
+      if (deriveClientActiveCases(clientCases) > 0) open += 1
+      if (deriveClientServiceStatus(clientCases) === 'Completed') {
         completed += 1
       }
-      outstanding += client.balance
+      outstanding += deriveClientBalance(clientCases)
     }
     return {
       total: activeClients.length,
@@ -218,21 +220,26 @@ export default function ClientsPage() {
   }, [activeClients, casesByClientId])
 
   const rows = clients.map((client) => {
+    const clientCases = casesFor(client.id)
     const serviceStatus = statusFor(client.id)
+    const activeCases = deriveClientActiveCases(clientCases)
+    const balance = deriveClientBalance(clientCases)
     return {
       client,
+      activeCases,
+      dueBalance: balance,
       subAgentName: subAgentNameFor(client) || '—',
       mobile: formatMobile(client.phone),
       passport: client.passport || '—',
-      services: String(client.activeCases),
-      balance: formatBalance(client.balance),
+      services: String(activeCases),
+      balance: formatBalance(balance),
       status: statusLabel(client, serviceStatus),
       serviceStatus,
     }
   })
 
   const filtered = rows.filter((row) => {
-    if (dueOnly && row.client.balance <= 0) return false
+    if (dueOnly && row.dueBalance <= 0) return false
     const q = search.trim().toLowerCase()
     const phoneDigits = formatMobile(row.client.phone)
     const queryDigits = formatMobile(q)
@@ -318,7 +325,7 @@ export default function ClientsPage() {
     try {
       const created = createClient(input)
       closeNewClientModal()
-      navigate(`/clients/${created.id}?newCase=1`)
+      navigate(`/clients/${created.id}?tab=services&newCase=1`)
     } catch (error) {
       if (notifyIfPendingApproval(error)) {
         closeNewClientModal()
@@ -504,7 +511,7 @@ export default function ClientsPage() {
             <Table className="border-collapse border-spacing-0">
               <TableHeader>
                 <TableRow className="border-0 hover:bg-transparent">
-                  <TableHead className={cn(headClass, 'min-w-56')}>
+                  <TableHead className={cn(headClass, 'min-w-56 !pl-2.5')}>
                     <ColumnFilterHeader
                       label="Name"
                       options={optionList(rows.map((row) => row.client.name))}
@@ -570,16 +577,16 @@ export default function ClientsPage() {
                     className="cursor-pointer"
                     onClick={() => navigate(`/clients/${row.client.id}`)}
                   >
-                    <TableCell className={cellClass}>
-                      <span className="inline-flex items-center gap-2">
+                    <TableCell className={cn(cellClass, 'pl-2.5')}>
+                      <div className="flex min-w-0 items-center gap-2.5">
                         <Avatar size="sm">
                           {row.client.avatarUrl ? (
                             <AvatarImage src={row.client.avatarUrl} alt="" />
                           ) : null}
                           <AvatarFallback>{initials(row.client.name)}</AvatarFallback>
                         </Avatar>
-                        {row.client.name}
-                      </span>
+                        <span className="truncate font-medium">{row.client.name}</span>
+                      </div>
                     </TableCell>
                     <TableCell className={cn(cellClass, 'text-muted-foreground')}>
                       {row.subAgentName}

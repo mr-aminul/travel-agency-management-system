@@ -93,8 +93,6 @@ function attributeValue(
       return text(client.passportExpiry)
     case 'passportIssuedOn':
       return text(client.passportIssuedOn)
-    case 'passportPlaceOfIssue':
-      return text(client.passportPlaceOfIssue)
     case 'trackingLink':
       return clientTrackingUrl(client.passport)
     case 'agentName': {

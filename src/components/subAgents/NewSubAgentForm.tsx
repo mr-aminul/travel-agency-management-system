@@ -27,7 +27,6 @@ type Field =
   | 'name'
   | 'phone'
   | 'email'
-  | 'branch'
   | 'licenseNumber'
   | 'address'
 
@@ -37,7 +36,6 @@ export function NewSubAgentForm({ onSubmit, onCancel }: NewSubAgentFormProps) {
   const [email, setEmail] = useState('')
   const [address, setAddress] = useState('')
   const [licenseNumber, setLicenseNumber] = useState('')
-  const [branch, setBranch] = useState('Dhaka')
   const [photoUrl, setPhotoUrl] = useState<string | undefined>()
   const { markAllTouched, showError, blur } = useTouchedFields<Field>()
 
@@ -45,7 +43,6 @@ export function NewSubAgentForm({ onSubmit, onCancel }: NewSubAgentFormProps) {
     name: validateRequiredName(name, 'Sub Agent name'),
     phone: validateRequiredPhone(phone),
     email: validateOptionalEmail(email),
-    branch: validateOptionalText(branch, 'Branch'),
     licenseNumber: validateOptionalText(licenseNumber, 'License number', 40),
     address: validateOptionalText(address, 'Address'),
   }
@@ -59,7 +56,6 @@ export function NewSubAgentForm({ onSubmit, onCancel }: NewSubAgentFormProps) {
       'name',
       'phone',
       'email',
-      'branch',
       'licenseNumber',
       'address',
     ]
@@ -71,7 +67,6 @@ export function NewSubAgentForm({ onSubmit, onCancel }: NewSubAgentFormProps) {
       email,
       address,
       licenseNumber,
-      branch,
       photoUrl,
     })
   }
@@ -130,18 +125,6 @@ export function NewSubAgentForm({ onSubmit, onCancel }: NewSubAgentFormProps) {
             <FieldError>{fieldError('email')}</FieldError>
           </Field>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-          <Field data-invalid={fieldError('branch') ? true : undefined}>
-            <FieldLabel htmlFor="sub-agent-branch">Branch</FieldLabel>
-            <Input
-              id="sub-agent-branch"
-              value={branch}
-              aria-invalid={fieldError('branch') ? true : undefined}
-              onChange={(event) => setBranch(event.target.value)}
-              onBlur={blur('branch')}
-            />
-            <FieldError>{fieldError('branch')}</FieldError>
-          </Field>
           <Field data-invalid={fieldError('licenseNumber') ? true : undefined}>
             <FieldLabel htmlFor="sub-agent-license">License Number</FieldLabel>
             <Input
@@ -154,7 +137,6 @@ export function NewSubAgentForm({ onSubmit, onCancel }: NewSubAgentFormProps) {
             />
             <FieldError>{fieldError('licenseNumber')}</FieldError>
           </Field>
-          </div>
           <Field data-invalid={fieldError('address') ? true : undefined}>
             <FieldLabel htmlFor="sub-agent-address">Address</FieldLabel>
             <Textarea

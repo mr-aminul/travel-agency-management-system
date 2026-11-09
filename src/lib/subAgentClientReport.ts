@@ -3,8 +3,10 @@ import {
   DEFAULT_BRAND_NAME,
   resolveBrandDisplay,
 } from '@/lib/agencyProfile'
+import { deriveClientBalance } from '@/lib/clientDerived'
 import { formatBalance } from '@/lib/clientsStore'
 import { formatDisplayDate } from '@/lib/formatDate'
+import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { SubAgent } from '@/types/subAgent'
 
@@ -78,7 +80,6 @@ export type SubAgentClientReport = {
   subAgentId: string
   subAgentName: string
   subAgentPhone: string
-  subAgentBranch: string
   subAgentLicense: string
   clientCount: number
   columns: SubAgentReportColumnId[]
@@ -144,10 +145,12 @@ export function ageFromDateOfBirth(
 export function buildClientReportRow(
   client: Client,
   status: string,
+  balance = 0,
 ): SubAgentClientReportRow {
   const dateOfBirth = client.dateOfBirth?.trim() || ''
   const passportExpiry = client.passportExpiry?.trim() || ''
   const age = ageFromDateOfBirth(dateOfBirth)
+  const due = Math.max(0, balance)
   return {
     id: client.id,
     name: client.name,
@@ -165,8 +168,8 @@ export function buildClientReportRow(
       ? formatDisplayDate(dateOfBirth, '—')
       : '—',
     age: age == null ? '—' : String(age),
-    balance: client.balance,
-    balanceLabel: formatBalance(client.balance),
+    balance: due,
+    balanceLabel: formatBalance(due),
     status: status.trim() || '—',
   }
 }
@@ -179,6 +182,7 @@ export function buildSubAgentClientReport(input: {
   columns?: SubAgentReportColumnId[]
   defaultLogoUrl?: string
   issuedOn?: string
+  cases?: readonly Case[]
 }): SubAgentClientReport {
   const brand = resolveBrandDisplay(input.profile, input.defaultLogoUrl)
   const issuedOn = input.issuedOn ?? new Date().toISOString().slice(0, 10)
@@ -186,10 +190,17 @@ export function buildSubAgentClientReport(input: {
     input.columns ?? DEFAULT_SUB_AGENT_REPORT_COLUMNS,
   )
   const showAmountSummary = columns.includes('balance')
+  const casesByClientId = new Map<string, Case[]>()
+  for (const item of input.cases ?? []) {
+    const list = casesByClientId.get(item.clientId)
+    if (list) list.push(item)
+    else casesByClientId.set(item.clientId, [item])
+  }
   const rows = input.clients.map((client) =>
     buildClientReportRow(
       client,
       input.statusByClientId.get(client.id) ?? '—',
+      deriveClientBalance(casesByClientId.get(client.id) ?? []),
     ),
   )
   const totalOutstanding = showAmountSummary
@@ -208,7 +219,6 @@ export function buildSubAgentClientReport(input: {
     subAgentId: input.subAgent.id,
     subAgentName: input.subAgent.name,
     subAgentPhone: input.subAgent.phone,
-    subAgentBranch: input.subAgent.branch?.trim() || '',
     subAgentLicense: input.subAgent.licenseNumber?.trim() || '',
     clientCount: rows.length,
     columns,

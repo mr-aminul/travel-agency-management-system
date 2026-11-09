@@ -38,17 +38,24 @@ describe('userAccessStore', () => {
     expect(getDefaultPageAccessLevel('manager', '/payments')).toBe('edit')
   })
 
-  it('persists a page access override for the active tenant', () => {
+  it('keeps owners at edit even when an override is written', () => {
     signInFullTenant()
     setPageAccessLevel('member-abc-owner', '/hr/payroll', 'view')
-    expect(getPageAccessLevel('member-abc-owner', '/hr/payroll')).toBe('view')
+    expect(getPageAccessLevel('member-abc-owner', '/hr/payroll')).toBe('edit')
     expect(getPageAccessLevel('member-abc-owner', '/clients')).toBe('edit')
+  })
+
+  it('persists a page access override for staff on the active tenant', () => {
+    signInFullTenant()
+    setPageAccessLevel('member-abc-staff', '/hr/payroll', 'edit')
+    expect(getPageAccessLevel('member-abc-staff', '/hr/payroll')).toBe('edit')
+    expect(getPageAccessLevel('member-abc-staff', '/clients')).toBe('edit')
   })
 
   it('drops the stored row when restoring the default level', () => {
     signInFullTenant()
-    setPageAccessLevel('member-abc-owner', '/dashboard', 'none')
-    setPageAccessLevel('member-abc-owner', '/dashboard', 'edit')
-    expect(getPageAccessLevel('member-abc-owner', '/dashboard')).toBe('edit')
+    setPageAccessLevel('member-abc-staff', '/clients', 'none')
+    setPageAccessLevel('member-abc-staff', '/clients', 'edit')
+    expect(getPageAccessLevel('member-abc-staff', '/clients')).toBe('edit')
   })
 })

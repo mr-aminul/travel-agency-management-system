@@ -214,11 +214,11 @@ export function MergeFieldMentionMenu({
       className="pd-doc-mention"
       style={{ left: coords.left, top: coords.top }}
       role="listbox"
-      aria-label="Insert information"
+      aria-label="Add details"
       onMouseDown={(event) => event.preventDefault()}
     >
       {items.length === 0 ? (
-        <p className="pd-doc-mention__empty">No matching fields</p>
+        <p className="pd-doc-mention__empty">No matching details</p>
       ) : (
         <ul className="pd-doc-mention__list">
           {items.map((field, index) => (

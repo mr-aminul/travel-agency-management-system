@@ -54,9 +54,7 @@ export function resolveUserPageAccess(input: {
     input.email,
   )
   if (!member || member.status === 'disabled') return 'none'
-  if (member.role === 'owner') {
-    return getPageAccessLevel(member.id, pagePath)
-  }
+  if (member.role === 'owner') return 'edit'
   return getPageAccessLevel(member.id, pagePath)
 }
 

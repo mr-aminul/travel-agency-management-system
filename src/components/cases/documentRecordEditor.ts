@@ -8,7 +8,7 @@ import {
 import { recordCaseDocument, recordIdentityDocument } from '@/lib/casesStore'
 import type { IdentityKind } from '@/lib/clientDocuments'
 import { useDocumentFormFieldsVersion } from '@/lib/documentFormFieldsStore'
-import { storeFile } from '@/lib/fileStore'
+import { resolveStoredFileId, storeFile } from '@/lib/fileStore'
 import type { CaseDocument } from '@/types/case'
 
 export type DocumentDrawerMode = 'view' | 'edit'
@@ -90,7 +90,7 @@ export function useDocumentRecordEditor(document: CaseDocument | null) {
     }
   }
 
-  const save = ({
+  const save = async ({
     caseId,
     clientId,
     identityKind,
@@ -107,11 +107,14 @@ export function useDocumentRecordEditor(document: CaseDocument | null) {
       return false
     }
 
+    const savedFileId = fileId ? await resolveStoredFileId(fileId) : undefined
+    if (savedFileId && savedFileId !== fileId) setFileId(savedFileId)
+
     if (identityKind && clientId) {
       recordIdentityDocument(clientId, identityKind, {
         fields,
         fileName: fileName.trim() || undefined,
-        fileId,
+        fileId: savedFileId,
         mimeType,
         detail: summarizeDocumentFields(form, fields),
         expiry: documentExpiryFromFields(form, fields),
@@ -120,7 +123,7 @@ export function useDocumentRecordEditor(document: CaseDocument | null) {
       recordCaseDocument(caseId, document.id, {
         fields,
         fileName: fileName.trim() || undefined,
-        fileId,
+        fileId: savedFileId,
         mimeType,
         detail: summarizeDocumentFields(form, fields),
         expiry: documentExpiryFromFields(form, fields),

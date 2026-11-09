@@ -19,6 +19,27 @@ describe('resolveUserPageAccess', () => {
     ).toBe('edit')
   })
 
+  it('gives the demo owner edit on every matrix page', () => {
+    expect(
+      resolveUserPageAccess({
+        role: 'agency_user',
+        userId: 'user-abc-owner',
+        email: 'demo@abctravel.com',
+        tenantId: TENANT_IDS.demo,
+        pathname: '/hr/payroll',
+      }),
+    ).toBe('edit')
+    expect(
+      resolveUserPageAccess({
+        role: 'agency_user',
+        userId: 'user-abc-owner',
+        email: 'demo@abctravel.com',
+        tenantId: TENANT_IDS.demo,
+        pathname: '/settings/access-management',
+      }),
+    ).toBe('edit')
+  })
+
   it('allows canAccessPath for home even when member is missing', () => {
     expect(
       canAccessPath({

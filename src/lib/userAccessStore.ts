@@ -175,6 +175,9 @@ export function getPageAccessLevel(
   all: UserPageAccess[] = entries,
   activeTenantId: string = tenantId(),
 ): PageAccessLevel {
+  const memberRole = memberRoleFor(memberId, activeTenantId)
+  // Owners always have edit — matrix overrides cannot reduce them.
+  if (memberRole === 'owner') return 'edit'
   const match = all.find(
     (entry) =>
       entry.tenantId === activeTenantId &&
@@ -182,10 +185,7 @@ export function getPageAccessLevel(
       entry.pagePath === pagePath,
   )
   if (match) return match.level
-  return getDefaultPageAccessLevel(
-    memberRoleFor(memberId, activeTenantId),
-    pagePath,
-  )
+  return getDefaultPageAccessLevel(memberRole, pagePath)
 }
 
 export function setPageAccessLevel(
@@ -194,6 +194,7 @@ export function setPageAccessLevel(
   level: PageAccessLevel,
 ): void {
   const activeTenantId = tenantId()
+  const memberRole = memberRoleFor(memberId, activeTenantId)
   const without = entries.filter(
     (entry) =>
       !(
@@ -203,10 +204,13 @@ export function setPageAccessLevel(
       ),
   )
 
-  const defaultLevel = getDefaultPageAccessLevel(
-    memberRoleFor(memberId, activeTenantId),
-    pagePath,
-  )
+  // Owners stay at edit everywhere — drop any stored override.
+  if (memberRole === 'owner') {
+    replaceAll(without)
+    return
+  }
+
+  const defaultLevel = getDefaultPageAccessLevel(memberRole, pagePath)
   if (level === defaultLevel) {
     replaceAll(without)
     return

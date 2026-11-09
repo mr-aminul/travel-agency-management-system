@@ -1,4 +1,5 @@
 import { getCurrentStepLabel } from '@/lib/caseChecklist'
+import { deriveClientBalance, deriveClientServices } from '@/lib/clientDerived'
 import {
   deriveClientServiceStatus,
   groupCasesByClientId,
@@ -118,19 +119,22 @@ export function buildDashboardRows(
   const caseById = new Map(cases.map((item) => [item.id, item]))
   const casesByClientId = groupCasesByClientId(cases)
 
-  const clientRows: DashboardRow[] = clients.map((client) => ({
-    id: `client:${client.id}`,
-    filters: ['clients'],
-    typeLabel: 'Client',
-    name: client.name,
-    detail: [client.phone, client.services.join(', ')].filter(Boolean).join(' · '),
-    status:
-      deriveClientServiceStatus(casesByClientId.get(client.id) ?? []) ?? '-',
-    checklist: '-',
-    amount: formatAmount(client.balance),
-    date: client.createdAt,
-    href: `/clients/${client.id}`,
-  }))
+  const clientRows: DashboardRow[] = clients.map((client) => {
+    const clientCases = casesByClientId.get(client.id) ?? []
+    const services = deriveClientServices(clientCases)
+    return {
+      id: `client:${client.id}`,
+      filters: ['clients'],
+      typeLabel: 'Client',
+      name: client.name,
+      detail: [client.phone, services.join(', ')].filter(Boolean).join(' · '),
+      status: deriveClientServiceStatus(clientCases) ?? '-',
+      checklist: '-',
+      amount: formatAmount(deriveClientBalance(clientCases)),
+      date: client.createdAt,
+      href: `/clients/${client.id}`,
+    }
+  })
 
   const serviceRows: DashboardRow[] = cases.map((item) => {
     const filters: DashboardRow['filters'] = []
@@ -204,7 +208,7 @@ export function buildDashboardRows(
         client?.name?.trim() ||
         caseItem?.clientName?.trim() ||
         'Unknown client',
-      detail: `${request.fromStatus} → ${request.toStatus}${
+      detail: `Mark as ${request.toStatus}${
         caseItem ? ` · ${caseItem.service}` : ''
       }`,
       status: request.reviewStatus,

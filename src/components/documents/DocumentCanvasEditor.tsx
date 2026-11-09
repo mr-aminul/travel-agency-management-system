@@ -17,6 +17,7 @@ import {
   AlignRight,
   ArrowLeft,
   Bold,
+  ChevronDown,
   Eye,
   Heading1,
   Heading2,
@@ -25,10 +26,12 @@ import {
   List,
   ListOrdered,
   Pencil,
+  Plus,
   Printer,
   Search,
   Trash2,
   Underline as UnderlineIcon,
+  UserRound,
   X,
 } from 'lucide-react'
 import {
@@ -143,7 +146,6 @@ function samplePreviewClient(tenantId: string): Client {
     passport: 'A12345678',
     passportExpiry: '2030-01-15',
     passportIssuedOn: '2020-01-15',
-    passportPlaceOfIssue: 'Dhaka',
     nid: '1234567890',
     profession: 'Electrician',
     preferredJob: 'Electrician',
@@ -176,6 +178,15 @@ export function DocumentCanvasEditor({
   const [licenseNo, setLicenseNo] = useState(initial?.licenseNo ?? '')
   const [country, setCountry] = useState(initial?.country ?? '')
   const [fieldQuery, setFieldQuery] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(() =>
+    Boolean(
+      (initial?.direction === 'rtl') ||
+        (initial?.licenseNo ?? '').trim() ||
+        (initial?.country ?? '').trim() ||
+        ((initial?.title ?? '').trim() &&
+          (initial?.title ?? '').trim() !== (initial?.name ?? '').trim()),
+    ),
+  )
   const [mode, setMode] = useState<'edit' | 'preview'>('edit')
   const [previewQuery, setPreviewQuery] = useState('')
   const [previewClientId, setPreviewClientId] = useState<string | null>(null)
@@ -189,6 +200,8 @@ export function DocumentCanvasEditor({
       : DEFAULT_CANVAS_BODY_HTML,
   )
   const imageInputRef = useRef<HTMLInputElement>(null)
+  const fieldSearchRef = useRef<HTMLInputElement>(null)
+  const fieldsPanelRef = useRef<HTMLElement>(null)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -202,7 +215,7 @@ export function DocumentCanvasEditor({
         types: ['heading', 'paragraph'],
       }),
       Placeholder.configure({
-        placeholder: 'Start writing… Type @ to insert a field',
+        placeholder: 'Write your letter here… Press @ to add a detail',
       }),
       MergeField,
       DocumentImage.configure({
@@ -317,6 +330,14 @@ export function DocumentCanvasEditor({
       .run()
   }
 
+  const focusFieldSearch = () => {
+    fieldsPanelRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+    })
+    fieldSearchRef.current?.focus()
+  }
+
   const handleImagePick = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -422,7 +443,7 @@ export function DocumentCanvasEditor({
             type="button"
             variant="outline"
             size="icon"
-            className={cn(whiteOutlineClass, 'size-9')}
+            className={cn(whiteOutlineClass, 'size-9 shrink-0')}
             aria-label="Back to documents"
             onClick={onCancel}
           >
@@ -433,8 +454,8 @@ export function DocumentCanvasEditor({
               aria-label="Template name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Template name"
-              className={whiteFieldClass}
+              placeholder="Name this template"
+              className={cn(whiteFieldClass, 'pd-doc-canvas__name')}
             />
           </div>
         </div>
@@ -451,7 +472,7 @@ export function DocumentCanvasEditor({
           >
             {mode === 'preview' ? (
               <>
-                <Pencil size={16} /> Edit
+                <Pencil size={16} /> Keep editing
               </>
             ) : (
               <>
@@ -461,17 +482,10 @@ export function DocumentCanvasEditor({
           </Button>
           <Button
             variant="outline"
-            className={whiteOutlineClass}
+            className={cn(whiteOutlineClass, 'h-9 rounded-lg')}
             onClick={handlePrint}
           >
             <Printer size={16} /> Print
-          </Button>
-          <Button
-            variant="outline"
-            className={whiteOutlineClass}
-            onClick={onCancel}
-          >
-            Cancel
           </Button>
           <Button className="h-9 rounded-lg" onClick={handleSave}>
             {submitLabel}
@@ -490,165 +504,61 @@ export function DocumentCanvasEditor({
         </p>
       ) : null}
 
-      <div className="pd-doc-canvas__meta pd-doc-canvas__no-print">
-        <Select
-          label="Text Direction"
-          value={direction}
-          options={DIRECTION_OPTIONS}
-          className={whiteFieldClass}
-          onChange={(event) =>
-            setDirection(event.target.value === 'rtl' ? 'rtl' : 'ltr')
-          }
-        />
-        <Input
-          label="Printed Title"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="Optional heading on the page"
-          className={whiteFieldClass}
-        />
-        <Input
-          label="License"
-          value={licenseNo}
-          onChange={(event) => setLicenseNo(event.target.value)}
-          placeholder="Used by License no. field"
-          className={whiteFieldClass}
-        />
-        <Input
-          label="Country"
-          value={country}
-          onChange={(event) => setCountry(event.target.value)}
-          placeholder="Used by Country field"
-          className={whiteFieldClass}
-        />
+      <div className="pd-doc-canvas__settings pd-doc-canvas__no-print">
+        <button
+          type="button"
+          className="pd-doc-canvas__settings-toggle"
+          aria-expanded={settingsOpen}
+          onClick={() => setSettingsOpen((open) => !open)}
+        >
+          <span>Page settings</span>
+          <ChevronDown
+            size={16}
+            strokeWidth={2.25}
+            className={cx(
+              'pd-doc-canvas__settings-chevron',
+              settingsOpen && 'is-open',
+            )}
+            aria-hidden
+          />
+        </button>
+        {settingsOpen ? (
+          <div className="pd-doc-canvas__meta">
+            <Select
+              label="Writing direction"
+              value={direction}
+              options={DIRECTION_OPTIONS}
+              className={whiteFieldClass}
+              onChange={(event) =>
+                setDirection(event.target.value === 'rtl' ? 'rtl' : 'ltr')
+              }
+            />
+            <Input
+              label="Page heading"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Shown at the top of the page"
+              className={whiteFieldClass}
+            />
+            <Input
+              label="License number"
+              value={licenseNo}
+              onChange={(event) => setLicenseNo(event.target.value)}
+              placeholder="Fills License no. in the letter"
+              className={whiteFieldClass}
+            />
+            <Input
+              label="Country"
+              value={country}
+              onChange={(event) => setCountry(event.target.value)}
+              placeholder="Fills Country in the letter"
+              className={whiteFieldClass}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="pd-doc-canvas__workspace">
-        <aside
-          className="pd-doc-canvas__fields pd-doc-canvas__no-print"
-          aria-label={mode === 'preview' ? 'Preview client' : 'Auto-fill fields'}
-        >
-          {mode === 'preview' ? (
-            <>
-              <div className="pd-doc-canvas__fields-head">
-                <h2>Preview with client</h2>
-                <p>
-                  Pick a real client to see how fields fill, or keep the sample
-                  data.
-                </p>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <ShadcnInput
-                    className={cn('pl-8 pr-8', whiteFieldClass)}
-                    value={previewQuery}
-                    onChange={(event) => setPreviewQuery(event.target.value)}
-                    placeholder="Search client…"
-                    aria-label="Search client"
-                  />
-                  {previewQuery ? (
-                    <button
-                      type="button"
-                      className="absolute top-1/2 right-2 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
-                      aria-label="Clear search"
-                      onClick={() => setPreviewQuery('')}
-                    >
-                      <X size={14} strokeWidth={2.25} aria-hidden />
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-              <div className="pd-doc-canvas__fields-body">
-                <button
-                  type="button"
-                  className={cx(
-                    'pd-doc-canvas__field',
-                    !previewClientId && 'is-selected',
-                  )}
-                  onClick={() => setPreviewClientId(null)}
-                >
-                  <span>Sample client data</span>
-                  <span className="pd-doc-canvas__field-chip">Demo</span>
-                </button>
-                {previewHits.map((client) => (
-                  <button
-                    key={client.id}
-                    type="button"
-                    className={cx(
-                      'pd-doc-canvas__field',
-                      previewClientId === client.id && 'is-selected',
-                    )}
-                    onClick={() => {
-                      setPreviewClientId(client.id)
-                      setPreviewQuery('')
-                    }}
-                  >
-                    <span>{client.name}</span>
-                    <span className="pd-doc-canvas__field-chip">
-                      {client.passport || client.id}
-                    </span>
-                  </button>
-                ))}
-                <p className="pd-doc-canvas__fields-empty">
-                  Previewing as{' '}
-                  <strong>{previewClient?.name ?? 'Sample client'}</strong>
-                  {' · '}
-                  {agencyName}
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="pd-doc-canvas__fields-head">
-                <h2>Insert information</h2>
-                <p>
-                  Type @ in the document or click a field. It fills from the
-                  client profile when you preview or print.
-                </p>
-                <label className="pd-doc-canvas__search">
-                  <Search size={16} aria-hidden />
-                  <input
-                    type="search"
-                    value={fieldQuery}
-                    onChange={(event) => setFieldQuery(event.target.value)}
-                    placeholder="Search fields…"
-                  />
-                </label>
-              </div>
-              <div className="pd-doc-canvas__fields-body">
-                {groupedFields.map((section) => (
-                  <div
-                    key={section.group}
-                    className="pd-doc-canvas__field-group"
-                  >
-                    <p className="pd-doc-canvas__field-label">{section.label}</p>
-                    <ul>
-                      {section.items.map((field) => (
-                        <li key={field.key}>
-                          <button
-                            type="button"
-                            className="pd-doc-canvas__field"
-                            onClick={() => insertField(field)}
-                          >
-                            <span>{field.label}</span>
-                            <span className="pd-doc-canvas__field-chip">
-                              {field.chip}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-                {groupedFields.length === 0 ? (
-                  <p className="pd-doc-canvas__fields-empty">
-                    No matching fields.
-                  </p>
-                ) : null}
-              </div>
-            </>
-          )}
-        </aside>
-
         <div className="pd-doc-canvas__stage">
           <MergeFieldMentionMenu editor={editor} enabled={mode === 'edit'} />
           {mode === 'edit' ? (
@@ -686,7 +596,7 @@ export function DocumentCanvasEditor({
                 </ToolbarButton>
                 <span className="pd-doc-canvas__tool-sep" aria-hidden />
                 <ToolbarButton
-                  label="Heading 1"
+                  label="Large heading"
                   active={editor?.isActive('heading', { level: 1 })}
                   disabled={!editor}
                   onClick={() =>
@@ -696,7 +606,7 @@ export function DocumentCanvasEditor({
                   <Heading1 size={16} />
                 </ToolbarButton>
                 <ToolbarButton
-                  label="Heading 2"
+                  label="Small heading"
                   active={editor?.isActive('heading', { level: 2 })}
                   disabled={!editor}
                   onClick={() =>
@@ -707,7 +617,7 @@ export function DocumentCanvasEditor({
                 </ToolbarButton>
                 <span className="pd-doc-canvas__tool-sep" aria-hidden />
                 <ToolbarButton
-                  label="Bulleted list"
+                  label="Bullet list"
                   active={editor?.isActive('bulletList')}
                   disabled={!editor}
                   onClick={() =>
@@ -759,12 +669,21 @@ export function DocumentCanvasEditor({
                 </ToolbarButton>
                 <span className="pd-doc-canvas__tool-sep" aria-hidden />
                 <ToolbarButton
-                  label="Insert image"
+                  label="Add image"
                   disabled={!editor}
                   onClick={() => imageInputRef.current?.click()}
                 >
                   <ImagePlus size={16} />
                 </ToolbarButton>
+                <button
+                  type="button"
+                  className="pd-doc-canvas__tool pd-doc-canvas__tool--label"
+                  disabled={!editor}
+                  onClick={focusFieldSearch}
+                >
+                  <Plus size={16} aria-hidden />
+                  Add detail
+                </button>
                 <input
                   ref={imageInputRef}
                   type="file"
@@ -780,7 +699,7 @@ export function DocumentCanvasEditor({
                   aria-label="Image adjustments"
                 >
                   <label className="pd-doc-canvas__image-control">
-                    <span>Width</span>
+                    <span>Size</span>
                     <input
                       type="range"
                       min={10}
@@ -798,7 +717,7 @@ export function DocumentCanvasEditor({
                   <div
                     className="pd-doc-canvas__image-align"
                     role="group"
-                    aria-label="Image alignment"
+                    aria-label="Image placement"
                   >
                     <ToolbarButton
                       label="Image left"
@@ -823,14 +742,14 @@ export function DocumentCanvasEditor({
                     </ToolbarButton>
                   </div>
                   <label className="pd-doc-canvas__image-control pd-doc-canvas__image-control--grow">
-                    <span>Alt text</span>
+                    <span>Description</span>
                     <input
                       type="text"
                       value={imageSelection.alt}
                       onChange={(event) =>
                         updateSelectedImage({ alt: event.target.value })
                       }
-                      placeholder="Describe the image"
+                      placeholder="What is in this image?"
                     />
                   </label>
                   <Button
@@ -864,10 +783,7 @@ export function DocumentCanvasEditor({
             </div>
           </div>
 
-          <div
-            className="pd-doc-canvas__print-only"
-            aria-hidden
-          >
+          <div className="pd-doc-canvas__print-only" aria-hidden>
             <div
               className="pd-doc-canvas__sheet pd-paper pd-doc-canvas__print-sheet"
               data-direction={direction}
@@ -877,6 +793,150 @@ export function DocumentCanvasEditor({
             </div>
           </div>
         </div>
+
+        <aside
+          ref={fieldsPanelRef}
+          className="pd-doc-canvas__fields pd-doc-canvas__no-print"
+          aria-label={mode === 'preview' ? 'Choose a client' : 'Add details'}
+        >
+          {mode === 'preview' ? (
+            <>
+              <div className="pd-doc-canvas__fields-head">
+                <div className="pd-doc-canvas__fields-title">
+                  <UserRound size={16} strokeWidth={2.25} aria-hidden />
+                  <h2>Try with a client</h2>
+                </div>
+                <label className="pd-doc-canvas__search">
+                  <Search size={16} aria-hidden />
+                  <input
+                    type="search"
+                    value={previewQuery}
+                    onChange={(event) => setPreviewQuery(event.target.value)}
+                    placeholder="Find a client…"
+                    aria-label="Find a client"
+                  />
+                  {previewQuery ? (
+                    <button
+                      type="button"
+                      className="pd-doc-canvas__search-clear"
+                      aria-label="Clear search"
+                      onClick={() => setPreviewQuery('')}
+                    >
+                      <X size={14} strokeWidth={2.25} aria-hidden />
+                    </button>
+                  ) : null}
+                </label>
+              </div>
+              <div className="pd-doc-canvas__fields-body">
+                <button
+                  type="button"
+                  className={cx(
+                    'pd-doc-canvas__field',
+                    !previewClientId && 'is-selected',
+                  )}
+                  onClick={() => setPreviewClientId(null)}
+                >
+                  <span>Sample client</span>
+                </button>
+                {previewHits.map((client) => (
+                  <button
+                    key={client.id}
+                    type="button"
+                    className={cx(
+                      'pd-doc-canvas__field',
+                      previewClientId === client.id && 'is-selected',
+                    )}
+                    onClick={() => {
+                      setPreviewClientId(client.id)
+                      setPreviewQuery('')
+                    }}
+                  >
+                    <span className="pd-doc-canvas__field-main">
+                      <span className="pd-doc-canvas__field-name">
+                        {client.name}
+                      </span>
+                      {client.passport ? (
+                        <span className="pd-doc-canvas__field-hint">
+                          {client.passport}
+                        </span>
+                      ) : null}
+                    </span>
+                  </button>
+                ))}
+                <p className="pd-doc-canvas__fields-empty">
+                  Showing{' '}
+                  <strong>{previewClient?.name ?? 'Sample client'}</strong>
+                  {' · '}
+                  {agencyName}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="pd-doc-canvas__fields-head">
+                <div className="pd-doc-canvas__fields-title">
+                  <Plus size={16} strokeWidth={2.25} aria-hidden />
+                  <h2>Add details</h2>
+                </div>
+                <label className="pd-doc-canvas__search">
+                  <Search size={16} aria-hidden />
+                  <input
+                    ref={fieldSearchRef}
+                    type="search"
+                    value={fieldQuery}
+                    onChange={(event) => setFieldQuery(event.target.value)}
+                    placeholder="Find a detail…"
+                    aria-label="Find a detail"
+                  />
+                  {fieldQuery ? (
+                    <button
+                      type="button"
+                      className="pd-doc-canvas__search-clear"
+                      aria-label="Clear search"
+                      onClick={() => setFieldQuery('')}
+                    >
+                      <X size={14} strokeWidth={2.25} aria-hidden />
+                    </button>
+                  ) : null}
+                </label>
+              </div>
+              <div className="pd-doc-canvas__fields-body">
+                {groupedFields.map((section) => (
+                  <div
+                    key={section.group}
+                    className="pd-doc-canvas__field-group"
+                  >
+                    <p className="pd-doc-canvas__field-label">{section.label}</p>
+                    <ul>
+                      {section.items.map((field) => (
+                        <li key={field.key}>
+                          <button
+                            type="button"
+                            className="pd-doc-canvas__field"
+                            onClick={() => insertField(field)}
+                          >
+                            <span>{field.label}</span>
+                            <span
+                              className="pd-doc-canvas__field-add"
+                              aria-hidden
+                            >
+                              <Plus size={14} strokeWidth={2.5} />
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+                {groupedFields.length === 0 ? (
+                  <p className="pd-doc-canvas__fields-empty">
+                    No matching details.
+                  </p>
+                ) : null}
+              </div>
+            </>
+          )}
+        </aside>
       </div>
     </div>
   )

@@ -60,6 +60,7 @@ import {
 import {
   createTenantMember,
   findTenantMemberForUser,
+  updateTenantMember,
   useTenantMembersByTenantId,
 } from '@/lib/tenantMembersStore'
 import { useAuth } from '@/lib/useAuth'
@@ -88,11 +89,13 @@ function isPageAccessLevel(value: string): value is PageAccessLevel {
   return value === 'none' || value === 'view' || value === 'edit'
 }
 
-function roleLabel(role: TenantMemberRole): string {
-  if (role === 'owner') return 'Owner'
-  if (role === 'manager') return 'Manager'
-  return 'Staff'
+function isTenantMemberRole(value: string): value is TenantMemberRole {
+  return value === 'owner' || value === 'manager' || value === 'staff'
 }
+
+const NON_OWNER_ROLE_OPTIONS = STAFF_MEMBER_ROLES.filter(
+  (option) => option.value !== 'owner',
+)
 
 function statusMeta(status: TenantMemberStatus): {
   variant: 'default' | 'secondary' | 'outline'
@@ -144,6 +147,11 @@ export function UserAccessSection({
       })
     : 'none'
   const canManage = canManageRole && accessMgmtLevel === 'edit'
+  const isActingOwner =
+    self?.role === 'owner' || user?.role === 'platform_admin'
+  const activeOwnerCount = members.filter(
+    (member) => member.role === 'owner' && member.status !== 'disabled',
+  ).length
 
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState('')
@@ -270,7 +278,7 @@ export function UserAccessSection({
             required
             value={role}
             onChange={(event) => setRole(event.target.value as TenantMemberRole)}
-            options={STAFF_MEMBER_ROLES.filter((option) => option.value !== 'owner')}
+            options={NON_OWNER_ROLE_OPTIONS}
             error={showError('role') ? errors.role : undefined}
           />
           <Input
@@ -343,6 +351,7 @@ export function UserAccessSection({
             <TableRow className="hover:bg-transparent border-0">
               <TableHead className={chromeHeadClass}>User</TableHead>
               <TableHead className={chromeHeadClass}>Status</TableHead>
+              <TableHead className={chromeHeadClass}>Role</TableHead>
               {PAGE_COLUMNS.map((page) => (
                 <TableHead
                   key={page.id}
@@ -358,6 +367,17 @@ export function UserAccessSection({
             {members.map((member) => {
               const status = statusMeta(member.status)
               const StatusIcon = status.icon
+              const isOwnerMember = member.role === 'owner'
+              const canEditOwnerRow = isActingOwner
+              const canEditRole =
+                canManage && (!isOwnerMember || canEditOwnerRow)
+              const canEditAccess =
+                canManage && (!isOwnerMember || canEditOwnerRow)
+              const roleOptions = canEditOwnerRow
+                ? STAFF_MEMBER_ROLES
+                : NON_OWNER_ROLE_OPTIONS
+              const isLastActiveOwner =
+                isOwnerMember && activeOwnerCount <= 1
               return (
                 <TableRow key={member.id}>
                   <TableCell data-label="User">
@@ -369,10 +389,11 @@ export function UserAccessSection({
                         <span className="pd-user-access__name">
                           {member.name}
                         </span>
-                        <span className="pd-user-access__role">
-                          {roleLabel(member.role)}
-                          {member.email ? ` · ${member.email}` : ''}
-                        </span>
+                        {member.email ? (
+                          <span className="pd-user-access__role">
+                            {member.email}
+                          </span>
+                        ) : null}
                       </span>
                     </span>
                   </TableCell>
@@ -381,6 +402,42 @@ export function UserAccessSection({
                       <StatusIcon data-icon="inline-start" aria-hidden />
                       {status.label}
                     </Badge>
+                  </TableCell>
+                  <TableCell
+                    className="pd-user-access__cell"
+                    data-label="Role"
+                  >
+                    <AccessSelect
+                      value={member.role}
+                      disabled={!canEditRole || isLastActiveOwner}
+                      onValueChange={(next) => {
+                        if (!canEditRole || isLastActiveOwner) return
+                        if (!isTenantMemberRole(next)) return
+                        if (!canEditOwnerRow && next === 'owner') return
+                        if (next === member.role) return
+                        updateTenantMember(member.id, { role: next })
+                      }}
+                    >
+                      <SelectTrigger
+                        aria-label={`Role for ${member.name}`}
+                        className="pd-user-access__select h-8 w-[6.5rem] rounded-lg"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roleOptions.map((option) => (
+                          <SelectItem
+                            key={option.value}
+                            value={option.value}
+                            disabled={
+                              isLastActiveOwner && option.value !== 'owner'
+                            }
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </AccessSelect>
                   </TableCell>
                   {PAGE_COLUMNS.map((page) => {
                     const level = getPageAccessLevel(
@@ -399,9 +456,9 @@ export function UserAccessSection({
                       >
                         <AccessSelect
                           value={level}
-                          disabled={!canManage || member.role === 'owner'}
+                          disabled={!canEditAccess || isOwnerMember}
                           onValueChange={(next) => {
-                            if (!canManage) return
+                            if (!canEditAccess || isOwnerMember) return
                             if (!isPageAccessLevel(next)) return
                             setPageAccessLevel(member.id, page.path, next)
                           }}

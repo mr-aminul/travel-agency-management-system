@@ -4,11 +4,10 @@ import {
   clientProgressBlockers,
   listClientInfoGaps,
   progressBlockedMessage,
-  type ClientInfoGapId,
 } from '@/lib/clientMissingInfo'
 
 describe('clientMissingInfo', () => {
-  it('lists passport as a progress blocker when missing', () => {
+  it('lists passport as recommended, never as a progress blocker', () => {
     const gaps = listClientInfoGaps({
       passport: '',
       nid: '',
@@ -22,13 +21,14 @@ describe('clientMissingInfo', () => {
       'address',
       'email',
     ])
-    expect(clientProgressBlockers({ passport: '' })).toEqual([
-      expect.objectContaining({ id: 'passport', blocksProgress: true }),
-    ])
-    expect(clientCanAdvanceServices({ passport: '' })).toBe(false)
+    expect(gaps.find((gap) => gap.id === 'passport')).toEqual(
+      expect.objectContaining({ blocksProgress: false }),
+    )
+    expect(clientProgressBlockers({ passport: '' })).toEqual([])
+    expect(clientCanAdvanceServices({ passport: '' })).toBe(true)
   })
 
-  it('requires passport dates once a passport number is set', () => {
+  it('still surfaces passport dates once a passport number is set', () => {
     const gaps = listClientInfoGaps({
       passport: 'A12345678',
       passportIssuedOn: '',
@@ -42,11 +42,14 @@ describe('clientMissingInfo', () => {
       'passportIssuedOn',
       'passportExpiry',
     ])
-    expect(clientCanAdvanceServices({
-      passport: 'A12345678',
-      passportIssuedOn: '',
-      passportExpiry: '',
-    })).toBe(false)
+    expect(gaps.every((gap) => gap.blocksProgress === false)).toBe(true)
+    expect(
+      clientCanAdvanceServices({
+        passport: 'A12345678',
+        passportIssuedOn: '',
+        passportExpiry: '',
+      }),
+    ).toBe(true)
     expect(
       clientCanAdvanceServices({
         passport: 'A12345678',
@@ -56,7 +59,7 @@ describe('clientMissingInfo', () => {
     ).toBe(true)
   })
 
-  it('allows service progress once passport and dates are present', () => {
+  it('clears gaps once passport and dates are present', () => {
     expect(
       clientCanAdvanceServices({
         passport: 'A12345678',
@@ -79,9 +82,17 @@ describe('clientMissingInfo', () => {
     ).toEqual([])
   })
 
-  it('explains the passport block in plain language', () => {
-    const blockers = clientProgressBlockers({ passport: undefined })
-    expect(progressBlockedMessage(blockers)).toMatch(/passport number/i)
+  it('keeps progressBlockedMessage ready for future hard blockers', () => {
+    expect(
+      progressBlockedMessage([
+        {
+          id: 'passport',
+          label: 'Passport number',
+          blocksProgress: true,
+          hint: 'Needed',
+        },
+      ]),
+    ).toMatch(/passport number/i)
   })
 
   it('never treats sub agent as a progress gap', () => {
@@ -100,7 +111,7 @@ describe('clientMissingInfo', () => {
         nid: '123',
         address: 'Dhaka',
         email: 'a@b.com',
-      }).some((gap) => gap.id === ('subAgent' as ClientInfoGapId)),
-    ).toBe(false)
+      }),
+    ).toEqual([])
   })
 })

@@ -25,10 +25,23 @@ export function applyApprovedPendingChange(
       if (!isRecord(payload) || !isRecord(payload.input)) {
         throw new Error('Invalid client create payload.')
       }
-      createClient(payload.input as unknown as CreateClientInput, {
+      const input = payload.input as unknown as CreateClientInput
+      const created = createClient(input, {
         tenantId:
           typeof payload.tenantId === 'string' ? payload.tenantId : undefined,
       })
+      const primaryService =
+        typeof input.primaryService === 'string'
+          ? input.primaryService.trim()
+          : ''
+      if (primaryService) {
+        createCase({
+          clientId: created.id,
+          service: primaryService,
+          destination: input.preferredCountry?.trim() || undefined,
+          serviceCountry: input.preferredCountry?.trim() || undefined,
+        })
+      }
     } else if (change.entityType === 'client' && change.action === 'update') {
       if (!isRecord(payload) || typeof payload.id !== 'string') {
         throw new Error('Invalid client update payload.')

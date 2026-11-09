@@ -11,11 +11,8 @@ import {
   getCasesByClientId,
   resetCases,
 } from '@/lib/casesStore'
-import {
-  createClient,
-  getClientById,
-  resetClients,
-} from '@/lib/clientsStore'
+import { deriveClientServices } from '@/lib/clientDerived'
+import { createClient, resetClients } from '@/lib/clientsStore'
 import {
   createPayment,
   getPaymentsByCaseId,
@@ -64,10 +61,12 @@ describe('deleteCase', () => {
     expect(getCaseById(mistaken.id)).toBeUndefined()
     expect(getPaymentsByCaseId(mistaken.id)).toHaveLength(0)
     expect(getCasesByClientId(client.id)).toHaveLength(0)
-    expect(getClientById(client.id)?.services).not.toContain('Tourist Visa')
+    expect(deriveClientServices(getCasesByClientId(client.id))).not.toContain(
+      'Tourist Visa',
+    )
   })
 
-  it('keeps another service of the same type on the client', () => {
+  it('keeps another service of the same type for the client', () => {
     signIn()
     const client = createClient({
       name: 'Keep Sibling Client',
@@ -86,6 +85,8 @@ describe('deleteCase', () => {
 
     expect(deleteCase(first.id)).toBe(true)
     expect(getCaseById(second.id)?.service).toBe('Tourist Visa')
-    expect(getClientById(client.id)?.services).toContain('Tourist Visa')
+    expect(deriveClientServices(getCasesByClientId(client.id))).toContain(
+      'Tourist Visa',
+    )
   })
 })

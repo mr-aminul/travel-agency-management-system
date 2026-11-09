@@ -37,7 +37,6 @@ import {
   findClientRecord,
   getClientById,
   updateClient,
-  updateClientRecord,
 } from '@/lib/clientsStore'
 import {
   getActiveTenantId,
@@ -561,40 +560,13 @@ function nextCaseId(): string {
   return `SR-${String(max + 1).padStart(5, '0')}`
 }
 
-function isActiveStatus(status: CaseStatus): boolean {
-  return status !== 'Completed' && status !== 'Cancelled'
+/**
+ * Client money / open-file / service-line rollups are derived from cases
+ * (`clientDerived.ts`). Do not write them back onto the Client row.
+ */
+function syncClientFromCases(_clientId: string) {
+  /* no-op: ownership split — Client is the person, Case owns the job */
 }
-
-function syncClientFromCases(clientId: string) {
-  const client = findClientRecord(clientId)
-  if (!client) return
-
-  const clientCases = cases.filter(
-    (item) => item.clientId === clientId && item.tenantId === client.tenantId,
-  )
-  const activeCases = clientCases.filter((item) =>
-    isActiveStatus(item.status),
-  ).length
-  const balance = clientCases
-    .filter((item) => isActiveStatus(item.status))
-    .reduce((sum, item) => sum + item.balance, 0)
-  const services = Array.from(
-    new Set([
-      ...client.services,
-      ...clientCases.map((item) => item.service),
-    ]),
-  )
-
-  updateClientRecord(clientId, { activeCases, services, balance })
-}
-
-/** Recompute derived client fields for every client touched by seed. */
-function syncAllSeedClients() {
-  const ids = new Set(cases.map((item) => item.clientId))
-  ids.forEach((id) => syncClientFromCases(id))
-}
-
-syncAllSeedClients()
 
 export function useCases(): Case[] {
   const { session } = useAuth()
@@ -811,23 +783,6 @@ export function deleteCase(id: string): boolean {
   deletePaymentsByCaseId(id)
   deletePendingCommissionsByCaseId(id)
   syncClientFromCases(existing.clientId)
-
-  const client = findClientRecord(existing.clientId)
-  if (
-    client &&
-    !cases.some(
-      (item) =>
-        item.clientId === existing.clientId &&
-        item.tenantId === client.tenantId &&
-        item.service === existing.service,
-    )
-  ) {
-    updateClientRecord(existing.clientId, {
-      services: client.services.filter(
-        (service) => service !== existing.service,
-      ),
-    })
-  }
 
   emit()
   void logAuditEvent({
@@ -1384,7 +1339,6 @@ function syncIdentityFieldsToClient(
     nid?: string
     passportExpiry?: string
     passportIssuedOn?: string
-    passportPlaceOfIssue?: string
   } = {}
   if (form.syncToClient.passport) {
     const value = input.fields[form.syncToClient.passport]?.trim()
@@ -1393,8 +1347,6 @@ function syncIdentityFieldsToClient(
     if (expiry) clientPatch.passportExpiry = expiry
     const issuedOn = input.fields.issuedOn?.trim()
     if (issuedOn) clientPatch.passportIssuedOn = issuedOn
-    const placeOfIssue = input.fields.placeOfIssue?.trim()
-    if (placeOfIssue) clientPatch.passportPlaceOfIssue = placeOfIssue
   }
   if (form.syncToClient.nid) {
     const value = input.fields[form.syncToClient.nid]?.trim()
@@ -1455,9 +1407,6 @@ export function projectClientIdentityOntoCases(clientId: string): void {
           ...(kind === 'passport' && client.passportIssuedOn
             ? { issuedOn: client.passportIssuedOn }
             : {}),
-          ...(kind === 'passport' && client.passportPlaceOfIssue
-            ? { placeOfIssue: client.passportPlaceOfIssue }
-            : {}),
         },
         fileName: scan?.fileName ?? doc.fileName,
         fileId: scan?.fileId ?? doc.fileId,
@@ -1484,7 +1433,6 @@ export function reconcileClientIdentityFromCases(clientId: string): void {
   let passport: string | undefined
   let passportExpiry: string | undefined
   let passportIssuedOn: string | undefined
-  let passportPlaceOfIssue: string | undefined
   let nid: string | undefined
   let passportFile = client.passportFile
   let nidFile = client.nidFile
@@ -1497,7 +1445,6 @@ export function reconcileClientIdentityFromCases(clientId: string): void {
       const number = doc.fields?.number?.trim()
       const expiry = doc.fields?.expiry?.trim() || doc.expiry?.trim() || undefined
       const issuedOn = doc.fields?.issuedOn?.trim() || undefined
-      const placeOfIssue = doc.fields?.placeOfIssue?.trim() || undefined
       const scan =
         doc.fileId || doc.fileName?.trim()
           ? {
@@ -1513,9 +1460,6 @@ export function reconcileClientIdentityFromCases(clientId: string): void {
           passportExpiry = expiry
         }
         if (!passportIssuedOn && issuedOn) passportIssuedOn = issuedOn
-        if (!passportPlaceOfIssue && placeOfIssue) {
-          passportPlaceOfIssue = placeOfIssue
-        }
         if (!passportFile && scan) passportFile = scan
       } else {
         if (!nid && number) nid = number
@@ -1528,7 +1472,6 @@ export function reconcileClientIdentityFromCases(clientId: string): void {
     passport?: string
     passportExpiry?: string
     passportIssuedOn?: string
-    passportPlaceOfIssue?: string
     nid?: string
     passportFile?: NonNullable<typeof passportFile>
     nidFile?: NonNullable<typeof nidFile>
@@ -1540,9 +1483,6 @@ export function reconcileClientIdentityFromCases(clientId: string): void {
   }
   if (!client.passportIssuedOn?.trim() && passportIssuedOn) {
     patch.passportIssuedOn = passportIssuedOn
-  }
-  if (!client.passportPlaceOfIssue?.trim() && passportPlaceOfIssue) {
-    patch.passportPlaceOfIssue = passportPlaceOfIssue
   }
   if (!client.nid?.trim() && nid) patch.nid = nid
   if (!client.passportFile && passportFile) patch.passportFile = passportFile
@@ -1569,7 +1509,6 @@ export function recordIdentityDocument(
   const number = input.fields.number?.trim()
   const expiry = input.expiry?.trim() || input.fields.expiry?.trim()
   const issuedOn = input.fields.issuedOn?.trim()
-  const placeOfIssue = input.fields.placeOfIssue?.trim()
   const scan =
     input.fileId || input.fileName?.trim()
       ? {
@@ -1584,7 +1523,6 @@ export function recordIdentityDocument(
       ...(number ? { passport: number } : {}),
       ...(expiry ? { passportExpiry: expiry } : {}),
       ...(issuedOn ? { passportIssuedOn: issuedOn } : {}),
-      ...(placeOfIssue ? { passportPlaceOfIssue: placeOfIssue } : {}),
       ...(scan ? { passportFile: scan } : {}),
     })
   } else {

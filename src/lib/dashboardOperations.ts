@@ -1,4 +1,5 @@
 import { deriveStageFromStep, templateCountry } from '@/lib/caseChecklist'
+import { deriveClientActiveCases } from '@/lib/clientDerived'
 import { collectionsByMonth } from '@/lib/dashboardInsights'
 import { workDetailPath } from '@/lib/workPaths'
 import type { Case, CaseDocument, CaseStage } from '@/types/case'
@@ -164,9 +165,19 @@ export function passportsExpiringSoon(
   clients: Client[],
   withinDays = 180,
   asOf: Date = new Date(),
+  cases: readonly Case[] = [],
 ): number {
+  const casesByClientId = new Map<string, Case[]>()
+  for (const item of cases) {
+    const list = casesByClientId.get(item.clientId)
+    if (list) list.push(item)
+    else casesByClientId.set(item.clientId, [item])
+  }
   return clients.filter((client) => {
-    if (client.activeCases === 0 || !client.passportExpiry) return false
+    if (deriveClientActiveCases(casesByClientId.get(client.id) ?? []) === 0) {
+      return false
+    }
+    if (!client.passportExpiry) return false
     const days = daysUntil(client.passportExpiry, asOf)
     return days != null && days <= withinDays
   }).length

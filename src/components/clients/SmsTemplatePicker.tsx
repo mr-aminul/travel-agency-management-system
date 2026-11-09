@@ -36,7 +36,8 @@ export function SmsTemplatePicker({
     [client, agencyName],
   )
 
-  const label = channel === 'sms' ? 'SMS Template' : 'Email Template'
+  const label = 'Template'
+  const sheetTitle = channel === 'sms' ? 'SMS Template' : 'Email Template'
   const emptyCopy =
     channel === 'sms'
       ? 'No SMS templates yet. Add them under Settings → SMS/Email.'
@@ -54,7 +55,8 @@ export function SmsTemplatePicker({
       <Button
         type="button"
         variant="outline"
-        className="h-9 rounded-lg"
+        size="sm"
+        className="h-8 rounded-md"
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
@@ -64,13 +66,13 @@ export function SmsTemplatePicker({
       <Sheet open={open} onOpenChange={(next) => { if (!next) setOpen(false) }}>
         <SheetContent className={floatingSheetClass}>
           <SheetHeader className="border-b border-border px-5 py-4 pr-12">
-            <SheetTitle className="text-base font-semibold">{label}</SheetTitle>
+            <SheetTitle className="text-base font-semibold">{sheetTitle}</SheetTitle>
           </SheetHeader>
           <div className="p-5">
             {folders.length === 0 ? (
               <p className="m-0 text-sm text-muted-foreground">{emptyCopy}</p>
             ) : (
-              <ul className="m-0 flex list-none flex-col gap-2 p-0" aria-label={`${label} folders`}>
+              <ul className="m-0 flex list-none flex-col gap-2 p-0" aria-label={`${sheetTitle} folders`}>
                 {folders.map((group) => {
                   const isOpen = expanded[group.folder] ?? true
                   return (

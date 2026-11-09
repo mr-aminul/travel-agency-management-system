@@ -35,6 +35,7 @@ import {
   CustomizeStagesMotion,
 } from '@/components/landing/CustomizeMotions'
 import { HowToDemo } from '@/components/landing/HowToDemo'
+import { FileLands } from '@/components/landing/stageshow/FileLands'
 import { usePrefersReducedMotion } from '@/components/landing/usePrefersReducedMotion'
 import {
   DocumentsVignette,
@@ -142,8 +143,17 @@ const FEATURE_PEEKS: Record<(typeof LANDING_FEATURES)[number]['peek'], ReactNode
 function LandingNav({ onAsk }: { onAsk: () => void }) {
   const [isOpen, setIsOpen] = useState(false)
   const [isHidden, setIsHidden] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(
+    () => typeof window !== 'undefined' && window.scrollY > 40,
+  )
   const panelId = useId()
   const lastScrollY = useRef(0)
+  const isOpenRef = useRef(isOpen)
+  const isScrolledRef = useRef(isScrolled)
+
+  useEffect(() => {
+    isOpenRef.current = isOpen
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -158,39 +168,54 @@ function LandingNav({ onAsk }: { onAsk: () => void }) {
     }
   }, [isOpen])
 
-  /** Hide-on-scroll-down / show-on-scroll-up (smart sticky nav). */
   useEffect(() => {
-    if (isOpen) {
-      setIsHidden(false)
-      return
-    }
+    if (isOpen) setIsHidden(false)
+  }, [isOpen])
 
+  /** Outer shell stays fixed; inner pill gets `is-scrolled`. Hide only in island mode. */
+  useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
-    if (media.matches) {
-      setIsHidden(false)
-      return
+    const islandEnter = 48
+    const islandExit = 12
+    const deltaThreshold = 8
+    const topAlwaysShow = 64
+    let ticking = false
+
+    lastScrollY.current = window.scrollY
+
+    const applyScroll = (currentY: number) => {
+      const nextScrolled = isScrolledRef.current
+        ? currentY > islandExit
+        : currentY > islandEnter
+
+      if (nextScrolled !== isScrolledRef.current) {
+        isScrolledRef.current = nextScrolled
+        setIsScrolled(nextScrolled)
+      }
+
+      if (isOpenRef.current || media.matches) {
+        setIsHidden(false)
+        return
+      }
+
+      const delta = currentY - lastScrollY.current
+      if (currentY <= topAlwaysShow || !nextScrolled) {
+        setIsHidden(false)
+      } else if (delta > deltaThreshold) {
+        setIsHidden(true)
+      } else if (delta < -deltaThreshold) {
+        setIsHidden(false)
+      }
     }
 
-    const deltaThreshold = 6
-    const topAlwaysShow = 48
-    let ticking = false
-    lastScrollY.current = window.scrollY
+    applyScroll(window.scrollY)
 
     const onScroll = () => {
       if (ticking) return
       ticking = true
       window.requestAnimationFrame(() => {
         const currentY = Math.max(0, window.scrollY)
-        const delta = currentY - lastScrollY.current
-
-        if (currentY <= topAlwaysShow) {
-          setIsHidden(false)
-        } else if (delta > deltaThreshold) {
-          setIsHidden(true)
-        } else if (delta < -deltaThreshold) {
-          setIsHidden(false)
-        }
-
+        applyScroll(currentY)
         lastScrollY.current = currentY
         ticking = false
       })
@@ -198,14 +223,15 @@ function LandingNav({ onAsk }: { onAsk: () => void }) {
 
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [isOpen])
+  }, [])
 
   const close = () => setIsOpen(false)
 
   const navClass = [
     'lp2-nav',
     isOpen ? 'is-open' : '',
-    isHidden && !isOpen ? 'is-hidden' : '',
+    isScrolled ? 'is-scrolled' : '',
+    isHidden && !isOpen && isScrolled ? 'is-hidden' : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -213,45 +239,49 @@ function LandingNav({ onAsk }: { onAsk: () => void }) {
   return (
     <>
       <nav className={navClass} aria-label="Main">
-        <a className="lp2-nav__brand title-3" href="#top" onClick={close}>
-          <img src={publicUrl('images/logo.svg')} alt="" width={28} height={28} />
-          OneTrack
-        </a>
-        <div className="lp2-nav__links">
-          <a className="title-4" href="#product">
-            Product
+        <div className="lp2-nav__shell">
+          <a className="lp2-nav__brand title-3" href="#top" onClick={close}>
+            <img src={publicUrl('images/logo.svg')} alt="" width={28} height={28} />
+            OneTrack
           </a>
-          <a className="title-4" href="#features">
-            Features
-          </a>
-          <a className="title-4" href="#how-it-works">
-            How it works
-          </a>
-          <a className="title-4" href="#pricing">
-            Pricing
-          </a>
-        </div>
-        <div className="lp2-nav__actions">
-          <a className="lp2-nav__signin button-sm" href={appUrl('/login')}>
-            Sign in
-          </a>
-          <a className="lp2-btn lp2-btn--solid button-sm" href={subscribeUrl('growth')}>
-            Start free trial
-          </a>
-          <button
-            type="button"
-            className="lp2-nav__menu-btn"
-            aria-expanded={isOpen}
-            aria-controls={panelId}
-            aria-label={isOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setIsOpen((open) => !open)}
-          >
-            <span className="lp2-menu-icon" aria-hidden>
-              <span />
-              <span />
-              <span />
-            </span>
-          </button>
+          <div className="lp2-nav__end">
+            <div className="lp2-nav__links">
+              <a className="title-4" href="#product">
+                Product
+              </a>
+              <a className="title-4" href="#features">
+                Features
+              </a>
+              <a className="title-4" href="#how-it-works">
+                How it works
+              </a>
+              <a className="title-4" href="#pricing">
+                Pricing
+              </a>
+            </div>
+            <div className="lp2-nav__actions">
+              <a className="lp2-nav__signin button-sm" href={appUrl('/login')}>
+                Sign in
+              </a>
+              <a className="lp2-btn lp2-btn--solid button-sm" href={subscribeUrl('growth')}>
+                Start free trial
+              </a>
+              <button
+                type="button"
+                className="lp2-nav__menu-btn"
+                aria-expanded={isOpen}
+                aria-controls={panelId}
+                aria-label={isOpen ? 'Close menu' : 'Open menu'}
+                onClick={() => setIsOpen((open) => !open)}
+              >
+                <span className="lp2-menu-icon" aria-hidden>
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       </nav>
       <div
@@ -324,7 +354,7 @@ function Hero() {
         </div>
       </div>
       <div className="lp2-hero__product lp2-rise" style={revealDelay(360)} aria-hidden>
-        <ServiceBoardVignette />
+        <FileLands />
       </div>
       <ServiceTicker />
     </section>

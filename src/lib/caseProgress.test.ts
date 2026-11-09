@@ -46,7 +46,7 @@ describe('case progress spine', () => {
     expect(getCaseById(created.id)?.currentStepId).toBe('registered')
   })
 
-  it('blocks advance when the client passport number is missing', () => {
+  it('allows advance when the client passport number is missing', () => {
     const client = createClient({
       name: 'No Passport Client',
       phone: `015${Date.now().toString().slice(-8)}`,
@@ -59,7 +59,7 @@ describe('case progress spine', () => {
       balance: 5000,
     })
 
-    const blocked = completeCurrentStep(created.id, {
+    const advanced = completeCurrentStep(created.id, {
       fields: {
         route: 'DAC-JED',
         travelDate: '2026-09-12',
@@ -68,10 +68,8 @@ describe('case progress spine', () => {
       uploads: [{ key: 'passportCopy', fileName: 'passport.pdf' }],
     })
 
-    expect(blocked.ok).toBe(false)
-    if (blocked.ok) return
-    expect(blocked.errors.form).toMatch(/passport number/i)
-    expect(getCaseById(created.id)?.currentStepId).toBe('request')
+    expect(advanced.ok).toBe(true)
+    expect(getCaseById(created.id)?.currentStepId).not.toBe('request')
   })
 
   it('advances only after required fields and uploads are saved', () => {

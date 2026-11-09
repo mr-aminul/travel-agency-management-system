@@ -8,7 +8,6 @@ export type SubAgent = {
   email?: string
   address?: string
   licenseNumber?: string
-  branch?: string
   photoUrl?: string
   status: SubAgentStatus
   createdAt: string

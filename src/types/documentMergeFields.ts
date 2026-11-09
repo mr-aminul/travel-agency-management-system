@@ -15,10 +15,10 @@ export type DocumentMergeField = {
 }
 
 export const DOCUMENT_MERGE_GROUP_LABELS: Record<DocumentMergeGroup, string> = {
-  client: 'Client',
+  client: 'About the client',
   passport: 'Passport & ID',
-  agency: 'Agency',
-  document: 'Document',
+  agency: 'Your agency',
+  document: 'This page',
 }
 
 export const DOCUMENT_MERGE_FIELDS: DocumentMergeField[] = [
@@ -171,13 +171,6 @@ export const DOCUMENT_MERGE_FIELDS: DocumentMergeField[] = [
     chip: 'Passport issued',
     group: 'passport',
   },
-  {
-    key: 'passportPlaceOfIssue',
-    label: 'Passport place of issue',
-    chip: 'Place of issue',
-    group: 'passport',
-  },
-
   {
     key: 'agencyName',
     label: 'Agency name',

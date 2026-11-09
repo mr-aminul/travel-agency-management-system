@@ -48,7 +48,7 @@ export type NewClientFormValues = {
   passport: string
   passportIssuedOn: string
   passportExpiry: string
-  passportPlaceOfIssue: string
+  /** Required on public intake only. */
   primaryService: string
   customFields: Record<string, string>
 }
@@ -63,6 +63,8 @@ export function validateNewClientField(
   options: {
     duplicateName?: string
     customFieldDefs: ClientProfileField[]
+    /** Staff create is person-only; public intake still asks for a service. */
+    requirePrimaryService?: boolean
   },
 ): string | undefined {
   switch (field) {
@@ -88,8 +90,6 @@ export function validateNewClientField(
       return validateOptionalNid(values.nid)
     case 'passport':
       return validateOptionalPassport(values.passport)
-    case 'passportPlaceOfIssue':
-      return validateOptionalText(values.passportPlaceOfIssue, 'Place of issue')
     case 'passportIssuedOn':
       return validatePassportDates(
         values.passportIssuedOn,
@@ -103,6 +103,7 @@ export function validateNewClientField(
         values.passport,
       ).expiry
     case 'primaryService':
+      if (!options.requirePrimaryService) return undefined
       return trimmed(values.primaryService)
         ? undefined
         : 'Primary service is required.'

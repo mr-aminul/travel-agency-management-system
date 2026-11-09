@@ -84,6 +84,14 @@ export function clientPath(clientId: string, tab?: string): string {
   return `/clients/${clientId}?tab=${encodeURIComponent(tab)}`
 }
 
+/** Passport / NID document workspace under Profile. */
+export function clientIdentityFocusPath(
+  clientId: string,
+  focus: 'passport' | 'nid' = 'passport',
+): string {
+  return `/clients/${clientId}?tab=profile&focus=${focus}`
+}
+
 /** Service file nested under the client who owns it. */
 export function workDetailPath(item: ServiceRecordRef): string {
   return `/clients/${item.clientId}/services/${item.id}`

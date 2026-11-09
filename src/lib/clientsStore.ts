@@ -16,7 +16,6 @@ import {
   saveJson,
 } from '@/lib/data'
 import { getEnabledServiceOptions } from '@/lib/serviceCatalog'
-import { getTenantById, tenantAllowsService } from '@/lib/tenantsStore'
 import { BUILTIN_SERVICE_OPTIONS } from '@/types/case'
 import { useAuth } from '@/lib/useAuth'
 import { publicUrl } from '@/lib/publicUrl'
@@ -74,7 +73,6 @@ const SEED_CLIENTS: Client[] = [
     passport: 'A12345678',
     passportExpiry: '2030-06-15',
     passportIssuedOn: '2020-06-16',
-    passportPlaceOfIssue: 'Dhaka',
     avatarUrl: DUMMY_AVATAR_URL,
     subAgentId: 'AGT-T0001',
     services: ['Work Permit Visa', 'Air Ticket'],
@@ -286,7 +284,6 @@ function normalizeStoredClient(value: unknown): Client | undefined {
     passport: optionalString(value.passport),
     passportExpiry: optionalString(value.passportExpiry),
     passportIssuedOn: optionalString(value.passportIssuedOn),
-    passportPlaceOfIssue: optionalString(value.passportPlaceOfIssue),
     passportFile: optionalFileRef(value.passportFile),
     nidFile: optionalFileRef(value.nidFile),
     avatarUrl: optionalString(value.avatarUrl),
@@ -294,7 +291,7 @@ function normalizeStoredClient(value: unknown): Client | undefined {
       optionalString(value.subAgentId) ??
       // Legacy field name from before the sub-agent rename.
       optionalString(value.partnerId),
-    services: services.length ? services : ['Tour Package'],
+    services,
     balance: typeof value.balance === 'number' ? value.balance : 0,
     activeCases: typeof value.activeCases === 'number' ? value.activeCases : 0,
     idChecked: value.idChecked === true,
@@ -609,10 +606,6 @@ export function createClient(
   if (getClientByPhone(phone, undefined, assignedTenantId)) {
     throw new Error('A client with this phone number already exists.')
   }
-  const tenant = getTenantById(assignedTenantId)
-  if (!tenant || !tenantAllowsService(tenant, input.primaryService)) {
-    throw new Error('This service line is not enabled for your agency.')
-  }
 
   const session = readSession()
   const forcedSubAgentId =
@@ -685,8 +678,8 @@ export function createClient(
     passport: resolvedInput.passport?.trim() || undefined,
     passportExpiry: resolvedInput.passportExpiry?.trim() || undefined,
     passportIssuedOn: resolvedInput.passportIssuedOn?.trim() || undefined,
-    passportPlaceOfIssue: resolvedInput.passportPlaceOfIssue?.trim() || undefined,
-    services: [resolvedInput.primaryService],
+    // Service lines + money live on Case files; derive at read time.
+    services: [],
     balance: 0,
     activeCases: 0,
     idChecked: resolvedInput.idChecked,

@@ -78,9 +78,6 @@ export function SubAgentClientReportDocument({
           {report.subAgentPhone ? (
             <p className="pd-invoice__muted">{report.subAgentPhone}</p>
           ) : null}
-          {report.subAgentBranch ? (
-            <p className="pd-invoice__muted">Branch {report.subAgentBranch}</p>
-          ) : null}
           {report.subAgentLicense ? (
             <p className="pd-invoice__muted">
               License {report.subAgentLicense}

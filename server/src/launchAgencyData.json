@@ -67,7 +67,6 @@
       "passport": "A12345678",
       "passportExpiry": "2030-06-15",
       "passportIssuedOn": "2020-06-16",
-      "passportPlaceOfIssue": "Dhaka",
       "subAgentId": "AGT-T0001",
       "services": [
         "Work Permit Visa",
@@ -707,7 +706,6 @@
       "email": "rakib@example.com",
       "address": "Motijheel, Dhaka",
       "licenseNumber": "RL-1001",
-      "branch": "Dhaka",
       "status": "Active",
       "createdAt": "2024-01-10T08:00:00.000Z"
     },
@@ -719,7 +717,6 @@
       "email": "sadia@example.com",
       "address": "Agrabad, Chattogram",
       "licenseNumber": "RL-1002",
-      "branch": "Chattogram",
       "status": "Active",
       "createdAt": "2024-02-14T08:00:00.000Z"
     }

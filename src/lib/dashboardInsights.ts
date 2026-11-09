@@ -1,3 +1,4 @@
+import { deriveClientActiveCases } from '@/lib/clientDerived'
 import { formatBdt } from '@/lib/dashboardMetrics'
 import { workDetailPath, workInvoicePath } from '@/lib/workPaths'
 import type { Case, CaseStatus } from '@/types/case'
@@ -226,8 +227,10 @@ function missingRequiredCount(item: Case): number {
   ).length
 }
 
-function isActiveClient(client: Client): boolean {
-  return client.activeCases > 0
+function isActiveClient(clientId: string, cases: readonly Case[]): boolean {
+  return deriveClientActiveCases(
+    cases.filter((item) => item.clientId === clientId),
+  ) > 0
 }
 
 function isStaleCase(item: Case, asOf: Date): boolean {
@@ -316,7 +319,9 @@ export function computeOwnerKpis(
     completionRate: decided === 0 ? 0 : completedCases.length / decided,
     holdRate: openCases.length === 0 ? 0 : holdCount / openCases.length,
     pendingRequests,
-    activeClients: clients.filter(isActiveClient).length,
+    activeClients: clients.filter((client) =>
+      isActiveClient(client.id, cases),
+    ).length,
     atRiskCount,
     staleOpenCases,
   }
@@ -739,7 +744,7 @@ export function needsAttention(
       id: `request:${request.id}`,
       reason: 'pending-request',
       title: client.name.trim() || caseItem?.clientName?.trim() || 'Client',
-      detail: `${request.fromStatus} → ${request.toStatus}${
+      detail: `Mark as ${request.toStatus}${
         caseItem ? ` · ${caseItem.service}` : ''
       }`,
       href: workDetailPath({

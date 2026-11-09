@@ -20,6 +20,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react'
+import { PdfPreview } from '@/components/cases/PdfPreview'
 import {
   formatFileSize,
   getStoredFile,
@@ -27,6 +28,7 @@ import {
   isPdfMime,
   isTextMime,
 } from '@/lib/fileStore'
+import { usePreviewUrl } from '@/lib/usePreviewUrl'
 import { cn } from '@/lib/utils'
 
 export type FileViewerProps = {
@@ -48,7 +50,13 @@ const MAX_ZOOM = 3
 const ZOOM_STEP = 0.25
 
 const viewerActionClass =
-  'inline-flex size-8 items-center justify-center rounded-md hover:bg-muted'
+  'inline-flex size-8 items-center justify-center rounded-md text-foreground/80 hover:bg-muted hover:text-foreground'
+
+const overlayActionClass =
+  'inline-flex size-8 items-center justify-center rounded-full text-foreground/75 transition-colors hover:bg-foreground/8 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
+
+const viewerStageClass =
+  'relative overflow-hidden rounded-xl border border-border/90 bg-[color-mix(in_srgb,var(--muted)_55%,var(--background))] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--foreground)_4%,transparent),inset_0_0_0_1px_color-mix(in_srgb,var(--foreground)_5%,transparent)]'
 
 const fsControlBtnClass =
   'inline-flex min-h-9 min-w-9 items-center justify-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-2.5 text-sm font-bold text-white hover:bg-white/[0.16] disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2694fe]'
@@ -72,9 +80,9 @@ function FilePreview({
 }) {
   if (isImageMime(type)) {
     return (
-      <div className="grid max-h-[28rem] place-items-center overflow-auto bg-background">
+      <div className="grid h-full w-full place-items-center overflow-hidden p-4">
         <img
-          className="block max-h-[28rem] w-full max-w-full object-contain transition-transform duration-150"
+          className="block max-h-full max-w-full rounded-sm object-contain shadow-[0_8px_24px_-12px_rgba(0,0,0,0.35)] transition-transform duration-150"
           src={url}
           alt={name}
           style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
@@ -84,16 +92,7 @@ function FilePreview({
   }
 
   if (isPdfMime(type)) {
-    return (
-      <iframe
-        className={cn(
-          'block w-full border-0 bg-background',
-          compact ? 'h-64' : 'h-[28rem]',
-        )}
-        title={name}
-        src={url}
-      />
-    )
+    return <PdfPreview url={url} name={name} compact={compact} fill />
   }
 
   if (isTextMime(type)) {
@@ -223,11 +222,9 @@ function FullscreenViewer({
     )
   } else if (isPdfMime(type)) {
     stage = (
-      <iframe
-        className="h-full min-h-[calc(100dvh-7.5rem)] w-full flex-1 rounded-xl border-0 bg-white"
-        title={name}
-        src={url}
-      />
+      <div className="h-full min-h-[calc(100dvh-7.5rem)] w-full flex-1 overflow-hidden rounded-xl">
+        <PdfPreview url={url} name={name} fill />
+      </div>
     )
   } else if (isTextMime(type)) {
     stage = textError ? (
@@ -367,8 +364,10 @@ function FullscreenViewer({
 
 function UploadFileButton({
   onUpload,
+  actionClass = viewerActionClass,
 }: {
   onUpload: (file: File) => void
+  actionClass?: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -376,7 +375,7 @@ function UploadFileButton({
     <>
       <button
         type="button"
-        className={viewerActionClass}
+        className={actionClass}
         aria-label="Upload"
         title="Upload"
         onClick={() => inputRef.current?.click()}
@@ -402,30 +401,50 @@ function FileViewerActions({
   onUpload,
   onDelete,
   extra,
+  overlay = false,
 }: {
   onUpload?: (file: File) => void
   onDelete?: () => void
   extra?: ReactNode
+  overlay?: boolean
 }) {
   if (!onUpload && !onDelete && !extra) return null
+  const actionClass = overlay ? overlayActionClass : viewerActionClass
   return (
-    <div className="flex shrink-0 flex-wrap gap-1.5">
-      {onUpload ? <UploadFileButton onUpload={onUpload} /> : null}
-      {onDelete ? (
-        <button
-          type="button"
-          className={cn(
-            viewerActionClass,
-            'text-destructive hover:bg-destructive/10',
-          )}
-          aria-label="Delete"
-          title="Delete"
-          onClick={onDelete}
-        >
-          <Trash2 size={14} strokeWidth={2.25} aria-hidden />
-        </button>
+    <div
+      className={cn(
+        'flex shrink-0 items-center',
+        overlay
+          ? 'gap-0.5 rounded-full border border-white/50 bg-background/90 p-1 shadow-[0_8px_24px_-10px_rgba(0,0,0,0.45)] ring-1 ring-black/5 backdrop-blur-md dark:border-white/10 dark:ring-white/10'
+          : 'gap-1.5',
+      )}
+    >
+      {onUpload ? (
+        <UploadFileButton onUpload={onUpload} actionClass={actionClass} />
       ) : null}
       {extra}
+      {onDelete ? (
+        <>
+          {overlay && (onUpload || extra) ? (
+            <span
+              className="mx-0.5 h-4 w-px shrink-0 bg-border/80"
+              aria-hidden
+            />
+          ) : null}
+          <button
+            type="button"
+            className={cn(
+              actionClass,
+              'text-destructive hover:bg-destructive/10',
+            )}
+            aria-label="Delete"
+            title="Delete"
+            onClick={onDelete}
+          >
+            <Trash2 size={14} strokeWidth={2.25} aria-hidden />
+          </button>
+        </>
+      ) : null}
     </div>
   )
 }
@@ -440,9 +459,11 @@ export function FileViewer({
   onDelete,
 }: FileViewerProps) {
   const stored = getStoredFile(fileId)
-  const name = stored?.fileName || fileName || 'Attachment'
-  const type = stored?.mimeType || mimeType || ''
-  const url = stored?.url
+  const name = fileName || stored?.fileName || 'Attachment'
+  const type = mimeType || stored?.mimeType || ''
+  const sourceUrl = stored?.url
+  const { previewUrl, previewFailed } = usePreviewUrl(sourceUrl)
+  const url = previewUrl
   const [textPreview, setTextPreview] = useState<string | null>(null)
   const [textError, setTextError] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
@@ -468,7 +489,7 @@ export function FileViewer({
     }
   }, [url, type])
 
-  if (!url) {
+  if (!sourceUrl || previewFailed) {
     return (
       <div className="flex items-start gap-3 rounded-xl border bg-card p-3 text-muted-foreground">
         <FileWarning size={20} strokeWidth={2} aria-hidden />
@@ -490,55 +511,73 @@ export function FileViewer({
   }
 
   const sizeLabel = stored ? formatFileSize(stored.size) : ''
+  const actionClass = hideMeta ? overlayActionClass : viewerActionClass
   const toolbar = (
     <FileViewerActions
       onUpload={onUpload}
       onDelete={onDelete}
+      overlay={hideMeta}
       extra={
         <>
           <button
             type="button"
-            className={viewerActionClass}
+            className={actionClass}
             aria-label="Full screen"
             title="Full screen"
             onClick={() => setFullscreen(true)}
           >
             <Maximize2 size={14} strokeWidth={2.25} aria-hidden />
           </button>
-          <a
-            className={cn(viewerActionClass, 'no-underline')}
-            href={url}
-            download={name}
-            aria-label={`Download ${name}`}
-            title="Download"
-          >
-            <Download size={14} strokeWidth={2.25} aria-hidden />
-          </a>
+          {url ? (
+            <a
+              className={cn(actionClass, 'no-underline')}
+              href={url}
+              download={name}
+              aria-label={`Download ${name}`}
+              title="Download"
+            >
+              <Download size={14} strokeWidth={2.25} aria-hidden />
+            </a>
+          ) : null}
         </>
       }
     />
   )
 
+  const stage = url ? (
+    <FilePreview
+      url={url}
+      name={name}
+      type={type}
+      textPreview={textPreview}
+      textError={textError}
+      zoom={1}
+      compact={compact}
+    />
+  ) : null
+
   return (
     <>
-      <div
-        className={cn(
-          'flex flex-col overflow-hidden rounded-xl border bg-card',
-        )}
-      >
-        {hideMeta ? (
-          toolbar ? (
-            <div
-              className={cn(
-                'flex items-center justify-end gap-2 border-b px-3 py-2',
-                '-mb-1',
-              )}
-            >
-              {toolbar}
+      {hideMeta ? (
+        <div
+          className={cn(
+            'group/viewer',
+            viewerStageClass,
+            compact ? 'h-64' : 'h-[28rem]',
+          )}
+        >
+          {stage}
+          {toolbar ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/25 via-black/8 to-transparent pt-14">
+              <div className="pointer-events-auto flex justify-end p-3">
+                {toolbar}
+              </div>
             </div>
-          ) : null
-        ) : (
-          <header className="flex items-center justify-between gap-2 border-b px-3 py-2">
+          ) : null}
+        </div>
+      ) : (
+        <div className="flex flex-col overflow-hidden rounded-xl border border-border/90 bg-card">
+          <header className="flex items-center justify-between gap-2 px-3 py-2.5">
             <div className="min-w-0">
               <p className="m-0 break-words text-sm font-semibold text-foreground">
                 {name}
@@ -550,27 +589,20 @@ export function FileViewer({
             </div>
             {toolbar}
           </header>
-        )}
 
-        <div
-          className={cn(
-            'flex min-h-48 items-center justify-center overflow-hidden bg-muted/40',
-            compact && 'min-h-40',
-          )}
-        >
-          <FilePreview
-            url={url}
-            name={name}
-            type={type}
-            textPreview={textPreview}
-            textError={textError}
-            zoom={1}
-            compact={compact}
-          />
+          <div
+            className={cn(
+              viewerStageClass,
+              'rounded-none border-0 border-t border-border/70',
+              compact ? 'h-64' : 'h-[28rem]',
+            )}
+          >
+            {stage}
+          </div>
         </div>
-      </div>
+      )}
 
-      {fullscreen ? (
+      {fullscreen && url ? (
         <FullscreenViewer
           url={url}
           name={name}

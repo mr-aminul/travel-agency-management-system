@@ -11,6 +11,7 @@ const profession: ClientProfileField = {
   tenantId: 'tenant-full',
   label: 'Profession',
   type: 'text',
+  section: 'extra',
   required: true,
   options: [],
   createdAt: '2026-01-01T00:00:00.000Z',

@@ -6,12 +6,10 @@ import { cn } from '@/lib/utils'
 export const DOCUMENT_FILE_ACCEPT =
   'image/jpeg,image/png,image/webp,image/*,.pdf,application/pdf,.doc,.docx,.xls,.xlsx'
 
-const DOCUMENT_FILE_HINT = 'JPEG, PNG, PDF, and Word files'
-
 export function FileDropzone({
   fileName,
   accept = DOCUMENT_FILE_ACCEPT,
-  hint = DOCUMENT_FILE_HINT,
+  hint,
   label = 'Upload file',
   onFile,
 }: {
@@ -86,9 +84,11 @@ export function FileDropzone({
           ? 'Replace file or drag & drop a new one.'
           : 'Choose a file or drag & drop it here.'}
       </p>
-      <p className="m-0 text-xs text-muted-foreground">
-        {fileName ? `${fileName} · ${hint}` : hint}
-      </p>
+      {fileName || hint ? (
+        <p className="m-0 text-xs text-muted-foreground">
+          {fileName && hint ? `${fileName} · ${hint}` : fileName || hint}
+        </p>
+      ) : null}
       <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg" onClick={openPicker}>
         Browse File
       </Button>

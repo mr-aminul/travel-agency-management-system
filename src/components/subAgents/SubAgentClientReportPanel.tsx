@@ -29,6 +29,7 @@ import {
 } from '@/components/clients/shadcnChrome'
 import { cn } from '@/lib/utils'
 import { downloadSubAgentClientReportPdf } from '@/lib/downloadSubAgentClientReportPdf'
+import { deriveClientBalance } from '@/lib/clientDerived'
 import { deriveClientServiceStatus } from '@/lib/clientServiceStatus'
 import {
   DEFAULT_SUB_AGENT_REPORT_COLUMNS,
@@ -104,6 +105,11 @@ export function SubAgentClientReportPanel({
 
   const reportColumns = normalizeReportColumns(columns)
 
+  const flatCases = useMemo(
+    () => Array.from(casesByClientId.values()).flat(),
+    [casesByClientId],
+  )
+
   const report =
     selectedClients.length > 0
       ? buildSubAgentClientReport({
@@ -113,6 +119,7 @@ export function SubAgentClientReportPanel({
           profile: agencyProfile,
           columns: reportColumns,
           defaultLogoUrl: layoutConfig.brand.logoUrl,
+          cases: flatCases,
         })
       : null
 
@@ -366,6 +373,7 @@ export function SubAgentClientReportPanel({
                     const row = buildClientReportRow(
                       client,
                       statusByClientId.get(client.id) || '—',
+                      deriveClientBalance(casesByClientId.get(client.id) ?? []),
                     )
                     const checked = selectedIds.has(client.id)
                     return (

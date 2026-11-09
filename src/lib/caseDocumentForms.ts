@@ -59,11 +59,6 @@ const FORMS: Record<string, DocumentFormDef> = {
         placeholder: 'e.g. A12345678',
       },
       {
-        key: 'placeOfIssue',
-        label: 'Place of issue',
-        type: 'text',
-      },
-      {
         key: 'issuedOn',
         label: 'Date of issue',
         type: 'date',

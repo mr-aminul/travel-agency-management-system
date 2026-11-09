@@ -276,15 +276,21 @@ describe('settings service catalog', () => {
     expect(table).toHaveTextContent('HR - Payroll')
     expect(table).toHaveTextContent('Access Management')
     expect(table).toHaveTextContent('User')
+    expect(table).toHaveTextContent('Role')
     expect(table).toHaveTextContent('ABC Travel Agency')
-    expect(table).toHaveTextContent('Owner · demo@abctravel.com')
+    expect(table).toHaveTextContent('demo@abctravel.com')
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('combobox', {
+        name: 'Role for ABC Travel Agency',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('combobox', {
         name: 'HR - Payroll access for ABC Travel Agency',
       }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('combobox', {
         name: 'Access Management access for ABC Travel Agency',
       }),
     ).toBeInTheDocument()

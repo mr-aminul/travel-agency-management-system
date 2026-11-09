@@ -25,6 +25,8 @@ import {
   whiteControlClass,
 } from '@/components/clients/shadcnChrome'
 import { cn } from '@/lib/utils'
+import { useCases } from '@/lib/casesStore'
+import { deriveClientBalance } from '@/lib/clientDerived'
 import {
   emptyClientTrash,
   formatBalance,
@@ -34,6 +36,7 @@ import {
   trashDaysRemaining,
   useTrashedClients,
 } from '@/lib/clientsStore'
+import { groupCasesByClientId } from '@/lib/clientServiceStatus'
 import { formatDisplayDateTime } from '@/lib/formatDate'
 import type { TrashedClient } from '@/types/client'
 import '@/styles/layout-clients.css'
@@ -53,6 +56,8 @@ function initials(name: string): string {
 
 export default function TrashPage() {
   const trashed = useTrashedClients()
+  const cases = useCases()
+  const casesByClientId = useMemo(() => groupCasesByClientId(cases), [cases])
   const [search, setSearch] = useState('')
   const [restoreTarget, setRestoreTarget] = useState<TrashedClient | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TrashedClient | null>(null)
@@ -184,7 +189,11 @@ export default function TrashPage() {
                       {daysLeft === 1 ? '1 day' : `${daysLeft} days`}
                     </TableCell>
                     <TableCell className="pd-clients__balance">
-                      {formatBalance(entry.client.balance)}
+                      {formatBalance(
+                        deriveClientBalance(
+                          casesByClientId.get(entry.client.id) ?? [],
+                        ),
+                      )}
                     </TableCell>
                     <TableCell className="pd-clients__actions-cell">
                       <div className="pd-clients__row-actions">

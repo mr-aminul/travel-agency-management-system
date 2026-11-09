@@ -36,7 +36,11 @@ import {
   validateRequiredText,
 } from '@/lib/fieldValidation'
 import { useTouchedFields } from '@/lib/useTouchedFields'
-import type { ClientProfileFieldType } from '@/types/clientProfileField'
+import {
+  CLIENT_PROFILE_SECTIONS,
+  type ClientProfileFieldType,
+  type ClientProfileSectionId,
+} from '@/types/clientProfileField'
 
 const TYPE_OPTIONS: { value: ClientProfileFieldType; label: string }[] = [
   { value: 'text', label: 'Text' },
@@ -47,6 +51,13 @@ const TYPE_OPTIONS: { value: ClientProfileFieldType; label: string }[] = [
 
 function typeLabel(type: ClientProfileFieldType): string {
   return TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type
+}
+
+function sectionLabel(section: ClientProfileSectionId): string {
+  return (
+    CLIENT_PROFILE_SECTIONS.find((option) => option.id === section)?.label ??
+    'Extra'
+  )
 }
 
 export function ClientProfileFieldsSection({
@@ -60,6 +71,7 @@ export function ClientProfileFieldsSection({
   const [composerOpen, setComposerOpen] = useState(false)
   const [label, setLabel] = useState('')
   const [type, setType] = useState<ClientProfileFieldType>('text')
+  const [section, setSection] = useState<ClientProfileSectionId>('extra')
   const [required, setRequired] = useState(false)
   const [optionsText, setOptionsText] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -83,6 +95,7 @@ export function ClientProfileFieldsSection({
     setComposerOpen(false)
     setLabel('')
     setType('text')
+    setSection('extra')
     setRequired(false)
     setOptionsText('')
     setError(null)
@@ -97,6 +110,7 @@ export function ClientProfileFieldsSection({
       createClientProfileField({
         label,
         type,
+        section,
         required,
         options: optionsText
           .split('\n')
@@ -142,6 +156,7 @@ export function ClientProfileFieldsSection({
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-0">
                   <TableHead className={chromeHeadClass}>Field</TableHead>
+                  <TableHead className={chromeHeadClass}>Section</TableHead>
                   <TableHead className={chromeHeadClass}>Type</TableHead>
                   <TableHead className={chromeHeadClass}>Required</TableHead>
                   <TableHead className={chromeHeadClass} aria-label="Actions" />
@@ -151,6 +166,7 @@ export function ClientProfileFieldsSection({
                 {fields.map((field) => (
                   <TableRow key={field.id}>
                     <TableCell>{field.label}</TableCell>
+                    <TableCell>{sectionLabel(field.section)}</TableCell>
                     <TableCell>{typeLabel(field.type)}</TableCell>
                     <TableCell>{field.required ? 'Yes' : 'No'}</TableCell>
                     <TableCell>
@@ -207,6 +223,17 @@ export function ClientProfileFieldsSection({
               }}
               onBlur={blur('label')}
               error={showError('label') ? labelError : undefined}
+            />
+            <Select
+              label="Section"
+              value={section}
+              onChange={(event) =>
+                setSection(event.target.value as ClientProfileSectionId)
+              }
+              options={CLIENT_PROFILE_SECTIONS.map((option) => ({
+                value: option.id,
+                label: option.label,
+              }))}
             />
             <Select
               label="Type"

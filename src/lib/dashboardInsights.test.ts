@@ -262,7 +262,7 @@ describe('owner dashboard insights', () => {
       completionRate: 1 / 3,
       holdRate: 0.5,
       pendingRequests: 1,
-      activeClients: 1,
+      activeClients: 2,
       atRiskCount: 2,
       staleOpenCases: 2,
     })
@@ -332,6 +332,7 @@ describe('owner dashboard insights', () => {
       'hold:case-hold',
     ])
     expect(items[0]?.title).toBe('Nadia')
+    expect(items[0]?.detail).toBe('Mark as In-Progress · Work Permit Visa')
     expect(items[0]?.severity).toBe('high')
     expect(items[1]?.reason).toBe('on-hold')
   })

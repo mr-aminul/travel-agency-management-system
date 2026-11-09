@@ -94,8 +94,6 @@ export function documentMergeValue(
       return text(client?.passportExpiry)
     case 'passportIssuedOn':
       return text(client?.passportIssuedOn)
-    case 'passportPlaceOfIssue':
-      return text(client?.passportPlaceOfIssue)
     case 'agencyName':
       return text(context.agency?.businessName)
     case 'agencyAddress':

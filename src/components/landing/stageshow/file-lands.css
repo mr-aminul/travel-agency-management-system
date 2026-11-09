@@ -1,0 +1,347 @@
+.fl.ss-fit {
+  overflow: hidden;
+}
+
+.fl .ss-stage {
+  overflow: hidden;
+  background: transparent;
+}
+
+.fl .ss-cursor {
+  --ss-cursor-size: 2;
+}
+
+.fl-window {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 960px;
+  height: 420px;
+  border-radius: 16px;
+  box-shadow: var(--ss-shadow-hero);
+  background: linear-gradient(165deg, #1b43a7 0%, #081941 40%, #040c1f 100%);
+}
+
+.fl-window::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 35% 40% at 12% 8%, rgba(12, 45, 121, 0.7), transparent 48%),
+    radial-gradient(ellipse 28% 32% at 22% 4%, rgba(120, 160, 255, 0.28), transparent 46%);
+}
+
+.fl-window .ss-window__lights,
+.fl-window .ss-window__side-top,
+.fl-window .ss-window__main > .ss-window__bar {
+  display: none;
+}
+
+.fl-window .ss-window__side,
+.fl-window .ss-window__main {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  border: 0;
+}
+
+.fl-window .ss-window__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  padding: 6px 8px 0 0;
+  background: transparent;
+}
+
+.fl-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.fl-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  font: 700 13px/1 var(--ss-font);
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.fl-canvas {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
+  background: #e4e7e9;
+  box-shadow: 0 1px 3px rgba(12, 45, 121, 0.12);
+}
+
+.fl-side {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.fl-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  padding: 18px 15px 16px;
+}
+
+.fl-brand__logo {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+.fl-brand__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fl-brand__name {
+  font: 800 15px/1.2 var(--ss-font);
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.fl-brand__sub {
+  margin-top: 2px;
+  font: 500 9px/1.2 var(--ss-font);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+}
+
+.fl-side__rule {
+  height: 1px;
+  margin: 0 8px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.fl-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 15px 0;
+}
+
+.fl-nav__entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fl-nav__section {
+  height: 20px;
+  margin-top: 8px;
+  padding-left: 8px;
+  font: 650 10px/20px var(--ss-font);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.fl-nav__item {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border-radius: 6px;
+  font: 400 13px/1 var(--ss-font);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.fl-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  flex: none;
+}
+
+.fl-nav__item.is-active {
+  background: #3260c9;
+  color: #fff;
+  font-weight: 600;
+}
+
+.fl-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  height: 100%;
+  padding: 16px;
+}
+
+.fl-col__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  margin-bottom: 8px;
+  font: 600 13px/1.3 var(--ss-font);
+  color: #1c2740;
+}
+
+.fl-count {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #0c2d79;
+  color: #fff;
+}
+
+.fl-count .ss-count {
+  font: 600 11px/1 var(--ss-font);
+  color: #fff;
+}
+
+.fl-land {
+  height: 0;
+}
+
+.fl-slot {
+  height: 0;
+  overflow: hidden;
+  transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fl-slot[data-open] {
+  height: 90px;
+}
+
+.fl-slot__box {
+  height: 82px;
+}
+
+.fl-quiet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 64px;
+  margin-bottom: 8px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid rgba(12, 45, 121, 0.08);
+  box-shadow:
+    0 1px 1px rgba(16, 24, 40, 0.04),
+    0 10px 18px -12px rgba(12, 45, 121, 0.45);
+}
+
+.fl-quiet__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fl-quiet__name {
+  font: 600 13px/1.3 var(--ss-font);
+  color: var(--ss-text-strong);
+}
+
+.fl-quiet__meta,
+.fl-card__meta {
+  font: 500 12px/1.3 var(--ss-font);
+  color: var(--ss-text);
+}
+
+.fl-card {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid rgba(12, 45, 121, 0.08);
+  box-shadow:
+    0 1px 1px rgba(16, 24, 40, 0.04),
+    0 10px 18px -12px rgba(12, 45, 121, 0.45);
+  will-change: left, top;
+  transition:
+    left 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.2s ease,
+    scale 0.2s ease;
+}
+
+.fl-card[data-dragging] {
+  transition:
+    box-shadow 0.2s ease,
+    scale 0.2s ease;
+}
+
+.fl-card[data-lifted] {
+  box-shadow: var(--ss-shadow-lift);
+  scale: 1.03;
+}
+
+.fl-card__lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.fl-card__name {
+  font: 600 13px/1.3 var(--ss-font);
+  color: var(--ss-text-strong);
+}
+
+.fl-card .ss-badge {
+  flex: none;
+}
+
+.fl-target {
+  position: absolute;
+  z-index: 2;
+  border: 1.5px dashed color-mix(in srgb, var(--ss-accent) 55%, transparent);
+  border-radius: 10px;
+  background: var(--ss-accent-soft);
+  pointer-events: none;
+}
+
+.fl .ss-stage[data-layout='compact'] .fl-window {
+  top: 12px;
+  left: 12px;
+  width: 334px;
+  height: 460px;
+}
+
+.fl .ss-stage[data-layout='compact'] .fl-board {
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 12px;
+}
+
+.fl .ss-stage[data-layout='compact'] .fl-col:nth-child(n + 3) {
+  display: none;
+}
+
+.fl .ss-stage[data-layout='compact'] .ss-window__side {
+  display: none;
+}
+
+.fl .ss-stage[data-layout='compact'] .fl-window .ss-window__body {
+  padding: 8px 8px 0;
+}

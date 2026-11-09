@@ -130,7 +130,6 @@ function selectedOrAll(selected: string[], value: string) {
 function matchesFilters(
   subAgent: SubAgent,
   search: string,
-  branchFilters: string[],
   statusFilters: string[],
   activityStatus: SubAgentStatus,
   columnFilters: Record<TextColumn, string[]>,
@@ -145,18 +144,13 @@ function matchesFilters(
     subAgent.phone.toLowerCase().includes(q) ||
     subAgent.email?.toLowerCase().includes(q) ||
     subAgent.licenseNumber?.toLowerCase().includes(q) ||
-    subAgent.branch?.toLowerCase().includes(q) ||
     subAgent.id.toLowerCase().includes(q) ||
     (queryDigits.length > 0 && phoneDigits.includes(queryDigits))
-  const matchBranch =
-    branchFilters.length === 0 ||
-    (subAgent.branch ? branchFilters.includes(subAgent.branch) : false)
   const matchStatus =
     statusFilters.length === 0 || statusFilters.includes(activityStatus)
   const phone = normalizePhone(subAgent.phone) || subAgent.phone
   return (
     matchSearch &&
-    matchBranch &&
     matchStatus &&
     selectedOrAll(columnFilters.name, subAgent.name) &&
     selectedOrAll(columnFilters.id, subAgent.id) &&
@@ -173,7 +167,6 @@ export default function SubAgentsPage() {
   const clients = useClients()
   const cases = useCases()
   const [search, setSearch] = useState('')
-  const [branchFilters, setBranchFilters] = useState<string[]>([])
   const [statusFilters, setStatusFilters] = useState<string[]>([])
   const [columnFilters, setColumnFilters] = useState(EMPTY_COLUMN_FILTERS)
   const [newSubAgentOpen, setNewSubAgentOpen] = useState(false)
@@ -187,13 +180,6 @@ export default function SubAgentsPage() {
   useEffect(() => {
     setNewSubAgentOpen(searchParams.get('new') === '1')
   }, [searchParams])
-
-  const branchOptions = useMemo(() => {
-    const branches = [
-      ...new Set(subAgents.map((subAgent) => subAgent.branch).filter(Boolean)),
-    ] as string[]
-    return branches.sort().map((branch) => ({ value: branch, label: branch }))
-  }, [subAgents])
 
   const customerCountBySubAgent = useMemo(() => {
     const counts = new Map<string, number>()
@@ -257,7 +243,6 @@ export default function SubAgentsPage() {
     return matchesFilters(
       subAgent,
       search,
-      branchFilters,
       statusFilters,
       activityStatusBySubAgent.get(subAgent.id) ?? 'Inactive',
       columnFilters,
@@ -286,7 +271,6 @@ export default function SubAgentsPage() {
     }
   }, [customerCountBySubAgent, subAgents])
   const hasActiveFilters =
-    branchFilters.length > 0 ||
     statusFilters.length > 0 ||
     clientFilter !== 'all' ||
     Object.values(columnFilters).some((selected) => selected.length > 0)
@@ -393,7 +377,6 @@ export default function SubAgentsPage() {
               variant="outline"
               className={outlineControl}
               onClick={() => {
-                setBranchFilters([])
                 setStatusFilters([])
                 setClientFilter('all')
                 setColumnFilters(EMPTY_COLUMN_FILTERS)
@@ -450,7 +433,6 @@ export default function SubAgentsPage() {
               className={outlineControl}
               onClick={() => {
                 setSearch('')
-                setBranchFilters([])
                 setStatusFilters([])
                 setClientFilter('all')
                 setColumnFilters(EMPTY_COLUMN_FILTERS)
@@ -493,7 +475,6 @@ export default function SubAgentsPage() {
                   </div>
                   <CardDescription>
                     {subAgent.id} · {normalizePhone(subAgent.phone) || subAgent.phone}
-                    {subAgent.branch ? ` · ${subAgent.branch}` : ''}
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -533,14 +514,6 @@ export default function SubAgentsPage() {
                     onChange={(mobile) =>
                       setColumnFilters((current) => ({ ...current, mobile }))
                     }
-                  />
-                </TableHead>
-                <TableHead className={headClass}>
-                  <ColumnFilterHeader
-                    label="Branch"
-                    options={branchOptions}
-                    selected={branchFilters}
-                    onChange={setBranchFilters}
                   />
                 </TableHead>
                 <TableHead className={headClass}>
@@ -600,9 +573,6 @@ export default function SubAgentsPage() {
                     </TableCell>
                     <TableCell className={cn(cellClass, 'text-muted-foreground')}>
                       {normalizePhone(subAgent.phone) || subAgent.phone}
-                    </TableCell>
-                    <TableCell className={cn(cellClass, 'text-muted-foreground')}>
-                      {subAgent.branch || '—'}
                     </TableCell>
                     <TableCell className={cn(cellClass, 'text-muted-foreground')}>
                       {subAgent.licenseNumber || '—'}

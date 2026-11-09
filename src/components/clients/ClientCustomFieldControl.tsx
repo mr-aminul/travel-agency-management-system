@@ -9,6 +9,7 @@ export function ClientCustomFieldControl({
   field,
   value,
   readOnly,
+  compact,
   error,
   onChange,
   onBlur,
@@ -16,6 +17,7 @@ export function ClientCustomFieldControl({
   field: ClientProfileField
   value: string
   readOnly?: boolean
+  compact?: boolean
   error?: string
   onChange: (value: string) => void
   onBlur?: () => void
@@ -27,6 +29,7 @@ export function ClientCustomFieldControl({
         required={field.required}
         value={value}
         readOnly={readOnly}
+        compact={compact}
         searchable
         error={error}
         onChange={(event) => onChange(event.target.value)}
@@ -43,6 +46,7 @@ export function ClientCustomFieldControl({
         required={field.required}
         value={value}
         readOnly={readOnly}
+        compact={compact}
         error={error}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
@@ -58,6 +62,7 @@ export function ClientCustomFieldControl({
     <Input
       label={field.label}
       required={field.required}
+      compact={compact}
       type={field.type === 'date' && !readOnly ? 'date' : 'text'}
       readOnly={readOnly}
       value={
@@ -65,6 +70,7 @@ export function ClientCustomFieldControl({
           ? formatDisplayDate(value, '')
           : value
       }
+      placeholder={readOnly && !value ? 'Not set' : undefined}
       error={error}
       onChange={(event) => onChange(event.target.value)}
       onBlur={onBlur}

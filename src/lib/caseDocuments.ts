@@ -671,9 +671,6 @@ function overlayIdentityFromClient(
         ...(client.passportIssuedOn
           ? { issuedOn: client.passportIssuedOn }
           : {}),
-        ...(client.passportPlaceOfIssue
-          ? { placeOfIssue: client.passportPlaceOfIssue }
-          : {}),
       },
       fileName: client.passportFile?.fileName ?? doc.fileName,
       fileId: client.passportFile?.fileId ?? doc.fileId,

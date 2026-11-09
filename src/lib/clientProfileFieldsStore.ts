@@ -6,9 +6,11 @@ import { useAuth } from '@/lib/useAuth'
 import { DEFAULT_TENANT_ID } from '@/types/tenant'
 import {
   CLIENT_PROFILE_FIELD_TYPES,
+  CLIENT_PROFILE_SECTIONS,
   type ClientProfileField,
   type ClientProfileFieldDraft,
   type ClientProfileFieldType,
+  type ClientProfileSectionId,
 } from '@/types/clientProfileField'
 
 type Listener = () => void
@@ -41,6 +43,11 @@ function parseType(value: unknown): ClientProfileFieldType | undefined {
   return CLIENT_PROFILE_FIELD_TYPES.find((entry) => entry === value)
 }
 
+function parseSection(value: unknown): ClientProfileSectionId {
+  const match = CLIENT_PROFILE_SECTIONS.find((section) => section.id === value)
+  return match?.id ?? 'extra'
+}
+
 function parseOptions(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value
@@ -62,6 +69,7 @@ function normalizeField(value: unknown): ClientProfileField | undefined {
     tenantId,
     label,
     type,
+    section: parseSection(value.section),
     required: value.required === true,
     options: type === 'select' ? parseOptions(value.options) : [],
     createdAt:
@@ -151,6 +159,7 @@ export function createClientProfileField(
     tenantId: tenantId(),
     label: draft.label.trim(),
     type: draft.type,
+    section: parseSection(draft.section),
     required: draft.required === true,
     options:
       draft.type === 'select'

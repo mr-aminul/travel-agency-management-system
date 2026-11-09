@@ -259,7 +259,6 @@ export function buildSearchCatalog(input: SearchCatalogInput): SearchItem[] {
           subAgent.phone,
           subAgent.email,
           subAgent.licenseNumber,
-          subAgent.branch,
         ]),
         path: `/sub-agents/${subAgent.id}`,
         icon: Handshake,

@@ -37,9 +37,14 @@ describe('client profile custom fields', () => {
       label: 'Profession',
       type: 'text',
     })
+    expect(created.section).toBe('extra')
     expect(listClientProfileFields()).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: created.id, label: 'Profession' }),
+        expect.objectContaining({
+          id: created.id,
+          label: 'Profession',
+          section: 'extra',
+        }),
       ]),
     )
 

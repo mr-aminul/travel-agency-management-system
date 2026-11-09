@@ -1892,8 +1892,14 @@
   box-shadow: 0.25rem 0 0.5rem color-mix(in srgb, var(--color-text) 6%, transparent);
 }
 
-.pd-user-access .pd-table__th:nth-child(n + 3),
-.pd-user-access .pd-table__td:nth-child(n + 3) {
+.pd-user-access .pd-table__th:nth-child(3),
+.pd-user-access .pd-table__td:nth-child(3) {
+  width: 7rem;
+  min-width: 7rem;
+}
+
+.pd-user-access .pd-table__th:nth-child(n + 4),
+.pd-user-access .pd-table__td:nth-child(n + 4) {
   width: 6.75rem;
   min-width: 6.75rem;
 }
@@ -2019,6 +2025,12 @@
     gap: 0.75rem;
     padding-block: 0.35rem;
     border-top: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  }
+
+  .pd-user-access .pd-table__td:nth-child(3),
+  .pd-user-access .pd-table__td:nth-child(n + 4) {
+    width: auto;
+    min-width: 0;
   }
 
   .pd-user-access .pd-table__td:nth-child(n + 3)::before {

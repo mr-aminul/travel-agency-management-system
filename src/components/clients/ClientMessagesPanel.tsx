@@ -15,7 +15,7 @@ import {
   type ChangeEvent,
   type KeyboardEvent,
 } from 'react'
-import { ImagePlus, MessageSquare, X } from 'lucide-react'
+import { ImagePlus, Mail, MessageSquare, X } from 'lucide-react'
 import { SmsTemplatePicker } from '@/components/clients/SmsTemplatePicker'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/shadcn/empty'
 import { readAgencyProfile } from '@/lib/agencyProfile'
@@ -31,6 +31,7 @@ import {
   validateClientMessage,
 } from '@/lib/clientMessagesStore'
 import { formatDisplayDate } from '@/lib/formatDate'
+import { useBilling } from '@/lib/billing/useBilling'
 import { sendClientSmsViaApi } from '@/lib/smsInboundApi'
 import type { Client } from '@/types/client'
 import type {
@@ -88,16 +89,20 @@ export function ClientMessagesPanel({
   client,
   channel = 'sms',
   onChannelChange,
+  embedded = false,
 }: {
   client: Client
   channel?: ClientMessageChannel
   onChannelChange?: (channel: ClientMessageChannel) => void
+  /** Fill a sheet or side panel without the outer card chrome. */
+  embedded?: boolean
 }) {
   const thread = useClientMessages(client.id, channel)
   const chronological = useMemo(() => [...thread].reverse(), [thread])
   const threadRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fileInputId = useId()
+  const { snapshot: billingSnapshot } = useBilling()
   const [body, setBody] = useState('')
   const [useBrandedEmail, setUseBrandedEmail] = useState(false)
   const [attachment, setAttachment] = useState<
@@ -110,6 +115,14 @@ export function ClientMessagesPanel({
   const [showEmailConfirm, setShowEmailConfirm] = useState(false)
 
   const isEmail = channel === 'email'
+  const platformAllowsSms = billingSnapshot?.billing?.smsEnabled !== false
+  const agencySmsOn = billingSnapshot?.billing?.agencySmsEnabled !== false
+  const smsSendingOn = platformAllowsSms && agencySmsOn
+  const smsDisabledReason = !platformAllowsSms
+    ? 'SMS is turned off for this agency. Contact support if you need it back on.'
+    : !agencySmsOn
+      ? 'SMS sending is turned off in your billing settings. Turn it back on to send messages.'
+      : undefined
   const address = isEmail ? client.email?.trim() ?? '' : client.phone.trim()
   const agency = readAgencyProfile(getActiveTenantId())
   const brandedPreviewHtml = useMemo(() => {
@@ -126,7 +139,7 @@ export function ClientMessagesPanel({
     !isBusy &&
     (isEmail
       ? Boolean(body.trim()) || Boolean(attachment)
-      : Boolean(body.trim()))
+      : smsSendingOn && Boolean(body.trim()))
   const historyLabel = isEmail ? 'Email history' : 'SMS history'
   const emptyLabel = isEmail ? 'No email sent yet' : 'No SMS sent yet'
 
@@ -135,6 +148,16 @@ export function ClientMessagesPanel({
     if (!el) return
     el.scrollTop = el.scrollHeight
   }, [chronological.length])
+
+  useEffect(() => {
+    setBody('')
+    setUseBrandedEmail(false)
+    setAttachment(undefined)
+    setError(undefined)
+    setShowSmsConfirm(false)
+    setShowEmailConfirm(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }, [channel])
 
   const clearAttachment = () => {
     setAttachment(undefined)
@@ -263,14 +286,16 @@ export function ClientMessagesPanel({
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="flex min-h-[28rem] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
-          <div className="min-w-0">
-            <p className="m-0 text-xs font-semibold text-muted-foreground">
-              {channelCopy(channel, address)}
-            </p>
-          </div>
+    <div className={cn('flex flex-col', embedded && 'min-h-0 flex-1')}>
+      <div
+        className={cn(
+          'flex flex-col overflow-hidden bg-card',
+          embedded
+            ? 'min-h-0 flex-1 border-0 shadow-none'
+            : 'min-h-[28rem] rounded-xl border border-border shadow-sm',
+        )}
+      >
+        <div className="flex flex-col gap-2 border-b border-border px-3.5 py-2.5">
           {onChannelChange ? (
             <ToggleGroup
               type="single"
@@ -281,18 +306,29 @@ export function ClientMessagesPanel({
                 }
               }}
               variant="outline"
-              size="sm"
-              className="w-fit"
-              aria-label="Reply channel"
+              spacing={0}
+              className="grid w-full grid-cols-2"
+              aria-label="Message channel"
             >
-              <ToggleGroupItem value="sms" className="px-3">
-                Reply via SMS
+              <ToggleGroupItem
+                value="sms"
+                className="h-9 justify-center gap-1.5 rounded-none px-3 first:rounded-l-lg last:rounded-r-lg"
+              >
+                <MessageSquare size={14} strokeWidth={2.25} aria-hidden />
+                SMS
               </ToggleGroupItem>
-              <ToggleGroupItem value="email" className="px-3">
-                Send Email
+              <ToggleGroupItem
+                value="email"
+                className="h-9 justify-center gap-1.5 rounded-none px-3 first:rounded-l-lg last:rounded-r-lg"
+              >
+                <Mail size={14} strokeWidth={2.25} aria-hidden />
+                Email
               </ToggleGroupItem>
             </ToggleGroup>
           ) : null}
+          <p className="m-0 text-xs font-semibold text-muted-foreground">
+            {channelCopy(channel, address)}
+          </p>
         </div>
 
         <div
@@ -468,7 +504,7 @@ export function ClientMessagesPanel({
               </Button>
             </div>
           </form>
-        ) : (
+        ) : smsSendingOn ? (
           <form
             className="flex flex-col gap-3 border-t border-border bg-card p-3.5"
             onSubmit={(event) => event.preventDefault()}
@@ -523,6 +559,12 @@ export function ClientMessagesPanel({
               </p>
             ) : null}
           </form>
+        ) : (
+          <div className="border-t border-border bg-card p-3.5">
+            <p className="m-0 text-sm text-muted-foreground" role="status">
+              {smsDisabledReason}
+            </p>
+          </div>
         )}
       </div>
 

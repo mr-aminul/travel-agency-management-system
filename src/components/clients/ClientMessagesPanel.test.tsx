@@ -37,6 +37,19 @@ vi.mock('@/lib/clientEmailApi', () => ({
 
 import { sendClientSmsViaApi } from '@/lib/smsInboundApi'
 import { sendClientEmailViaApi } from '@/lib/clientEmailApi'
+import { useBilling } from '@/lib/billing/useBilling'
+
+vi.mock('@/lib/billing/useBilling', () => ({
+  useBilling: vi.fn(() => ({
+    snapshot: null,
+    plans: [],
+    instructions: null,
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+    apiEnabled: false,
+  })),
+}))
 
 afterEach(() => {
   cleanup()
@@ -48,10 +61,22 @@ afterEach(() => {
 beforeEach(() => {
   vi.mocked(sendClientSmsViaApi).mockClear()
   vi.mocked(sendClientEmailViaApi).mockClear()
+  vi.mocked(useBilling).mockReturnValue({
+    snapshot: null,
+    plans: [],
+    instructions: null,
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+    apiEnabled: false,
+  })
   resetSmsTemplates()
 })
 
-function renderMessages(channel: 'sms' | 'email' = 'sms') {
+function renderMessages(
+  channel: 'sms' | 'email' = 'sms',
+  onChannelChange?: (channel: 'sms' | 'email') => void,
+) {
   writeSession({
     user: DEMO_USER,
     tenantId: TENANT_IDS.demo,
@@ -61,7 +86,11 @@ function renderMessages(channel: 'sms' | 'email' = 'sms') {
   if (!client) throw new Error('Expected seeded client')
   return render(
     <AuthProvider>
-      <ClientMessagesPanel client={client} channel={channel} />
+      <ClientMessagesPanel
+        client={client}
+        channel={channel}
+        onChannelChange={onChannelChange}
+      />
     </AuthProvider>,
   )
 }
@@ -118,6 +147,95 @@ describe('client messages panel', () => {
     expect(screen.getByRole('textbox', { name: 'Message' })).toHaveValue(
       'Dear Md. Rahim Uddin, your Client ID is c-284. Please quote this ID when you contact us. — ABC Travel Agency',
     )
+  })
+
+  it('hides SMS send options when SMS is turned off', () => {
+    vi.mocked(useBilling).mockReturnValue({
+      snapshot: {
+        billing: {
+          smsEnabled: false,
+          agencySmsEnabled: true,
+        },
+      } as ReturnType<typeof useBilling>['snapshot'],
+      plans: [],
+      instructions: null,
+      loading: false,
+      error: null,
+      reload: vi.fn(),
+      apiEnabled: true,
+    })
+
+    renderMessages('sms')
+
+    expect(
+      screen.queryByRole('button', { name: 'Send SMS' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'SMS Template' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('textbox', { name: 'Message' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'SMS is turned off for this agency. Contact support if you need it back on.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps SMS channel visible when SMS sending is turned off', () => {
+    vi.mocked(useBilling).mockReturnValue({
+      snapshot: {
+        billing: {
+          smsEnabled: false,
+          agencySmsEnabled: true,
+        },
+      } as ReturnType<typeof useBilling>['snapshot'],
+      plans: [],
+      instructions: null,
+      loading: false,
+      error: null,
+      reload: vi.fn(),
+      apiEnabled: true,
+    })
+    const onChannelChange = vi.fn()
+
+    renderMessages('sms', onChannelChange)
+
+    expect(screen.getByRole('radio', { name: 'SMS' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Email' })).toBeInTheDocument()
+    expect(onChannelChange).not.toHaveBeenCalled()
+    expect(
+      screen.queryByRole('button', { name: 'Send SMS' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('switches between SMS and Email interfaces', () => {
+    const onChannelChange = vi.fn()
+    const { rerender } = renderMessages('sms', onChannelChange)
+    const client = getClientById('c-284')
+    if (!client) throw new Error('Expected seeded client')
+
+    expect(screen.getByRole('button', { name: 'Send SMS' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('radio', { name: 'Email' }))
+    expect(onChannelChange).toHaveBeenCalledWith('email')
+
+    rerender(
+      <AuthProvider>
+        <ClientMessagesPanel
+          client={client}
+          channel="email"
+          onChannelChange={onChannelChange}
+        />
+      </AuthProvider>,
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'Send email' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Send SMS' }),
+    ).not.toBeInTheDocument()
   })
 
   it('sends branded email via API after confirmation', async () => {

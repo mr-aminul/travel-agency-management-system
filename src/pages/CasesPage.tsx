@@ -6,6 +6,7 @@ import { ServicesViewToggle } from '@/components/cases/ServicesViewToggle'
 import { useCases } from '@/lib/casesStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 import { parseServicesView, type ServicesView } from '@/lib/workPaths'
+import '@/styles/layout-clients.css'
 
 export default function CasesPage() {
   const [searchParams, setSearchParams] = useSearchParams()

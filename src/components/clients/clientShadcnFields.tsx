@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils'
 type TextFieldProps = ComponentProps<'input'> & {
   label: string
   error?: string
+  /** Smaller label + control for dense sheets. */
+  compact?: boolean
 }
 
 export function Input({
@@ -21,18 +23,34 @@ export function Input({
   error,
   id,
   required,
+  compact,
   className,
   ...props
 }: TextFieldProps) {
   const autoId = useId()
   const inputId = id ?? autoId
   return (
-    <Field data-invalid={error ? true : undefined}>
+    <Field
+      data-invalid={error ? true : undefined}
+      className={compact ? 'gap-1' : undefined}
+    >
       <div className="flex items-baseline gap-1">
         {/* Keep required * outside the label so getByLabelText(label) matches exact text. */}
-        <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
+        <FieldLabel
+          htmlFor={inputId}
+          className={
+            compact
+              ? 'text-xs font-medium text-muted-foreground'
+              : undefined
+          }
+        >
+          {label}
+        </FieldLabel>
         {required ? (
-          <span className="text-destructive" aria-hidden="true">
+          <span
+            className={cn('text-destructive', compact && 'text-xs')}
+            aria-hidden="true"
+          >
             *
           </span>
         ) : null}
@@ -42,7 +60,11 @@ export function Input({
         id={inputId}
         required={required}
         aria-invalid={error ? true : undefined}
-        className={cn('bg-[var(--color-surface)]', className)}
+        className={cn(
+          'bg-[var(--color-surface)]',
+          compact && 'h-8 text-sm',
+          className,
+        )}
       />
       {error ? <FieldError>{error}</FieldError> : null}
     </Field>
@@ -85,6 +107,7 @@ type SelectFieldProps = {
   searchPlaceholder?: string
   placeholder?: string
   className?: string
+  compact?: boolean
   onChange: (event: ChangeEvent<HTMLSelectElement>) => void
   onBlur?: () => void
 }
@@ -98,16 +121,32 @@ export function Select({
   disabled,
   readOnly,
   className,
+  compact,
   onChange,
   onBlur,
 }: SelectFieldProps) {
   const autoId = useId()
   return (
-    <Field data-invalid={error ? true : undefined}>
+    <Field
+      data-invalid={error ? true : undefined}
+      className={compact ? 'gap-1' : undefined}
+    >
       <div className="flex items-baseline gap-1">
-        <FieldLabel htmlFor={autoId}>{label}</FieldLabel>
+        <FieldLabel
+          htmlFor={autoId}
+          className={
+            compact
+              ? 'text-xs font-medium text-muted-foreground'
+              : undefined
+          }
+        >
+          {label}
+        </FieldLabel>
         {required ? (
-          <span className="text-destructive" aria-hidden="true">
+          <span
+            className={cn('text-destructive', compact && 'text-xs')}
+            aria-hidden="true"
+          >
             *
           </span>
         ) : null}
@@ -123,7 +162,11 @@ export function Select({
       >
         <SelectTrigger
           id={autoId}
-          className={cn('h-9 w-full bg-[var(--color-surface)]', className)}
+          className={cn(
+            'w-full bg-[var(--color-surface)]',
+            compact ? 'h-8' : 'h-9',
+            className,
+          )}
           onBlur={onBlur}
         >
           <SelectValue />

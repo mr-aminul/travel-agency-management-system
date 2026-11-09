@@ -71,11 +71,6 @@ export const SMS_TEMPLATE_ATTRIBUTES = [
     token: '{{passportIssuedOn}}',
   },
   {
-    key: 'passportPlaceOfIssue',
-    label: 'Passport place of issue',
-    token: '{{passportPlaceOfIssue}}',
-  },
-  {
     key: 'trackingLink',
     label: 'Passport tracking link',
     token: '{{trackingLink}}',

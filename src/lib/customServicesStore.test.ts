@@ -6,11 +6,7 @@ import {
   getCasesByService,
   renameServiceOnCases,
 } from '@/lib/casesStore'
-import {
-  createClient,
-  getClientById,
-  renameServiceOnClients,
-} from '@/lib/clientsStore'
+import { createClient, renameServiceOnClients } from '@/lib/clientsStore'
 import {
   createCustomService,
   deleteCustomService,
@@ -125,7 +121,11 @@ describe('custom services', () => {
     renameServiceOnClients('Courier desk', 'Document courier')
 
     expect(getCasesByService('Document courier')).toHaveLength(1)
-    expect(getClientById(client.id)?.services).toContain('Document courier')
+    expect(
+      getCasesByService('Document courier').some(
+        (item) => item.clientId === client.id,
+      ),
+    ).toBe(true)
     expect(
       getEnabledServiceOptions().some(
         (option) => option.value === 'Document courier',

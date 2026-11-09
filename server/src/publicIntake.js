@@ -1,5 +1,5 @@
 import { query } from './db.js'
-import { upsertClient } from './domain.js'
+import { upsertCase, upsertClient } from './domain.js'
 
 function asArray(value) {
   return Array.isArray(value) ? value : []
@@ -239,15 +239,42 @@ function buildClientPayload(input, tenantId, subAgentId) {
     passport: String(input?.passport || '').trim() || undefined,
     passportExpiry: String(input?.passportExpiry || '').trim() || undefined,
     passportIssuedOn: String(input?.passportIssuedOn || '').trim() || undefined,
-    passportPlaceOfIssue:
-      String(input?.passportPlaceOfIssue || '').trim() || undefined,
-    services: [primaryService],
+    // Service files own the job; Client is the person only.
+    services: [],
     balance: 0,
     activeCases: 0,
     idChecked: true,
     createdAt: now,
   }
   return { payload }
+}
+
+function buildStarterCase(client, primaryService, serviceCountry) {
+  const now = new Date().toISOString().slice(0, 10)
+  const id = `case-${Date.now().toString(36)}`
+  const country =
+    typeof serviceCountry === 'string' && serviceCountry.trim()
+      ? serviceCountry.trim()
+      : undefined
+  return {
+    id,
+    tenantId: client.tenantId,
+    caseId: `SR-${String(Date.now()).slice(-5)}`,
+    clientId: client.id,
+    clientName: client.name,
+    service: primaryService,
+    status: 'Pending',
+    stage: 'Intake',
+    currentStepId: 'intake',
+    steps: {},
+    documents: [],
+    destination: country,
+    serviceCountry: country,
+    serviceFee: 0,
+    balance: 0,
+    createdAt: now,
+    updatedAt: now,
+  }
 }
 
 export async function submitAgencyIntake(slugOrId, input) {
@@ -263,6 +290,15 @@ export async function submitAgencyIntake(slugOrId, input) {
     }
   }
   await upsertClient(resolved.tenant.id, built.payload)
+  const primaryService = String(input?.primaryService || '').trim()
+  if (primaryService) {
+    const starter = buildStarterCase(
+      built.payload,
+      primaryService,
+      input?.preferredCountry || input?.serviceCountry,
+    )
+    await upsertCase(resolved.tenant.id, starter)
+  }
   return {
     ok: true,
     awaitingApproval: false,

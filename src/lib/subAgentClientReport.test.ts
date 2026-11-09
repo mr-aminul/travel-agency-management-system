@@ -6,6 +6,7 @@ import {
   subAgentClientReportPdfFileName,
 } from '@/lib/subAgentClientReport'
 import type { AgencyProfile } from '@/lib/agencyProfile'
+import type { Case } from '@/types/case'
 import type { Client } from '@/types/client'
 import type { SubAgent } from '@/types/subAgent'
 
@@ -15,7 +16,6 @@ const subAgent: SubAgent = {
   name: 'S Badal Overseas',
   phone: '01827112598',
   licenseNumber: '2978',
-  branch: 'Dhaka',
   status: 'Active',
   createdAt: '2026-10-29T00:00:00.000Z',
 }
@@ -59,6 +59,26 @@ const profile: AgencyProfile = {
   profilePicture: null,
 }
 
+const cases: Case[] = [
+  {
+    id: 'case-1',
+    tenantId: 'tenant-full',
+    caseId: 'SR-00001',
+    clientId: 'CLT-1',
+    clientName: 'MD HASMOT ALI',
+    service: 'Work Permit Visa',
+    status: 'Pending',
+    stage: 'Intake',
+    currentStepId: 'intake',
+    steps: {},
+    documents: [],
+    serviceFee: 5000,
+    balance: 5000,
+    createdAt: '2026-10-01',
+    updatedAt: '2026-10-01',
+  },
+]
+
 describe('buildSubAgentClientReport', () => {
   it('builds a branded report for selected clients only', () => {
     const report = buildSubAgentClientReport({
@@ -66,6 +86,7 @@ describe('buildSubAgentClientReport', () => {
       clients: [clients[0]],
       statusByClientId: new Map([['CLT-1', 'Pending']]),
       profile,
+      cases,
       issuedOn: '2026-11-04',
     })
 
@@ -90,6 +111,7 @@ describe('buildSubAgentClientReport', () => {
       statusByClientId: new Map([['CLT-1', 'Pending']]),
       profile,
       columns: ['name', 'balance'],
+      cases,
       issuedOn: '2026-11-04',
     })
 

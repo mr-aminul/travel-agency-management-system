@@ -64,7 +64,6 @@ import { getCurrentStepLabel } from '@/lib/caseChecklist'
 import { createCase, deleteCase, getEnabledServiceOptions } from '@/lib/casesStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 import { formatBalance } from '@/lib/clientsStore'
-import { caseServiceFee } from '@/lib/caseMoney'
 import { getEmployeeDisplayName } from '@/lib/employeesStore'
 import { isOverdueReceivable } from '@/lib/dashboardInsights'
 import { formatBdt } from '@/lib/dashboardMetrics'
@@ -307,15 +306,11 @@ export type CasesListProps = {
   emptyAction?: ReactNode
   /** Highlight the open service on a client profile. */
   selectedId?: string
-  /** Bump this to flash the Service fee column for a few seconds. */
-  serviceFeeHighlightToken?: number
   /** List / Board control when this list is the Services page. */
   viewToggle?: ReactNode
   /** Show a delete action on each row (client overview services table). */
   allowDelete?: boolean
 }
-
-export const SERVICE_FEE_HIGHLIGHT_MS = 3000
 
 export function CasesList({
   cases,
@@ -332,7 +327,6 @@ export function CasesList({
   emptyTitle = 'No services yet',
   emptyAction,
   selectedId,
-  serviceFeeHighlightToken = 0,
   viewToggle,
   allowDelete = false,
 }: CasesListProps) {
@@ -344,7 +338,6 @@ export function CasesList({
   const [newCaseOpen, setNewCaseOpen] = useState(false)
   const [dueOnly, setDueOnly] = useState(false)
   const [overdueOnly, setOverdueOnly] = useState(false)
-  const [highlightServiceFee, setHighlightServiceFee] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Case | null>(null)
   const catalog = useCatalogServiceRefs()
   const serviceFilterOptions = useEnabledServiceOptions()
@@ -358,15 +351,6 @@ export function CasesList({
     syncNewWithSearchParams && searchParams.get('overdue') === '1'
 
   useEffect(() => {
-    if (!serviceFeeHighlightToken) return
-    setHighlightServiceFee(true)
-    const timer = window.setTimeout(() => {
-      setHighlightServiceFee(false)
-    }, SERVICE_FEE_HIGHLIGHT_MS)
-    return () => window.clearTimeout(timer)
-  }, [serviceFeeHighlightToken])
-
-  useEffect(() => {
     if (!showServiceChips || !syncNewWithSearchParams) return
     setServiceFilters(urlService ? [urlService] : [])
   }, [showServiceChips, syncNewWithSearchParams, urlService])
@@ -377,11 +361,6 @@ export function CasesList({
     setOverdueOnly(urlOverdue)
     if (urlDue || urlOverdue) setStatusFilters([])
   }, [syncNewWithSearchParams, urlDue, urlOverdue])
-
-  const feeCellClass = cx(
-    'tabular-nums font-medium',
-    highlightServiceFee && 'bg-primary/10',
-  )
 
   const serviceScoped = useMemo(() => {
     if (!showServiceColumn || serviceFilters.length === 0) return cases
@@ -648,20 +627,11 @@ export function CasesList({
         <TableHeader>
           <TableRow className="border-0 hover:bg-transparent">
             <TableHead className={chromeHeadClass}>Service</TableHead>
-            <TableHead className={chromeHeadClass}>ID</TableHead>
             <TableHead className={chromeHeadClass}>Created At</TableHead>
             {showClientColumn && <TableHead className={chromeHeadClass}>Client</TableHead>}
+            <TableHead className={chromeHeadClass}>Assignee</TableHead>
             <TableHead className={chromeHeadClass}>Current Step</TableHead>
             <TableHead className={chromeHeadClass}>Destination</TableHead>
-            <TableHead className={chromeHeadClass}>Departure</TableHead>
-            <TableHead
-              className={cx(
-                chromeHeadClass,
-                highlightServiceFee && 'ring-2 ring-inset ring-white/50',
-              )}
-            >
-              Service Fee
-            </TableHead>
             <TableHead className={chromeHeadClass}>Balance Due</TableHead>
             <TableHead className={chromeHeadClass}>Status</TableHead>
             {allowDelete ? (
@@ -695,17 +665,13 @@ export function CasesList({
                     <p className="m-0 font-medium">{item.service}</p>
                   </span>
                 </TableCell>
-                <TableCell className="font-mono text-xs">{item.caseId}</TableCell>
                 <TableCell>{formatCaseDate(item.createdAt)}</TableCell>
                 {showClientColumn && <TableCell>{item.clientName}</TableCell>}
+                <TableCell>{getEmployeeDisplayName(item.assignedTo) || '-'}</TableCell>
                 <TableCell>
                   <span className="text-sm">{getCurrentStepLabel(item)}</span>
                 </TableCell>
                 <TableCell>{item.destination || '-'}</TableCell>
-                <TableCell>{formatCaseDate(item.departureDate)}</TableCell>
-                <TableCell className={feeCellClass}>
-                  {formatBalance(caseServiceFee(item))}
-                </TableCell>
                 <TableCell className="tabular-nums font-medium">
                   {formatBalance(item.balance)}
                 </TableCell>

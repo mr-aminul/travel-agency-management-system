@@ -17,8 +17,10 @@ function ReadOnlyField({
   isDate?: boolean
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <dt className="text-xs font-semibold text-muted-foreground">{label}</dt>
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <dt className="text-[0.6875rem] font-medium text-muted-foreground">
+        {label}
+      </dt>
       <dd className="m-0 text-sm">
         {isDate ? formatDisplayDate(value) : value || '-'}
       </dd>
@@ -45,6 +47,7 @@ export function DocumentRecordFields({
   embedded = false,
   hideFileMeta = false,
   highlightNeedsFile = false,
+  compact = false,
   afterFields,
 }: {
   document: CaseDocument
@@ -66,6 +69,7 @@ export function DocumentRecordFields({
   hideFileMeta?: boolean
   /** Soft highlight on the dropzone when a scan is still required. */
   highlightNeedsFile?: boolean
+  compact?: boolean
   afterFields?: ReactNode
 }) {
   const isView = mode === 'view'
@@ -83,8 +87,13 @@ export function DocumentRecordFields({
       !fieldValues.some((value) => summary === value || summary.includes(value)),
   )
 
+  const fieldGridClass = cn(
+    'm-0 grid sm:grid-cols-2',
+    compact ? 'gap-x-4 gap-y-2' : 'gap-3',
+  )
+
   const fieldBlock = isView ? (
-    <dl className="m-0 grid gap-3 sm:grid-cols-2">
+    <dl className={fieldGridClass}>
       {form.fields.map((field) => (
         <ReadOnlyField
           key={field.key}
@@ -96,13 +105,14 @@ export function DocumentRecordFields({
       {showSummary ? <ReadOnlyField label="Summary" value={summary ?? ''} /> : null}
     </dl>
   ) : (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className={fieldGridClass}>
       {form.fields.map((field) =>
         field.type === 'select' ? (
           <Select
             key={field.key}
             label={field.label}
             required={field.required}
+            compact={compact}
             value={fields[field.key] ?? ''}
             placeholder={field.placeholder || 'Choose…'}
             options={(field.options ?? []).map((option) => ({
@@ -117,6 +127,7 @@ export function DocumentRecordFields({
             key={field.key}
             label={field.label}
             required={field.required}
+            compact={compact}
             type={
               field.type === 'date'
                 ? 'date'

@@ -50,18 +50,26 @@ export type Client = {
   passport?: string
   passportExpiry?: string
   passportIssuedOn?: string
-  passportPlaceOfIssue?: string
   /** Scan attached from the client Documents drawer. */
   passportFile?: ClientFileRef
   nidFile?: ClientFileRef
   avatarUrl?: string
   /** Sub agent who referred this client. */
   subAgentId?: string
-  /** Services this client has engaged. Derived from requests + intake. */
+  /**
+   * Legacy persisted cache. Prefer `deriveClientServices(cases)`.
+   * Kept so older JSON blobs still load; new writes keep this empty.
+   */
   services: ServiceType[]
-  /** Sum of open service-request balances. */
+  /**
+   * Legacy persisted cache. Prefer `deriveClientBalance(cases)`.
+   * Kept so older JSON blobs still load; new writes keep this at 0.
+   */
   balance: number
-  /** Count of non-completed/cancelled services. */
+  /**
+   * Legacy persisted cache. Prefer `deriveClientActiveCases(cases)`.
+   * Kept so older JSON blobs still load; new writes keep this at 0.
+   */
   activeCases: number
   idChecked: boolean
   createdAt: string
@@ -84,7 +92,6 @@ export type CreateClientInput = {
   passport?: string
   passportExpiry?: string
   passportIssuedOn?: string
-  passportPlaceOfIssue?: string
   banglaName?: string
   fatherName?: string
   motherName?: string
@@ -113,7 +120,11 @@ export type CreateClientInput = {
   branch?: string
   subAgentId?: string
   avatarUrl?: string
-  primaryService: ServiceType
+  /**
+   * Public intake only: which service the person asked for.
+   * Not stored on the Client row — callers open a Service file separately.
+   */
+  primaryService?: ServiceType
   idChecked: boolean
 }
 

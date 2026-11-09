@@ -1,7 +1,5 @@
 import {
   useEffect,
-  useEffectEvent,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -9,10 +7,17 @@ import {
   type ReactNode,
 } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { LayoutGrid, ListFilter, PackageOpen } from 'lucide-react'
+import { LayoutGrid, ListFilter, MapPin, PackageOpen } from 'lucide-react'
 import { StepCompletionDrawer } from '@/components/cases/StepCompletionDrawer'
 import { Badge } from '@/components/shadcn/badge'
 import { Button } from '@/components/shadcn/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/shadcn/card'
 import { Checkbox } from '@/components/shadcn/checkbox'
 import {
   Empty,
@@ -25,7 +30,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/shadcn/popover'
-import { whiteControlClass } from '@/components/clients/shadcnChrome'
+import { Tabs, TabsList, TabsTrigger } from '@/components/shadcn/tabs'
+import {
+  elevatedPageClass,
+  whiteControlClass,
+} from '@/components/clients/shadcnChrome'
 import { cn } from '@/lib/utils'
 import { getNextStepDef, getStepDefs } from '@/lib/caseChecklist'
 import {
@@ -40,8 +49,7 @@ import {
   useEnabledServiceOptions,
 } from '@/lib/serviceCatalog'
 import { serviceToSlug, type ServiceType } from '@/types/case'
-import '@/styles/layout-cases.css'
-import '@/styles/layout-service-board.css'
+import '@/styles/layout-clients.css'
 
 const BOARD_DRAG_MIME = 'application/x-onetrack-service-board-case'
 
@@ -53,10 +61,10 @@ type BoardDragPayload = {
 
 const STATE_BADGE: Record<
   Exclude<ServiceBoardState, 'actionable'>,
-  { label: string; variant: 'destructive' | 'outline' }
+  { label: string; variant: 'destructive' | 'secondary' }
 > = {
   blocked: { label: 'Blocked', variant: 'destructive' },
-  'on-hold': { label: 'On Hold', variant: 'outline' },
+  'on-hold': { label: 'On Hold', variant: 'secondary' },
 }
 
 function ServiceFilterChoices({
@@ -224,11 +232,7 @@ function BoardCard({
   const isStale = item.daysWaiting >= 7
   const place = item.destination !== '-' ? item.destination : null
   const detail =
-    item.state === 'blocked'
-      ? item.action
-      : item.state === 'on-hold'
-        ? item.action
-        : null
+    item.state === 'blocked' || item.state === 'on-hold' ? item.action : null
   const suppressClickRef = useRef(false)
 
   return (
@@ -242,15 +246,16 @@ function BoardCard({
             : 'Drag to the next stage to advance'
           : undefined
       }
-      className={[
-        'pd-board__card',
-        `pd-board__card--${item.state}`,
-        isStale ? 'is-stale' : '',
-        canDrag ? 'is-draggable' : '',
-        isDragging ? 'is-dragging' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      className={cn(
+        'flex w-full flex-col gap-1.5 rounded-lg border bg-card p-3 text-left shadow-xs transition',
+        'hover:border-primary/35 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        item.state === 'blocked' && 'border-destructive/40 bg-destructive/[0.03]',
+        item.state === 'on-hold' && 'border-border/80 bg-muted/40',
+        item.state === 'actionable' && 'border-border',
+        isStale && item.state === 'actionable' && 'border-amber-500/35',
+        canDrag && 'cursor-grab active:cursor-grabbing',
+        isDragging && 'opacity-45 ring-2 ring-primary/40',
+      )}
       onClick={() => {
         if (suppressClickRef.current) {
           suppressClickRef.current = false
@@ -269,27 +274,50 @@ function BoardCard({
         }, 0)
       }}
     >
-      <span className="pd-board__card-row">
-        <span className="pd-board__card-name">{item.clientName}</span>
+      <span className="flex items-start justify-between gap-2">
+        <span className="min-w-0 text-sm font-semibold leading-snug text-foreground">
+          {item.clientName}
+        </span>
         {badge ? (
-          <Badge variant={badge.variant}>{badge.label}</Badge>
+          <Badge variant={badge.variant} className="shrink-0">
+            {badge.label}
+          </Badge>
         ) : (
-          <span className={`pd-board__card-wait${isStale ? ' is-stale' : ''}`}>
+          <span
+            className={cn(
+              'shrink-0 text-xs tabular-nums text-muted-foreground',
+              isStale && 'font-medium text-amber-700 dark:text-amber-400',
+            )}
+          >
             {waitLabel(item.daysWaiting)}
           </span>
         )}
       </span>
 
-      <span className="pd-board__card-meta">
-        {place ? <span className="pd-board__card-place">{place}</span> : null}
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+        {place ? (
+          <span className="inline-flex min-w-0 items-center gap-1">
+            <MapPin size={12} strokeWidth={2} aria-hidden />
+            <span className="truncate">{place}</span>
+          </span>
+        ) : null}
         {badge ? (
-          <span className={`pd-board__card-wait${isStale ? ' is-stale' : ''}`}>
+          <span
+            className={cn(
+              'tabular-nums',
+              isStale && 'font-medium text-amber-700 dark:text-amber-400',
+            )}
+          >
             {waitLabel(item.daysWaiting)}
           </span>
         ) : null}
       </span>
 
-      {detail ? <span className="pd-board__card-detail">{detail}</span> : null}
+      {detail ? (
+        <span className="line-clamp-2 text-xs leading-snug text-muted-foreground">
+          {detail}
+        </span>
+      ) : null}
     </button>
   )
 }
@@ -325,13 +353,6 @@ export function ServiceBoardView({ viewToggle }: ServiceBoardViewProps) {
   } | null>(null)
   const dragRef = useRef<{ caseId: string; nextStepId: string } | null>(null)
   const [dropTargetStepId, setDropTargetStepId] = useState<string | null>(null)
-  const switcherRef = useRef<HTMLElement>(null)
-  const switcherItemRefs = useRef(new Map<string, HTMLButtonElement>())
-  const [switcherPill, setSwitcherPill] = useState({
-    left: 0,
-    width: 0,
-    ready: false,
-  })
 
   const scopedCases = useMemo(
     () => cases.filter((item) => enabledKeys.has(item.service)),
@@ -394,48 +415,6 @@ export function ServiceBoardView({ viewToggle }: ServiceBoardViewProps) {
       setFocusService('all')
     }
   }, [boardKeys, boards, focusService])
-
-  const syncSwitcherPill = useEffectEvent(() => {
-    const list = switcherRef.current
-    const item = switcherItemRefs.current.get(focusService)
-    if (!list || !item) return
-    const listRect = list.getBoundingClientRect()
-    const itemRect = item.getBoundingClientRect()
-    const left = itemRect.left - listRect.left + list.scrollLeft
-    const width = itemRect.width
-    setSwitcherPill((current) => {
-      if (
-        current.ready &&
-        Math.abs(current.left - left) < 0.5 &&
-        Math.abs(current.width - width) < 0.5
-      ) {
-        return current
-      }
-      return { left, width, ready: true }
-    })
-  })
-
-  useLayoutEffect(() => {
-    syncSwitcherPill()
-  }, [focusService, boardKeys])
-
-  useEffect(() => {
-    const list = switcherRef.current
-    if (!list) return
-    const onScrollOrResize = () => syncSwitcherPill()
-    list.addEventListener('scroll', onScrollOrResize, { passive: true })
-    window.addEventListener('resize', onScrollOrResize)
-    const observer =
-      typeof ResizeObserver !== 'undefined'
-        ? new ResizeObserver(onScrollOrResize)
-        : null
-    observer?.observe(list)
-    return () => {
-      list.removeEventListener('scroll', onScrollOrResize)
-      window.removeEventListener('resize', onScrollOrResize)
-      observer?.disconnect()
-    }
-  }, [])
 
   const shownBoards =
     focusService === 'all'
@@ -516,7 +495,8 @@ export function ServiceBoardView({ viewToggle }: ServiceBoardViewProps) {
 
   return (
     <div
-      className="pd-page pd-service-board pd-service-board--ink-desk"
+      className={cn('pd-page pd-page--elevated', elevatedPageClass)}
+      data-elevated-canvas
       aria-label="Services board"
     >
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -595,200 +575,218 @@ export function ServiceBoardView({ viewToggle }: ServiceBoardViewProps) {
         </Empty>
       ) : (
         <>
-          <nav
-            ref={switcherRef}
-            className="pd-board-switcher"
-            aria-label="Services"
+          <Tabs
+            value={focusService}
+            onValueChange={(value) => {
+              setFocusService(value)
+              if (value === 'all') writeServiceQuery()
+              else writeServiceQuery(value as ServiceType)
+            }}
           >
-            <span
-              className={`pd-board-switcher__pill${switcherPill.ready ? ' is-ready' : ''}`}
-              aria-hidden
-              style={{
-                transform: `translateX(${switcherPill.left}px)`,
-                width: switcherPill.width,
-              }}
-            />
-            <button
-              type="button"
-              ref={(node) => {
-                if (node) switcherItemRefs.current.set('all', node)
-                else switcherItemRefs.current.delete('all')
-              }}
-              className={`pd-board-switcher__item${focusService === 'all' ? ' is-selected' : ''}`}
-              aria-current={focusService === 'all' ? 'true' : undefined}
-              onClick={() => {
-                setFocusService('all')
-                writeServiceQuery()
-              }}
-            >
-              <span className="pd-board-switcher__icon" aria-hidden>
-                <LayoutGrid size={16} strokeWidth={2} />
-              </span>
-              <span className="pd-board-switcher__label">All</span>
-              <span className="pd-board-switcher__count">{totalOpen}</span>
-            </button>
-            {boards.map((board) => {
+            <div className="overflow-x-auto">
+              <TabsList
+                aria-label="Services"
+                className="h-auto min-h-9 w-max max-w-none gap-1 bg-muted/70 p-1"
+              >
+                <TabsTrigger value="all" className="gap-1.5 px-2.5 py-1.5">
+                  <LayoutGrid size={15} strokeWidth={2} aria-hidden />
+                  All
+                  <Badge
+                    variant="secondary"
+                    className="h-5 min-w-5 px-1.5 tabular-nums"
+                  >
+                    {totalOpen}
+                  </Badge>
+                </TabsTrigger>
+                {boards.map((board) => {
+                  const Icon = board.icon
+                  return (
+                    <TabsTrigger
+                      key={board.key}
+                      value={board.key}
+                      className="gap-1.5 px-2.5 py-1.5"
+                    >
+                      <Icon size={15} strokeWidth={2} aria-hidden />
+                      {board.label}
+                      <Badge
+                        variant="secondary"
+                        className="h-5 min-w-5 px-1.5 tabular-nums"
+                      >
+                        {board.openCount}
+                      </Badge>
+                    </TabsTrigger>
+                  )
+                })}
+              </TabsList>
+            </div>
+          </Tabs>
+
+          <div className="flex flex-col gap-4">
+            {shownBoards.map((board) => {
               const Icon = board.icon
-              const selected = focusService === board.key
               return (
-                <button
+                <Card
                   key={board.key}
-                  type="button"
-                  ref={(node) => {
-                    if (node) switcherItemRefs.current.set(board.key, node)
-                    else switcherItemRefs.current.delete(board.key)
-                  }}
-                  className={`pd-board-switcher__item${selected ? ' is-selected' : ''}`}
-                  aria-current={selected ? 'true' : undefined}
-                  onClick={() => {
-                    setFocusService(board.key)
-                    writeServiceQuery(board.key as ServiceType)
-                  }}
+                  size="sm"
+                  className="gap-0 border border-border bg-card shadow-md ring-0"
+                  aria-label={board.label}
                 >
-                  <span className="pd-board-switcher__icon" aria-hidden>
-                    <Icon size={16} strokeWidth={2} />
-                  </span>
-                  <span className="pd-board-switcher__label">{board.label}</span>
-                  <span className="pd-board-switcher__count">{board.openCount}</span>
-                </button>
+                  <CardHeader className="flex flex-row items-center gap-3 border-b border-border [.border-b]:pb-3">
+                    <span
+                      className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+                      aria-hidden
+                    >
+                      <Icon size={18} strokeWidth={2} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-base font-semibold tracking-tight">
+                        {board.label}
+                      </CardTitle>
+                      <CardDescription className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <span>{board.openCount} open</span>
+                        {board.actionableCount > 0 ? (
+                          <span>{board.actionableCount} ready</span>
+                        ) : null}
+                        {board.blockedCount > 0 ? (
+                          <span className="text-destructive">
+                            {board.blockedCount} blocked
+                          </span>
+                        ) : null}
+                        {board.onHoldCount > 0 ? (
+                          <span>{board.onHoldCount} on hold</span>
+                        ) : null}
+                      </CardDescription>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="overflow-x-auto p-3 sm:p-4">
+                    <ol
+                      className="flex min-h-[18rem] min-w-max items-stretch gap-3"
+                      aria-label={`${board.label} stages`}
+                    >
+                      {board.columns.map((column) => {
+                        const occupied = column.items.length > 0
+                        const isDropTarget =
+                          dropTargetStepId === column.id &&
+                          columnAcceptsDrop(column.id)
+                        const isDropCandidate =
+                          Boolean(dragState) && columnAcceptsDrop(column.id)
+                        return (
+                          <li
+                            key={column.id}
+                            className={cn(
+                              'flex w-[16.5rem] shrink-0 flex-col rounded-xl border bg-muted/25 transition',
+                              occupied
+                                ? 'border-border'
+                                : 'border-dashed border-border/80',
+                              isDropCandidate &&
+                                'border-primary/45 bg-primary/[0.04] ring-1 ring-primary/25',
+                              isDropTarget &&
+                                'border-primary bg-primary/[0.08] ring-2 ring-primary/40',
+                            )}
+                            onDragOver={(event) =>
+                              handleColumnDragOver(event, column.id)
+                            }
+                            onDragLeave={(event) => {
+                              if (
+                                event.currentTarget.contains(
+                                  event.relatedTarget as Node | null,
+                                )
+                              ) {
+                                return
+                              }
+                              if (dropTargetStepId === column.id) {
+                                setDropTargetStepId(null)
+                              }
+                            }}
+                            onDrop={(event) =>
+                              handleColumnDrop(event, column.id)
+                            }
+                          >
+                            <header
+                              className={cn(
+                                'flex items-center gap-2 border-b px-3 py-2.5',
+                                occupied
+                                  ? 'border-border bg-card/80'
+                                  : 'border-transparent',
+                              )}
+                            >
+                              <span
+                                className={cn(
+                                  'inline-flex size-6 shrink-0 items-center justify-center rounded-md text-[0.7rem] font-semibold tabular-nums',
+                                  occupied
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted text-muted-foreground',
+                                )}
+                                aria-hidden
+                              >
+                                {column.number}
+                              </span>
+                              <h3 className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight">
+                                {column.label}
+                              </h3>
+                              <span
+                                className={cn(
+                                  'inline-flex h-5 min-w-5 items-center justify-center rounded-md px-1.5 text-[0.7rem] font-semibold tabular-nums',
+                                  occupied
+                                    ? 'bg-muted text-foreground'
+                                    : 'text-muted-foreground',
+                                )}
+                              >
+                                {column.items.length}
+                              </span>
+                            </header>
+
+                            {occupied ? (
+                              <ul className="flex flex-1 flex-col gap-2 overflow-y-auto p-2.5">
+                                {column.items.map((item) => {
+                                  const caseItem = getCaseById(item.id)
+                                  const canDrag = Boolean(
+                                    caseItem &&
+                                      caseItem.currentStepId === item.stepId &&
+                                      getNextStepDef(caseItem),
+                                  )
+                                  return (
+                                    <li key={item.id}>
+                                      <BoardCard
+                                        item={item}
+                                        canDrag={canDrag}
+                                        isDragging={
+                                          dragState?.caseId === item.id
+                                        }
+                                        onOpen={() => navigate(item.href)}
+                                        onDragStart={(event) =>
+                                          beginCardDrag(event, item)
+                                        }
+                                        onDragEnd={endCardDrag}
+                                      />
+                                    </li>
+                                  )
+                                })}
+                              </ul>
+                            ) : (
+                              <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+                                <PackageOpen
+                                  className="size-5 text-muted-foreground/70"
+                                  strokeWidth={1.5}
+                                  aria-hidden
+                                />
+                                <p className="m-0 text-xs text-muted-foreground">
+                                  {isDropCandidate
+                                    ? 'Drop here to advance'
+                                    : 'No open files at this stage'}
+                                </p>
+                              </div>
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ol>
+                  </CardContent>
+                </Card>
               )
             })}
-          </nav>
-
-          <div className="pd-service-board__boards">
-          {shownBoards.map((board) => {
-            const Icon = board.icon
-            return (
-              <section
-                key={board.key}
-                className="pd-board"
-                aria-label={board.label}
-              >
-                <header className="pd-board__head">
-                  <span className="pd-board__icon" aria-hidden>
-                    <Icon size={18} strokeWidth={2} />
-                  </span>
-                  <div className="pd-board__head-copy">
-                    <h2 className="pd-board__title">{board.label}</h2>
-                    <p className="pd-board__summary">
-                      <span>{board.openCount} open</span>
-                      {board.blockedCount > 0 ? (
-                        <span className="pd-board__summary-blocked">
-                          {board.blockedCount} blocked
-                        </span>
-                      ) : null}
-                      {board.actionableCount > 0 ? (
-                        <span>{board.actionableCount} ready</span>
-                      ) : null}
-                      {board.onHoldCount > 0 ? (
-                        <span>{board.onHoldCount} on hold</span>
-                      ) : null}
-                    </p>
-                  </div>
-                </header>
-
-                <div className="pd-board__scroller">
-                  <ol
-                    className="pd-board__columns"
-                    aria-label={`${board.label} stages`}
-                  >
-                    {board.columns.map((column) => {
-                      const occupied = column.items.length > 0
-                      const isDropTarget =
-                        dropTargetStepId === column.id &&
-                        columnAcceptsDrop(column.id)
-                      const isDropCandidate =
-                        Boolean(dragState) && columnAcceptsDrop(column.id)
-                      return (
-                        <li
-                          key={column.id}
-                          className={[
-                            'pd-board__column',
-                            occupied ? 'is-active' : 'is-empty',
-                            isDropCandidate ? 'is-drop-candidate' : '',
-                            isDropTarget ? 'is-drop-target' : '',
-                          ]
-                            .filter(Boolean)
-                            .join(' ')}
-                          onDragOver={(event) =>
-                            handleColumnDragOver(event, column.id)
-                          }
-                          onDragLeave={(event) => {
-                            if (
-                              event.currentTarget.contains(
-                                event.relatedTarget as Node | null,
-                              )
-                            ) {
-                              return
-                            }
-                            if (dropTargetStepId === column.id) {
-                              setDropTargetStepId(null)
-                            }
-                          }}
-                          onDrop={(event) => handleColumnDrop(event, column.id)}
-                        >
-                          <header className="pd-board__column-head">
-                            <span className="pd-board__column-index" aria-hidden>
-                              {column.number}
-                            </span>
-                            <h3 className="pd-board__column-title">
-                              {column.label}
-                            </h3>
-                            <span className="pd-board__column-count">
-                              {column.items.length}
-                            </span>
-                          </header>
-
-                          {occupied ? (
-                            <ul className="pd-board__cards">
-                              {column.items.map((item) => {
-                                const caseItem = getCaseById(item.id)
-                                const canDrag = Boolean(
-                                  caseItem &&
-                                    caseItem.currentStepId === item.stepId &&
-                                    getNextStepDef(caseItem),
-                                )
-                                return (
-                                  <li key={item.id}>
-                                    <BoardCard
-                                      item={item}
-                                      canDrag={canDrag}
-                                      isDragging={dragState?.caseId === item.id}
-                                      onOpen={() => navigate(item.href)}
-                                      onDragStart={(event) =>
-                                        beginCardDrag(event, item)
-                                      }
-                                      onDragEnd={endCardDrag}
-                                    />
-                                  </li>
-                                )
-                              })}
-                            </ul>
-                          ) : (
-                            <div className="pd-board__column-empty">
-                              <PackageOpen
-                                className="pd-board__column-empty-icon"
-                                size={22}
-                                strokeWidth={1.5}
-                                aria-hidden
-                              />
-                              <p className="pd-board__column-empty-copy">
-                                {isDropCandidate
-                                  ? 'Drop here to advance'
-                                  : 'No open files at this stage'}
-                              </p>
-                            </div>
-                          )}
-                        </li>
-                      )
-                    })}
-                  </ol>
-                </div>
-              </section>
-            )
-          })}
           </div>
-
         </>
       )}
 

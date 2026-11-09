@@ -8,17 +8,9 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react'
-import { Badge } from '@/components/shadcn/badge'
 import { Button } from '@/components/shadcn/button'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/shadcn/sheet'
 import { cn } from '@/lib/utils'
 import type { ClientMessageChannel } from '@/types/clientMessage'
-import { ProfilePhotoField } from '@/components/ProfilePhotoField'
 import {
   Link,
   Navigate,
@@ -28,27 +20,20 @@ import {
   useSearchParams,
 } from 'react-router-dom'
 import {
-  Calendar,
   Check,
   Contact,
   Copy,
-  FileText,
   Folder,
   LayoutDashboard,
-  Mail,
-  MessageSquare,
-  Phone,
   Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon'
+import { AddServicePicker } from '@/components/cases/AddServicePicker'
 import { ClientServicesWorkspace } from '@/components/cases/ClientServicesWorkspace'
-import { NewCaseForm } from '@/components/cases/NewCaseForm'
 import { ClientActionItems } from '@/components/clients/ClientActionItems'
-import { ClientDealStrip } from '@/components/clients/ClientDealStrip'
-import { ClientIdentityExtras } from '@/components/clients/ClientIdentityExtras'
+import { ClientIdentityDocumentWorkspace } from '@/components/clients/ClientIdentityDocumentWorkspace'
 import { ClientOverviewAttention } from '@/components/clients/ClientOverviewAttention'
-import { ClientDocumentsPanel } from '@/components/clients/ClientDocumentsPanel'
+import { ClientProfileAside } from '@/components/clients/ClientProfileAside'
 import { ClientMessagesPanel } from '@/components/clients/ClientMessagesPanel'
 import { ClientProfileWorkspace } from '@/components/clients/ClientProfileWorkspace'
 import { ClientRecentActivity } from '@/components/clients/ClientRecentActivity'
@@ -56,28 +41,31 @@ import {
   EDITABLE_PROFILE_KEYS,
   parseMaritalStatus,
   profileFieldError,
+  profileSectionFromParam,
   sectionForGap,
   toClientProfileDraft,
   type ClientProfileDraft,
-  type ClientProfileSectionId,
 } from '@/components/clients/clientProfileDraft'
 import { PaymentsList } from '@/components/payments/PaymentsList'
 import {
   createCase,
-  getEnabledServiceOptions,
   reconcileClientIdentityFromCases,
   useCasesByClientId,
 } from '@/lib/casesStore'
-import { countClientDocumentAlerts } from '@/lib/clientDocuments'
+import { countClientServicePaperAlerts } from '@/lib/clientDocuments'
 import {
   listClientInfoGaps,
+  listProfileFormGaps,
   type ClientInfoGapId,
 } from '@/lib/clientMissingInfo'
 import { toServiceBoardItem } from '@/lib/clientServiceBoard'
-import { deriveClientServiceStatus } from '@/lib/clientServiceStatus'
 import { useRequests } from '@/lib/requestsStore'
 import { notifyIfPendingApproval } from '@/lib/notifyPendingApproval'
-import { clientPath, workDetailPath } from '@/lib/workPaths'
+import {
+  clientIdentityFocusPath,
+  clientPath,
+  workDetailPath,
+} from '@/lib/workPaths'
 import { useSubAgents } from '@/lib/subAgentsStore'
 import {
   getClientById,
@@ -91,14 +79,19 @@ import { usePaymentsByClientId } from '@/lib/paymentsStore'
 import { compactCustomFieldValues } from '@/lib/clientCustomFields'
 import { validateCustomFieldValue } from '@/lib/clientCustomFieldValidation'
 import { useClientProfileFields } from '@/lib/clientProfileFieldsStore'
-import { formatDisplayDate } from '@/lib/formatDate'
-import { flashAndReveal } from '@/lib/scrollWithin'
 import { useTouchedFields } from '@/lib/useTouchedFields'
-import type { ServiceType, CreateCaseInput } from '@/types/case'
+import type { CreateCaseInput } from '@/types/case'
 import {
   elevatedPageClass,
   floatingSheetClass,
+  floatingSheetWideClass,
 } from '@/components/clients/shadcnChrome'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/shadcn/sheet'
 
 const CLIENT_TABS = [
   'overview',
@@ -114,67 +107,42 @@ const MAIN_TABS = [
   'overview',
   'profile',
   'services',
-  'documents',
   'payments',
-  'messages',
 ] as const
-
-const PROFILE_SECTIONS = new Set<ClientProfileSectionId>([
-  'reach',
-  'travel',
-  'personal',
-  'family',
-  'work',
-  'places',
-  'extra',
-])
 
 function tabFromSearch(searchParams: URLSearchParams): string {
   const tab = searchParams.get('tab')
-  if (tab === 'email') return 'messages'
-  return tab && CLIENT_TABS.includes(tab as (typeof CLIENT_TABS)[number])
+  const focus = searchParams.get('focus')
+  // Passport / NID always open under Profile (including legacy Services links).
+  if (focus === 'passport' || focus === 'nid') return 'profile'
+  // Legacy Documents tab (papers) lives inside Services now.
+  if (tab === 'documents') return 'services'
+  // Legacy Messages / Email tabs open as a write window.
+  if (tab === 'messages' || tab === 'email') return 'overview'
+  return tab &&
+    CLIENT_TABS.includes(tab as (typeof CLIENT_TABS)[number]) &&
+    tab !== 'messages' &&
+    tab !== 'email'
     ? tab
     : 'overview'
 }
 
-function messageChannelFromSearch(
+function writeChannelFromSearch(
   searchParams: URLSearchParams,
-): ClientMessageChannel {
-  return searchParams.get('channel') === 'email' ? 'email' : 'sms'
+): ClientMessageChannel | null {
+  const write = searchParams.get('write')
+  if (write === 'email' || write === 'sms') return write
+  // Legacy ?tab=messages|email&channel=
+  const tab = searchParams.get('tab')
+  if (tab === 'email' || searchParams.get('channel') === 'email') return 'email'
+  if (tab === 'messages') return 'sms'
+  return null
 }
 
 function profileSectionFromSearch(
   searchParams: URLSearchParams,
-): ClientProfileSectionId | undefined {
-  const section = searchParams.get('section')
-  if (section && PROFILE_SECTIONS.has(section as ClientProfileSectionId)) {
-    return section as ClientProfileSectionId
-  }
-  return undefined
-}
-
-function primaryServiceType(services: ServiceType[]): ServiceType {
-  const enabled = getEnabledServiceOptions()
-  const fromServices = services.find((service) =>
-    enabled.some((option) => option.value === service),
-  )
-  return fromServices ?? enabled[0]?.value ?? 'Tour Package'
-}
-
-function formatDate(value: string): string {
-  return formatDisplayDate(value)
-}
-
-function whatsappHref(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
-  if (!digits) return '#'
-  const withCountry =
-    digits.startsWith('880') || digits.length > 11
-      ? digits
-      : digits.startsWith('0')
-        ? `88${digits}`
-        : digits
-  return `https://wa.me/${withCountry}`
+) {
+  return profileSectionFromParam(searchParams.get('section'))
 }
 
 function TabLabel({
@@ -303,7 +271,6 @@ export default function ClientDetailPage() {
   const activeTab = serviceOutlet ? 'services' : tabFromSearch(searchParams)
   const [newCaseOpen, setNewCaseOpen] = useState(false)
   const [draft, setDraft] = useState<ClientProfileDraft | null>(null)
-  const [docsFlash, setDocsFlash] = useState(false)
   const { markAllTouched, showError, blur } = useTouchedFields<string>()
   const subAgentOptions = useMemo(
     () => [
@@ -317,46 +284,69 @@ export default function ClientDetailPage() {
   )
 
   useEffect(() => {
-    if (searchParams.get('newCase') === '1') {
-      setNewCaseOpen(true)
+    if (searchParams.get('newCase') !== '1') {
+      setNewCaseOpen(false)
+      return
     }
-  }, [searchParams])
+    setNewCaseOpen(true)
+    if (searchParams.get('tab') !== 'services') {
+      const next = new URLSearchParams(searchParams)
+      next.set('tab', 'services')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
-    const focus = searchParams.get('focus')
-    if (focus !== 'passport' && focus !== 'docs') return
-
-    // Identity edits happen in Documents (passport/NID + scans).
-    setDocsFlash(true)
+    // Legacy ?tab=documents → Services (papers) or Profile (passport/NID).
+    if (searchParams.get('tab') !== 'documents') return
     const next = new URLSearchParams(searchParams)
-    if (next.get('tab') !== 'documents') {
-      next.set('tab', 'documents')
+    const focus = next.get('focus')
+    const focusCase = next.get('case')
+    if (focus === 'passport' || focus === 'nid') {
+      next.set('tab', 'profile')
       setSearchParams(next, { replace: true })
       return
     }
+    next.set('tab', 'services')
+    if (focus === 'docs' && focusCase) {
+      const open = clientCases.find((item) => item.id === focusCase)
+      if (open) {
+        navigate(workDetailPath(open), { replace: true })
+        return
+      }
+    }
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, clientCases, navigate])
 
-    const frame = window.requestAnimationFrame(() => {
-      flashAndReveal('client-documents')
-    })
+  useEffect(() => {
+    // Legacy ?tab=messages|email → write window on the current page.
+    const tab = searchParams.get('tab')
+    if (tab !== 'messages' && tab !== 'email') return
+    const next = new URLSearchParams(searchParams)
+    const channel =
+      tab === 'email' || next.get('channel') === 'email' ? 'email' : 'sms'
+    next.delete('tab')
+    next.delete('channel')
+    next.set('write', channel)
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
-    const timer = window.setTimeout(() => {
-      setDocsFlash(false)
-      const cleaned = new URLSearchParams(searchParams)
-      cleaned.delete('focus')
-      cleaned.delete('case')
-      setSearchParams(cleaned, { replace: true })
-    }, 2800)
+  useEffect(() => {
+    const focus = searchParams.get('focus')
+    if (focus !== 'passport' && focus !== 'nid') return
 
-    return () => {
-      window.cancelAnimationFrame(frame)
-      window.clearTimeout(timer)
+    // Legacy Services deep-links for identity → Profile sheet.
+    if (searchParams.get('tab') !== 'profile') {
+      const next = new URLSearchParams(searchParams)
+      next.set('tab', 'profile')
+      setSearchParams(next, { replace: true })
     }
   }, [searchParams, setSearchParams])
 
   useEffect(() => {
     if (!client) return
     // Pull identity that only exists on service files onto the client so
-    // Profile and Documents never disagree.
+    // Profile and service papers never disagree.
     reconcileClientIdentityFromCases(client.id)
   }, [client?.id])
 
@@ -365,7 +355,7 @@ export default function ClientDetailPage() {
     setDraft(toClientProfileDraft(client, customFieldDefs))
   }, [client?.id, customFieldDefs])
 
-  // Identity is owned by Documents. Keep Profile fields mirrored from the client.
+  // Identity is edited in Profile → document workspace. Keep form fields mirrored.
   useEffect(() => {
     if (!client) return
     setDraft((current) => {
@@ -375,7 +365,6 @@ export default function ClientDetailPage() {
         passport: client.passport ?? '',
         passportExpiry: client.passportExpiry ?? '',
         passportIssuedOn: client.passportIssuedOn ?? '',
-        passportPlaceOfIssue: client.passportPlaceOfIssue ?? '',
         nid: client.nid ?? '',
       }
     })
@@ -383,7 +372,6 @@ export default function ClientDetailPage() {
     client?.passport,
     client?.passportExpiry,
     client?.passportIssuedOn,
-    client?.passportPlaceOfIssue,
     client?.nid,
   ])
 
@@ -392,13 +380,6 @@ export default function ClientDetailPage() {
     [client, customFieldDefs],
   )
 
-  useEffect(() => {
-    if (caseId) return
-    if (tabFromSearch(searchParams) !== 'services') return
-    const open = clientCases[0]
-    if (open) navigate(workDetailPath(open), { replace: true })
-  }, [caseId, clientCases, navigate, searchParams])
-
   if (!client || !savedDraft) {
     return <Navigate to="/clients" replace />
   }
@@ -406,15 +387,8 @@ export default function ClientDetailPage() {
   const profileDraft = draft ?? savedDraft
 
   const selectTab = (tab: string) => {
-    const resolved = tab === 'email' ? 'messages' : tab
-    if (resolved === 'services') {
-      const open =
-        clientCases.find((item) => item.id === caseId) ?? clientCases[0]
-      if (open) {
-        navigate(workDetailPath(open))
-        return
-      }
-    }
+    const resolved =
+      tab === 'email' || tab === 'messages' ? 'overview' : tab
     if (serviceOutlet) {
       navigate(clientPath(id, resolved))
       return
@@ -423,50 +397,57 @@ export default function ClientDetailPage() {
     if (resolved === 'overview') next.delete('tab')
     else next.set('tab', resolved)
     if (resolved !== 'payments') next.delete('record')
-    if (resolved !== 'messages') next.delete('channel')
     if (resolved !== 'profile') {
       next.delete('section')
       next.delete('field')
+      next.delete('focus')
     }
     setSearchParams(next, { replace: true })
   }
 
   const openMessages = (channel: ClientMessageChannel) => {
-    const params = new URLSearchParams()
-    params.set('tab', 'messages')
-    if (channel === 'email') params.set('channel', 'email')
-    navigate(`/clients/${id}?${params.toString()}`)
+    const next = new URLSearchParams(searchParams)
+    next.delete('channel')
+    next.set('write', channel === 'email' ? 'email' : 'sms')
+    setSearchParams(next, { replace: true })
   }
 
-  const setMessageChannel = (channel: ClientMessageChannel) => {
+  const closeWriteWindow = () => {
     const next = new URLSearchParams(searchParams)
-    next.set('tab', 'messages')
-    if (channel === 'email') next.set('channel', 'email')
-    else next.delete('channel')
+    if (!next.get('write') && next.get('tab') !== 'messages' && next.get('tab') !== 'email') {
+      return
+    }
+    next.delete('write')
+    next.delete('channel')
+    if (next.get('tab') === 'messages' || next.get('tab') === 'email') {
+      next.delete('tab')
+    }
     setSearchParams(next, { replace: true })
   }
 
   const openMissingGap = (gapId: ClientInfoGapId) => {
     const target = sectionForGap(gapId)
-    if (target === 'documents') {
-      const next = new URLSearchParams()
-      next.set('tab', 'documents')
-      if (gapId !== 'nid') next.set('focus', 'passport')
-      navigate(`/clients/${id}?${next.toString()}`)
+    if (target === 'identity') {
+      navigate(clientIdentityFocusPath(id, gapId === 'nid' ? 'nid' : 'passport'))
       return
     }
     const next = new URLSearchParams()
     next.set('tab', 'profile')
     next.set('section', target)
-    if (gapId === 'email' || gapId === 'address') next.set('field', gapId)
+    if (gapId === 'email') next.set('field', 'email')
+    if (gapId === 'address') next.set('field', 'presentAddress')
     navigate(`/clients/${id}?${next.toString()}`)
   }
 
   const openDocumentsFromProfile = (focus?: 'passport' | 'nid') => {
-    const next = new URLSearchParams()
-    next.set('tab', 'documents')
-    if (focus === 'passport') next.set('focus', 'passport')
-    navigate(`/clients/${id}?${next.toString()}`)
+    navigate(clientIdentityFocusPath(id, focus === 'nid' ? 'nid' : 'passport'))
+  }
+
+  const closeIdentityDocument = () => {
+    const next = new URLSearchParams(searchParams)
+    if (!next.get('focus')) return
+    next.delete('focus')
+    setSearchParams(next, { replace: true })
   }
 
   const clearRecordIntent = () => {
@@ -478,20 +459,12 @@ export default function ClientDetailPage() {
 
   const openNewCase = () => {
     setNewCaseOpen(true)
-    if (searchParams.get('newCase') !== '1') {
-      const next = new URLSearchParams(searchParams)
-      next.set('newCase', '1')
-      setSearchParams(next, { replace: true })
-    }
+    navigate(`/clients/${id}?tab=services&newCase=1`, { replace: true })
   }
 
   const closeNewCase = () => {
     setNewCaseOpen(false)
-    if (searchParams.get('newCase')) {
-      const next = new URLSearchParams(searchParams)
-      next.delete('newCase')
-      setSearchParams(next, { replace: true })
-    }
+    navigate(`/clients/${id}?tab=services`, { replace: true })
   }
 
   const handleCreateCase = (input: CreateCaseInput) => {
@@ -534,24 +507,24 @@ export default function ClientDetailPage() {
     )
     if (hasProfileError || hasCustomError) return false
     const phone = normalizePhone(profileDraft.phone)
-    const address = profileDraft.address.trim() || undefined
-    // Identity (passport/NID) is owned by Documents. Do not overwrite from Profile.
+    const presentAddress = profileDraft.presentAddress.trim() || undefined
+    // Identity (passport/NID) is owned by Profile → document workspace. Do not overwrite here.
     try {
       const updated = updateClient(client.id, {
         name: profileDraft.name.trim(),
         banglaName: profileDraft.banglaName.trim() || undefined,
         phone,
         email: profileDraft.email.trim() || undefined,
-        address,
-        presentAddress:
-          profileDraft.presentAddress.trim() || address || undefined,
+        whatsapp: profileDraft.whatsapp.trim() || undefined,
+        address: presentAddress,
+        presentAddress,
         permanentAddress: profileDraft.permanentAddress.trim() || undefined,
         district: profileDraft.district.trim() || undefined,
         upazila: profileDraft.upazila.trim() || undefined,
         fatherName: profileDraft.fatherName.trim() || undefined,
         motherName: profileDraft.motherName.trim() || undefined,
         dateOfBirth: profileDraft.dateOfBirth.trim() || undefined,
-        gender: profileDraft.gender,
+        gender: profileDraft.gender || undefined,
         maritalStatus: parseMaritalStatus(profileDraft.maritalStatus),
         nationality: profileDraft.nationality.trim() || undefined,
         placeOfBirth: profileDraft.placeOfBirth.trim() || undefined,
@@ -559,15 +532,6 @@ export default function ClientDetailPage() {
         bloodGroup: profileDraft.bloodGroup.trim() || undefined,
         education: profileDraft.education.trim() || undefined,
         profession: profileDraft.profession.trim() || undefined,
-        skillTrade: profileDraft.skillTrade.trim() || undefined,
-        experience: profileDraft.experience.trim() || undefined,
-        previousOverseasExp:
-          profileDraft.previousOverseasExp.trim() || undefined,
-        preferredCountry: profileDraft.preferredCountry.trim() || undefined,
-        preferredJob: profileDraft.preferredJob.trim() || undefined,
-        expectedSalary: profileDraft.expectedSalary.trim() || undefined,
-        branch: profileDraft.branch.trim() || undefined,
-        subAgentId: profileDraft.subAgentId.trim() || undefined,
         customFields: compactCustomFieldValues({
           ...Object.fromEntries(
             Object.entries(client.customFields ?? {}).filter(
@@ -587,37 +551,41 @@ export default function ClientDetailPage() {
   }
 
   const displayName = profileDraft.name || client.name
-  const displayStatus = deriveClientServiceStatus(clientCases)
   const displayPhone = profileDraft.phone
-  const displayWhatsapp = client.whatsapp?.trim() || displayPhone
-  const messageChannel = messageChannelFromSearch(searchParams)
+  const displayWhatsapp = profileDraft.whatsapp.trim() || displayPhone
+  const writeChannel = writeChannelFromSearch(searchParams)
   const profileSection = profileSectionFromSearch(searchParams)
   const focusFieldParam = searchParams.get('field')
   const focusField =
-    focusFieldParam === 'email' || focusFieldParam === 'address'
-      ? focusFieldParam
-      : undefined
+    focusFieldParam === 'email'
+      ? 'email'
+      : focusFieldParam === 'address' || focusFieldParam === 'presentAddress'
+        ? 'presentAddress'
+        : undefined
   const openCases = clientCases.filter(
     (item) => item.status !== 'Completed' && item.status !== 'Cancelled',
   )
   const dueBalance = openCases.reduce((sum, item) => sum + item.balance, 0)
-  const paidTotal = clientPayments.reduce((sum, item) => sum + item.amount, 0)
   const recentMessages = [...smsMessages, ...emailMessages].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),
   )
 
-  const profileGaps = listClientInfoGaps({
+  const gapSource = {
     passport: profileDraft.passport,
     passportIssuedOn: profileDraft.passportIssuedOn,
     passportExpiry: profileDraft.passportExpiry,
     nid: profileDraft.nid,
-    address: profileDraft.address,
-    presentAddress: profileDraft.presentAddress || client.presentAddress,
+    address: profileDraft.presentAddress,
+    presentAddress: profileDraft.presentAddress,
     email: profileDraft.email,
-  })
-  const profileAlertCount = profileGaps.length
+  }
+  /** Overview still lists every gap (including passport / NID). */
+  const profileGaps = listClientInfoGaps(gapSource)
+  /** Profile tab chip / badge only counts fields editable on that tab. */
+  const profileFormGaps = listProfileFormGaps(gapSource)
+  const profileAlertCount = profileFormGaps.length
 
-  const documentsAlertCount = countClientDocumentAlerts(client, clientCases)
+  const servicePaperAlertCount = countClientServicePaperAlerts(clientCases)
 
   const paymentsAlertCount = openCases.filter((item) => item.balance > 0).length
 
@@ -633,139 +601,55 @@ export default function ClientDetailPage() {
       request.clientId === client.id && request.reviewStatus === 'Pending',
   )
   const servicesAlertCount =
-    servicesAttentionCases + pendingStatusRequestsList.length
+    servicesAttentionCases +
+    pendingStatusRequestsList.length +
+    servicePaperAlertCount
 
+  const identityFocus =
+    searchParams.get('focus') === 'nid'
+      ? ('nid' as const)
+      : searchParams.get('focus') === 'passport'
+        ? ('passport' as const)
+        : null
+  const selectedDocId = searchParams.get('doc')
   return (
     <div
-      className={cn(elevatedPageClass, 'gap-5')}
+      className={cn(elevatedPageClass, 'mx-auto w-full max-w-[80%] gap-5')}
       data-elevated-canvas
       aria-label={client.name}
     >
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
-        <aside
-          className="flex min-w-0 flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-card shadow-sm lg:sticky lg:top-0 lg:z-[1] lg:max-h-[calc(100dvh-8.5rem)] lg:overflow-y-auto"
-          aria-label="Client profile"
-        >
-          <div className="flex shrink-0 flex-col items-center gap-2 bg-[color-mix(in_srgb,var(--color-theme)_8%,var(--color-surface))] px-4 pt-5 pb-4 text-center">
-            <ProfilePhotoField
-              name={displayName}
-              fallbackName="Client"
-              kind="client"
-              value={client.avatarUrl}
-              onChange={(avatarUrl) => {
-                try {
-                  updateClient(client.id, { avatarUrl })
-                } catch (error) {
-                  notifyIfPendingApproval(error)
-                }
-              }}
-            />
-            <div className="flex flex-col items-center justify-center gap-1">
-              <h1 className="m-0 text-[1.0625rem] font-semibold leading-tight tracking-tight">
-                <ContactChip value={displayName} label="Client Name" />
-              </h1>
-              {profileDraft.banglaName ? (
-                <p className="m-0 text-xs font-medium leading-snug text-muted-foreground">
-                  <ContactChip
-                    value={profileDraft.banglaName}
-                    label="Bangla Name"
-                  />
-                </p>
-              ) : null}
-            </div>
-            {displayStatus ? (
-              <Badge
-                variant={displayStatus === 'Completed' ? 'default' : 'secondary'}
-                className="shrink-0"
-              >
-                {displayStatus}
-              </Badge>
-            ) : null}
-            <p className="m-0 flex shrink-0 justify-center text-[0.8125rem] font-normal leading-snug text-foreground">
-              <ContactChip value={displayPhone} label="Phone Number" />
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 px-4 pb-4">
-            <div className="grid shrink-0 grid-cols-4 gap-1.5">
-              <a
-                className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-background text-foreground transition-colors hover:bg-muted"
-                href={`tel:${displayPhone}`}
-                aria-label={`Call ${displayName}`}
-                title="Call"
-              >
-                <Phone size={14} strokeWidth={2.25} aria-hidden />
-              </a>
-              <a
-                className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-background text-foreground transition-colors hover:bg-muted"
-                href={whatsappHref(displayWhatsapp)}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={`WhatsApp ${displayName}`}
-                title="WhatsApp"
-              >
-                <WhatsAppIcon size={14} />
-              </a>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => openMessages('sms')}
-                aria-label="Open messages"
-                title="Messages"
-              >
-                <MessageSquare size={14} strokeWidth={2.25} aria-hidden />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => openMessages('email')}
-                aria-label="Open email"
-                title="Email"
-              >
-                <Mail size={14} strokeWidth={2.25} aria-hidden />
-              </Button>
-            </div>
-
-            <Button className="h-9 w-full shrink-0 rounded-lg" onClick={openNewCase}>
-              <Folder data-icon="inline-start" />
-              Add Service
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 w-full shrink-0 justify-start rounded-lg"
-              onClick={() => selectTab('profile')}
-            >
-              <Contact data-icon="inline-start" />
-              Edit Profile
-              {profileAlertCount > 0 ? (
-                <Badge variant="destructive" className="ms-auto">
-                  {profileAlertCount}
-                </Badge>
-              ) : null}
-            </Button>
-
-            <p className="m-0 inline-flex items-center justify-center gap-1.5 text-[0.6875rem] font-medium text-muted-foreground">
-              <Calendar size={12} strokeWidth={2.25} aria-hidden />
-              Member Since {formatDate(client.createdAt)}
-            </p>
-          </div>
-
-          <ClientIdentityExtras
-            client={client}
-            dueBalance={dueBalance}
-            paidTotal={paidTotal}
-            onOpenPayments={() => selectTab('payments')}
-            onOpenDocuments={(focus) => openDocumentsFromProfile(focus)}
-            onOpenProfile={() => selectTab('profile')}
-          />
-        </aside>
+        <ClientProfileAside
+          client={client}
+          cases={clientCases}
+          displayName={displayName}
+          banglaName={profileDraft.banglaName || undefined}
+          displayPhone={displayPhone}
+          displayEmail={profileDraft.email}
+          displayWhatsapp={displayWhatsapp}
+          activeDocument={identityFocus}
+          onAvatarChange={(avatarUrl) => {
+            try {
+              updateClient(client.id, { avatarUrl })
+            } catch (error) {
+              notifyIfPendingApproval(error)
+            }
+          }}
+          onEditProfile={() => selectTab('profile')}
+          onAddService={openNewCase}
+          onOpenMessages={openMessages}
+          onOpenDocuments={(focus) => openDocumentsFromProfile(focus)}
+          contactChip={(props) => <ContactChip {...props} />}
+        />
 
         <div className="flex min-w-0 flex-col gap-3">
           <DetailTabs
             value={
-              MAIN_TABS.includes(activeTab as (typeof MAIN_TABS)[number])
-                ? activeTab
-                : 'overview'
+              newCaseOpen
+                ? 'services'
+                : MAIN_TABS.includes(activeTab as (typeof MAIN_TABS)[number])
+                  ? activeTab
+                  : 'overview'
             }
             onValueChange={selectTab}
             items={[
@@ -774,15 +658,6 @@ export default function ClientDetailPage() {
                 label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
                 content: (
                   <div className="flex flex-col gap-4">
-                    <ClientDealStrip
-                      cases={clientCases}
-                      onCollectPayment={() => {
-                        const next = new URLSearchParams()
-                        next.set('tab', 'payments')
-                        next.set('record', '1')
-                        navigate(`/clients/${id}?${next.toString()}`)
-                      }}
-                    />
                     <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,20rem)]">
                       <div className="flex min-w-0 flex-col gap-4">
                         <ClientOverviewAttention
@@ -790,13 +665,9 @@ export default function ClientDetailPage() {
                           gaps={profileGaps}
                           cases={clientCases}
                           dueBalance={dueBalance}
-                          documentsAlertCount={documentsAlertCount}
                           pendingRequests={pendingStatusRequestsList}
                           onOpenGap={openMissingGap}
                           onOpenPayments={() => selectTab('payments')}
-                          onOpenProfile={() => selectTab('profile')}
-                          onOpenDocuments={() => selectTab('documents')}
-                          onOpenServices={() => selectTab('services')}
                         />
                         <ClientRecentActivity
                           messages={recentMessages}
@@ -821,7 +692,7 @@ export default function ClientDetailPage() {
                   <ClientProfileWorkspace
                     draft={profileDraft}
                     savedDraft={savedDraft}
-                    gaps={profileGaps}
+                    gaps={profileFormGaps}
                     customFieldDefs={customFieldDefs}
                     subAgentOptions={subAgentOptions}
                     showError={showError}
@@ -859,7 +730,6 @@ export default function ClientDetailPage() {
                     }}
                     onDiscard={discardChanges}
                     onSave={saveProfile}
-                    onOpenDocuments={openDocumentsFromProfile}
                     initialSection={profileSection}
                     focusField={focusField}
                   />
@@ -872,40 +742,24 @@ export default function ClientDetailPage() {
                     Services
                   </TabLabel>
                 ),
-                content: (
-                  <ClientServicesWorkspace
-                    cases={clientCases}
+                content: newCaseOpen ? (
+                  <AddServicePicker
+                    clientId={client.id}
                     clientName={client.name}
-                    selectedId={caseId}
-                    onAddService={openNewCase}
-                  >
-                    {serviceOutlet}
-                  </ClientServicesWorkspace>
-                ),
-              },
-              {
-                id: 'documents',
-                label: (
-                  <TabLabel icon={FileText} alertCount={documentsAlertCount}>
-                    Documents
-                  </TabLabel>
-                ),
-                content: (
-                  <ClientDocumentsPanel
+                    defaultCountry={
+                      clientCases.find((item) => item.serviceCountry)
+                        ?.serviceCountry || client.preferredCountry
+                    }
+                    onSubmit={handleCreateCase}
+                    onCancel={closeNewCase}
+                  />
+                ) : (
+                  <ClientServicesWorkspace
                     client={client}
                     cases={clientCases}
+                    selectedId={caseId}
+                    selectedDocId={selectedDocId}
                     onAddService={openNewCase}
-                    focusCaseId={
-                      searchParams.get('focus') === 'docs'
-                        ? searchParams.get('case')
-                        : null
-                    }
-                    focusIdentityKind={
-                      searchParams.get('focus') === 'passport'
-                        ? 'passport'
-                        : null
-                    }
-                    highlight={docsFlash}
                   />
                 ),
               },
@@ -927,40 +781,60 @@ export default function ClientDetailPage() {
                   />
                 ),
               },
-              {
-                id: 'messages',
-                label: <TabLabel icon={MessageSquare}>Messages</TabLabel>,
-                content: (
-                  <ClientMessagesPanel
-                    client={client}
-                    channel={messageChannel}
-                    onChannelChange={setMessageChannel}
-                  />
-                ),
-              },
             ]}
           />
         </div>
       </div>
 
       <Sheet
-        open={newCaseOpen}
+        open={identityFocus != null}
         onOpenChange={(open) => {
-          if (!open) closeNewCase()
+          if (!open) closeIdentityDocument()
         }}
       >
-        <SheetContent className={floatingSheetClass}>
-          <SheetHeader className="border-b border-border px-5 py-4 pr-12">
-            <SheetTitle className="text-base font-semibold">Add Service</SheetTitle>
+        <SheetContent
+          className={cn(floatingSheetClass, floatingSheetWideClass, 'overflow-hidden')}
+        >
+          <SheetHeader className="border-b border-border px-4 py-3 pr-12">
+            <SheetTitle className="text-sm font-semibold">
+              {identityFocus === 'nid' ? 'National ID' : 'Passport'}
+            </SheetTitle>
           </SheetHeader>
-          <NewCaseForm
-            onSubmit={handleCreateCase}
-            onCancel={closeNewCase}
-            defaultClientId={client.id}
-            lockClient
-            defaultService={primaryServiceType(client.services)}
-            defaultCountry={client.preferredCountry}
-          />
+          {identityFocus ? (
+            <ClientIdentityDocumentWorkspace
+              client={client}
+              cases={clientCases}
+              identityKind={identityFocus}
+            />
+          ) : null}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet
+        open={writeChannel != null}
+        onOpenChange={(open) => {
+          if (!open) closeWriteWindow()
+        }}
+      >
+        <SheetContent
+          className={cn(
+            floatingSheetClass,
+            floatingSheetWideClass,
+            'flex flex-col overflow-hidden p-0',
+          )}
+        >
+          <SheetHeader className="border-b border-border px-4 py-3 pr-12">
+            <SheetTitle className="text-sm font-semibold">
+              {writeChannel === 'email' ? 'Email' : 'SMS'}
+            </SheetTitle>
+          </SheetHeader>
+          {writeChannel ? (
+            <ClientMessagesPanel
+              client={client}
+              channel={writeChannel}
+              embedded
+            />
+          ) : null}
         </SheetContent>
       </Sheet>
     </div>
@@ -1013,7 +887,7 @@ function DetailTabs({
         ref={rootRef}
         role="tablist"
         aria-label="Client sections"
-        className="relative inline-flex h-10 max-w-full items-stretch self-start overflow-x-auto rounded-xl border border-border bg-card p-1 shadow-sm"
+        className="relative inline-flex h-10 max-w-full items-stretch self-start overflow-x-auto rounded-lg border border-border bg-card p-0.5 shadow-sm"
       >
         {indicator ? (
           <span

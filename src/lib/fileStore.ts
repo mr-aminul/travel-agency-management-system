@@ -10,6 +10,7 @@ export type StoredFile = {
 }
 
 const files = new Map<string, StoredFile>()
+const pendingUploads = new Map<string, Promise<StoredFile | null>>()
 
 function apiBase(): string {
   const configured = import.meta.env.VITE_API_BASE_URL as string | undefined
@@ -114,14 +115,67 @@ function storeFileLocal(file: File): StoredFile {
     url,
   }
   files.set(id, stored)
-  // Fire-and-forget durable upload when possible
-  void uploadToApi(file).then((uploaded) => {
-    if (!uploaded) return
-    // Remap callers still holding the local id via dual entry
-    files.set(id, { ...uploaded })
-    files.set(uploaded.id, uploaded)
-  })
+  const pending = uploadToApi(file)
+    .then((uploaded) => {
+      if (!uploaded) return null
+      const current = files.get(id)
+      const view = withSessionPreview(current ?? stored, uploaded)
+      // Keep the blob on screen. An API url in an iframe has no sign-in header.
+      files.set(id, { ...view, id })
+      files.set(uploaded.id, view)
+      return view
+    })
+    .catch(() => null)
+  pendingUploads.set(id, pending)
   return stored
+}
+
+/** Preview URL for a file that was just stored on the server. */
+export function withSessionPreview(
+  local: StoredFile,
+  uploaded: StoredFile,
+): StoredFile {
+  const url = local.url.startsWith('blob:') ? local.url : uploaded.url
+  return {
+    ...uploaded,
+    url,
+    fileName: local.fileName || uploaded.fileName,
+    mimeType: local.mimeType || uploaded.mimeType,
+  }
+}
+
+/**
+ * Server id once the upload finishes. Stays the local id when the API is off.
+ */
+export function resolveStoredFileId(id: string): Promise<string> {
+  const pending = pendingUploads.get(id)
+  if (!pending) return Promise.resolve(id)
+  return pending.then((uploaded) => uploaded?.id ?? id).catch(() => id)
+}
+
+/** True when the browser must send the sign-in token to load this file. */
+export function isPlatformFileUrl(url: string): boolean {
+  try {
+    return new URL(url, window.location.origin).pathname.includes(
+      '/api/platform/files/',
+    )
+  } catch {
+    return false
+  }
+}
+
+/** Load a stored file with the sign-in token. Iframes and images cannot send it. */
+export async function fetchAuthedBlob(url: string): Promise<Blob> {
+  const token = getAccessToken()
+  const response = await fetch(url, {
+    credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!response.ok || contentType.includes('application/json')) {
+    throw new Error('Could not load file.')
+  }
+  return response.blob()
 }
 
 export function getStoredFile(id?: string | null): StoredFile | undefined {

@@ -87,7 +87,7 @@ const SETTINGS_SECTIONS: {
     {
       id: 'clientFields',
       label: 'Client fields',
-      info: 'Contact, Identity, Family, and Work are built in. Add extra fields this agency needs. They appear on the client profile and new-client form.',
+      info: 'Contact, Identity, Family, Work, and Placement are built in. Add a field and choose the section where staff should see it.',
       icon: Contact,
     },
     {

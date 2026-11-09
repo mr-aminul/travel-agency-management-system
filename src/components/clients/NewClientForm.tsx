@@ -12,10 +12,7 @@ import {
   type NewClientFormValues,
   validateNewClientField,
 } from '@/lib/clientFormValidation'
-import {
-  useClientProfileFields,
-  useClientProfileFieldsForTenant,
-} from '@/lib/clientProfileFieldsStore'
+import { useClientProfileFieldsForTenant } from '@/lib/clientProfileFieldsStore'
 import { useSubAgents } from '@/lib/subAgentsStore'
 import { getClientByPhone, normalizePhone } from '@/lib/clientsStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
@@ -45,8 +42,7 @@ export function NewClientForm({
   const isPublic = variant === 'public'
   const serviceOptions = useEnabledServiceOptions(serviceTenantId)
   const tenantCustomFields = useClientProfileFieldsForTenant(serviceTenantId)
-  const sessionCustomFields = useClientProfileFields()
-  const customFieldDefs = isPublic ? tenantCustomFields : sessionCustomFields
+  const customFieldDefs = isPublic ? tenantCustomFields : []
   const subAgents = useSubAgents()
   useServiceTemplates()
   const [name, setName] = useState('')
@@ -61,7 +57,6 @@ export function NewClientForm({
   const [passport, setPassport] = useState('')
   const [passportExpiry, setPassportExpiry] = useState('')
   const [passportIssuedOn, setPassportIssuedOn] = useState('')
-  const [passportPlaceOfIssue, setPassportPlaceOfIssue] = useState('')
   const [address, setAddress] = useState('')
   const [customFields, setCustomFields] = useState<Record<string, string>>({})
   const [subAgentId, setSubAgentId] = useState(defaultSubAgentId ?? '')
@@ -99,6 +94,7 @@ export function NewClientForm({
   )
 
   useEffect(() => {
+    if (!isPublic) return
     if (!serviceCountry) {
       if (catalogCountries.length === 1) setServiceCountry(catalogCountries[0])
       return
@@ -108,15 +104,13 @@ export function NewClientForm({
         catalogCountries.length === 1 ? catalogCountries[0] : '',
       )
     }
-  }, [catalogCountries, serviceCountry])
+  }, [catalogCountries, isPublic, serviceCountry])
 
   const phoneDigits = normalizePhone(phone)
   const existingClient = phoneDigits
     ? getClientByPhone(phoneDigits, undefined, serviceTenantId)
     : undefined
   const customFieldValues = emptyCustomFieldValues(customFieldDefs, customFields)
-  const requiredCustomFields = customFieldDefs.filter((field) => field.required)
-  const optionalCustomFields = customFieldDefs.filter((field) => !field.required)
 
   const values: NewClientFormValues = {
     name,
@@ -131,9 +125,14 @@ export function NewClientForm({
     passport,
     passportIssuedOn,
     passportExpiry,
-    passportPlaceOfIssue,
     primaryService,
     customFields: customFieldValues,
+  }
+
+  const validationOptions = {
+    duplicateName: existingClient?.name,
+    customFieldDefs,
+    requirePrimaryService: isPublic,
   }
 
   const markTouched = (field: NewClientFormField) => {
@@ -147,10 +146,7 @@ export function NewClientForm({
 
   const fieldError = (field: NewClientFormField) => {
     if (!showError(field)) return undefined
-    return validateNewClientField(field, values, {
-      duplicateName: existingClient?.name,
-      customFieldDefs,
-    })
+    return validateNewClientField(field, values, validationOptions)
   }
 
   const handleBlur =
@@ -159,23 +155,25 @@ export function NewClientForm({
       markTouched(field)
     }
 
-  const allFieldKeys = (): NewClientFormField[] => [
-    'name',
-    'phone',
-    'primaryService',
-    'passport',
-    'passportPlaceOfIssue',
-    'passportIssuedOn',
-    'passportExpiry',
-    'nid',
-    'email',
-    'address',
-    'banglaName',
-    'fatherName',
-    'dateOfBirth',
-    'placeOfBirth',
-    ...customFieldDefs.map((field) => `custom:${field.id}` as const),
-  ]
+  const allFieldKeys = (): NewClientFormField[] =>
+    isPublic
+      ? [
+          'name',
+          'phone',
+          'primaryService',
+          'passport',
+          'passportIssuedOn',
+          'passportExpiry',
+          'nid',
+          'email',
+          'address',
+          'banglaName',
+          'fatherName',
+          'dateOfBirth',
+          'placeOfBirth',
+          ...customFieldDefs.map((field) => `custom:${field.id}` as const),
+        ]
+      : ['name', 'phone']
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -187,13 +185,20 @@ export function NewClientForm({
     setTouched(nextTouched)
 
     const hasError = allFieldKeys().some(
-      (field) =>
-        validateNewClientField(field, values, {
-          duplicateName: existingClient?.name,
-          customFieldDefs,
-        }) != null,
+      (field) => validateNewClientField(field, values, validationOptions) != null,
     )
     if (hasError) return
+
+    if (!isPublic) {
+      onSubmit({
+        name,
+        phone,
+        subAgentId: defaultSubAgentId || subAgentId || undefined,
+        avatarUrl,
+        idChecked: true,
+      })
+      return
+    }
 
     onSubmit({
       name,
@@ -213,23 +218,85 @@ export function NewClientForm({
       passport,
       passportExpiry,
       passportIssuedOn,
-      passportPlaceOfIssue,
       primaryService,
       preferredCountry: serviceCountry.trim() || undefined,
       idChecked: true,
     })
   }
 
+  const footer = (
+    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border px-5 py-4">
+      {onCancel ? (
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+      ) : null}
+      <Button type="submit">{submitLabel}</Button>
+    </div>
+  )
+
+  if (!isPublic) {
+    return (
+      <form
+        className="flex h-full min-h-0 flex-col"
+        onSubmit={handleSubmit}
+        noValidate
+      >
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="flex flex-col gap-4">
+            <ProfilePhotoField
+              name={name}
+              fallbackName="Client"
+              kind="client"
+              value={avatarUrl}
+              onChange={setAvatarUrl}
+            >
+              <Input
+                label="Full Name"
+                required
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                onBlur={handleBlur('name')}
+                placeholder="Client Name"
+                error={fieldError('name')}
+              />
+            </ProfilePhotoField>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Input
+                label="Mobile Number"
+                type="tel"
+                required
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                onBlur={handleBlur('phone')}
+                placeholder="01XXXXXXXXX"
+                error={fieldError('phone')}
+              />
+              {defaultSubAgentId ? null : (
+                <Select
+                  label="Sub Agent"
+                  value={subAgentId}
+                  onChange={(event) => setSubAgentId(event.target.value)}
+                  options={[
+                    { value: '', label: 'None' },
+                    ...subAgents.map((subAgent) => ({
+                      value: subAgent.id,
+                      label: subAgent.name,
+                    })),
+                  ]}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+        {footer}
+      </form>
+    )
+  }
+
   return (
-    <form
-      className={
-        isPublic
-          ? 'flex min-h-0 flex-col gap-0'
-          : 'flex h-full min-h-0 flex-col'
-      }
-      onSubmit={handleSubmit}
-      noValidate
-    >
+    <form className="flex min-h-0 flex-col gap-0" onSubmit={handleSubmit} noValidate>
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         <div className="flex flex-col gap-4">
           <ProfilePhotoField
@@ -290,21 +357,7 @@ export function NewClientForm({
               options={countryOptions}
               disabled={catalogCountries.length === 0}
             />
-            {isPublic ? null : (
-              <Select
-                label="Sub Agent"
-                value={subAgentId}
-                onChange={(event) => setSubAgentId(event.target.value)}
-                options={[
-                  { value: '', label: 'None' },
-                  ...subAgents.map((subAgent) => ({
-                    value: subAgent.id,
-                    label: subAgent.name,
-                  })),
-                ]}
-              />
-            )}
-            <div className={isPublic ? 'sm:col-span-2' : undefined}>
+            <div className="sm:col-span-2">
               <Input
                 label="Address"
                 value={address}
@@ -323,10 +376,11 @@ export function NewClientForm({
               error={fieldError('banglaName')}
             />
             <Input
-              label="Father's Name"
+              label="Father Name"
               value={fatherName}
               onChange={(event) => setFatherName(event.target.value)}
               onBlur={handleBlur('fatherName')}
+              placeholder="Father's name"
               error={fieldError('fatherName')}
             />
             <Input
@@ -354,95 +408,65 @@ export function NewClientForm({
               value={placeOfBirth}
               onChange={(event) => setPlaceOfBirth(event.target.value)}
               onBlur={handleBlur('placeOfBirth')}
+              placeholder="City / district"
               error={fieldError('placeOfBirth')}
             />
             <Input
-              label="NID Number"
+              label="NID"
               value={nid}
               onChange={(event) => setNid(event.target.value)}
               onBlur={handleBlur('nid')}
+              placeholder="National ID"
               error={fieldError('nid')}
             />
-            {requiredCustomFields.map((field) => {
-              const key = `custom:${field.id}` as const
-              return (
-                <ClientCustomFieldControl
-                  key={field.id}
-                  field={field}
-                  value={customFieldValues[field.id] ?? ''}
-                  error={fieldError(key)}
-                  onChange={(value) =>
-                    setCustomFields((current) => ({
-                      ...current,
-                      [field.id]: value,
-                    }))
-                  }
-                  onBlur={handleBlur(key)}
-                />
-              )
-            })}
-            {optionalCustomFields.map((field) => {
-              const key = `custom:${field.id}` as const
-              return (
-                <ClientCustomFieldControl
-                  key={field.id}
-                  field={field}
-                  value={customFieldValues[field.id] ?? ''}
-                  error={fieldError(key)}
-                  onChange={(value) =>
-                    setCustomFields((current) => ({
-                      ...current,
-                      [field.id]: value,
-                    }))
-                  }
-                  onBlur={handleBlur(key)}
-                />
-              )
-            })}
             <Input
-              label="Passport Number"
+              label="Passport"
               value={passport}
               onChange={(event) => setPassport(event.target.value)}
               onBlur={handleBlur('passport')}
+              placeholder="Passport number"
               error={fieldError('passport')}
             />
             <Input
-              label="Place of Issue"
-              value={passportPlaceOfIssue}
-              onChange={(event) => setPassportPlaceOfIssue(event.target.value)}
-              onBlur={handleBlur('passportPlaceOfIssue')}
-              error={fieldError('passportPlaceOfIssue')}
-            />
-            <Input
-              label="Date of Issue"
+              label="Passport Issued"
               type="date"
-              required={Boolean(passport.trim())}
               value={passportIssuedOn}
               onChange={(event) => setPassportIssuedOn(event.target.value)}
               onBlur={handleBlur('passportIssuedOn')}
               error={fieldError('passportIssuedOn')}
             />
             <Input
-              label="Date of Expiry"
+              label="Passport Expiry"
               type="date"
-              required={Boolean(passport.trim())}
               value={passportExpiry}
               onChange={(event) => setPassportExpiry(event.target.value)}
               onBlur={handleBlur('passportExpiry')}
               error={fieldError('passportExpiry')}
             />
           </div>
+
+          {customFieldDefs.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {customFieldDefs.map((field) => (
+                <ClientCustomFieldControl
+                  key={field.id}
+                  field={field}
+                  value={customFieldValues[field.id] ?? ''}
+                  onChange={(next) =>
+                    setCustomFields((current) => ({
+                      ...current,
+                      [field.id]: next,
+                    }))
+                  }
+                  onBlur={() => markTouched(`custom:${field.id}`)}
+                  error={fieldError(`custom:${field.id}`)}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
-
-      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border px-5 py-4">
-        {onCancel ? (
-          <Button type="button" variant="outline" className="h-9 rounded-lg shadow-xs" onClick={onCancel}>
-            Cancel
-          </Button>
-        ) : null}
-        <Button type="submit" className="h-9 rounded-lg shadow-xs">{submitLabel}</Button>
-      </div>
+      {footer}
     </form>
   )
 }

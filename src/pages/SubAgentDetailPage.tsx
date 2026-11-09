@@ -107,6 +107,7 @@ import {
 import { formatDisplayDate } from '@/lib/formatDate'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import { useCases } from '@/lib/casesStore'
+import { deriveClientBalance } from '@/lib/clientDerived'
 import {
   clientMatchesServiceStatusFilters,
   deriveClientServiceStatus,
@@ -128,11 +129,7 @@ import {
 import { formatPaymentAmount, usePayments } from '@/lib/paymentsStore'
 import type { Case, CaseStatus } from '@/types/case'
 import type { SubAgent, SubAgentStatus } from '@/types/subAgent'
-import type {
-  Client,
-  CreateClientInput,
-  ServiceType,
-} from '@/types/client'
+import type { Client, CreateClientInput } from '@/types/client'
 
 const SUB_AGENT_TABS = ['overview', 'profile', 'clients', 'report', 'login'] as const
 
@@ -154,7 +151,6 @@ type ProfileDraft = {
   email: string
   address: string
   licenseNumber: string
-  branch: string
   photoUrl: string | undefined
 }
 
@@ -219,7 +215,7 @@ function matchesSubAgentClientFilters(
   const matchService =
     serviceFilters.length === 0 ||
     serviceFilters.some((service) =>
-      client.services.includes(service as ServiceType),
+      clientCases.some((item) => item.service === service),
     )
   const matchStatus = clientMatchesServiceStatusFilters(
     clientCases,
@@ -252,7 +248,6 @@ function toProfileDraft(subAgent: SubAgent): ProfileDraft {
     email: subAgent.email ?? '',
     address: subAgent.address ?? '',
     licenseNumber: subAgent.licenseNumber ?? '',
-    branch: subAgent.branch ?? '',
     photoUrl: subAgent.photoUrl,
   }
 }
@@ -643,7 +638,7 @@ export default function SubAgentDetailPage() {
   )
   const [draft, setDraft] = useState<ProfileDraft | null>(null)
   const { markAllTouched, showError, blur } = useTouchedFields<
-    'name' | 'phone' | 'email' | 'address' | 'licenseNumber' | 'branch'
+    'name' | 'phone' | 'email' | 'address' | 'licenseNumber'
   >()
 
   useEffect(() => {
@@ -678,13 +673,16 @@ export default function SubAgentDetailPage() {
       'License',
       40,
     ),
-    branch: validateOptionalText(profileDraft.branch, 'Branch'),
   }
 
   const collected = payments
     .filter((item) => clients.some((client) => client.id === item.clientId))
     .reduce((sum, item) => sum + item.amount, 0)
-  const outstanding = clients.reduce((sum, client) => sum + client.balance, 0)
+  const outstanding = clients.reduce(
+    (sum, client) =>
+      sum + deriveClientBalance(casesByClientId.get(client.id) ?? []),
+    0,
+  )
   const filteredClients = clients.filter((client) =>
     matchesSubAgentClientFilters(
       client,
@@ -726,7 +724,6 @@ export default function SubAgentDetailPage() {
       'email',
       'address',
       'licenseNumber',
-      'branch',
     ])
     if (Object.values(subAgentErrors).some(Boolean)) return
     const updated = updateSubAgent(subAgent.id, {
@@ -735,7 +732,6 @@ export default function SubAgentDetailPage() {
       email: profileDraft.email.trim() || undefined,
       address: profileDraft.address.trim() || undefined,
       licenseNumber: profileDraft.licenseNumber.trim() || undefined,
-      branch: profileDraft.branch.trim() || undefined,
       photoUrl: profileDraft.photoUrl,
       status: activityStatus,
     })
@@ -761,7 +757,6 @@ export default function SubAgentDetailPage() {
   const displayEmail = profileDraft.email
   const displayAddress = profileDraft.address
   const displayLicense = profileDraft.licenseNumber
-  const displayBranch = profileDraft.branch
   const statusForClient = (clientId: string) =>
     deriveClientServiceStatus(casesByClientId.get(clientId) ?? [])
 
@@ -862,18 +857,6 @@ export default function SubAgentDetailPage() {
                         variant="cardField"
                         value={displayLicense}
                         label="License Number"
-                      />
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    ),
-                  ],
-                  [
-                    'Branch',
-                    displayBranch ? (
-                      <ContactChip
-                        variant="cardField"
-                        value={displayBranch}
-                        label="Branch"
                       />
                     ) : (
                       <span className="text-muted-foreground">-</span>
@@ -987,14 +970,6 @@ export default function SubAgentDetailPage() {
                               <FieldLabel icon={IdCard}>License</FieldLabel>
                               <dd className="m-0 text-sm">
                                 {displayLicense || (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </dd>
-                            </div>
-                            <div>
-                              <FieldLabel icon={MapPin}>Branch</FieldLabel>
-                              <dd className="m-0 text-sm">
-                                {displayBranch || (
                                   <span className="text-muted-foreground">-</span>
                                 )}
                               </dd>
@@ -1194,7 +1169,13 @@ export default function SubAgentDetailPage() {
                                           <TableCell>
                                             {normalizePhone(client.phone) || client.phone}
                                           </TableCell>
-                                          <TableCell>{formatBalance(client.balance)}</TableCell>
+                                          <TableCell>
+                                            {formatBalance(
+                                              deriveClientBalance(
+                                                casesByClientId.get(client.id) ?? [],
+                                              ),
+                                            )}
+                                          </TableCell>
                                           <TableCell>
                                             {serviceStatus ? (
                                               <Badge
@@ -1342,28 +1323,6 @@ export default function SubAgentDetailPage() {
                                 error={
                                   showError('licenseNumber')
                                     ? subAgentErrors.licenseNumber
-                                    : undefined
-                                }
-                              />
-                            </div>
-                            <div
-                              className={fieldClass(
-                                profileDraft.branch !== savedDraft.branch,
-                              )}
-                            >
-                              <Input
-                                label="Branch"
-                                value={profileDraft.branch}
-                                onChange={(event) =>
-                                  setDraft((current) => ({
-                                    ...(current ?? savedDraft),
-                                    branch: event.target.value,
-                                  }))
-                                }
-                                onBlur={blur('branch')}
-                                error={
-                                  showError('branch')
-                                    ? subAgentErrors.branch
                                     : undefined
                                 }
                               />
@@ -1562,7 +1521,11 @@ export default function SubAgentDetailPage() {
                                   <div className="flex justify-between gap-2">
                                     <span>Balance Due</span>
                                     <span className="text-foreground">
-                                      {formatBalance(client.balance)}
+                                      {formatBalance(
+                                        deriveClientBalance(
+                                          casesByClientId.get(client.id) ?? [],
+                                        ),
+                                      )}
                                     </span>
                                   </div>
                                 </CardContent>
@@ -1614,7 +1577,13 @@ export default function SubAgentDetailPage() {
                                     <TableCell>
                                       {client.preferredCountry || '-'}
                                     </TableCell>
-                                    <TableCell>{formatBalance(client.balance)}</TableCell>
+                                    <TableCell>
+                                      {formatBalance(
+                                        deriveClientBalance(
+                                          casesByClientId.get(client.id) ?? [],
+                                        ),
+                                      )}
+                                    </TableCell>
                                     <TableCell>
                                       {serviceStatus ? (
                                         <Badge

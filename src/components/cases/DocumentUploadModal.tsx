@@ -47,10 +47,12 @@ export function DocumentUploadModal({
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    const saved = editor.save({ caseId, clientId, identityKind })
-    if (!saved) return
-    if (onModeChange) onModeChange('view')
-    else onClose()
+    void (async () => {
+      const saved = await editor.save({ caseId, clientId, identityKind })
+      if (!saved) return
+      if (onModeChange) onModeChange('view')
+      else onClose()
+    })()
   }
 
   if (!document || !editor.form) return null

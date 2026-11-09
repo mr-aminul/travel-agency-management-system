@@ -168,10 +168,6 @@ export function buildIdentityCaseDocument(
     (kind === 'passport' ? client.passportIssuedOn?.trim() : undefined) ||
     fromCase?.fields?.issuedOn?.trim() ||
     undefined
-  const placeOfIssue =
-    (kind === 'passport' ? client.passportPlaceOfIssue?.trim() : undefined) ||
-    fromCase?.fields?.placeOfIssue?.trim() ||
-    undefined
   const hasRecord = Boolean(
     number || scan || fromCase?.fileId || fromCase?.fileName,
   )
@@ -188,7 +184,6 @@ export function buildIdentityCaseDocument(
       ...(number ? { number } : {}),
       ...(expiry ? { expiry } : {}),
       ...(issuedOn ? { issuedOn } : {}),
-      ...(placeOfIssue ? { placeOfIssue } : {}),
     },
     fileName: scan?.fileName ?? fromCase?.fileName,
     fileId: scan?.fileId ?? fromCase?.fileId,
@@ -219,29 +214,42 @@ function identityHasFile(
   return documentHasFile(buildIdentityCaseDocument(client, cases, kind))
 }
 
-/**
- * Documents tab alert count: unlocked required papers / identity scans
- * still missing an uploaded file (status alone is not enough; a number
- * without a scan still needs attention).
- */
-export function countClientDocumentAlerts(
+/** Passport / NID scans still missing an uploaded file. */
+export function countClientIdentityAlerts(
   client: Client,
   cases: Case[],
 ): number {
   let count = 0
-
   for (const kind of ['passport', 'nid'] as const) {
     if (!identityHasFile(client, cases, kind)) count += 1
   }
+  return count
+}
 
+/**
+ * Unlocked required service papers still missing a file (status alone is not
+ * enough; a number without a scan still needs attention).
+ */
+export function countClientServicePaperAlerts(cases: Case[]): number {
+  let count = 0
   for (const group of getClientServiceDocumentGroups(cases)) {
     for (const paper of group.papers) {
       if (paper.locked || !paper.required) continue
       if (!documentHasFile(paper)) count += 1
     }
   }
-
   return count
+}
+
+/** Identity scans + service papers still missing an uploaded file. */
+export function countClientDocumentAlerts(
+  client: Client,
+  cases: Case[],
+): number {
+  return (
+    countClientIdentityAlerts(client, cases) +
+    countClientServicePaperAlerts(cases)
+  )
 }
 
 export function getClientServiceDocumentGroups(

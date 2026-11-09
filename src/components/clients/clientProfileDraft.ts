@@ -18,20 +18,27 @@ import type {
   ClientGender,
   ClientMaritalStatus,
 } from '@/types/client'
-import type { ClientProfileField } from '@/types/clientProfileField'
+import {
+  CLIENT_PROFILE_SECTIONS,
+  type ClientProfileField,
+  type ClientProfileSectionId,
+} from '@/types/clientProfileField'
+
+export { CLIENT_PROFILE_SECTIONS }
+export type { ClientProfileSectionId }
 
 export type ClientProfileDraft = {
   name: string
   banglaName: string
   phone: string
   email: string
-  address: string
+  whatsapp: string
   nid: string
   passport: string
   fatherName: string
   motherName: string
   dateOfBirth: string
-  gender: ClientGender
+  gender: ClientGender | ''
   maritalStatus: string
   nationality: string
   placeOfBirth: string
@@ -39,7 +46,6 @@ export type ClientProfileDraft = {
   bloodGroup: string
   passportExpiry: string
   passportIssuedOn: string
-  passportPlaceOfIssue: string
   /** Empty string = agency-direct (no referring sub agent). */
   subAgentId: string
   presentAddress: string
@@ -54,31 +60,28 @@ export type ClientProfileDraft = {
   preferredCountry: string
   preferredJob: string
   expectedSalary: string
+  contractAmount: string
   branch: string
   customFields: Record<string, string>
 }
 
-export type ClientProfileSectionId =
-  | 'reach'
-  | 'travel'
-  | 'personal'
-  | 'family'
-  | 'work'
-  | 'places'
-  | 'extra'
+const LEGACY_PROFILE_SECTION: Record<string, ClientProfileSectionId> = {
+  reach: 'contact',
+  places: 'contact',
+  travel: 'identity',
+  personal: 'identity',
+}
 
-export const CLIENT_PROFILE_SECTIONS: {
-  id: ClientProfileSectionId
-  label: string
-}[] = [
-  { id: 'reach', label: 'Contact' },
-  { id: 'travel', label: 'Travel ID' },
-  { id: 'personal', label: 'Personal' },
-  { id: 'family', label: 'Family' },
-  { id: 'work', label: 'Work' },
-  { id: 'places', label: 'Places' },
-  { id: 'extra', label: 'Extra' },
-]
+/** Map a profile `section` query param, including older section ids. */
+export function profileSectionFromParam(
+  value: string | null,
+): ClientProfileSectionId | undefined {
+  if (!value) return undefined
+  if (CLIENT_PROFILE_SECTIONS.some((section) => section.id === value)) {
+    return value as ClientProfileSectionId
+  }
+  return LEGACY_PROFILE_SECTION[value]
+}
 
 export const MARITAL_VALUES = [
   'Single',
@@ -88,6 +91,7 @@ export const MARITAL_VALUES = [
 ] as const
 
 export const GENDER_OPTIONS = [
+  { value: '', label: '-' },
   { value: 'Male', label: 'Male' },
   { value: 'Female', label: 'Female' },
   { value: 'Other', label: 'Other' },
@@ -111,10 +115,12 @@ export function parseMaritalStatus(
   return MARITAL_VALUES.find((entry) => entry === value)
 }
 
-/** Draft keys owned by Documents — mirrored, never saved from Profile. */
+/**
+ * Draft keys owned by Profile → Identity document workspace — mirrored in the
+ * profile form, never saved from the form Save button.
+ */
 export const IDENTITY_PROFILE_KEYS = new Set<keyof ClientProfileDraft>([
   'passport',
-  'passportPlaceOfIssue',
   'passportIssuedOn',
   'passportExpiry',
   'nid',
@@ -133,22 +139,22 @@ export const PROFILE_GAP_FIELD: Record<
   passportIssuedOn: 'passportIssuedOn',
   passportExpiry: 'passportExpiry',
   nid: 'nid',
-  address: 'address',
+  address: 'presentAddress',
   email: 'email',
 }
 
 export function sectionForGap(
   gapId: ClientInfoGapId,
-): ClientProfileSectionId | 'documents' {
+): ClientProfileSectionId | 'identity' {
   if (
     gapId === 'passport' ||
     gapId === 'passportIssuedOn' ||
     gapId === 'passportExpiry' ||
     gapId === 'nid'
   ) {
-    return 'documents'
+    return 'identity'
   }
-  return 'reach'
+  return 'contact'
 }
 
 export function toClientProfileDraft(
@@ -160,13 +166,13 @@ export function toClientProfileDraft(
     banglaName: client.banglaName ?? '',
     phone: client.phone,
     email: client.email ?? '',
-    address: client.address ?? '',
+    whatsapp: client.whatsapp ?? '',
     nid: client.nid ?? '',
     passport: client.passport ?? '',
     fatherName: client.fatherName ?? '',
     motherName: client.motherName ?? '',
     dateOfBirth: client.dateOfBirth ?? '',
-    gender: client.gender ?? 'Male',
+    gender: client.gender ?? '',
     maritalStatus: client.maritalStatus ?? '',
     nationality: client.nationality ?? '',
     placeOfBirth: client.placeOfBirth ?? '',
@@ -174,9 +180,8 @@ export function toClientProfileDraft(
     bloodGroup: client.bloodGroup ?? '',
     passportExpiry: client.passportExpiry ?? '',
     passportIssuedOn: client.passportIssuedOn ?? '',
-    passportPlaceOfIssue: client.passportPlaceOfIssue ?? '',
     subAgentId: client.subAgentId ?? '',
-    presentAddress: client.presentAddress ?? '',
+    presentAddress: client.presentAddress || client.address || '',
     permanentAddress: client.permanentAddress ?? '',
     district: client.district ?? '',
     upazila: client.upazila ?? '',
@@ -188,6 +193,8 @@ export function toClientProfileDraft(
     preferredCountry: client.preferredCountry ?? '',
     preferredJob: client.preferredJob ?? '',
     expectedSalary: client.expectedSalary ?? '',
+    contractAmount:
+      client.contractAmount != null ? String(client.contractAmount) : '',
     branch: client.branch ?? '',
     customFields: emptyCustomFieldValues(
       customFieldDefs,
@@ -215,6 +222,10 @@ export function profileFieldError(
       return validateRequiredPhone(draft.phone, { duplicateName })
     case 'email':
       return validateOptionalEmail(draft.email)
+    case 'whatsapp':
+      return draft.whatsapp.trim()
+        ? validateRequiredPhone(draft.whatsapp, { label: 'WhatsApp' })
+        : undefined
     case 'banglaName':
       return validateOptionalPersonName(draft.banglaName, 'Bangla Name')
     case 'fatherName':
@@ -229,8 +240,6 @@ export function profileFieldError(
       return validateOptionalText(draft.placeOfBirth, 'Place of Birth')
     case 'nationality':
       return validateOptionalText(draft.nationality, 'Nationality')
-    case 'address':
-      return validateOptionalText(draft.address, 'Address')
     case 'presentAddress':
       return validateOptionalText(draft.presentAddress, 'Present Address')
     case 'permanentAddress':
@@ -243,27 +252,8 @@ export function profileFieldError(
       return validateOptionalText(draft.education, 'Education')
     case 'profession':
       return validateOptionalText(draft.profession, 'Profession')
-    case 'skillTrade':
-      return validateOptionalText(draft.skillTrade, 'Skill / Trade')
-    case 'experience':
-      return validateOptionalText(draft.experience, 'Experience')
-    case 'previousOverseasExp':
-      return validateOptionalText(
-        draft.previousOverseasExp,
-        'Overseas Experience',
-      )
-    case 'preferredCountry':
-      return validateOptionalText(draft.preferredCountry, 'Preferred Country')
-    case 'preferredJob':
-      return validateOptionalText(draft.preferredJob, 'Preferred Job')
-    case 'expectedSalary':
-      return validateOptionalText(draft.expectedSalary, 'Expected Salary')
-    case 'branch':
-      return validateOptionalText(draft.branch, 'Branch')
     case 'passport':
       return validateOptionalPassport(draft.passport)
-    case 'passportPlaceOfIssue':
-      return validateOptionalText(draft.passportPlaceOfIssue, 'Place of Issue')
     case 'passportIssuedOn':
       return validatePassportDates(
         draft.passportIssuedOn,
@@ -289,8 +279,7 @@ export const EDITABLE_PROFILE_KEYS: (keyof ClientProfileDraft)[] = [
   'banglaName',
   'phone',
   'email',
-  'address',
-  'subAgentId',
+  'whatsapp',
   'dateOfBirth',
   'gender',
   'placeOfBirth',
@@ -302,13 +291,6 @@ export const EDITABLE_PROFILE_KEYS: (keyof ClientProfileDraft)[] = [
   'spouseName',
   'profession',
   'education',
-  'skillTrade',
-  'experience',
-  'previousOverseasExp',
-  'preferredCountry',
-  'preferredJob',
-  'expectedSalary',
-  'branch',
   'presentAddress',
   'permanentAddress',
   'district',

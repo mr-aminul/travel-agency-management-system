@@ -42,9 +42,9 @@ describe('document form field overrides', () => {
         required: true,
       },
       {
-        key: 'placeOfIssue',
-        label: 'Issued at',
-        type: 'text',
+        key: 'issuedOn',
+        label: 'Issued on',
+        type: 'date',
       },
       {
         key: 'expiry',
@@ -57,7 +57,7 @@ describe('document form field overrides', () => {
     const form = getDocumentForm('passport')
     expect(form.fields.map((field) => field.label)).toEqual([
       'Pass no.',
-      'Issued at',
+      'Issued on',
       'Valid until',
     ])
     expect(form.syncToClient).toEqual({ passport: 'number' })

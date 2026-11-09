@@ -171,9 +171,15 @@ describe('client signals', () => {
       buildClient({ id: 'expired', passportExpiry: '2026-01-01' }),
       buildClient({ id: 'soon', passportExpiry: '2027-02-01' }),
       buildClient({ id: 'safe', passportExpiry: '2030-01-01' }),
-      buildClient({ id: 'inactive', passportExpiry: '2026-11-01', activeCases: 0 }),
+      buildClient({ id: 'inactive', passportExpiry: '2026-11-01' }),
     ]
-    expect(passportsExpiringSoon(clients, 180, asOf)).toBe(2)
+    const cases = [
+      buildCase({ id: 'c1', clientId: 'expired', status: 'Pending' }),
+      buildCase({ id: 'c2', clientId: 'soon', status: 'In-Progress' }),
+      buildCase({ id: 'c3', clientId: 'safe', status: 'Pending' }),
+      buildCase({ id: 'c4', clientId: 'inactive', status: 'Completed' }),
+    ]
+    expect(passportsExpiringSoon(clients, 180, asOf, cases)).toBe(2)
   })
 
   it('splits clients into sub-agent referrals and direct walk-ins', () => {
