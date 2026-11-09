@@ -610,7 +610,7 @@ export default function ClientDetailPage() {
       ? ('nid' as const)
       : searchParams.get('focus') === 'passport'
         ? ('passport' as const)
-        : null
+        : undefined
   const selectedDocId = searchParams.get('doc')
   return (
     <div

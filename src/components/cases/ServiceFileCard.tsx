@@ -13,7 +13,6 @@ import {
 } from 'lucide-react'
 import { CasePipeline } from '@/components/cases/CasePipeline'
 import { DocumentWorkspace } from '@/components/cases/DocumentWorkspace'
-import { formatDisplayDate } from '@/lib/formatDate'
 import { serviceDetailAriaLabel } from '@/lib/serviceDisplay'
 import {
   documentHasFile,
@@ -109,10 +108,6 @@ const FOCUS_FLASH_MS = 2800
 
 function clientServicePaperPath(caseId: string, clientId: string, docId: string): string {
   return `/clients/${clientId}/services/${caseId}?doc=${encodeURIComponent(docId)}`
-}
-
-function formatDate(value?: string): string {
-  return formatDisplayDate(value)
 }
 
 async function copyText(value: string) {
