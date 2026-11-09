@@ -67,7 +67,6 @@ import { flashAndReveal } from '@/lib/scrollWithin'
 import {
   clientIdentityFocusPath,
   clientPath,
-  workDetailPath,
   workInvoicePath,
 } from '@/lib/workPaths'
 import { clientTrackingUrl } from '@/lib/publicUrl'
