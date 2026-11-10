@@ -195,7 +195,7 @@ describe('service detail', () => {
 
     expect(within(work).queryByText('SR-00101')).not.toBeInTheDocument()
     expect(
-      within(work).getByLabelText('Journey').textContent,
+      within(work).getByLabelText('Steps').textContent,
     ).toMatch(/Medical/)
     expect(within(work).getByLabelText('Documents')).toBeInTheDocument()
     expect(
@@ -222,7 +222,7 @@ describe('service detail', () => {
     expect(within(details).getByLabelText('Departure')).toBeInTheDocument()
     expect(within(details).getByLabelText('Notes')).toBeInTheDocument()
     expect(within(details).getByLabelText('Service fee')).toBeInTheDocument()
-    expect(within(service).getByLabelText('Journey')).toBeInTheDocument()
+    expect(within(service).getByLabelText('Steps')).toBeInTheDocument()
     expect(within(service).getByRole('button', { name: 'Save' })).toBeInTheDocument()
     expect(
       within(service).getByRole('button', { name: 'Cancel' }),
@@ -253,7 +253,7 @@ describe('service detail', () => {
 
     const service = screen.getByLabelText('Work Permit Visa (SR-00101)')
     const documents = within(service).getByLabelText('Documents')
-    const journey = within(service).getByLabelText('Journey')
+    const journey = within(service).getByLabelText('Steps')
 
     expect(within(journey).getByText('Medical')).toBeInTheDocument()
     expect(

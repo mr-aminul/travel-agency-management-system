@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react'
+import {
+  Fragment,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from 'react'
 import {
   Briefcase,
   Check,
@@ -9,8 +17,6 @@ import {
   UserRound,
   Users,
 } from 'lucide-react'
-import { ClientCustomFieldControl } from '@/components/clients/ClientCustomFieldControl'
-import { Input, Select } from '@/components/clients/clientShadcnFields'
 import {
   BLOOD_GROUP_OPTIONS,
   GENDER_OPTIONS,
@@ -19,9 +25,21 @@ import {
   type ClientProfileDraft,
   type ClientProfileSectionId,
 } from '@/components/clients/clientProfileDraft'
-import { Badge } from '@/components/shadcn/badge'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/shadcn/accordion'
 import { Button } from '@/components/shadcn/button'
 import { Card, CardContent } from '@/components/shadcn/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
 import type { ClientInfoGap } from '@/lib/clientMissingInfo'
 import { formatDisplayDate } from '@/lib/formatDate'
 import { cn } from '@/lib/utils'
@@ -80,8 +98,9 @@ const PROFILE_GROUPS: ProfileGroup[] = [
       { key: 'phone', label: 'Mobile Number', kind: 'tel', required: true },
       { key: 'whatsapp', label: 'WhatsApp', kind: 'tel' },
       { key: 'email', label: 'Email', kind: 'email' },
-      { key: 'presentAddress', label: 'Present Address', wide: true },
-      { key: 'permanentAddress', label: 'Permanent Address', wide: true },
+      { key: 'subAgentId', label: 'Sub Agent', kind: 'subAgent' },
+      { key: 'presentAddress', label: 'Present Address' },
+      { key: 'permanentAddress', label: 'Permanent Address' },
       { key: 'district', label: 'District' },
       { key: 'upazila', label: 'Upazila' },
     ],
@@ -104,6 +123,13 @@ const PROFILE_GROUPS: ProfileGroup[] = [
     fields: [
       { key: 'profession', label: 'Profession' },
       { key: 'education', label: 'Education' },
+      { key: 'skillTrade', label: 'Skill / Trade' },
+      { key: 'experience', label: 'Experience' },
+      { key: 'previousOverseasExp', label: 'Overseas Experience' },
+      { key: 'preferredCountry', label: 'Preferred Country' },
+      { key: 'preferredJob', label: 'Preferred Job' },
+      { key: 'expectedSalary', label: 'Expected Salary' },
+      { key: 'branch', label: 'Branch' },
     ],
   },
 ]
@@ -111,9 +137,10 @@ const PROFILE_GROUPS: ProfileGroup[] = [
 function groupFromSection(
   section?: ClientProfileSectionId,
 ): ProfileGroupId {
-  if (section && PROFILE_GROUPS.some((group) => group.id === section)) {
-    return section
-  }
+  if (section === 'identity') return 'identity'
+  if (section === 'contact') return 'contact'
+  if (section === 'family') return 'family'
+  if (section === 'work') return 'work'
   if (section === 'placement') return 'placement'
   if (section === 'extra') return 'extra'
   return 'identity'
@@ -143,69 +170,44 @@ function formatValue(
   return trimmed
 }
 
-type GridColumns = 2 | 3 | 4
+/** Sections staff need most often — stay open by default. */
+const PRIMARY_OPEN_IDS: ProfileGroupId[] = ['identity', 'contact']
 
-/** Addresses share a row. The first wide field starts that row so it does not leave a hole. */
-function spanClass(
-  wide: boolean | undefined,
-  columns: GridColumns,
-  startRow = false,
-) {
-  if (!wide) return undefined
-  if (columns === 4) {
-    return startRow ? 'sm:col-span-2 sm:col-start-1' : 'sm:col-span-2'
+const cellControlClass =
+  'h-auto w-full min-w-0 cursor-text border-0 bg-transparent p-0 text-[0.8125rem] font-medium leading-tight text-foreground shadow-none outline-none ring-0 focus-visible:ring-0 disabled:cursor-default'
+
+function defaultOpenSections(
+  groups: ProfileGroup[],
+  gaps: ClientInfoGap[],
+  initialSection?: ClientProfileSectionId,
+  editing = false,
+): string[] {
+  if (editing) return groups.map((group) => group.id)
+  const open = new Set<string>(PRIMARY_OPEN_IDS)
+  if (initialSection) open.add(groupFromSection(initialSection))
+  for (const group of groups) {
+    if (!group.gapIds?.length) continue
+    if (gaps.some((gap) => group.gapIds!.includes(gap.id))) {
+      open.add(group.id)
+    }
   }
-  if (columns === 3) return 'sm:col-span-3'
-  return 'sm:col-span-2'
+  return groups.map((group) => group.id).filter((id) => open.has(id))
 }
 
-function startsWideRow(
-  fields: Array<{ wide?: boolean }>,
-  index: number,
+function selectOptionsForField(
+  field: WorkspaceField,
+  subAgentOptions: { value: string; label: string }[],
 ) {
-  const field = fields[index]
-  if (!field?.wide) return false
-  return !fields[index - 1]?.wide
+  if (field.kind === 'gender') return GENDER_OPTIONS
+  if (field.kind === 'marital') return MARITAL_OPTIONS
+  if (field.kind === 'blood') return BLOOD_GROUP_OPTIONS
+  if (field.kind === 'subAgent') return subAgentOptions
+  return null
 }
 
-/**
- * Full-width sections: 4 readable columns at rest, 3 while editing.
- */
-function columnsForGroup(fieldCount: number, editing: boolean): GridColumns {
-  if (fieldCount <= 2) return 2
-  if (editing) return 3
-  return 4
-}
-
-function gridClass(columns: GridColumns, editing: boolean) {
-  return cn(
-    'm-0 grid grid-cols-1 sm:grid-cols-2',
-    columns === 4 && 'lg:grid-cols-4',
-    columns === 3 && 'lg:grid-cols-3',
-    editing ? 'gap-x-4 gap-y-3' : 'gap-x-6 gap-y-3.5',
-  )
-}
-
-function SectionIcon({
-  icon: Icon,
-}: {
-  icon: ProfileGroup['icon']
-}) {
-  return (
-    <span
-      className="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-[var(--color-theme-subtle)] text-[var(--color-theme-ink)]"
-      aria-hidden
-    >
-      <Icon size={14} strokeWidth={2.25} />
-    </span>
-  )
-}
-
-function FieldControl({
+function CellControl({
   field,
   value,
-  dirty,
-  gap,
   error,
   subAgentOptions,
   onBlur,
@@ -213,182 +215,137 @@ function FieldControl({
 }: {
   field: WorkspaceField
   value: string
-  dirty: boolean
-  gap?: ClientInfoGap
   error?: string
   subAgentOptions: { value: string; label: string }[]
   onBlur: () => void
   onChange: (value: string) => void
 }) {
-  const wrapClass = cn(
-    'min-w-0',
-    dirty &&
-    '[&_input]:border-[var(--color-theme-ink)] [&_button]:border-[var(--color-theme-ink)]',
-    gap &&
-    '[&_input]:border-[color-mix(in_srgb,var(--color-danger)_55%,var(--color-border))] [&_input]:bg-[color-mix(in_srgb,var(--color-danger)_5%,var(--color-surface))]',
-    gap?.blocksProgress && '[&_input]:border-[var(--color-danger)]',
-  )
-
-  let control
-  if (field.kind === 'gender') {
-    control = (
+  const options = selectOptionsForField(field, subAgentOptions)
+  if (options) {
+    return (
       <Select
-        label={field.label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        options={GENDER_OPTIONS}
-        error={error}
-        compact
-      />
-    )
-  } else if (field.kind === 'marital') {
-    control = (
-      <Select
-        label={field.label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        options={MARITAL_OPTIONS}
-        error={error}
-        compact
-      />
-    )
-  } else if (field.kind === 'blood') {
-    control = (
-      <Select
-        label={field.label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        options={BLOOD_GROUP_OPTIONS}
-        error={error}
-        compact
-      />
-    )
-  } else if (field.kind === 'subAgent') {
-    control = (
-      <Select
-        label={field.label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        options={subAgentOptions}
-        error={error}
-        compact
-      />
-    )
-  } else {
-    control = (
-      <Input
-        label={field.label}
-        required={field.required}
-        compact
-        type={
-          field.kind === 'date'
-            ? 'date'
-            : field.kind === 'email'
-              ? 'email'
-              : field.kind === 'tel'
-                ? 'tel'
-                : 'text'
-        }
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        error={error}
-      />
+        value={value || '__empty'}
+        onValueChange={(next) => onChange(next === '__empty' ? '' : next)}
+        onOpenChange={(open) => {
+          if (!open) onBlur()
+        }}
+      >
+        <SelectTrigger
+          aria-label={field.label}
+          size="sm"
+          className={cn(
+            'h-auto min-h-0 w-full min-w-0 justify-between gap-1.5 rounded-sm border-0 bg-transparent px-0 py-0 text-[0.8125rem] font-medium leading-tight shadow-none outline-none focus-visible:border-0 focus-visible:ring-0 data-[size=sm]:h-auto data-[size=sm]:rounded-sm dark:bg-transparent dark:hover:bg-transparent [&_svg]:size-3.5',
+            error ? 'text-destructive' : 'text-foreground',
+            !value && 'text-muted-foreground',
+          )}
+        >
+          <SelectValue placeholder="Select" />
+        </SelectTrigger>
+        <SelectContent
+          align="start"
+          position="popper"
+          className="min-w-[10rem] rounded-md [&_[data-slot=select-item]]:rounded-sm"
+        >
+          {options.map((option) => (
+            <SelectItem
+              key={option.value || '__empty'}
+              value={option.value || '__empty'}
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     )
   }
 
   return (
-    <div className={wrapClass} data-profile-field={field.key}>
-      {control}
-    </div>
+    <input
+      aria-label={field.label}
+      className={cn(cellControlClass, error && 'text-destructive')}
+      type={
+        field.kind === 'date'
+          ? 'date'
+          : field.kind === 'email'
+            ? 'email'
+            : field.kind === 'tel'
+              ? 'tel'
+              : 'text'
+      }
+      value={value}
+      onBlur={onBlur}
+      onChange={(event) => onChange(event.target.value)}
+    />
   )
 }
 
-function valueHref(kind: FieldKind | undefined, raw: string) {
-  const trimmed = raw.trim()
-  if (!trimmed) return undefined
-  if (kind === 'email') return `mailto:${trimmed}`
-  if (kind === 'tel') {
-    const digits = trimmed.replace(/[^\d+]/g, '')
-    return digits ? `tel:${digits}` : undefined
-  }
-  return undefined
-}
-
-function ReadCell({
-  fieldKey,
-  label,
+function ReadValue({
   value,
   kind,
-  wide,
-  columns,
-  startRow,
   gap,
   subAgentOptions,
 }: {
-  fieldKey: string
-  label: string
   value: string
   kind?: FieldKind
-  wide?: boolean
-  columns: GridColumns
-  startRow?: boolean
   gap?: ClientInfoGap
   subAgentOptions?: { value: string; label: string }[]
 }) {
   const display = formatValue(value, kind, subAgentOptions)
   const empty = !display
-  const href = empty ? undefined : valueHref(kind, value)
 
   return (
-    <div
+    <span
       className={cn(
-        'flex min-w-0 flex-col gap-1',
-        gap &&
-          'rounded-lg bg-[color-mix(in_srgb,var(--color-danger)_6%,transparent)] px-2 py-1.5 -mx-2',
-        spanClass(wide, columns, startRow),
+        'inline-block min-w-0 text-[0.8125rem] leading-tight',
+        empty && 'font-normal text-muted-foreground/70',
+        !empty && !gap && 'font-medium text-foreground',
+        gap && 'font-medium text-destructive',
+        !empty && 'break-words',
       )}
-      data-profile-field={fieldKey}
     >
-      <div className="flex min-w-0 items-center gap-1.5">
-        <dt className="m-0 text-xs font-medium text-muted-foreground">
-          {label}
-        </dt>
-        {gap ? (
-          <Badge
-            variant="outline"
-            className="h-4 shrink-0 border-destructive/30 bg-destructive/10 px-1.5 text-[0.625rem] font-medium text-destructive"
-          >
-            Needed
-          </Badge>
-        ) : null}
-      </div>
-      <dd
-        className={cn(
-          'm-0 min-w-0 text-sm leading-5',
-          empty
-            ? 'text-muted-foreground/40'
-            : 'font-medium text-foreground',
-          !empty &&
-            (kind === 'email' || kind === 'tel' ? 'break-all' : 'break-words'),
-        )}
-      >
-        {empty ? (
-          '—'
-        ) : href ? (
-          <a href={href} className="underline-offset-2 hover:underline">
-            {display}
-          </a>
-        ) : (
-          display
-        )}
-      </dd>
-    </div>
+      {empty ? null : display}
+    </span>
   )
+}
+
+type ReadEntry = {
+  key: string
+  label: string
+  value: string
+  kind?: FieldKind
+  wide?: boolean
+  gap?: ClientInfoGap
+  required?: boolean
+  workspaceField?: WorkspaceField
+  customId?: string
+}
+
+const READ_COLUMNS = 3
+
+function chunkReadEntries(
+  entries: ReadEntry[],
+  columns = READ_COLUMNS,
+): ReadEntry[][] {
+  const rows: ReadEntry[][] = []
+  let index = 0
+  while (index < entries.length) {
+    const entry = entries[index]!
+    if (entry.wide) {
+      rows.push([entry])
+      index += 1
+      continue
+    }
+    const row: ReadEntry[] = [entry]
+    index += 1
+    while (row.length < columns && index < entries.length) {
+      const next = entries[index]!
+      if (next.wide) break
+      row.push(next)
+      index += 1
+    }
+    rows.push(row)
+  }
+  return rows
 }
 
 function SectionPanel({
@@ -424,103 +381,184 @@ function SectionPanel({
     value: ClientProfileDraft[K],
   ) => void
   onCustomChange: (fieldId: string, value: string) => void
-}) {
+}): ReactNode {
   const customForGroup = customFieldDefs.filter(
     (field) => field.section === groupId,
   )
-  const totalFields = fields.length + customForGroup.length
-  const columns = columnsForGroup(totalFields, editing)
-  const layoutClass = gridClass(columns, editing)
-
-  if (!editing) {
-    return (
-      <dl className={layoutClass} id={`client-profile-section-${groupId}`}>
-        {fields.map((field, index) => (
-          <ReadCell
-            key={field.key}
-            fieldKey={field.key}
-            label={field.label}
-            value={String(draft[field.key] ?? '')}
-            kind={field.kind}
-            wide={field.wide}
-            columns={columns}
-            startRow={startsWideRow(fields, index)}
-            gap={gapForField(gaps, field.key)}
-            subAgentOptions={subAgentOptions}
-          />
-        ))}
-        {customForGroup.map((field) => (
-          <ReadCell
-            key={field.id}
-            fieldKey={`custom:${field.id}`}
-            label={field.label}
-            value={draft.customFields[field.id] ?? ''}
-            columns={columns}
-          />
-        ))}
-      </dl>
-    )
-  }
+  const entries: ReadEntry[] = [
+    ...fields.map((field) => ({
+      key: field.key,
+      label: field.label,
+      value: String(draft[field.key] ?? ''),
+      kind: field.kind,
+      wide: field.wide,
+      gap: gapForField(gaps, field.key),
+      required: field.required,
+      workspaceField: field,
+    })),
+    ...customForGroup.map((field) => ({
+      key: `custom:${field.id}`,
+      label: field.label,
+      value: draft.customFields[field.id] ?? '',
+      customId: field.id,
+      required: field.required,
+    })),
+  ]
+  const rows = chunkReadEntries(entries)
 
   return (
-    <div className={layoutClass} id={`client-profile-section-${groupId}`}>
-      {fields.map((field, index) => (
-        <div
-          key={field.key}
-          className={cn(
-            'min-w-0',
-            spanClass(field.wide, columns, startsWideRow(fields, index)),
-          )}
-        >
-          <FieldControl
-            field={field}
-            value={String(draft[field.key] ?? '')}
-            dirty={
-              String(draft[field.key] ?? '') !==
-              String(savedDraft[field.key] ?? '')
-            }
-            gap={gapForField(gaps, field.key)}
-            error={showError(field.key) ? fieldError(field.key) : undefined}
-            subAgentOptions={subAgentOptions}
-            onBlur={blur(field.key)}
-            onChange={(value) => {
-              if (field.kind === 'gender') {
-                onChange('gender', value as ClientGender | '')
-                return
-              }
-              onChange(
-                field.key,
-                value as ClientProfileDraft[typeof field.key],
-              )
-            }}
-          />
-        </div>
-      ))}
-      {customForGroup.map((field) => {
-        const key = `custom:${field.id}`
-        const dirty =
-          (draft.customFields[field.id] ?? '') !==
-          (savedDraft.customFields[field.id] ?? '')
-        return (
-          <div
-            key={field.id}
-            className={cn(
-              'min-w-0',
-              dirty &&
-              '[&_input]:border-[var(--color-theme-ink)] [&_button]:border-[var(--color-theme-ink)]',
-            )}
-            data-profile-field={key}
-          >
-            <ClientCustomFieldControl
-              field={field}
-              value={draft.customFields[field.id] ?? ''}
-              error={showError(key) ? customFieldError(field.id) : undefined}
-              onBlur={blur(key)}
-              onChange={(value) => onCustomChange(field.id, value)}
-            />
-          </div>
-        )
-      })}
+    <div
+      className="overflow-x-auto border-t border-border bg-[color-mix(in_srgb,var(--color-theme)_5%,white)]"
+      id={`client-profile-section-${groupId}`}
+    >
+      <table className="w-full border-collapse text-left">
+        <tbody>
+          {rows.map((row) => {
+            const full = row.length === 1 && row[0]?.wide
+            const emptySlots = full ? 0 : READ_COLUMNS - row.length
+            return (
+              <tr
+                key={row.map((entry) => entry.key).join('-')}
+                className="border-b border-border last:border-b-0"
+              >
+                {row.map((entry, columnIndex) => {
+                  const workspaceField =
+                    entry.workspaceField ??
+                    ({
+                      key: 'name',
+                      label: entry.label,
+                      kind: 'text' as const,
+                    } satisfies WorkspaceField)
+                  const isCustom = Boolean(entry.customId)
+                  const rawError = isCustom
+                    ? customFieldError(entry.customId!)
+                    : fieldError(entry.key as keyof ClientProfileDraft)
+                  // Show format errors once the cell has a value; required-empty
+                  // uses missingRequired (and showError after a failed save).
+                  const error =
+                    rawError &&
+                    (showError(entry.key) || Boolean(entry.value.trim()))
+                      ? rawError
+                      : undefined
+                  const dirty = isCustom
+                    ? entry.value !==
+                      (savedDraft.customFields[entry.customId!] ?? '')
+                    : entry.value !==
+                      String(
+                        savedDraft[entry.key as keyof ClientProfileDraft] ??
+                          '',
+                      )
+                  const missingRequired =
+                    Boolean(entry.required) && !entry.value.trim()
+                  const showMissing = missingRequired || Boolean(error)
+
+                  return (
+                    <Fragment key={entry.key}>
+                      <th
+                        scope="row"
+                        className={cn(
+                          'w-0 whitespace-nowrap bg-transparent px-3 py-1.5 text-left align-middle text-xs font-medium text-muted-foreground',
+                          columnIndex > 0 && 'border-l border-border/40',
+                        )}
+                      >
+                        {entry.label}
+                      </th>
+                      <td
+                        className={cn(
+                          'min-w-[8rem] border-l p-0 align-middle',
+                          showMissing
+                            ? 'border-l-destructive/50 bg-destructive/15'
+                            : 'border-l-border/30 bg-white dark:bg-card',
+                          editing &&
+                            dirty &&
+                            !showMissing &&
+                            'bg-[color-mix(in_srgb,var(--color-theme)_6%,white)] dark:bg-[color-mix(in_srgb,var(--color-theme)_10%,var(--color-card))]',
+                        )}
+                        colSpan={full ? READ_COLUMNS * 2 - 1 : undefined}
+                        data-profile-field={entry.key}
+                        data-invalid={showMissing ? 'true' : undefined}
+                        title={error || undefined}
+                      >
+                        <div
+                          className={cn(
+                            'flex min-h-8 items-center px-3 py-1.5',
+                            showMissing && 'h-full w-full',
+                          )}
+                        >
+                          {editing ? (
+                            isCustom ? (
+                              <input
+                                aria-label={entry.label}
+                                className={cn(
+                                  cellControlClass,
+                                  showMissing && 'text-destructive',
+                                )}
+                                value={entry.value}
+                                onBlur={blur(entry.key)}
+                                onChange={(event) =>
+                                  onCustomChange(
+                                    entry.customId!,
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            ) : (
+                              <CellControl
+                                field={workspaceField}
+                                value={entry.value}
+                                error={
+                                  error ??
+                                  (missingRequired ? 'Required' : undefined)
+                                }
+                                subAgentOptions={subAgentOptions}
+                                onBlur={blur(entry.key)}
+                                onChange={(value) => {
+                                  if (workspaceField.kind === 'gender') {
+                                    onChange(
+                                      'gender',
+                                      value as ClientGender | '',
+                                    )
+                                    return
+                                  }
+                                  onChange(
+                                    workspaceField.key,
+                                    value as ClientProfileDraft[typeof workspaceField.key],
+                                  )
+                                }}
+                              />
+                            )
+                          ) : (
+                            <ReadValue
+                              value={entry.value}
+                              kind={entry.kind}
+                              gap={entry.gap}
+                              subAgentOptions={subAgentOptions}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </Fragment>
+                  )
+                })}
+                {Array.from({ length: emptySlots }, (_, index) => (
+                  <Fragment key={`pad-${index}`}>
+                    <th
+                      className="w-0 border-l border-border/40 bg-transparent px-3 py-1.5"
+                      aria-hidden
+                    />
+                    <td
+                      className="min-w-[8rem] border-l border-border/30 bg-white p-0 dark:bg-card"
+                      aria-hidden
+                    >
+                      <div className="min-h-8 px-3 py-1.5" />
+                    </td>
+                  </Fragment>
+                ))}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -586,14 +624,27 @@ export function ClientProfileWorkspace({
     return next
   }, [customFieldDefs])
 
-  const gapsForGroup = (group: ProfileGroup) => {
-    if (!group.gapIds?.length) return 0
-    return gaps.filter((gap) => group.gapIds!.includes(gap.id)).length
-  }
+  const [openSections, setOpenSections] = useState<string[]>(() =>
+    defaultOpenSections(
+      PROFILE_GROUPS,
+      gaps,
+      initialSection,
+      Boolean(focusField) || isDirty,
+    ),
+  )
 
   useEffect(() => {
     if (focusField || isDirty) setEditing(true)
   }, [focusField, isDirty])
+
+  const editingRef = useRef(editing)
+  useEffect(() => {
+    if (editingRef.current === editing) return
+    editingRef.current = editing
+    setOpenSections(
+      defaultOpenSections(groups, gaps, initialSection, editing),
+    )
+  }, [editing, groups, gaps, initialSection])
 
   useEffect(() => {
     const target =
@@ -603,6 +654,18 @@ export function ClientProfileWorkspace({
           ? `#client-profile-section-${groupFromSection(initialSection)}`
           : null
     if (!target) return
+    const focusGroup = focusField
+      ? groups.find((group) =>
+          group.fields.some((field) => field.key === focusField),
+        )?.id
+      : initialSection
+        ? groupFromSection(initialSection)
+        : null
+    if (focusGroup) {
+      setOpenSections((current) =>
+        current.includes(focusGroup) ? current : [...current, focusGroup],
+      )
+    }
     const frame = window.requestAnimationFrame(() => {
       const node = rootRef.current?.querySelector(target)
       if (!(node instanceof HTMLElement)) return
@@ -615,7 +678,7 @@ export function ClientProfileWorkspace({
       if (input instanceof HTMLElement) input.focus()
     })
     return () => window.cancelAnimationFrame(frame)
-  }, [focusField, initialSection, editing])
+  }, [focusField, initialSection, editing, groups])
 
   const handleDiscard = () => {
     onDiscard()
@@ -623,107 +686,114 @@ export function ClientProfileWorkspace({
   }
 
   const handleSave = () => {
-    if (onSave()) setEditing(false)
+    if (onSave()) {
+      setEditing(false)
+      return
+    }
+    window.requestAnimationFrame(() => {
+      const invalid = rootRef.current?.querySelector<HTMLElement>(
+        '[data-invalid="true"]',
+      )
+      if (!invalid) return
+      const sectionId = invalid.closest('[id^="client-profile-section-"]')?.id
+      const groupId = sectionId?.replace('client-profile-section-', '')
+      if (groupId) {
+        setOpenSections((current) =>
+          current.includes(groupId) ? current : [...current, groupId],
+        )
+      }
+      invalid.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      const input = invalid.querySelector('input, select, textarea')
+      if (input instanceof HTMLElement) input.focus()
+    })
   }
 
   return (
     <div
       ref={rootRef}
       className="flex min-w-0 flex-col gap-2"
-      aria-label="Client profile editor"
+      aria-label="Client profile"
     >
-      <Card size="sm" className="gap-0 py-0 shadow-sm ring-border/60">
-        <CardContent className="flex flex-col gap-0 p-0">
-          {groups.map((group, index) => {
-            const gapCount = gapsForGroup(group)
-            const isFirst = index === 0
-            return (
-              <section
-                key={group.id}
-                className={cn(
-                  'px-4 py-3.5 sm:px-5 sm:py-4',
-                  index > 0 && 'border-t border-border',
-                )}
-                aria-label={group.label}
-              >
-                <header className="mb-3 flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <SectionIcon icon={group.icon} />
-                    <h3 className="m-0 text-sm font-semibold tracking-tight text-foreground">
-                      {group.label}
-                    </h3>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    {gapCount > 0 ? (
-                      <Badge
-                        variant="outline"
-                        className="h-5 border-destructive/30 bg-destructive/10 px-1.5 tabular-nums text-[0.625rem] text-destructive"
+      <Card size="sm" className="gap-0 overflow-hidden py-0 shadow-sm ring-border/60">
+        <CardContent className="p-0">
+          <Accordion
+            type="multiple"
+            value={openSections}
+            onValueChange={setOpenSections}
+          >
+            {groups.map((group) => {
+              const Icon = group.icon
+              return (
+                <AccordionItem
+                  key={group.id}
+                  value={group.id}
+                  className="border-border"
+                >
+                  <AccordionTrigger className="rounded-none bg-card px-3.5 py-2.5 text-sm font-semibold tracking-tight transition-colors hover:bg-muted/40 hover:no-underline">
+                    <span className="flex min-w-0 flex-1 items-center gap-2.5 pr-2">
+                      <span
+                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover/accordion-trigger:text-foreground"
+                        aria-hidden
                       >
-                        {gapCount} needed
-                      </Badge>
-                    ) : null}
-                    {isFirst && gaps.length > 0 ? (
-                      <Badge
-                        variant="secondary"
-                        className="h-5 tabular-nums text-[0.625rem]"
-                      >
-                        {gaps.length} missing
-                      </Badge>
-                    ) : null}
-                    {isFirst && !editing ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 gap-1.5 rounded-lg px-2.5 text-xs"
-                        onClick={() => setEditing(true)}
-                      >
-                        <Pencil size={13} strokeWidth={2.25} />
-                        Edit
-                      </Button>
-                    ) : null}
-                  </div>
-                </header>
-                <SectionPanel
-                  groupId={group.id}
-                  fields={group.fields}
-                  draft={draft}
-                  savedDraft={savedDraft}
-                  gaps={gaps}
-                  editing={editing}
-                  subAgentOptions={subAgentOptions}
-                  customFieldDefs={customFieldDefs}
-                  showError={showError}
-                  fieldError={fieldError}
-                  customFieldError={customFieldError}
-                  blur={blur}
-                  onChange={onChange}
-                  onCustomChange={onCustomChange}
-                />
-              </section>
-            )
-          })}
+                        <Icon size={14} strokeWidth={2.25} />
+                      </span>
+                      <span className="truncate">{group.label}</span>
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-0">
+                    <SectionPanel
+                      groupId={group.id}
+                      fields={group.fields}
+                      draft={draft}
+                      savedDraft={savedDraft}
+                      gaps={gaps}
+                      editing={editing}
+                      subAgentOptions={subAgentOptions}
+                      customFieldDefs={customFieldDefs}
+                      showError={showError}
+                      fieldError={fieldError}
+                      customFieldError={customFieldError}
+                      blur={blur}
+                      onChange={onChange}
+                      onCustomChange={onCustomChange}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              )
+            })}
+          </Accordion>
         </CardContent>
       </Card>
 
-      {editing ? (
-        <div className="sticky bottom-0 z-[2] flex items-center justify-end gap-2 rounded-xl border border-border bg-card/95 px-3 py-2 shadow-sm backdrop-blur-sm">
+      <div className="flex items-center justify-start gap-2 pt-1">
+        {editing ? (
+          <>
+            <Button
+              variant="outline"
+              className="h-8 rounded-md bg-white text-xs hover:bg-white dark:bg-card dark:hover:bg-card"
+              onClick={handleDiscard}
+            >
+              {isDirty ? 'Discard' : 'Cancel'}
+            </Button>
+            <Button
+              className="h-8 rounded-md text-xs"
+              onClick={handleSave}
+              disabled={!isDirty}
+            >
+              <Check size={14} strokeWidth={2.25} aria-hidden />
+              Save
+            </Button>
+          </>
+        ) : (
           <Button
-            variant="outline"
-            className="h-8 rounded-lg text-xs"
-            onClick={handleDiscard}
+            className="h-8 gap-1.5 rounded-md text-xs"
+            onClick={() => setEditing(true)}
           >
-            {isDirty ? 'Discard' : 'Cancel'}
+            <Pencil size={14} strokeWidth={2.25} aria-hidden />
+            Edit
           </Button>
-          <Button
-            className="h-8 rounded-lg text-xs"
-            onClick={handleSave}
-            disabled={!isDirty}
-          >
-            <Check size={14} strokeWidth={2.25} aria-hidden />
-            Save
-          </Button>
-        </div>
-      ) : null}
+        )}
+      </div>
     </div>
   )
 }

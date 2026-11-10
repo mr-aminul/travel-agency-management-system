@@ -84,6 +84,84 @@ export function clientPath(clientId: string, tab?: string): string {
   return `/clients/${clientId}?tab=${encodeURIComponent(tab)}`
 }
 
+/** Next-thing Clients v3 desk. */
+export function clientsV3Path(): string {
+  return '/clients-v3'
+}
+
+export function clientV3Path(clientId: string, tab?: string): string {
+  if (!tab || tab === 'services') return `/clients-v3/${clientId}`
+  return `/clients-v3/${clientId}?tab=${encodeURIComponent(tab)}`
+}
+
+export function clientV3IdentityFocusPath(
+  clientId: string,
+  focus: 'passport' | 'nid' = 'passport',
+): string {
+  return `/clients-v3/${clientId}?focus=${focus}`
+}
+
+export function clientV3WorkDetailPath(item: ServiceRecordRef): string {
+  return `/clients-v3/${item.clientId}/services/${item.id}`
+}
+
+export type ClientDeskBase = 'clients' | 'clients-v3'
+
+/** Which client desk the current URL belongs to. */
+export function clientDeskBaseFromPath(pathname: string): ClientDeskBase {
+  return pathname.startsWith('/clients-v3') ? 'clients-v3' : 'clients'
+}
+
+export function deskClientPath(
+  base: ClientDeskBase,
+  clientId: string,
+  tab?: string,
+): string {
+  return base === 'clients-v3'
+    ? clientV3Path(clientId, tab)
+    : clientPath(clientId, tab)
+}
+
+export function deskIdentityFocusPath(
+  base: ClientDeskBase,
+  clientId: string,
+  focus: 'passport' | 'nid' = 'passport',
+): string {
+  return base === 'clients-v3'
+    ? clientV3IdentityFocusPath(clientId, focus)
+    : clientIdentityFocusPath(clientId, focus)
+}
+
+export function deskWorkDetailPath(
+  base: ClientDeskBase,
+  item: ServiceRecordRef,
+): string {
+  return base === 'clients-v3'
+    ? clientV3WorkDetailPath(item)
+    : workDetailPath(item)
+}
+
+export function deskServicePaperPath(
+  base: ClientDeskBase,
+  caseId: string,
+  clientId: string,
+  docId: string,
+): string {
+  const root =
+    base === 'clients-v3'
+      ? `/clients-v3/${clientId}/services/${caseId}`
+      : `/clients/${clientId}/services/${caseId}`
+  return `${root}?doc=${encodeURIComponent(docId)}`
+}
+
+export function deskWorkIdentityFocusPath(
+  base: ClientDeskBase,
+  item: ServiceRecordRef,
+  focus: 'passport' | 'nid' = 'passport',
+): string {
+  return `${deskWorkDetailPath(base, item)}?focus=${focus}`
+}
+
 /** Passport / NID document workspace under Profile. */
 export function clientIdentityFocusPath(
   clientId: string,

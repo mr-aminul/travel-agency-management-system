@@ -5,6 +5,7 @@ import type { ClientInfoGapId } from '@/lib/clientMissingInfo'
 import {
   validateOptionalDateOfBirth,
   validateOptionalEmail,
+  validateOptionalMoney,
   validateOptionalNid,
   validateOptionalPassport,
   validateOptionalPersonName,
@@ -210,6 +211,17 @@ export function clientProfileDraftsEqual(
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
+function validateOptionalChoice(
+  value: string,
+  label: string,
+  allowed: readonly string[],
+): string | undefined {
+  const text = value.trim()
+  if (!text) return undefined
+  if (!allowed.includes(text)) return `Choose a valid ${label.toLowerCase()}.`
+  return undefined
+}
+
 export function profileFieldError(
   key: keyof ClientProfileDraft,
   draft: ClientProfileDraft,
@@ -236,14 +248,36 @@ export function profileFieldError(
       return validateOptionalPersonName(draft.spouseName, 'Spouse Name')
     case 'dateOfBirth':
       return validateOptionalDateOfBirth(draft.dateOfBirth)
+    case 'gender':
+      return validateOptionalChoice(draft.gender, 'Gender', [
+        'Male',
+        'Female',
+        'Other',
+      ])
+    case 'maritalStatus':
+      return validateOptionalChoice(
+        draft.maritalStatus,
+        'Marital status',
+        MARITAL_VALUES,
+      )
+    case 'bloodGroup':
+      return validateOptionalChoice(
+        draft.bloodGroup,
+        'Blood group',
+        BLOOD_GROUPS,
+      )
     case 'placeOfBirth':
       return validateOptionalText(draft.placeOfBirth, 'Place of Birth')
     case 'nationality':
       return validateOptionalText(draft.nationality, 'Nationality')
     case 'presentAddress':
-      return validateOptionalText(draft.presentAddress, 'Present Address')
+      return validateOptionalText(draft.presentAddress, 'Present Address', 500)
     case 'permanentAddress':
-      return validateOptionalText(draft.permanentAddress, 'Permanent Address')
+      return validateOptionalText(
+        draft.permanentAddress,
+        'Permanent Address',
+        500,
+      )
     case 'district':
       return validateOptionalText(draft.district, 'District')
     case 'upazila':
@@ -252,6 +286,25 @@ export function profileFieldError(
       return validateOptionalText(draft.education, 'Education')
     case 'profession':
       return validateOptionalText(draft.profession, 'Profession')
+    case 'skillTrade':
+      return validateOptionalText(draft.skillTrade, 'Skill / Trade', 200, 1)
+    case 'experience':
+      return validateOptionalText(draft.experience, 'Experience', 200, 1)
+    case 'previousOverseasExp':
+      return validateOptionalText(
+        draft.previousOverseasExp,
+        'Overseas Experience',
+        200,
+        1,
+      )
+    case 'preferredCountry':
+      return validateOptionalText(draft.preferredCountry, 'Preferred Country')
+    case 'preferredJob':
+      return validateOptionalText(draft.preferredJob, 'Preferred Job', 200, 1)
+    case 'expectedSalary':
+      return validateOptionalMoney(draft.expectedSalary, 'Expected salary')
+    case 'branch':
+      return validateOptionalText(draft.branch, 'Branch', 200, 1)
     case 'passport':
       return validateOptionalPassport(draft.passport)
     case 'passportIssuedOn':
@@ -280,6 +333,7 @@ export const EDITABLE_PROFILE_KEYS: (keyof ClientProfileDraft)[] = [
   'phone',
   'email',
   'whatsapp',
+  'subAgentId',
   'dateOfBirth',
   'gender',
   'placeOfBirth',
@@ -291,6 +345,13 @@ export const EDITABLE_PROFILE_KEYS: (keyof ClientProfileDraft)[] = [
   'spouseName',
   'profession',
   'education',
+  'skillTrade',
+  'experience',
+  'previousOverseasExp',
+  'preferredCountry',
+  'preferredJob',
+  'expectedSalary',
+  'branch',
   'presentAddress',
   'permanentAddress',
   'district',

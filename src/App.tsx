@@ -21,8 +21,8 @@ const CasesPage = lazy(() => import('@/pages/CasesPage'))
 const LegacyCasesRedirect = lazy(() => import('@/pages/LegacyCasesRedirect'))
 const ClientDetailPage = lazy(() => import('@/pages/ClientDetailPage'))
 const ClientsPage = lazy(() => import('@/pages/ClientsPage'))
-const ClientsV2Page = lazy(() => import('@/pages/ClientsV2Page'))
-const ClientsV2DetailPage = lazy(() => import('@/pages/ClientsV2DetailPage'))
+const ClientsV3Page = lazy(() => import('@/pages/ClientsV3Page'))
+const ClientsV3DetailPage = lazy(() => import('@/pages/ClientsV3DetailPage'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const ServiceBoardPage = lazy(() => import('@/pages/ServiceBoardPage'))
 const DocumentsPage = lazy(() => import('@/pages/DocumentsPage'))
@@ -175,9 +175,11 @@ function ProductApp() {
               element={<Navigate to="/services?view=board" replace />}
             />
             <Route path="clients" element={<ClientsPage />} />
-            <Route path="clients-v2" element={<ClientsV2Page />} />
-            <Route path="clients-v2/:id" element={<ClientsV2DetailPage />} />
             <Route path="clients/:id" element={<ClientDetailPage />}>
+              <Route path="services/:caseId" element={<CaseDetailPage />} />
+            </Route>
+            <Route path="clients-v3" element={<ClientsV3Page />} />
+            <Route path="clients-v3/:id" element={<ClientsV3DetailPage />}>
               <Route path="services/:caseId" element={<CaseDetailPage />} />
             </Route>
             <Route

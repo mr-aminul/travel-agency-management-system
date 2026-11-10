@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Check,
   ChevronDown,
@@ -65,8 +65,10 @@ import {
 } from '@/lib/serviceTemplatesStore'
 import { flashAndReveal } from '@/lib/scrollWithin'
 import {
-  clientIdentityFocusPath,
-  clientPath,
+  clientDeskBaseFromPath,
+  deskClientPath,
+  deskIdentityFocusPath,
+  deskServicePaperPath,
   workInvoicePath,
 } from '@/lib/workPaths'
 import { clientTrackingUrl } from '@/lib/publicUrl'
@@ -99,11 +101,6 @@ function caseStatusShadcnVariant(
 }
 
 const FOCUS_FLASH_MS = 2800
-
-
-function clientServicePaperPath(caseId: string, clientId: string, docId: string): string {
-  return `/clients/${clientId}/services/${caseId}?doc=${encodeURIComponent(docId)}`
-}
 
 async function copyText(value: string) {
   try {
@@ -228,6 +225,8 @@ export function ServiceFileCard({
   selectedDocId = null,
 }: ServiceFileCardProps) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const deskBase = clientDeskBaseFromPath(pathname)
   useCases()
   useServiceTemplates()
   useServiceIconOverrides()
@@ -381,7 +380,7 @@ export function ServiceFileCard({
   }
 
   const confirmDelete = () => {
-    const clientServicesPath = clientPath(item.clientId, 'services')
+    const clientServicesPath = deskClientPath(deskBase, item.clientId, 'services')
     try {
       const removed = deleteCase(item.id)
       setDeleteOpen(false)
@@ -399,7 +398,7 @@ export function ServiceFileCard({
   const openServiceBoardTarget = () => {
     if (!boardItem) return
     if (boardItem.focus === 'profile') {
-      navigate(clientIdentityFocusPath(item.clientId))
+      navigate(deskIdentityFocusPath(deskBase, item.clientId))
       return
     }
     if (boardItem.focus === 'documents') {
@@ -409,7 +408,9 @@ export function ServiceFileCard({
       )
       const target = missing ?? servicePapers[0]
       if (target) {
-        navigate(clientServicePaperPath(item.id, item.clientId, target.id))
+        navigate(
+          deskServicePaperPath(deskBase, item.id, item.clientId, target.id),
+        )
         return
       }
       setFlashTarget('pipeline')

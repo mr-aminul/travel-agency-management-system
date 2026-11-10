@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Check, ChevronRight } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Check, ChevronRight, FileText, ListOrdered } from 'lucide-react'
 import { DocumentWorkspace } from '@/components/cases/DocumentWorkspace'
 import {
   StepCompletionDrawer,
@@ -32,8 +32,10 @@ import {
   type ServiceTreeStage,
 } from '@/lib/serviceTaskTree'
 import {
-  workDetailPath,
-  workIdentityFocusPath,
+  clientDeskBaseFromPath,
+  deskServicePaperPath,
+  deskWorkDetailPath,
+  deskWorkIdentityFocusPath,
 } from '@/lib/workPaths'
 import { cn } from '@/lib/utils'
 import type { Case } from '@/types/case'
@@ -47,14 +49,6 @@ function paperStatus(tone: 'done' | 'need' | 'idle') {
   if (tone === 'done') return ''
   if (tone === 'need') return 'Needed'
   return 'Later'
-}
-
-function clientServicePaperPath(
-  caseId: string,
-  clientId: string,
-  docId: string,
-): string {
-  return `/clients/${clientId}/services/${caseId}?doc=${encodeURIComponent(docId)}`
 }
 
 function ConditionRow({
@@ -149,6 +143,8 @@ export function ServiceTaskWorkspace({
   selectedDocId = null,
 }: ServiceTaskWorkspaceProps) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const deskBase = clientDeskBaseFromPath(pathname)
   useCases()
   const [activeStepId, setActiveStepId] = useState<string | null>(null)
   const [drawerMode, setDrawerMode] = useState<StepDrawerMode>('complete')
@@ -189,7 +185,9 @@ export function ServiceTaskWorkspace({
   }
 
   const openPaper = (docId: string) => {
-    navigate(clientServicePaperPath(live.id, live.clientId, docId))
+    navigate(
+      deskServicePaperPath(deskBase, live.id, live.clientId, docId),
+    )
   }
 
   const openCondition = (condition: {
@@ -200,14 +198,14 @@ export function ServiceTaskWorkspace({
   }) => {
     if (condition.locked) return
     if (condition.isIdentity && condition.identityKind) {
-      navigate(workIdentityFocusPath(live, condition.identityKind))
+      navigate(deskWorkIdentityFocusPath(deskBase, live, condition.identityKind))
       return
     }
     openPaper(condition.id)
   }
 
   const closePaper = () => {
-    navigate(workDetailPath(live))
+    navigate(deskWorkDetailPath(deskBase, live))
   }
 
   const toggleStage = (stageId: string) => {
@@ -229,7 +227,13 @@ export function ServiceTaskWorkspace({
           aria-label="Documents"
           className="min-w-0 border-b border-border lg:border-b-0 lg:border-r"
         >
-          <h3 className="m-0 border-b border-border px-4 py-2.5 text-sm font-semibold text-foreground">
+          <h3 className="m-0 flex items-center gap-2 border-b border-border px-4 py-2.5 text-sm font-semibold text-foreground">
+            <FileText
+              size={14}
+              strokeWidth={2}
+              className="shrink-0 text-muted-foreground"
+              aria-hidden
+            />
             Documents
           </h3>
           {servicePapers.length === 0 ? (
@@ -299,9 +303,15 @@ export function ServiceTaskWorkspace({
           )}
         </section>
 
-        <section aria-label="Journey" className="min-w-0">
-          <h3 className="m-0 border-b border-border px-4 py-2.5 text-sm font-semibold text-foreground">
-            Journey
+        <section aria-label="Steps" className="min-w-0">
+          <h3 className="m-0 flex items-center gap-2 border-b border-border px-4 py-2.5 text-sm font-semibold text-foreground">
+            <ListOrdered
+              size={14}
+              strokeWidth={2}
+              className="shrink-0 text-muted-foreground"
+              aria-hidden
+            />
+            Steps
           </h3>
           <ul className="m-0 flex list-none flex-col p-0">
             {tree.stages.map((stage, index) => {

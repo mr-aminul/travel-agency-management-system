@@ -310,6 +310,8 @@ export type CasesListProps = {
   viewToggle?: ReactNode
   /** Show a delete action on each row (client overview services table). */
   allowDelete?: boolean
+  /** Override row / create navigation. */
+  onOpenCase?: (item: Case) => void
 }
 
 export function CasesList({
@@ -329,6 +331,7 @@ export function CasesList({
   selectedId,
   viewToggle,
   allowDelete = false,
+  onOpenCase,
 }: CasesListProps) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -495,11 +498,19 @@ export function CasesList({
     setSearchParams(next, { replace: true })
   }
 
+  const openCase = (item: Case) => {
+    if (onOpenCase) {
+      onOpenCase(item)
+      return
+    }
+    navigate(workDetailPath(item))
+  }
+
   const handleCreateCase = (input: CreateCaseInput) => {
     try {
       const created = createCase(input)
       closeNewCaseModal()
-      navigate(workDetailPath(created))
+      openCase(created)
     } catch (error) {
       if (notifyIfPendingApproval(error)) {
         closeNewCaseModal()
@@ -652,7 +663,7 @@ export function CasesList({
                   item.id === selectedId && 'bg-muted/60',
                 )}
                 aria-selected={item.id === selectedId ? true : undefined}
-                onClick={() => navigate(workDetailPath(item))}
+                onClick={() => openCase(item)}
               >
                 <TableCell>
                   <span className="inline-flex items-center gap-2">

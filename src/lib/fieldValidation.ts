@@ -139,10 +139,15 @@ export function validateOptionalText(
   value: string,
   label: string,
   maxLength = 200,
+  minLength = 2,
 ): string | undefined {
   const text = trimmed(value)
   if (!text) return undefined
-  if (text.length < 2) return `Enter a valid ${label.toLowerCase()}.`
+  if (text.length < minLength) {
+    return minLength <= 1
+      ? undefined
+      : `Enter a valid ${label.toLowerCase()}.`
+  }
   if (text.length > maxLength) {
     return `${label} is too long (max ${maxLength} characters).`
   }

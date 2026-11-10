@@ -10,13 +10,10 @@ import {
 import '@fontsource-variable/geist/wght.css'
 import {
   Airplane,
-  ArrowDown,
   ArrowRight,
   ArrowUpRight,
-  Buildings,
   ChatText,
   EnvelopeSimple,
-  FolderPlus,
   HardDrives,
   IdentificationCard,
   LinkSimple,
@@ -28,20 +25,10 @@ import {
   type Icon,
 } from '@phosphor-icons/react'
 import { LandingAskChat } from '@/components/landing/LandingAskChat'
-import {
-  CustomizeDocsMotion,
-  CustomizeFieldsMotion,
-  CustomizeServicesMotion,
-  CustomizeStagesMotion,
-} from '@/components/landing/CustomizeMotions'
-import { HowToDemo } from '@/components/landing/HowToDemo'
 import { FileLands } from '@/components/landing/stageshow/FileLands'
-import { usePrefersReducedMotion } from '@/components/landing/usePrefersReducedMotion'
+import { StatusLinkShow } from '@/components/landing/stageshow/StatusLinkShow'
 import {
   DocumentsVignette,
-  FeatureBoardPeek,
-  FeaturePayPeek,
-  FeatureTrackPeek,
   InvoiceVignette,
   ServiceBoardVignette,
   SmsVignette,
@@ -53,9 +40,7 @@ import {
   SALES_EMAIL,
   SERVICE_TYPES,
   LANDING_AUDIENCES,
-  LANDING_CUSTOMIZATIONS,
-  LANDING_FEATURES,
-  LANDING_SWITCH_STEPS,
+  LANDING_FEATURE_SHOW,
   type PricingPerkIcon,
   type PricingPlan,
 } from '@/components/landing/landingContent'
@@ -132,12 +117,6 @@ const VIGNETTES: Record<AudienceVignetteKey, ReactNode> = {
   subAgents: <SubAgentsVignette />,
   tracking: <TrackingVignette />,
   sms: <SmsVignette />,
-}
-
-const FEATURE_PEEKS: Record<(typeof LANDING_FEATURES)[number]['peek'], ReactNode> = {
-  board: <FeatureBoardPeek />,
-  pay: <FeaturePayPeek />,
-  track: <FeatureTrackPeek />,
 }
 
 function LandingNav({ onAsk }: { onAsk: () => void }) {
@@ -246,14 +225,11 @@ function LandingNav({ onAsk }: { onAsk: () => void }) {
           </a>
           <div className="lp2-nav__end">
             <div className="lp2-nav__links">
-              <a className="title-4" href="#product">
-                Product
-              </a>
               <a className="title-4" href="#features">
                 Features
               </a>
-              <a className="title-4" href="#how-it-works">
-                How it works
+              <a className="title-4" href="#product">
+                Services
               </a>
               <a className="title-4" href="#pricing">
                 Pricing
@@ -289,14 +265,11 @@ function LandingNav({ onAsk }: { onAsk: () => void }) {
         className={isOpen ? 'lp2-nav__panel is-open' : 'lp2-nav__panel'}
         hidden={!isOpen}
       >
-        <a className="heading-4" href="#product" onClick={close}>
-          Product
-        </a>
         <a className="heading-4" href="#features" onClick={close}>
           Features
         </a>
-        <a className="heading-4" href="#how-it-works" onClick={close}>
-          How it works
+        <a className="heading-4" href="#product" onClick={close}>
+          Services
         </a>
         <a className="heading-4" href="#pricing" onClick={close}>
           Pricing
@@ -339,12 +312,16 @@ function Hero() {
         fetchPriority="high"
       />
       <div className="lp2-hero__inner">
+        <p className="lp2-hero__brand lp2-rise" style={revealDelay(40)}>
+          <img src={publicUrl('images/logo.svg')} alt="" width={28} height={28} />
+          OneTrack
+        </p>
         <h1 className="lp2-hero__title lp2-rise" id="lp2-hero-title" style={revealDelay(80)}>
           <span>Fly everything</span>
           <span className="lp2-hero__title-line">from one terminal</span>
         </h1>
         <p className="lp2-hero__sub body-3 lp2-rise" style={revealDelay(180)}>
-          Desk software for travel and visa agencies in Bangladesh.
+          One board for every visa, ticket, and payment file on your desk.
         </p>
         <div className="lp2-hero__ctas lp2-rise" style={revealDelay(280)}>
           <a className="lp2-btn lp2-btn--navy button-md" href={subscribeUrl('growth')}>
@@ -393,7 +370,7 @@ function AudienceTabs() {
       <div className="lp2-wrap">
         <header className="lp2-section-head lp2-section-head--center" data-reveal>
           <h2 id="lp2-audiences-title" className="lp2-section-head__title">
-            One board for every service
+            Built for the files you already run
           </h2>
         </header>
         <div
@@ -449,210 +426,21 @@ function AudienceTabs() {
   )
 }
 
-function ProblemSolution() {
-  return (
-    <section className="lp2-problem lp2-paper" aria-labelledby="lp2-problem-title">
-      <div className="lp2-wrap">
-        <header className="lp2-section-head lp2-section-head--center" data-reveal>
-          <h2 id="lp2-problem-title" className="lp2-section-head__title">
-            From scattered work to one clear file
-          </h2>
-        </header>
-        <div className="lp2-problem__grid" data-reveal>
-          <article className="lp2-problem__card">
-            <p className="lp2-problem__label caption-3">Today</p>
-            <h3 className="lp2-problem__caption">
-              Chats, sheets, and missed calls run the desk
-            </h3>
-            <div className="lp2-problem__visual">
-              <img
-                className="lp2-problem__image"
-                src={publicUrl('images/landing/why-switch-today.png')}
-                alt="Stressed agent surrounded by client passports, NID, WhatsApp, and a messy spreadsheet"
-                width={720}
-                height={540}
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-          </article>
-          <div className="lp2-problem__bridge" aria-hidden>
-            <ArrowRight
-              className="lp2-problem__bridge-icon lp2-problem__bridge-icon--desk"
-              size={22}
-              weight="bold"
-            />
-            <ArrowDown
-              className="lp2-problem__bridge-icon lp2-problem__bridge-icon--mobile"
-              size={20}
-              weight="bold"
-            />
-          </div>
-          <article className="lp2-problem__card">
-            <p className="lp2-problem__label caption-3">With OneTrack</p>
-            <h3 className="lp2-problem__caption">
-              Docs, payments, and status in one place
-            </h3>
-            <div className="lp2-problem__visual">
-              <img
-                className="lp2-problem__image"
-                src={publicUrl('images/landing/why-switch-onetrack.png')}
-                alt="Calm agent with one client file, docs checked, and auto SMS updates"
-                width={720}
-                height={540}
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function Features() {
+function DeskMoments() {
   return (
     <section
-      className="lp2-features lp2-paper"
+      className="lp2-moments lp2-paper"
       id="features"
-      aria-labelledby="lp2-features-title"
+      aria-labelledby="lp2-moments-title"
     >
-      <div className="lp2-wrap">
-        <header className="lp2-section-head" data-reveal>
-          <h2 id="lp2-features-title" className="lp2-section-head__title">
-            Files, payments, and status
-          </h2>
-        </header>
-        <div className="lp2-features__grid">
-          {LANDING_FEATURES.map((feature, index) => (
-            <article
-              key={feature.title}
-              className={feature.isPrimary ? 'lp2-feature is-primary' : 'lp2-feature'}
-              data-reveal
-              style={revealDelay(index * 70)}
-            >
-              <div className="lp2-feature__copy">
-                <h3 className="lp2-feature__title">{feature.title}</h3>
-                <p className="lp2-feature__detail body-6">{feature.detail}</p>
-              </div>
-              <div className="lp2-feature__visual">{FEATURE_PEEKS[feature.peek]}</div>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-const CUSTOMIZE_MOTIONS: Record<(typeof LANDING_CUSTOMIZATIONS)[number]['icon'], ReactNode> = {
-  services: <CustomizeServicesMotion />,
-  stages: <CustomizeStagesMotion />,
-  docs: <CustomizeDocsMotion />,
-  fields: <CustomizeFieldsMotion />,
-}
-
-function Customize() {
-  return (
-    <section
-      className="lp2-customize lp2-paper"
-      id="customize"
-      aria-labelledby="lp2-customize-title"
-    >
-      <div className="lp2-wrap">
-        <div className="lp2-customize__panel">
-          <header className="lp2-section-head" data-reveal>
-            <h2 id="lp2-customize-title" className="lp2-section-head__title">
-              Bend it to your agency
-            </h2>
-          </header>
-          <div className="lp2-customize__grid">
-            {LANDING_CUSTOMIZATIONS.map((item, index) => (
-              <article
-                key={item.title}
-                className="lp2-customize__card"
-                data-reveal
-                style={revealDelay(index * 70)}
-              >
-                <div className="lp2-customize__stage">{CUSTOMIZE_MOTIONS[item.icon]}</div>
-                <h3 className="lp2-customize__title">{item.title}</h3>
-              </article>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-const STEP_ICONS: Record<(typeof LANDING_SWITCH_STEPS)[number]['icon'], Icon> = {
-  agency: Buildings,
-  files: FolderPlus,
-  link: LinkSimple,
-}
-
-function HowItWorks() {
-  const prefersReducedMotion = usePrefersReducedMotion()
-  const [active, setActive] = useState(0)
-  const stepCount = LANDING_SWITCH_STEPS.length
-
-  useEffect(() => {
-    if (prefersReducedMotion) return
-    const timer = window.setInterval(() => {
-      setActive((current) => (current + 1) % stepCount)
-    }, 4200)
-    return () => window.clearInterval(timer)
-  }, [prefersReducedMotion, stepCount])
-
-  const demoStep = Math.min(Math.max(active, 0), 2) as 0 | 1 | 2
-
-  return (
-    <section
-      className="lp2-howto lp2-paper"
-      id="how-it-works"
-      aria-labelledby="lp2-howto-title"
-    >
-      <div className="lp2-wrap">
+      <div className="lp2-wrap lp2-wrap--film">
         <header className="lp2-section-head lp2-section-head--center" data-reveal>
-          <h2 id="lp2-howto-title" className="lp2-section-head__title">
-            Open your desk
+          <h2 id="lp2-moments-title" className="lp2-section-head__title">
+            {LANDING_FEATURE_SHOW.title}
           </h2>
         </header>
-
-        <ol className="lp2-howto__rail" data-reveal>
-          {LANDING_SWITCH_STEPS.map((step, index) => {
-            const StepIcon = STEP_ICONS[step.icon]
-            const isActive = index === active
-            const isDone = index < active
-            return (
-              <li key={step.number}>
-                <button
-                  type="button"
-                  className={[
-                    'lp2-howto__card',
-                    isActive ? 'is-active' : '',
-                    isDone ? 'is-done' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  aria-current={isActive ? 'step' : undefined}
-                  onClick={() => setActive(index)}
-                >
-                  <span className="lp2-howto__card-icon" aria-hidden>
-                    <StepIcon size={22} weight="bold" />
-                  </span>
-                  <span className="lp2-howto__card-copy">
-                    <span className="lp2-howto__card-title">{step.title}</span>
-                    <span className="lp2-howto__card-detail">{step.detail}</span>
-                  </span>
-                </button>
-              </li>
-            )
-          })}
-        </ol>
-
-        <div className="lp2-howto__stage" data-reveal>
-          <HowToDemo step={demoStep} />
+        <div className="lp2-moments__film" data-reveal aria-hidden>
+          <StatusLinkShow />
         </div>
       </div>
     </section>
@@ -733,10 +521,10 @@ function Pricing({ onAsk }: { onAsk: () => void }) {
       <div className="lp2-wrap">
         <header className="lp2-section-head" data-reveal>
           <h2 id="lp2-pricing-title" className="lp2-section-head__title">
-            Plans and prices
+            Monthly plans
           </h2>
           <p className="lp2-section-head__note body-3">
-            Paid monthly in Taka. 14 day trial, no card, no setup fee.
+            Paid in Taka. 14 day trial, no card, no setup fee.
           </p>
         </header>
         <div className="lp2-pricing__row">
@@ -745,7 +533,7 @@ function Pricing({ onAsk }: { onAsk: () => void }) {
           ))}
         </div>
         <p className="lp2-pricing__foot body-6" data-reveal>
-          Need a custom desk setup?{' '}
+          Need more seats or a short walkthrough?{' '}
           <button type="button" className="lp2-text-btn" onClick={onAsk}>
             Ask Inventive Lab
           </button>
@@ -760,13 +548,12 @@ function FinalCall({ onAsk }: { onAsk: () => void }) {
   return (
     <section className="lp2-final lp2-paper" aria-labelledby="lp2-final-title">
       <div className="lp2-wrap lp2-final__inner" data-reveal>
-        <p className="lp2-final__eyebrow">OneTrack</p>
         <h2 id="lp2-final-title" className="lp2-final__title">
-          <span>Ready to fly</span>
-          <span>from one terminal?</span>
+          <span>Run your next file</span>
+          <span>on OneTrack</span>
         </h2>
         <p className="lp2-final__risk body-3">
-          Start a 14 day trial with no card. Or ask Inventive Lab for a short walkthrough.
+          14 day trial, no card. Or ask Inventive Lab for a short walkthrough.
         </p>
         <div className="lp2-final__actions">
           <a className="lp2-btn lp2-btn--navy button-md" href={subscribeUrl('growth')}>
@@ -817,7 +604,7 @@ function LandingFooter({ onAsk }: { onAsk: () => void }) {
               OneTrack
             </a>
             <p className="lp2-footer__tagline body-6">
-              Desk software for travel and visa agencies in Bangladesh.
+              One board for travel and visa agencies in Bangladesh.
             </p>
             <ul className="lp2-footer__contact">
               <li>
@@ -834,19 +621,18 @@ function LandingFooter({ onAsk }: { onAsk: () => void }) {
           <nav className="lp2-footer__col" aria-label="Product">
             <p className="lp2-footer__heading">Product</p>
             <a href="#features">Features</a>
-            <a href="#how-it-works">How it works</a>
+            <a href="#product">Services</a>
             <a href="#pricing">Pricing</a>
             <a href={appUrl('/track')}>Track a file</a>
-            <a href={appUrl('/login')}>Sign in</a>
-            <a href={subscribeUrl('growth')}>Start 14 day trial</a>
           </nav>
 
           <nav className="lp2-footer__col" aria-label="Company">
             <p className="lp2-footer__heading">Company</p>
-            <a href="/faq">FAQ</a>
             <button type="button" className="lp2-text-btn lp2-text-btn--light" onClick={onAsk}>
               Ask Inventive Lab
             </button>
+            <a href={appUrl('/login')}>Sign in</a>
+            <a href={subscribeUrl('growth')}>Start 14 day trial</a>
             <a href={`mailto:${SALES_EMAIL}?subject=Privacy%20policy`}>Privacy</a>
             <a href={`mailto:${SALES_EMAIL}?subject=Terms%20of%20use`}>Terms</a>
           </nav>
@@ -854,12 +640,10 @@ function LandingFooter({ onAsk }: { onAsk: () => void }) {
           <nav className="lp2-footer__col" aria-label="Help">
             <p className="lp2-footer__heading">Help</p>
             <a href="/faq">FAQ</a>
-            <a href={appUrl('/track')}>Track a file</a>
+            <a href={`mailto:${SALES_EMAIL}`}>Email support</a>
             <button type="button" className="lp2-text-btn lp2-text-btn--light" onClick={onAsk}>
               Ask us
             </button>
-            <a href={`mailto:${SALES_EMAIL}`}>Email support</a>
-            <a href={subscribeUrl('growth')}>Start 14 day trial</a>
           </nav>
 
           <div className="lp2-footer__col lp2-footer__newsletter">
@@ -906,7 +690,7 @@ export default function LandingPage() {
   useIntroRustFont()
 
   useEffect(() => {
-    document.title = 'OneTrack — Desk software for travel & visa agencies'
+    document.title = 'OneTrack — One board for travel & visa agencies'
     const description =
       'OneTrack helps travel and visa agencies in Bangladesh run every client file from one board. Start a 14 day trial with no card.'
     let meta = document.querySelector('meta[name="description"]')
@@ -934,11 +718,8 @@ export default function LandingPage() {
       <LandingNav onAsk={openAsk} />
       <main id="main">
         <Hero />
-        <ProblemSolution />
-        <Features />
+        <DeskMoments />
         <AudienceTabs />
-        <Customize />
-        <HowItWorks />
         <Pricing onAsk={openAsk} />
         <FinalCall onAsk={openAsk} />
       </main>

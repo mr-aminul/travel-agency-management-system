@@ -517,6 +517,15 @@ export default function ClientDetailPage() {
         bloodGroup: profileDraft.bloodGroup.trim() || undefined,
         education: profileDraft.education.trim() || undefined,
         profession: profileDraft.profession.trim() || undefined,
+        skillTrade: profileDraft.skillTrade.trim() || undefined,
+        experience: profileDraft.experience.trim() || undefined,
+        previousOverseasExp:
+          profileDraft.previousOverseasExp.trim() || undefined,
+        preferredCountry: profileDraft.preferredCountry.trim() || undefined,
+        preferredJob: profileDraft.preferredJob.trim() || undefined,
+        expectedSalary: profileDraft.expectedSalary.trim() || undefined,
+        branch: profileDraft.branch.trim() || undefined,
+        subAgentId: profileDraft.subAgentId.trim() || undefined,
         customFields: compactCustomFieldValues({
           ...Object.fromEntries(
             Object.entries(client.customFields ?? {}).filter(

@@ -12,8 +12,8 @@ import {
   IdCard,
   Inbox,
   LayoutDashboard,
-  LayoutList,
   ListChecks,
+  Sparkles,
   Settings,
   CreditCard,
   Megaphone,
@@ -64,9 +64,9 @@ export const layoutConfig: AppLayoutConfig = {
     { path: '/', label: 'Home', icon: Home, end: true },
     { path: '/clients', label: 'Clients', icon: Users, section: 'Work' },
     {
-      path: '/clients-v2',
-      label: 'Clients v2',
-      icon: LayoutList,
+      path: '/clients-v3',
+      label: 'Clients v3',
+      icon: Sparkles,
       section: 'Work',
     },
     {

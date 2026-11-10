@@ -54,12 +54,12 @@ const PROFILE_PHOTO_HINT = 'JPG, PNG or WebP · max 10 MB'
 const previewImageClass =
   'block size-[min(14rem,64vw)] rounded-full object-cover bg-[var(--color-bg-muted,var(--color-bg))] shadow-[inset_0_0_0_0.0625rem_var(--color-border)]'
 
-const cameraBadgeClass = cn(
-  'absolute -right-[0.1rem] -bottom-[0.1rem] z-[2] inline-flex size-6 items-center justify-center',
-  'rounded-full border-2 border-[var(--color-surface,#fff)]',
-  'bg-[var(--color-theme)] text-white shadow-[var(--shadow-low)]',
-  'hover:brightness-[1.06] focus-visible:outline focus-visible:outline-2',
-  'focus-visible:outline-offset-1 focus-visible:outline-[color-mix(in_srgb,var(--color-theme)_55%,transparent)]',
+const cameraOverlayClass = cn(
+  'absolute inset-0 z-[2] inline-flex items-center justify-center rounded-full',
+  'bg-black/55 text-white opacity-0 transition-opacity',
+  'group-hover:opacity-100 focus-visible:opacity-100',
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1',
+  'focus-visible:outline-[color-mix(in_srgb,var(--color-theme)_55%,transparent)]',
 )
 
 type PickerMode = 'view' | 'edit'
@@ -275,7 +275,7 @@ export function ProfilePhotoField({
           : 'flex w-auto justify-center',
       )}
     >
-      <div className="relative size-16 shrink-0">
+      <div className="group relative size-16 shrink-0">
         <Avatar
           className={cn(
             'size-16 overflow-hidden after:hidden',
@@ -295,11 +295,11 @@ export function ProfilePhotoField({
         </Avatar>
         <button
           type="button"
-          className={cameraBadgeClass}
+          className={cameraOverlayClass}
           aria-label={openLabel}
           onClick={openPicker}
         >
-          <Camera size={13} strokeWidth={2.25} className="text-white" aria-hidden />
+          <Camera size={18} strokeWidth={2} className="text-white" aria-hidden />
         </button>
       </div>
       {children ? (

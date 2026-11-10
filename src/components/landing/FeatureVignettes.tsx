@@ -147,14 +147,14 @@ function InvoiceCard() {
 const DOCUMENT_CHECKLIST = [
   { name: 'Passport scan', state: 'done' },
   { name: 'Photo 35×45 mm', state: 'done' },
-  { name: 'Bank statement', state: 'done' },
-  { name: 'Employer NOC', state: 'pending' },
-  { name: 'Travel insurance', state: 'missing' },
+  { name: 'NID copy', state: 'missing' },
+  { name: 'Bank statement', state: 'missing' },
+  { name: 'Offer letter', state: 'pending' },
 ] as const
 
 export function DocumentsVignette() {
   return (
-    <Chrome title="Documents · N. Akter" className="lp-vg lp-vg--docs">
+    <Chrome title="Documents · R. Hossain" className="lp-vg lp-vg--docs">
       <ul className="lp-vg-docs">
         {DOCUMENT_CHECKLIST.map((item) => (
           <li key={item.name} className={`lp-vg-docs__item lp-vg-docs__item--${item.state}`}>
@@ -203,15 +203,15 @@ export function SubAgentsVignette() {
 
 export function TrackingVignette() {
   return (
-    <Chrome title="Client tracking" className="lp-vg lp-vg--track">
+    <Chrome title="Rahim Hossain · Canada" className="lp-vg lp-vg--track">
       <div className="lp-vg-track__input">
         <Search size={13} strokeWidth={2.5} />
         A0••••4512
       </div>
       <ol className="lp-vg-track__steps">
-        <li className="is-done">Documents received</li>
-        <li className="is-done">Submitted to embassy</li>
-        <li className="is-current">Awaiting decision</li>
+        <li className="is-done">Intake</li>
+        <li className="is-current">Documents</li>
+        <li>Embassy</li>
       </ol>
     </Chrome>
   )
@@ -228,47 +228,3 @@ export function SmsVignette() {
   )
 }
 
-/** Compact peeks for the features grid — less clutter than full product chrome. */
-export function FeatureBoardPeek() {
-  const peeks = [
-    { stage: 'Intake', name: 'R. Hossain', tag: 'New' },
-    { stage: 'Documents', name: 'N. Akter', tag: 'Docs' },
-    { stage: 'Ready', name: 'S. Islam', tag: 'Ready' },
-  ]
-  return (
-    <div className="lp-peek lp-peek--board" aria-hidden>
-      {peeks.map((item) => (
-        <div className="lp-peek__col" key={item.stage}>
-          <span className="lp-peek__stage">{item.stage}</span>
-          <div className="lp-peek__card">
-            <b>{item.name}</b>
-            <i>{item.tag}</i>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-export function FeaturePayPeek() {
-  return (
-    <div className="lp-peek lp-peek--pay" aria-hidden>
-      <span className="lp-peek__label">N. Akter · Umrah</span>
-      <strong>৳65,000 due</strong>
-      <div className="lp-peek__bar">
-        <span style={{ width: '65%' }} />
-      </div>
-      <small>৳1,20,000 paid of ৳1,85,000</small>
-    </div>
-  )
-}
-
-export function FeatureTrackPeek() {
-  return (
-    <ol className="lp-peek lp-peek--track" aria-hidden>
-      <li className="is-done">Documents received</li>
-      <li className="is-done">Submitted</li>
-      <li className="is-current">Awaiting decision</li>
-    </ol>
-  )
-}

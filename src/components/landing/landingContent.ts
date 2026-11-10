@@ -85,113 +85,57 @@ export const LANDING_AUDIENCES = [
   {
     id: 'tourist',
     label: 'Tourist visa',
-    title: 'Tourist files in one board',
+    title: 'Every tourist file on one board',
     detail:
-      'See every tourist case by stage. Keep passports, payments, and embassy status together.',
+      'From passport intake to sticker ready — stage, documents, and next action stay on the same file.',
     vignette: 'board' as const,
   },
   {
     id: 'student',
     label: 'Student visa',
-    title: 'Student docs without the chase',
+    title: 'See which document is still missing',
     detail:
-      'Track which papers are in, what is missing, and what the client still owes.',
+      'Bank statement, offer letter, photo — know what is in and what the client still owes you.',
     vignette: 'documents' as const,
   },
   {
     id: 'work',
     label: 'Work permit',
-    title: 'Work files from intake to decision',
+    title: 'Give clients a tracking link',
     detail:
-      'Move each work permit through your stages and share status without long WhatsApp threads.',
+      'Send one SMS with the link. They check progress themselves instead of calling the desk again.',
     vignette: 'tracking' as const,
   },
   {
     id: 'hajj',
     label: 'Hajj & Umrah',
-    title: 'Package payments in one place',
+    title: 'Advance, balance, and due in one place',
     detail:
-      'See advance, balance, and due amounts next to each Hajj or Umrah file.',
+      'Package money often stays open for weeks. Keep paid and remaining due on the same file.',
     vignette: 'invoice' as const,
   },
   {
     id: 'tickets',
     label: 'Tickets & hotels',
-    title: 'Tickets and bookings on the same desk',
+    title: 'Tickets beside the visa file',
     detail:
-      'Run air tickets, hotels, and tours beside your visa files instead of in a separate sheet.',
+      'Air tickets and hotels live on the same desk as the visa, with SMS when status changes.',
     vignette: 'sms' as const,
   },
   {
     id: 'network',
     label: 'Sub agents',
-    title: 'Grow through your referral network',
+    title: 'Files from your network',
     detail:
-      'Let sub agents send clients and follow progress on Growth and Business plans.',
+      'Sub agents in Chattogram or Sylhet send clients. You approve, and they follow progress.',
     vignette: 'subAgents' as const,
   },
 ] as const
 
-export const LANDING_FEATURES = [
-  {
-    title: 'See every file at a glance',
-    detail: 'One board for tourist, student, work, Hajj, tickets, and more.',
-    peek: 'board' as const,
-    isPrimary: true,
-  },
-  {
-    title: 'Collect what is still due',
-    detail: 'Advance, balance, and due amount on the same file.',
-    peek: 'pay' as const,
-    isPrimary: false,
-  },
-  {
-    title: 'Let clients check themselves',
-    detail: 'Share a tracking link instead of answering the same call twice.',
-    peek: 'track' as const,
-    isPrimary: false,
-  },
-] as const
-
-export const LANDING_CUSTOMIZATIONS = [
-  {
-    title: 'Any services you sell',
-    icon: 'services' as const,
-  },
-  {
-    title: 'Stages you define',
-    icon: 'stages' as const,
-  },
-  {
-    title: 'Checklists you set',
-    icon: 'docs' as const,
-  },
-  {
-    title: 'Fields you need',
-    icon: 'fields' as const,
-  },
-] as const
-
-export const LANDING_SWITCH_STEPS = [
-  {
-    number: '01',
-    title: 'Create your agency',
-    detail: 'Name the desk, invite the team, set stages.',
-    icon: 'agency' as const,
-  },
-  {
-    number: '02',
-    title: 'Add client files',
-    detail: 'Passport, payment, and status on one board.',
-    icon: 'files' as const,
-  },
-  {
-    number: '03',
-    title: 'Share a tracking link',
-    detail: 'Clients check themselves. You get fewer calls.',
-    icon: 'link' as const,
-  },
-] as const
+/** Single continuous product film on the Features section. */
+export const LANDING_FEATURE_SHOW = {
+  title: 'Every file from start to finish',
+} as const
 
 export const LANDING_FAQS = [
   {
@@ -207,7 +151,7 @@ export const LANDING_FAQS = [
   {
     question: 'What do I get in the trial?',
     answer:
-      'You get full use of the plan you pick for 14 days, so you can try real work before you pay.',
+      'Full use of the plan you pick for 14 days, so you can try real work before you pay.',
   },
   {
     question: 'How do we move from WhatsApp and Excel?',
