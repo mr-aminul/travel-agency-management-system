@@ -33,6 +33,8 @@ describe('getThemeBootstrapScript', () => {
     expect(script).toContain('app-appearance')
     expect(script).toContain('light')
     expect(script).toContain('--color-theme')
+    expect(script).toContain('pd-auth-session')
+    expect(script).toContain('sessionStorage')
   })
 
   it('does not hardcode the default brand hex as a forced theme', () => {

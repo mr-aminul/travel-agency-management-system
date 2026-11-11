@@ -18,15 +18,27 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom'
-import { Check, Contact, Copy, Folder, Wallet } from 'lucide-react'
+import {
+  Check,
+  Contact,
+  Copy,
+  FileText,
+  Folder,
+  LayoutDashboard,
+  Wallet,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { AddServicePicker } from '@/components/cases/AddServicePicker'
 import { ClientServicesWorkspace } from '@/components/cases/ClientServicesWorkspace'
+import { ClientActionItems } from '@/components/clients/ClientActionItems'
+import { ClientFilesWorkspace } from '@/components/clients/ClientFilesWorkspace'
 import { ClientIdentityDocumentWorkspace } from '@/components/clients/ClientIdentityDocumentWorkspace'
 import { ClientNextAction } from '@/components/clients/ClientNextAction'
+import { ClientOverviewHub } from '@/components/clients/ClientOverviewHub'
 import { ClientProfileAside } from '@/components/clients/ClientProfileAside'
 import { ClientMessagesPanel } from '@/components/clients/ClientMessagesPanel'
 import { ClientProfileWorkspace } from '@/components/clients/ClientProfileWorkspace'
+import { ClientRecentActivity } from '@/components/clients/ClientRecentActivity'
 import {
   EDITABLE_PROFILE_KEYS,
   parseMaritalStatus,
@@ -42,6 +54,7 @@ import {
   reconcileClientIdentityFromCases,
   useCasesByClientId,
 } from '@/lib/casesStore'
+import { countClientDocumentAlerts } from '@/lib/clientDocuments'
 import {
   listClientInfoGaps,
   listProfileFormGaps,
@@ -53,7 +66,11 @@ import {
   clientV3Path,
   clientV3WorkDetailPath,
   clientsV3Path,
+  deskServicePaperPath,
 } from '@/lib/workPaths'
+import { useClientMessages } from '@/lib/clientMessagesStore'
+import { usePaymentsByClientId } from '@/lib/paymentsStore'
+import { useRequests } from '@/lib/requestsStore'
 import { useSubAgents } from '@/lib/subAgentsStore'
 import {
   getClientById,
@@ -80,7 +97,13 @@ import {
 } from '@/components/shadcn/sheet'
 import '@/styles/layout-clients.css'
 
-const MAIN_TABS = ['services', 'profile', 'payments'] as const
+const MAIN_TABS = [
+  'overview',
+  'services',
+  'files',
+  'profile',
+  'payments',
+] as const
 
 function tabFromSearch(searchParams: URLSearchParams): string {
   const tab = searchParams.get('tab')
@@ -88,10 +111,10 @@ function tabFromSearch(searchParams: URLSearchParams): string {
   if (tab === 'payments' || searchParams.get('pay') === '1') return 'payments'
   // Legacy edit sheet → Profile tab.
   if (tab === 'profile' || searchParams.get('edit') === '1') return 'profile'
-  if (tab === 'documents') return 'services'
-  if (!tab || tab === 'overview') return 'services'
-  if (tab === 'messages' || tab === 'email') return 'services'
-  return MAIN_TABS.includes(tab as (typeof MAIN_TABS)[number]) ? tab : 'services'
+  if (tab === 'documents' || tab === 'files') return 'files'
+  if (tab === 'messages' || tab === 'email') return 'overview'
+  if (!tab || tab === 'overview') return 'overview'
+  return MAIN_TABS.includes(tab as (typeof MAIN_TABS)[number]) ? tab : 'overview'
 }
 
 function writeChannelFromSearch(
@@ -229,6 +252,10 @@ export default function ClientsV3DetailPage() {
   const customFieldDefs = useClientProfileFields()
   const client = getClientById(id)
   const clientCases = useCasesByClientId(id)
+  const clientPayments = usePaymentsByClientId(id)
+  const smsMessages = useClientMessages(id, 'sms')
+  const emailMessages = useClientMessages(id, 'email')
+  const requests = useRequests()
   const activeTab = caseId ? 'services' : tabFromSearch(searchParams)
   const [newCaseOpen, setNewCaseOpen] = useState(false)
   const [draft, setDraft] = useState<ClientProfileDraft | null>(null)
@@ -258,7 +285,7 @@ export default function ClientsV3DetailPage() {
   }, [searchParams, setSearchParams])
 
   useEffect(() => {
-    // Legacy ?tab=documents → Services (papers) or Profile (passport/NID).
+    // Legacy ?tab=documents → Files (or identity sheet for passport/NID).
     if (searchParams.get('tab') !== 'documents') return
     const next = new URLSearchParams(searchParams)
     const focus = next.get('focus')
@@ -268,7 +295,7 @@ export default function ClientsV3DetailPage() {
       setSearchParams(next, { replace: true })
       return
     }
-    next.set('tab', 'services')
+    next.set('tab', 'files')
     if (focus === 'docs' && focusCase) {
       const open = clientCases.find((item) => item.id === focusCase)
       if (open) {
@@ -298,14 +325,6 @@ export default function ClientsV3DetailPage() {
     const next = new URLSearchParams(searchParams)
     next.delete('edit')
     next.set('tab', 'profile')
-    setSearchParams(next, { replace: true })
-  }, [searchParams, setSearchParams])
-
-  useEffect(() => {
-    // Legacy ?tab=overview → Services (default).
-    if (searchParams.get('tab') !== 'overview') return
-    const next = new URLSearchParams(searchParams)
-    next.delete('tab')
     setSearchParams(next, { replace: true })
   }, [searchParams, setSearchParams])
 
@@ -354,22 +373,14 @@ export default function ClientsV3DetailPage() {
 
   const selectTab = (tab: string) => {
     const resolved =
-      tab === 'email' || tab === 'messages' || tab === 'overview' ? 'services' : tab
+      tab === 'email' || tab === 'messages' ? 'overview' : tab
     // Leaving a nested service file → flat client desk tab.
     if (caseId) {
-      if (resolved === 'payments') {
-        navigate(`/clients-v3/${id}?tab=payments`)
-        return
-      }
-      if (resolved === 'profile') {
-        navigate(`/clients-v3/${id}?tab=profile`)
-        return
-      }
-      navigate(clientV3Path(id))
+      navigate(clientV3Path(id, resolved === 'overview' ? undefined : resolved))
       return
     }
     const next = new URLSearchParams(searchParams)
-    if (resolved === 'services') next.delete('tab')
+    if (resolved === 'overview') next.delete('tab')
     else next.set('tab', resolved)
     if (resolved !== 'payments') {
       next.delete('record')
@@ -377,6 +388,7 @@ export default function ClientsV3DetailPage() {
     } else {
       next.delete('pay')
     }
+    next.delete('newCase')
     next.delete('edit')
     if (resolved !== 'profile') {
       next.delete('section')
@@ -391,7 +403,7 @@ export default function ClientsV3DetailPage() {
       const qs = new URLSearchParams()
       qs.set('tab', 'payments')
       if (record) qs.set('record', '1')
-      navigate(`/clients-v3/${id}?${qs.toString()}`)
+      navigate(`${clientV3Path(id)}?${qs.toString()}`)
       return
     }
     const next = new URLSearchParams(searchParams)
@@ -417,7 +429,7 @@ export default function ClientsV3DetailPage() {
       qs.set('tab', 'profile')
       if (opts?.section) qs.set('section', opts.section)
       if (opts?.field) qs.set('field', opts.field)
-      navigate(`/clients-v3/${id}?${qs.toString()}`)
+      navigate(`${clientV3Path(id)}?${qs.toString()}`)
       return
     }
     const next = new URLSearchParams(searchParams)
@@ -488,12 +500,12 @@ export default function ClientsV3DetailPage() {
 
   const openNewCase = () => {
     setNewCaseOpen(true)
-    navigate(`/clients-v3/${id}?tab=services&newCase=1`, { replace: true })
+    navigate(`/clients/${id}?tab=services&newCase=1`, { replace: true })
   }
 
   const closeNewCase = () => {
     setNewCaseOpen(false)
-    navigate(`/clients-v3/${id}?tab=services`, { replace: true })
+    navigate(clientV3Path(id, 'services'), { replace: true })
   }
 
   const handleCreateCase = (input: CreateCaseInput) => {
@@ -605,6 +617,9 @@ export default function ClientsV3DetailPage() {
   )
   const dueBalance = openCases.reduce((sum, item) => sum + item.balance, 0)
   const paymentsAlertCount = openCases.filter((item) => item.balance > 0).length
+  const recentMessages = [...smsMessages, ...emailMessages].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  )
 
   const gapSource = {
     passport: profileDraft.passport,
@@ -618,6 +633,7 @@ export default function ClientsV3DetailPage() {
   const profileGaps = listClientInfoGaps(gapSource)
   const profileFormGaps = listProfileFormGaps(gapSource)
   const profileAlertCount = profileFormGaps.length
+  const filesAlertCount = countClientDocumentAlerts(client, clientCases)
 
   const identityFocus =
     searchParams.get('focus') === 'nid'
@@ -683,10 +699,58 @@ export default function ClientsV3DetailPage() {
                 ? 'services'
                 : MAIN_TABS.includes(activeTab as (typeof MAIN_TABS)[number])
                   ? activeTab
-                  : 'services'
+                  : 'overview'
             }
             onValueChange={selectTab}
             items={[
+              {
+                id: 'overview',
+                label: <TabLabel icon={LayoutDashboard}>Overview</TabLabel>,
+                content: (
+                  <div className="flex flex-col gap-4">
+                    <ClientOverviewHub
+                      client={client}
+                      cases={clientCases}
+                      payments={clientPayments}
+                      onOpenServices={() => selectTab('services')}
+                      onOpenFiles={() => selectTab('files')}
+                      onOpenPayments={(record) => openPayments(record)}
+                      onAddService={openNewCase}
+                      onOpenService={(openId) => {
+                        const open = clientCases.find((item) => item.id === openId)
+                        if (open) navigate(clientV3WorkDetailPath(open))
+                      }}
+                      onOpenIdentity={(kind) =>
+                        navigate(clientV3IdentityFocusPath(id, kind))
+                      }
+                      onOpenServicePaper={(caseId, docId) => {
+                        navigate(
+                          deskServicePaperPath('clients', caseId, id, docId),
+                        )
+                      }}
+                    />
+                    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
+                      <ClientRecentActivity
+                        cases={clientCases}
+                        messages={recentMessages}
+                        payments={clientPayments}
+                        requests={requests.filter(
+                          (item) => item.clientId === client.id,
+                        )}
+                        onOpenMessages={(channel) => openMessages(channel)}
+                        onOpenPayments={() => openPayments(false)}
+                        onOpenService={(openId) => {
+                          const open = clientCases.find(
+                            (item) => item.id === openId,
+                          )
+                          if (open) navigate(clientV3WorkDetailPath(open))
+                        }}
+                      />
+                      <ClientActionItems clientId={client.id} />
+                    </div>
+                  </div>
+                ),
+              },
               {
                 id: 'services',
                 label: <TabLabel icon={Folder}>Services</TabLabel>,
@@ -714,6 +778,28 @@ export default function ClientsV3DetailPage() {
                       if (open) navigate(clientV3WorkDetailPath(open))
                     }}
                     onClearService={() => navigate(clientV3Path(id))}
+                  />
+                ),
+              },
+              {
+                id: 'files',
+                label: (
+                  <TabLabel icon={FileText} alertCount={filesAlertCount}>
+                    Files
+                  </TabLabel>
+                ),
+                content: (
+                  <ClientFilesWorkspace
+                    client={client}
+                    cases={clientCases}
+                    onOpenIdentity={(kind) =>
+                      navigate(clientV3IdentityFocusPath(id, kind))
+                    }
+                    onOpenServicePaper={(caseId, docId) => {
+                      navigate(
+                        deskServicePaperPath('clients', caseId, id, docId),
+                      )
+                    }}
                   />
                 ),
               },

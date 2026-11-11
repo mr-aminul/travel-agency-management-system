@@ -3,14 +3,17 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
   CircleDollarSign,
+  Folder,
   HandCoins,
   TrendingUp,
+  Users,
 } from 'lucide-react'
 import { filterChipClass } from '@/components/clients/shadcnChrome'
 import { BentoTile } from '@/components/dashboard/BentoTile'
 import { TrendChart } from '@/components/dashboard/TrendChart'
 import { StatCards } from '@/components/StatCards'
 import { useCases } from '@/lib/casesStore'
+import { useClients } from '@/lib/clientsStore'
 import {
   balancesToCollect,
   collectionsTrendForPeriod,
@@ -26,6 +29,7 @@ import {
   type DashPeriod,
 } from '@/lib/dashboardInsights'
 import { usePayments } from '@/lib/paymentsStore'
+import { isWorkDueOverdue } from '@/lib/servicePriority'
 import '@/styles/layout-dashboard.css'
 
 function figureAmount(amount: number): string {
@@ -49,6 +53,7 @@ function deltaTone(
 export default function DashboardPage() {
   const navigate = useNavigate()
   const cases = useCases()
+  const clients = useClients()
   const payments = usePayments()
   const [period, setPeriod] = useState<DashPeriod>('this-month')
 
@@ -78,6 +83,18 @@ export default function DashboardPage() {
   const collect = useMemo(
     () => balancesToCollect(stockCases, 8, window.asOf),
     [stockCases, window.asOf],
+  )
+
+  const openServices = useMemo(
+    () =>
+      cases.filter(
+        (item) => item.status !== 'Completed' && item.status !== 'Cancelled',
+      ).length,
+    [cases],
+  )
+  const workOverdue = useMemo(
+    () => cases.filter((item) => isWorkDueOverdue(item)).length,
+    [cases],
   )
 
   const collectedChange = ratioChange(collected, priorCollected)
@@ -200,12 +217,15 @@ export default function DashboardPage() {
 
         <div className="pd-dash__insight">
           <StatCards
-            label="Cash position"
+            label="Ops pulse"
             className="pd-dash__kpis"
             onSelect={(id) => {
               if (id === 'collected') navigate('/payments?stat=in')
               else if (id === 'overdue')
                 navigate('/services?due=1&overdue=1')
+              else if (id === 'clients') navigate('/clients')
+              else if (id === 'open-services' || id === 'work-overdue')
+                navigate('/services')
               else navigate('/services?due=1')
             }}
             cards={[
@@ -233,6 +253,30 @@ export default function DashboardPage() {
                 label: 'Overdue',
                 value: figureAmount(pastDueAmount),
                 hint: `${pastDueFiles} past 30 days`,
+                icon: AlertTriangle,
+                tone: 'warning',
+              },
+              {
+                id: 'open-services',
+                label: 'Open Services',
+                value: String(openServices),
+                hint: 'Not done yet',
+                icon: Folder,
+                tone: 'info',
+              },
+              {
+                id: 'clients',
+                label: 'Clients',
+                value: String(clients.length),
+                hint: 'Active desk',
+                icon: Users,
+                tone: 'brand',
+              },
+              {
+                id: 'work-overdue',
+                label: 'Work Overdue',
+                value: String(workOverdue),
+                hint: 'Past due date',
                 icon: AlertTriangle,
                 tone: 'warning',
               },

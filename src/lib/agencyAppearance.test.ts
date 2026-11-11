@@ -3,6 +3,7 @@ import {
   DEFAULT_AGENCY_APPEARANCE,
   normalizeAgencyAppearance,
   readAgencyAppearance,
+  resetAllAgencyThemesToDefault,
   saveAgencyAppearance,
   syncActiveAgencyAppearance,
 } from '@/lib/agencyAppearance'
@@ -15,6 +16,8 @@ import {
 import { DATA_KEYS, resetDataBackend } from '@/lib/data'
 import { SIDEBAR_MODE_KEY } from '@/lib/sidebarPrefs'
 import { TENANT_IDS } from '@/types/tenant'
+import { writeSession } from '@/lib/authApi'
+import { DEMO_USER } from '@/lib/authApi'
 
 describe('agencyAppearance', () => {
   beforeEach(() => {
@@ -72,6 +75,11 @@ describe('agencyAppearance', () => {
   })
 
   it('migrates customized browser prefs into the agency store on sync', () => {
+    writeSession({
+      user: DEMO_USER,
+      tenantId: TENANT_IDS.demo,
+      signedInAt: new Date().toISOString(),
+    })
     localStorage.setItem(APPEARANCE_KEY, 'dark')
     localStorage.setItem(THEME_MODE_KEY, 'custom')
     localStorage.setItem(THEME_COLOR_KEY, '#445566')
@@ -86,11 +94,56 @@ describe('agencyAppearance', () => {
   })
 
   it('does not migrate untouched browser defaults', () => {
+    writeSession({
+      user: DEMO_USER,
+      tenantId: TENANT_IDS.demo,
+      signedInAt: new Date().toISOString(),
+    })
     syncActiveAgencyAppearance(TENANT_IDS.demo)
     expect(readAgencyAppearance(TENANT_IDS.demo)).toEqual(
       DEFAULT_AGENCY_APPEARANCE,
     )
     expect(localStorage.getItem(DATA_KEYS.agencyAppearance)).toBeNull()
     expect(DEFAULT_THEME_COLOR).toBe('#0c2d79')
+  })
+
+  it('resets custom themes to the product default blue', () => {
+    saveAgencyAppearance(
+      { themeMode: 'custom', themeColor: '#1a5c3a' },
+      TENANT_IDS.demo,
+    )
+    expect(
+      document.documentElement.style.getPropertyValue('--color-theme'),
+    ).toBe('#1a5c3a')
+
+    resetAllAgencyThemesToDefault()
+
+    expect(readAgencyAppearance(TENANT_IDS.demo).themeMode).toBe('default')
+    expect(readAgencyAppearance(TENANT_IDS.demo).themeColor).toBe(
+      DEFAULT_THEME_COLOR,
+    )
+    expect(localStorage.getItem(THEME_MODE_KEY)).toBe('default')
+    expect(
+      document.documentElement.style.getPropertyValue('--color-theme'),
+    ).toBe('')
+  })
+
+  it('does not apply agency theme while signed out', () => {
+    saveAgencyAppearance(
+      { themeMode: 'custom', themeColor: '#1a5c3a' },
+      TENANT_IDS.demo,
+    )
+    resetAllAgencyThemesToDefault()
+    saveAgencyAppearance(
+      { themeMode: 'custom', themeColor: '#1a5c3a' },
+      TENANT_IDS.demo,
+    )
+    sessionStorage.clear()
+
+    const synced = syncActiveAgencyAppearance(TENANT_IDS.demo)
+    expect(synced).toEqual(DEFAULT_AGENCY_APPEARANCE)
+    expect(
+      document.documentElement.style.getPropertyValue('--color-theme'),
+    ).toBe('')
   })
 })

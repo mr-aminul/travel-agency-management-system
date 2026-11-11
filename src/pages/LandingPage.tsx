@@ -219,16 +219,16 @@ function LandingNav({ onAsk }: { onAsk: () => void }) {
     <>
       <nav className={navClass} aria-label="Main">
         <div className="lp2-nav__shell">
-          <a className="lp2-nav__brand title-3" href="#top" onClick={close}>
+          <a className="lp2-nav__brand title-3" href="#top" onClick={close} aria-label="OneTrack">
             <img src={publicUrl('images/logo.svg')} alt="" width={28} height={28} />
-            OneTrack
+            <span className="lp2-nav__brand-text">OneTrack</span>
           </a>
           <div className="lp2-nav__end">
             <div className="lp2-nav__links">
-              <a className="title-4" href="#features">
+              <a className="title-4 lp2-nav__link--desk" href="#features">
                 Features
               </a>
-              <a className="title-4" href="#product">
+              <a className="title-4 lp2-nav__link--desk" href="#product">
                 Services
               </a>
               <a className="title-4" href="#pricing">
@@ -330,7 +330,12 @@ function Hero() {
           </a>
         </div>
       </div>
-      <div className="lp2-hero__product lp2-rise" style={revealDelay(360)} aria-hidden>
+      <div
+        className="lp2-hero__product lp2-rise"
+        style={revealDelay(360)}
+        aria-hidden
+        data-ss-wide
+      >
         <FileLands />
       </div>
       <ServiceTicker />
@@ -618,7 +623,19 @@ function LandingFooter({ onAsk }: { onAsk: () => void }) {
             </ul>
           </div>
 
-          <nav className="lp2-footer__col" aria-label="Product">
+          {/* Mobile: one compact link strip. Desktop columns stay below. */}
+          <nav className="lp2-footer__compact" aria-label="Footer">
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+            <a href="/faq">FAQ</a>
+            <a href={appUrl('/login')}>Sign in</a>
+            <a href={subscribeUrl('growth')}>Start trial</a>
+            <button type="button" className="lp2-text-btn lp2-text-btn--light" onClick={onAsk}>
+              Ask us
+            </button>
+          </nav>
+
+          <nav className="lp2-footer__col lp2-footer__col--desktop" aria-label="Product">
             <p className="lp2-footer__heading">Product</p>
             <a href="#features">Features</a>
             <a href="#product">Services</a>
@@ -626,7 +643,7 @@ function LandingFooter({ onAsk }: { onAsk: () => void }) {
             <a href={appUrl('/track')}>Track a file</a>
           </nav>
 
-          <nav className="lp2-footer__col" aria-label="Company">
+          <nav className="lp2-footer__col lp2-footer__col--desktop" aria-label="Company">
             <p className="lp2-footer__heading">Company</p>
             <button type="button" className="lp2-text-btn lp2-text-btn--light" onClick={onAsk}>
               Ask Inventive Lab
@@ -637,7 +654,7 @@ function LandingFooter({ onAsk }: { onAsk: () => void }) {
             <a href={`mailto:${SALES_EMAIL}?subject=Terms%20of%20use`}>Terms</a>
           </nav>
 
-          <nav className="lp2-footer__col" aria-label="Help">
+          <nav className="lp2-footer__col lp2-footer__col--desktop" aria-label="Help">
             <p className="lp2-footer__heading">Help</p>
             <a href="/faq">FAQ</a>
             <a href={`mailto:${SALES_EMAIL}`}>Email support</a>

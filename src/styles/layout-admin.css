@@ -215,15 +215,15 @@
 }
 
 .pd-admin__plan-ops-btn--bill.pd-btn {
-  background: #0f6e56;
-  border-color: #0f6e56;
-  color: #fff;
+  background: var(--color-theme, #0c2d79);
+  border-color: var(--color-theme, #0c2d79);
+  color: var(--color-on-theme, #fff);
 }
 
 .pd-admin__plan-ops-btn--bill.pd-btn:hover:not(:disabled) {
-  background: #0b5a46;
-  border-color: #0b5a46;
-  color: #fff;
+  background: color-mix(in srgb, var(--color-theme, #0c2d79) 88%, black);
+  border-color: color-mix(in srgb, var(--color-theme, #0c2d79) 88%, black);
+  color: var(--color-on-theme, #fff);
 }
 
 .pd-admin__plan-ops-btn--trial.pd-btn {

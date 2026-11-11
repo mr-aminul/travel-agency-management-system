@@ -376,7 +376,7 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
         <div className={adminPlanOpsClass} role="group" aria-label="Billing ops">
           <Button
             size="sm"
-            className="w-full justify-center bg-[#0f6e56] border-[#0f6e56] text-white hover:bg-[#0b5a46] hover:border-[#0b5a46] hover:text-white"
+            className="w-full justify-center bg-primary border-primary text-primary-foreground hover:bg-primary/90 hover:border-primary/90 hover:text-primary-foreground"
             disabled={busy}
             onClick={() => setBillingOpen(true)}
           >

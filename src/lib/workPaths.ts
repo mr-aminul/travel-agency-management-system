@@ -84,74 +84,64 @@ export function clientPath(clientId: string, tab?: string): string {
   return `/clients/${clientId}?tab=${encodeURIComponent(tab)}`
 }
 
-/** Next-thing Clients v3 desk. */
+/** Clients desk list (canonical). */
 export function clientsV3Path(): string {
-  return '/clients-v3'
+  return '/clients'
 }
 
+/** Client desk detail. Default tab is Overview. */
 export function clientV3Path(clientId: string, tab?: string): string {
-  if (!tab || tab === 'services') return `/clients-v3/${clientId}`
-  return `/clients-v3/${clientId}?tab=${encodeURIComponent(tab)}`
+  return clientPath(clientId, tab)
 }
 
 export function clientV3IdentityFocusPath(
   clientId: string,
   focus: 'passport' | 'nid' = 'passport',
 ): string {
-  return `/clients-v3/${clientId}?focus=${focus}`
+  return clientIdentityFocusPath(clientId, focus)
 }
 
 export function clientV3WorkDetailPath(item: ServiceRecordRef): string {
-  return `/clients-v3/${item.clientId}/services/${item.id}`
+  return workDetailPath(item)
 }
 
 export type ClientDeskBase = 'clients' | 'clients-v3'
 
-/** Which client desk the current URL belongs to. */
+/** Which client desk the current URL belongs to. Legacy `/clients-v3` still maps. */
 export function clientDeskBaseFromPath(pathname: string): ClientDeskBase {
   return pathname.startsWith('/clients-v3') ? 'clients-v3' : 'clients'
 }
 
 export function deskClientPath(
-  base: ClientDeskBase,
+  _base: ClientDeskBase,
   clientId: string,
   tab?: string,
 ): string {
-  return base === 'clients-v3'
-    ? clientV3Path(clientId, tab)
-    : clientPath(clientId, tab)
+  return clientPath(clientId, tab)
 }
 
 export function deskIdentityFocusPath(
-  base: ClientDeskBase,
+  _base: ClientDeskBase,
   clientId: string,
   focus: 'passport' | 'nid' = 'passport',
 ): string {
-  return base === 'clients-v3'
-    ? clientV3IdentityFocusPath(clientId, focus)
-    : clientIdentityFocusPath(clientId, focus)
+  return clientIdentityFocusPath(clientId, focus)
 }
 
 export function deskWorkDetailPath(
-  base: ClientDeskBase,
+  _base: ClientDeskBase,
   item: ServiceRecordRef,
 ): string {
-  return base === 'clients-v3'
-    ? clientV3WorkDetailPath(item)
-    : workDetailPath(item)
+  return workDetailPath(item)
 }
 
 export function deskServicePaperPath(
-  base: ClientDeskBase,
+  _base: ClientDeskBase,
   caseId: string,
   clientId: string,
   docId: string,
 ): string {
-  const root =
-    base === 'clients-v3'
-      ? `/clients-v3/${clientId}/services/${caseId}`
-      : `/clients/${clientId}/services/${caseId}`
-  return `${root}?doc=${encodeURIComponent(docId)}`
+  return `/clients/${clientId}/services/${caseId}?doc=${encodeURIComponent(docId)}`
 }
 
 export function deskWorkIdentityFocusPath(

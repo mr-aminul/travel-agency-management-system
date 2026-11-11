@@ -34,7 +34,7 @@ type QuickLink = {
 const QUICK_LINKS: QuickLink[] = [
   { path: '/clients', label: 'Clients', icon: Users },
   { path: '/services', label: 'Services', icon: ClipboardList },
-  { path: '/dashboard', label: 'Insights', icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/payments', label: 'Payments', icon: Wallet },
   { path: '/documents', label: 'Documents', icon: FileText },
   { path: '/hr', label: 'HR', icon: UsersRound },

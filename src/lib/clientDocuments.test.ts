@@ -6,6 +6,7 @@ import {
   getClientIdentityRows,
   getClientServiceDocumentGroups,
   isIdentityCaseDocument,
+  listClientFileRows,
 } from '@/lib/clientDocuments'
 import { getCaseComplianceDocuments } from '@/lib/caseDocuments'
 import {
@@ -67,6 +68,13 @@ describe('client documents inventory', () => {
     )
     expect(groups[1]?.papers.map((doc) => doc.id)).toEqual(
       expect.arrayContaining(['payment', 'ticket']),
+    )
+
+    const files = listClientFileRows(client, [permit, ticket])
+    expect(files.filter((row) => row.kind === 'identity')).toHaveLength(2)
+    expect(files.some((row) => row.name === 'Passport')).toBe(true)
+    expect(files.some((row) => row.source.includes('Work Permit Visa'))).toBe(
+      true,
     )
   })
 

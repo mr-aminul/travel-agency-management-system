@@ -25,7 +25,12 @@ import {
   listServiceCountries,
   useServiceTemplates,
 } from '@/lib/serviceTemplatesStore'
-import type { ServiceType, CreateCaseInput } from '@/types/case'
+import {
+  SERVICE_PRIORITY_OPTIONS,
+  type ServicePriority,
+  type ServiceType,
+  type CreateCaseInput,
+} from '@/types/case'
 
 type NewCaseFormProps = {
   onSubmit: (input: CreateCaseInput) => void
@@ -46,6 +51,8 @@ type Field =
   | 'country'
   | 'destination'
   | 'assignedTo'
+  | 'priority'
+  | 'dueDate'
   | 'departureDate'
   | 'serviceFee'
   | 'description'
@@ -73,6 +80,8 @@ export function NewCaseForm({
   const [destination, setDestination] = useState('')
   const [country, setCountry] = useState(defaultCountry.trim())
   const [assignedTo, setAssignedTo] = useState('')
+  const [priority, setPriority] = useState<ServicePriority>('Normal')
+  const [dueDate, setDueDate] = useState('')
   const [departureDate, setDepartureDate] = useState('')
   const [serviceFee, setServiceFee] = useState('')
   const [description, setDescription] = useState('')
@@ -125,6 +134,8 @@ export function NewCaseForm({
     country: undefined,
     destination: validateOptionalText(destination, 'City / destination'),
     assignedTo: undefined,
+    priority: undefined,
+    dueDate: validateOptionalDate(dueDate, 'Due date'),
     departureDate: validateOptionalDate(departureDate, 'Departure date'),
     serviceFee: validateOptionalMoney(serviceFee, 'Service fee'),
     description: validateOptionalText(description, 'Notes', 2000),
@@ -139,6 +150,7 @@ export function NewCaseForm({
       'clientId',
       'service',
       'destination',
+      'dueDate',
       'departureDate',
       'serviceFee',
       'description',
@@ -152,6 +164,8 @@ export function NewCaseForm({
       serviceCountry: country.trim() || undefined,
       destination: formatDestination(destination, country),
       assignedTo,
+      priority,
+      dueDate: dueDate || undefined,
       departureDate: departureDate || undefined,
       serviceFee: parseMoneyInput(serviceFee),
       description,
@@ -228,6 +242,22 @@ export function NewCaseForm({
               value={assignedTo}
               onChange={(event) => setAssignedTo(event.target.value)}
               options={employeeAssignmentOptions(employees)}
+            />
+            <Select
+              label="Priority"
+              value={priority}
+              onChange={(event) =>
+                setPriority(event.target.value as ServicePriority)
+              }
+              options={SERVICE_PRIORITY_OPTIONS}
+            />
+            <Input
+              label="Due date"
+              type="date"
+              value={dueDate}
+              onChange={(event) => setDueDate(event.target.value)}
+              onBlur={blur('dueDate')}
+              error={fieldError('dueDate')}
             />
             <Input
               label="Departure date"

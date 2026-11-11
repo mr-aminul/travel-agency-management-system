@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Folder, Plus, UserRound } from 'lucide-react'
+import { CalendarClock, Folder, Flag, Plus, UserRound } from 'lucide-react'
 import {
   ServiceFileActionsMenu,
   ServiceFileCard,
@@ -30,12 +30,17 @@ import {
 } from '@/lib/destinationCountries'
 import { getEmployeeDisplayName, useEmployees } from '@/lib/employeesStore'
 import { usePaymentsByClientId } from '@/lib/paymentsStore'
+import { formatDisplayDate } from '@/lib/formatDate'
 import { flashAndReveal } from '@/lib/scrollWithin'
+import {
+  isWorkDueOverdue,
+  servicePriority,
+} from '@/lib/servicePriority'
 import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { iconForService } from '@/lib/serviceIcons'
 import { workInvoicePath } from '@/lib/workPaths'
 import { cn } from '@/lib/utils'
-import type { Case, CaseStatus } from '@/types/case'
+import type { Case, CaseStatus, ServicePriority } from '@/types/case'
 import type { Client } from '@/types/client'
 
 export type ClientServicesWorkspaceProps = {
@@ -62,6 +67,15 @@ function caseStatusShadcnVariant(
   if (status === 'Cancelled') return 'destructive'
   if (status === 'On-Hold') return 'outline'
   return 'secondary'
+}
+
+function priorityBadgeVariant(
+  priority: ServicePriority,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (priority === 'Urgent') return 'destructive'
+  if (priority === 'High') return 'default'
+  if (priority === 'Low') return 'secondary'
+  return 'outline'
 }
 
 function PaymentMeter({
@@ -144,6 +158,8 @@ function ServiceAccordionTrigger({
   const due = Math.max(0, item.balance)
   const assignedName = getEmployeeDisplayName(item.assignedTo)
   const displayCountry = serviceCountryLabel(item)
+  const priority = servicePriority(item)
+  const dueOverdue = isWorkDueOverdue(item)
 
   return (
     <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5">
@@ -163,6 +179,33 @@ function ServiceAccordionTrigger({
         >
           {item.status}
         </Badge>
+        <Badge
+          variant={priorityBadgeVariant(priority)}
+          className="h-5 gap-1 px-1.5 text-[0.625rem]"
+        >
+          <Flag size={10} strokeWidth={2.25} aria-hidden />
+          {priority}
+        </Badge>
+        {item.dueDate?.trim() ? (
+          <span
+            className={cn(
+              'inline-flex h-5 max-w-full items-center gap-1 rounded-full px-1.5 text-[0.625rem] font-medium leading-none',
+              dueOverdue
+                ? 'bg-destructive/10 text-destructive'
+                : 'bg-muted text-foreground',
+            )}
+          >
+            <CalendarClock
+              size={10}
+              strokeWidth={2.25}
+              className="shrink-0"
+              aria-hidden
+            />
+            <span className="min-w-0 truncate">
+              {formatDisplayDate(item.dueDate)}
+            </span>
+          </span>
+        ) : null}
         {displayCountry ? (
           <span className="inline-flex h-5 max-w-full items-center gap-1 rounded-full bg-muted px-1.5 text-[0.625rem] font-medium leading-none text-foreground">
             {countryFlagEmoji(displayCountry) ? (

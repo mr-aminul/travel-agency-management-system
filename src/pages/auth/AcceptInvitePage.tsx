@@ -20,9 +20,11 @@ import {
   authShellClass,
   authTextLinkClass,
   authTitleClass,
+  usePublicBrandTheme,
 } from './authShell'
 
 export default function AcceptInvitePage() {
+  usePublicBrandTheme()
   const { token = '' } = useParams()
   const navigate = useNavigate()
   const [invite, setInvite] = useState<{

@@ -167,7 +167,7 @@ describe('module entitlements', () => {
     expect(labels).toContain('Services')
     expect(labels).toContain('Clients')
     expect(labels).toContain('Payments')
-    expect(labels).not.toContain('Dashboard')
+    expect(labels).toContain('Dashboard')
     expect(labels).not.toContain('Settings')
     expect(labels).not.toContain('Trash')
     expect(labels).not.toContain('Manpower')

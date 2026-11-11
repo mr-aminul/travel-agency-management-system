@@ -1,3 +1,16 @@
+import { useEffect } from 'react'
+import { resetBrandThemeToDefault } from '@/lib/brand'
+
+/**
+ * Public auth pages always use the product default blue so a prior custom
+ * theme (or leftover --color-theme) cannot paint login green/mismatched.
+ */
+export function usePublicBrandTheme(): void {
+  useEffect(() => {
+    resetBrandThemeToDefault()
+  }, [])
+}
+
 /** Shared brand-field background for public auth shells (matches TrackClientPage). */
 export const authPageBackgroundStyle = {
   backgroundColor: 'color-mix(in srgb, var(--color-theme) 55%, #04060c)',

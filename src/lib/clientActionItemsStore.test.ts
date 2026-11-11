@@ -7,6 +7,7 @@ import {
   removeClientActionItem,
   resetClientActionItems,
   setClientActionItemDone,
+  updateClientActionItemText,
 } from '@/lib/clientActionItemsStore'
 import { TENANT_IDS } from '@/types/tenant'
 import {
@@ -75,6 +76,17 @@ describe('client action items', () => {
     expect(listed[1]?.done).toBe(true)
     expect(listed[1]?.completedAt).toBeTruthy()
     expect(countOpenClientActionItems('c-284')).toBe(1)
+  })
+
+  it('updates an action item text', () => {
+    asFull()
+    const created = addClientActionItem({
+      clientId: 'c-284',
+      text: 'Send quotation',
+    })
+    const updated = updateClientActionItemText(created.id, '  Call client  ')
+    expect(updated.text).toBe('Call client')
+    expect(listClientActionItems('c-284')[0]?.text).toBe('Call client')
   })
 
   it('removes an action item', () => {

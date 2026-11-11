@@ -140,6 +140,8 @@ const SEED_CASES: Case[] = [
     serviceFee: 50000,
     balance: 35000,
     assignedTo: 'EMP-7001',
+    priority: 'High',
+    dueDate: '2026-08-20',
     departureDate: '2026-09-15',
     description:
       'Nurse recruitment for Al Rajhi Hospital. Medical + police clearance in progress.',
@@ -170,6 +172,8 @@ const SEED_CASES: Case[] = [
     serviceFee: 10000,
     balance: 10000,
     assignedTo: 'EMP-7007',
+    priority: 'Normal',
+    dueDate: '2026-08-05',
     departureDate: '2026-09-12',
     description:
       'One-way economy ticket aligned with manpower deployment date.',
@@ -189,6 +193,8 @@ const SEED_CASES: Case[] = [
     serviceFee: 170000,
     balance: 120000,
     assignedTo: 'EMP-7004',
+    priority: 'Urgent',
+    dueDate: '2026-08-10',
     departureDate: '2026-12-01',
     description:
       'Fall 2026 intake. Offer letter received; visa file under preparation.',
@@ -220,6 +226,8 @@ const SEED_CASES: Case[] = [
     serviceFee: 110000,
     balance: 85000,
     assignedTo: 'EMP-7005',
+    priority: 'High',
+    dueDate: '2026-04-01',
     departureDate: '2026-05-20',
     description: 'Package B (21 days). Passport submitted; visa quota pending.',
     createdAt: '2026-02-14',
@@ -241,6 +249,8 @@ const SEED_CASES: Case[] = [
     destination: 'Cox’s Bazar, Bangladesh',
     balance: 22000,
     assignedTo: 'EMP-7006',
+    priority: 'Low',
+    dueDate: '2026-08-15',
     departureDate: '2026-08-22',
     description:
       '3N/4D family package for 4 guests. Quote shared; awaiting deposit.',
@@ -683,6 +693,8 @@ export function createCase(input: CreateCaseInput): Case {
     serviceFee: Math.max(0, input.serviceFee ?? input.balance ?? 0),
     balance: Math.max(0, input.balance ?? input.serviceFee ?? 0),
     assignedTo: input.assignedTo?.trim() || undefined,
+    priority: input.priority,
+    dueDate: input.dueDate || undefined,
     departureDate: input.departureDate || undefined,
     description: input.description?.trim() || undefined,
     createdAt,
@@ -739,6 +751,16 @@ export function updateCase(
         patch.assignedTo !== undefined
           ? patch.assignedTo.trim() || undefined
           : item.assignedTo,
+      priority:
+        patch.priority !== undefined ? patch.priority : item.priority,
+      dueDate:
+        patch.dueDate !== undefined
+          ? patch.dueDate.trim() || undefined
+          : item.dueDate,
+      departureDate:
+        patch.departureDate !== undefined
+          ? patch.departureDate.trim() || undefined
+          : item.departureDate,
       description:
         patch.description !== undefined
           ? patch.description.trim() || undefined

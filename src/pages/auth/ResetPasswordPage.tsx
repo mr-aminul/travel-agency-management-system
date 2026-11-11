@@ -20,9 +20,11 @@ import {
   authShellClass,
   authTextLinkClass,
   authTitleClass,
+  usePublicBrandTheme,
 } from './authShell'
 
 export default function ResetPasswordPage() {
+  usePublicBrandTheme()
   const { token = '' } = useParams()
   const navigate = useNavigate()
   const [emailMasked, setEmailMasked] = useState('')

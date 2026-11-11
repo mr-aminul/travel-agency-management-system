@@ -76,6 +76,27 @@
   mask-image: linear-gradient(to left, black 0%, transparent 72%);
 }
 
+/* Top header trial: solid theme band (no fade into the page canvas). */
+.pd-client-profile-aside-card--top .pd-client-profile-aside-card__cover::before {
+  background:
+    radial-gradient(
+      120% 140% at 100% 0%,
+      color-mix(in srgb, var(--color-theme-bright) 45%, transparent) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      135deg,
+      var(--color-theme-darkest) 0%,
+      var(--color-theme-darker) 48%,
+      var(--color-theme) 100%
+    );
+}
+
+.pd-client-profile-aside-card--top .pd-client-profile-aside-card__cover::after {
+  height: 100%;
+  mask-image: linear-gradient(to left, black 0%, transparent 55%);
+}
+
 .pd-client-elevated-panel {
   border: 0.0625rem solid var(--color-border);
   background: var(--color-surface-raised, var(--card));
@@ -258,6 +279,19 @@
 
 .pd-page--elevated .pd-summary-stat.is-active {
   border: 0;
+}
+
+.pd-page--elevated .pd-summary-stat.is-urgent {
+  background: var(--color-danger) !important;
+  color: #ffffff;
+}
+
+.pd-page--elevated .pd-summary-stat.is-urgent .pd-summary-stat__label {
+  color: color-mix(in srgb, #ffffff 84%, transparent);
+}
+
+.pd-page--elevated .pd-summary-stat.is-urgent .pd-summary-stat__value {
+  color: #ffffff;
 }
 
 .pd-page--elevated .pd-summary-stat__peek {

@@ -13,7 +13,6 @@ import {
   Inbox,
   LayoutDashboard,
   ListChecks,
-  Sparkles,
   Settings,
   CreditCard,
   Megaphone,
@@ -62,13 +61,13 @@ export const layoutConfig: AppLayoutConfig = {
   },
   navItems: [
     { path: '/', label: 'Home', icon: Home, end: true },
-    { path: '/clients', label: 'Clients', icon: Users, section: 'Work' },
     {
-      path: '/clients-v3',
-      label: 'Clients v3',
-      icon: Sparkles,
-      section: 'Work',
+      path: '/dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      agencyOnly: true,
     },
+    { path: '/clients', label: 'Clients', icon: Users, section: 'Work' },
     {
       path: '/services',
       label: 'Services',
@@ -215,7 +214,6 @@ function searchableNavLeaves(items: NavItem[]): NavItem[] {
 /** Pages available in global search (nav + account/utility pages). */
 export const searchablePages: NavItem[] = [
   ...searchableNavLeaves(layoutConfig.navItems),
-  dashboardNavItem,
   profileNavItem,
   settingsNavItem,
   trashNavItem,

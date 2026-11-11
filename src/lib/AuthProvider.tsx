@@ -18,6 +18,7 @@ import {
   writeSession,
 } from '@/lib/authApi'
 import { AuthContext, type AuthContextValue } from '@/lib/authContext'
+import { resetBrandThemeToDefault } from '@/lib/brand'
 import { rehydratePlatformData } from '@/lib/data/rehydrate'
 import { queryClient } from '@/lib/queryClient'
 
@@ -117,6 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await apiSignOut()
     setSession(null)
+    // Login / public shells must show product blue, not the last custom theme.
+    resetBrandThemeToDefault()
   }, [])
 
   const updateProfile = useCallback(

@@ -192,6 +192,27 @@ export function setClientActionItemDone(
   return next
 }
 
+export function updateClientActionItemText(
+  id: string,
+  text: string,
+): ClientActionItem {
+  const activeId = tenantId()
+  const current = items.find(
+    (item) => item.id === id && item.tenantId === activeId,
+  )
+  if (!current) {
+    throw new Error('Action item not found.')
+  }
+  const error = validateClientActionItemText(text)
+  if (error) throw new Error(error)
+  const next: ClientActionItem = {
+    ...current,
+    text: text.trim(),
+  }
+  replaceAll(items.map((item) => (item.id === id ? next : item)))
+  return next
+}
+
 export function removeClientActionItem(id: string): void {
   const activeId = tenantId()
   const exists = items.some(

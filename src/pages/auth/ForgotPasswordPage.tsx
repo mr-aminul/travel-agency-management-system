@@ -19,9 +19,11 @@ import {
   authSuccessIconClass,
   authTextLinkClass,
   authTitleClass,
+  usePublicBrandTheme,
 } from './authShell'
 
 export default function ForgotPasswordPage() {
+  usePublicBrandTheme()
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)

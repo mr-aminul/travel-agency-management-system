@@ -78,6 +78,8 @@ html:has(.lp2),
 html:has(.lp2) body,
 html:has(.lp2) #root {
   height: auto;
+  /* Base app CSS locks html/body/#root to overflow:hidden for the SPA shell.
+     Reset both axes here — overflow-x alone would leave overflow-y:hidden. */
   overflow: visible;
   /* Match the landing ink so rubber-band overscroll doesn’t flash app cream. */
   background: var(--lp-ink, #050d22);
@@ -800,6 +802,105 @@ html:has(.lp2) body {
   transition-delay: 400ms;
 }
 
+/* Phone/tablet: compact floating island with essentials; full sitemap in the drawer. */
+@media (max-width: 899px) {
+  .lp2-nav {
+    padding:
+      max(10px, env(safe-area-inset-top))
+      max(14px, env(safe-area-inset-right))
+      10px
+      max(14px, env(safe-area-inset-left));
+  }
+
+  .lp2-nav__shell,
+  .lp2-nav.is-scrolled .lp2-nav__shell {
+    width: fit-content;
+    max-width: 100%;
+    gap: 8px;
+    padding: 6px 6px 6px 10px;
+    border-radius: 999px;
+    background: rgba(5, 13, 34, 0.55);
+    border-color: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+    justify-content: flex-start;
+  }
+
+  .lp2-nav__brand {
+    gap: 0;
+  }
+
+  .lp2-nav__brand-text {
+    display: none;
+  }
+
+  .lp2-nav__brand img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .lp2-nav__end {
+    gap: 4px;
+  }
+
+  .lp2-nav__links {
+    display: inline-flex;
+    gap: 0;
+  }
+
+  .lp2-nav__links a {
+    padding: 8px 8px;
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .lp2-nav__signin {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 8px;
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 600;
+  }
+
+  /* Narrow phones: keep Features + Pricing + Sign in; drop Services. */
+  @media (max-width: 380px) {
+    .lp2-nav__link--desk[href="#product"] {
+      display: none;
+    }
+  }
+
+  .lp2-nav__actions {
+    gap: 4px;
+  }
+
+  .lp2-nav__actions > .lp2-btn {
+    display: none;
+  }
+
+  .lp2-nav__menu-btn {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .lp2-menu-icon {
+    width: 15px;
+    height: 11px;
+  }
+
+  .lp2-menu-icon span:nth-child(2) {
+    top: 4.5px;
+  }
+
+  .lp2-menu-icon span:nth-child(3) {
+    top: 9px;
+  }
+}
+
 @media (min-width: 900px) {
 
   .lp2-nav__links,
@@ -932,14 +1033,24 @@ html:has(.lp2) body {
   align-items: flex-end;
   justify-content: center;
   width: min(960px, 100%);
+  min-width: 0;
   /* Slide the shell under the ticker with the copy stack above it. */
   margin: 0 0 calc(-1 * (var(--lp2-ticker-h, 52px) + 36px));
   transform: translateY(28px);
   pointer-events: none;
 }
 
+/* Desktop only: drop the shell so ~brand + 3 sidebar rows peek above the ticker. */
+@media (min-width: 768px) {
+  .lp2-hero__product {
+    margin-bottom: calc(-1 * (var(--lp2-ticker-h, 52px) + 88px));
+    transform: translateY(168px);
+  }
+}
+
 .lp2-hero__product > .fl.ss-fit {
   width: 100%;
+  max-width: 100%;
 }
 
 .lp2-hero__product .lp-vg-chrome {
@@ -966,25 +1077,126 @@ html:has(.lp2) body {
   color: #000;
 }
 
-@media (max-width: 720px) {
-  .lp2-hero__inner {
-    margin-bottom: 2rem;
-  }
-
-  .lp2-hero__product .lp-vg-chrome {
-    transform: scale(0.96);
-    transform-origin: top center;
+@media (max-width: 899px) {
+  /* Nav already carries the mark — drop the duplicate hero brand. */
+  .lp2-hero__brand {
+    display: none;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 767px) {
+  .lp2-hero {
+    /* Lock to the screen; flex children share the space so copy never
+       collides with the fixed nav or gets crushed by the product mock. */
+    --lp2-ticker-h: 46px;
+    /* Nav chrome ≈ safe-area + 12 + 44 + 10; keep ~20px clear under it. */
+    --lp2-hero-nav-clearance: calc(env(safe-area-inset-top) + 96px);
+    height: 100svh;
+    height: 100dvh;
+    min-height: 100svh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    justify-content: flex-start;
+    gap: 0;
+    padding:
+      var(--lp2-hero-nav-clearance)
+      max(16px, env(safe-area-inset-right))
+      0
+      max(16px, env(safe-area-inset-left));
+  }
+
+  .lp2-hero__inner {
+    /* Fill space above the shell; center headline + CTA in that band. */
+    flex: 1 1 auto;
+    justify-content: center;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding-block: 8px;
+  }
+
+  .lp2-hero__title {
+    font-size: clamp(28px, 7.5vw, 40px);
+  }
+
   .lp2-hero__title-line {
     white-space: normal;
   }
 
+  .lp2-hero__sub {
+    max-width: 34rem;
+    margin-top: 10px;
+    padding-inline: 4px;
+  }
+
+  .lp2-hero__ctas {
+    margin-top: 18px;
+  }
+
+  .lp2-hero__ctas .lp2-btn {
+    width: min(100%, 320px);
+  }
+
+  .lp2-hero__product {
+    flex: 0 0 auto;
+    align-self: stretch;
+    /* Pin to bottom; light tuck under ticker — enough peek, not a hard crop. */
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    max-height: min(42vh, 320px);
+    margin: 0 0 calc(-1 * (var(--lp2-ticker-h, 46px) + 10px));
+    transform: translateY(10px);
+    overflow: hidden;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .lp2-hero__product > .fl.ss-fit {
+    /* Modest zoom so the shell is taller without eating the lower cards. */
+    width: min(122vw, 560px);
+    max-width: none;
+    flex: none;
+  }
+
   .lp2-hero__product .lp-vg-chrome {
-    transform: scale(0.92);
-    transform-origin: top center;
+    transform: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .lp2-hero {
+    --lp2-hero-nav-clearance: calc(env(safe-area-inset-top) + 100px);
+  }
+
+  .lp2-hero__title {
+    font-size: clamp(26px, 8.4vw, 34px);
+    line-height: 1.05;
+  }
+
+  .lp2-hero__sub {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .lp2-hero__ctas {
+    margin-top: 12px;
+  }
+
+  .lp2-hero__inner {
+    padding-block: 4px;
+  }
+
+  .lp2-hero__product {
+    max-height: min(40vh, 300px);
+    margin-bottom: calc(-1 * (var(--lp2-ticker-h, 46px) + 8px));
+    transform: translateY(8px);
+  }
+
+  .lp2-hero__product > .fl.ss-fit {
+    width: min(128vw, 580px);
   }
 }
 
@@ -1008,12 +1220,15 @@ html:has(.lp2) body {
   border-block: 1px solid rgba(0, 0, 0, 0.35);
   transform: none;
   box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent);
 }
 
 .lp2-ticker__track {
   display: flex;
   width: max-content;
   animation: lp2-marquee 42s linear infinite;
+  will-change: transform;
 }
 
 .lp2-ticker__track span {
@@ -1030,6 +1245,7 @@ html:has(.lp2) body {
 
 .lp2-ticker__track svg {
   transform: rotate(45deg);
+  flex-shrink: 0;
 }
 
 @media (max-width: 720px) {
@@ -1039,12 +1255,15 @@ html:has(.lp2) body {
 
   .lp2-ticker {
     bottom: 0;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent);
+    mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent);
   }
 
   .lp2-ticker__track span {
     gap: 20px;
     padding-right: 20px;
-    font-size: 13px;
+    font-size: 12px;
+    letter-spacing: 0.12em;
   }
 }
 
@@ -1767,6 +1986,7 @@ html:has(.lp2) body {
   width: 100%;
   min-width: 0;
   margin-inline: auto;
+  overflow: hidden;
 }
 
 .lp2-moments__film .sl.ss-fit {
@@ -4673,6 +4893,11 @@ html:has(.lp2) body {
   max-width: 280px;
 }
 
+/* Compact strip is mobile-only; desktop keeps the column sitemap. */
+.lp2-footer__compact {
+  display: none;
+}
+
 .lp2-footer__newsletter-form {
   display: flex;
   width: 100%;
@@ -5599,40 +5824,16 @@ html:has(.lp2) body {
     padding-inline-end: max(16px, env(safe-area-inset-right));
   }
 
-  /* Full-bleed + island: safe area + less crowding */
-  .lp2-nav {
-    padding:
-      max(12px, env(safe-area-inset-top))
-      max(16px, env(safe-area-inset-right))
-      10px
-      max(16px, env(safe-area-inset-left));
-  }
-
-  .lp2-nav.is-scrolled .lp2-nav__shell {
-    padding: 6px 6px 6px 12px;
-  }
-
   .lp2-nav__shell {
-    gap: 10px;
+    min-width: 0;
   }
 
   .lp2-nav__brand {
-    gap: 6px;
-  }
-
-  .lp2-nav__brand img {
-    width: 24px;
-    height: 24px;
+    min-width: 0;
   }
 
   .lp2-nav__end {
-    gap: 10px;
-  }
-
-  .lp2-nav__actions .lp2-btn {
-    min-height: 40px;
-    padding-inline: 12px;
-    font-size: 13px;
+    flex-shrink: 0;
   }
 
   .lp2-nav__panel {
@@ -5646,38 +5847,13 @@ html:has(.lp2) body {
     min-height: 48px;
   }
 
-  /* Hero */
-  .lp2-hero {
-    min-height: 100svh;
-    padding:
-      max(88px, calc(env(safe-area-inset-top) + 72px))
-      16px
-      0;
-  }
-
-  .lp2-hero__inner {
-    margin-bottom: 2rem;
-  }
-
-  .lp2-hero__title {
-    font-size: clamp(30px, 8.2vw, 40px);
-  }
-
-  .lp2-hero__sub {
-    margin-top: 12px;
-    font-size: 15px;
-    line-height: 1.45;
-  }
-
   .lp2-hero__ctas {
     justify-content: center;
     width: 100%;
-    margin-top: 24px;
   }
 
   .lp2-hero__ctas .lp2-btn {
-    width: 100%;
-    max-width: 320px;
+    width: min(100%, 320px);
     min-height: 48px;
   }
 
@@ -5700,7 +5876,8 @@ html:has(.lp2) body {
   }
 
   .lp2-moments__film .sl.ss-fit {
-    min-height: min(58vh, 520px);
+    min-height: min(52vh, 480px);
+    max-width: 100%;
     border-radius: 12px;
   }
 
@@ -5898,26 +6075,101 @@ html:has(.lp2) body {
     min-height: 48px;
   }
 
-  /* Footer */
+  /* Footer — slim mobile bar; desktop sitemap + banner stay above 767px */
   .lp2-footer {
-    --lp2-footer-art: calc(100vw * (1536 / 2752) * 0.5);
-    padding-block: 36px 0;
+    --lp2-footer-art: 0px;
+    --lp2-footer-image-h: 0px;
+    min-height: 0;
+    padding-block: 28px max(20px, env(safe-area-inset-bottom));
+  }
+
+  .lp2-footer__banner {
+    display: none;
   }
 
   .lp2-footer__panel {
-    gap: 24px;
-    padding-bottom: max(var(--lp2-footer-art), 140px);
+    gap: 20px;
+    padding-bottom: 0;
+  }
+
+  .lp2-footer__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
   }
 
   .lp2-footer__brand {
     max-width: none;
+    gap: 8px;
+  }
+
+  .lp2-footer__tagline {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .lp2-footer__contact {
+    gap: 6px;
+  }
+
+  .lp2-footer__contact li:last-child {
+    display: none;
+  }
+
+  .lp2-footer__col--desktop {
+    display: none;
+  }
+
+  .lp2-footer__compact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 4px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .lp2-footer__compact > a,
+  .lp2-footer__compact > .lp2-text-btn {
+    color: rgba(244, 239, 228, 0.72);
+    font-size: 13px;
+    line-height: 1.3;
+    text-decoration: none;
+    text-align: left;
+  }
+
+  .lp2-footer__compact > a:not(:last-child)::after,
+  .lp2-footer__compact > .lp2-text-btn:not(:last-child)::after {
+    content: '·';
+    margin-left: 8px;
+    margin-right: 4px;
+    color: rgba(244, 239, 228, 0.32);
+    pointer-events: none;
+  }
+
+  .lp2-footer__compact > a:hover,
+  .lp2-footer__compact > .lp2-text-btn:hover {
+    color: #f4efe4;
   }
 
   .lp2-footer__newsletter {
     max-width: none;
   }
 
-  /* Ask + chat sit above the home indicator */
+  .lp2-footer__newsletter .lp2-footer__heading {
+    margin-bottom: 0;
+    padding-bottom: 6px;
+  }
+
+  .lp2-footer__legal {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(244, 239, 228, 0.14);
+  }
+
+  /* Ask + chat clear the home indicator */
   .lp2-ask {
     right: max(16px, env(safe-area-inset-right));
     bottom: max(16px, env(safe-area-inset-bottom));
@@ -5935,15 +6187,6 @@ html:has(.lp2) body {
 @media (max-width: 480px) {
   .lp2-nav__brand {
     font-size: 14px;
-  }
-
-  /* Keep logo + CTA + menu from wrapping on very narrow phones */
-  .lp2-nav__actions .lp2-btn {
-    padding-inline: 10px;
-  }
-
-  .lp2-hero__title {
-    font-size: clamp(28px, 9vw, 34px);
   }
 
   .lp2-audiences__stage .lp-vg-chrome {

@@ -653,25 +653,30 @@ export default function ClientDetailPage() {
                 content: (
                   <div className="flex flex-col gap-4">
                     <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,20rem)]">
-                      <div className="flex min-w-0 flex-col gap-4">
-                        <ClientOverviewAttention
-                          clientName={client.name}
-                          gaps={profileGaps}
-                          cases={clientCases}
-                          dueBalance={dueBalance}
-                          pendingRequests={pendingStatusRequestsList}
-                          onOpenGap={openMissingGap}
-                          onOpenPayments={() => selectTab('payments')}
-                        />
-                        <ClientRecentActivity
-                          messages={recentMessages}
-                          payments={clientPayments}
-                          onOpenMessages={() => openMessages('sms')}
-                          onOpenPayments={() => selectTab('payments')}
-                        />
-                      </div>
+                      <ClientOverviewAttention
+                        clientName={client.name}
+                        gaps={profileGaps}
+                        cases={clientCases}
+                        dueBalance={dueBalance}
+                        pendingRequests={pendingStatusRequestsList}
+                        onOpenGap={openMissingGap}
+                        onOpenPayments={() => selectTab('payments')}
+                      />
                       <ClientActionItems clientId={client.id} />
                     </div>
+                    <ClientRecentActivity
+                      cases={clientCases}
+                      messages={recentMessages}
+                      payments={clientPayments}
+                      requests={requests.filter(
+                        (item) => item.clientId === client.id,
+                      )}
+                      onOpenMessages={(channel) => openMessages(channel)}
+                      onOpenPayments={() => selectTab('payments')}
+                      onOpenService={(caseId) =>
+                        navigate(workDetailPath({ id: caseId, clientId: client.id }))
+                      }
+                    />
                   </div>
                 ),
               },

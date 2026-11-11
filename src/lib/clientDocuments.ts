@@ -272,3 +272,66 @@ export function getClientServiceDocumentGroups(
     }
   })
 }
+
+export type ClientFileRow = {
+  id: string
+  name: string
+  source: string
+  statusLabel: string
+  hasFile: boolean
+  kind: 'identity' | 'service'
+  identityKind?: IdentityKind
+  caseId?: string
+  docId?: string
+}
+
+function paperStatusLabel(paper: ComplianceDocument): string {
+  if (paper.locked || paper.status === 'not_due') return 'Later'
+  if (documentHasFile(paper)) {
+    if (paper.status === 'approved') return 'Approved'
+    return 'On File'
+  }
+  if (paper.status === 'missing') return 'Missing'
+  return 'Open'
+}
+
+/** Flat inventory for the client Files tab. */
+export function listClientFileRows(
+  client: Client,
+  cases: Case[],
+): ClientFileRow[] {
+  const rows: ClientFileRow[] = getClientIdentityRows(client, cases).map(
+    (row) => ({
+      id: `identity-${row.kind}`,
+      name: row.label,
+      source: 'Profile',
+      statusLabel: row.hasFile
+        ? row.value
+          ? 'On File'
+          : 'Scan Only'
+        : row.value
+          ? 'Number Only'
+          : 'Missing',
+      hasFile: row.hasFile,
+      kind: 'identity' as const,
+      identityKind: row.kind,
+    }),
+  )
+
+  for (const group of getClientServiceDocumentGroups(cases)) {
+    for (const paper of group.papers) {
+      rows.push({
+        id: `service-${group.caseId}-${paper.id}`,
+        name: paper.name,
+        source: `${group.service} · ${group.caseRef}`,
+        statusLabel: paperStatusLabel(paper),
+        hasFile: documentHasFile(paper),
+        kind: 'service',
+        caseId: group.caseId,
+        docId: paper.id,
+      })
+    }
+  }
+
+  return rows
+}

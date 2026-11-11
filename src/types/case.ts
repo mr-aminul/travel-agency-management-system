@@ -42,6 +42,16 @@ export type CaseStatus =
   | 'Completed'
   | 'Cancelled'
 
+/** How soon this service needs attention. Unset reads as Normal. */
+export const SERVICE_PRIORITIES = ['Low', 'Normal', 'High', 'Urgent'] as const
+
+export type ServicePriority = (typeof SERVICE_PRIORITIES)[number]
+
+export const SERVICE_PRIORITY_OPTIONS: {
+  value: ServicePriority
+  label: ServicePriority
+}[] = SERVICE_PRIORITIES.map((value) => ({ value, label: value }))
+
 /**
  * Coarse bucket derived from the current service step.
  * Prefer `currentStepId` as the source of truth in UI.
@@ -162,6 +172,10 @@ export type ServiceRequest = {
   balance: number
   /** Employee id from HR (`EMP-…`). */
   assignedTo?: string
+  /** How soon this service needs attention. Unset reads as Normal. */
+  priority?: ServicePriority
+  /** Work deadline (ISO date). Separate from balance due / departure. */
+  dueDate?: string
   departureDate?: string
   description?: string
   createdAt: string
@@ -186,6 +200,8 @@ export type CreateCaseInput = {
   balance?: number
   /** Employee id from HR (`EMP-…`). */
   assignedTo?: string
+  priority?: ServicePriority
+  dueDate?: string
   departureDate?: string
   description?: string
 }

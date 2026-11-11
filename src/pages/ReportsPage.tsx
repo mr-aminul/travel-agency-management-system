@@ -26,6 +26,7 @@ import {
 import { useCases } from '@/lib/casesStore'
 import { getClientById, useClients } from '@/lib/clientsStore'
 import { formatBdt } from '@/lib/dashboardMetrics'
+import { downloadCsv } from '@/lib/downloadCsv'
 import { formatDisplayDate } from '@/lib/formatDate'
 import { formatPaymentAmount, usePayments } from '@/lib/paymentsStore'
 import { useSubAgents } from '@/lib/subAgentsStore'
@@ -50,26 +51,6 @@ function inRange(isoDate: string, from: string, to: string): boolean {
   return true
 }
 
-function downloadCsv(filename: string, rows: string[][]) {
-  const body = rows
-    .map((row) =>
-      row
-        .map((cell) => {
-          const value = String(cell ?? '')
-          if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`
-          return value
-        })
-        .join(','),
-    )
-    .join('\n')
-  const blob = new Blob([body], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = filename
-  anchor.click()
-  URL.revokeObjectURL(url)
-}
 
 function isOpenService(status: string): boolean {
   return status !== 'Completed' && status !== 'Cancelled'

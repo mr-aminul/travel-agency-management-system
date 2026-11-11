@@ -47,13 +47,13 @@
 }
 
 .pd-workspace-pick__option:hover {
-  border-color: color-mix(in srgb, var(--pd-accent, #0f766e) 45%, var(--pd-border, #e5e7eb));
+  border-color: color-mix(in srgb, var(--pd-accent, var(--color-theme, #0c2d79)) 45%, var(--pd-border, #e5e7eb));
   box-shadow: 0 6px 18px rgb(15 23 42 / 6%);
   transform: translateY(-1px);
 }
 
 .pd-workspace-pick__option:focus-visible {
-  outline: 2px solid var(--pd-accent, #0f766e);
+  outline: 2px solid var(--pd-accent, var(--color-theme, #0c2d79));
   outline-offset: 2px;
 }
 
@@ -67,8 +67,8 @@
 }
 
 .pd-workspace-pick__option--agency .pd-workspace-pick__icon {
-  color: #0f766e;
-  background: #d1fae5;
+  color: var(--color-theme, #0c2d79);
+  background: color-mix(in srgb, var(--color-theme, #0c2d79) 12%, white);
 }
 
 .pd-workspace-pick__option--sub-agent .pd-workspace-pick__icon {

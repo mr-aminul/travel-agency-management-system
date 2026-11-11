@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
+  CalendarClock,
   Check,
   ChevronDown,
   ClipboardList,
   Ellipsis,
   FileText,
+  Flag,
   Link2,
   SquarePen,
   Trash2,
@@ -63,6 +65,11 @@ import {
   listServiceCountries,
   useServiceTemplates,
 } from '@/lib/serviceTemplatesStore'
+import { formatDisplayDate } from '@/lib/formatDate'
+import {
+  isWorkDueOverdue,
+  servicePriority,
+} from '@/lib/servicePriority'
 import { flashAndReveal } from '@/lib/scrollWithin'
 import {
   clientDeskBaseFromPath,
@@ -73,7 +80,11 @@ import {
 } from '@/lib/workPaths'
 import { clientTrackingUrl } from '@/lib/publicUrl'
 import { cn } from '@/lib/utils'
-import type { CaseStatus } from '@/types/case'
+import {
+  SERVICE_PRIORITY_OPTIONS,
+  type CaseStatus,
+  type ServicePriority,
+} from '@/types/case'
 
 const FOCUS_FLASH_CLASS =
   'rounded-xl outline outline-2 outline-[color-mix(in_srgb,var(--color-theme)_55%,transparent)] outline-offset-[3px]'
@@ -98,6 +109,15 @@ function caseStatusShadcnVariant(
   if (status === 'Cancelled') return 'destructive'
   if (status === 'On-Hold') return 'outline'
   return 'secondary'
+}
+
+function priorityBadgeVariant(
+  priority: ServicePriority,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (priority === 'Urgent') return 'destructive'
+  if (priority === 'High') return 'default'
+  if (priority === 'Low') return 'secondary'
+  return 'outline'
 }
 
 const FOCUS_FLASH_MS = 2800
@@ -345,6 +365,8 @@ export function ServiceFileCard({
     country: '',
     destination: '',
     assignedTo: '',
+    priority: 'Normal' as ServicePriority,
+    dueDate: '',
     departureDate: '',
     serviceFee: '',
     description: '',
@@ -424,6 +446,12 @@ export function ServiceFileCard({
   const paidTotal = casePayments.reduce((sum, payment) => sum + payment.amount, 0)
   const serviceFee = caseServiceFee(item, paidTotal)
   const assignedName = getEmployeeDisplayName(item.assignedTo)
+  const displayPriority = editing
+    ? draft.priority
+    : servicePriority(item)
+  const displayDueDate = editing ? draft.dueDate : (item.dueDate ?? '')
+  const workDueOverdue =
+    !editing && isWorkDueOverdue(item)
   const displayStatus = editing ? draft.status : item.status
   const countryLookup = catalogCountries.length
     ? catalogCountries
@@ -456,6 +484,7 @@ export function ServiceFileCard({
     : item.balance
   const showDeparture =
     editing || Boolean(item.departureDate?.trim())
+  const showDueDate = editing || Boolean(item.dueDate?.trim())
   const showNotes =
     editing || Boolean(item.description?.trim())
   const servicePapers = getCaseServicePapers(item)
@@ -475,6 +504,8 @@ export function ServiceFileCard({
       country,
       destination: cityFromDestination(item.destination ?? '', country),
       assignedTo: item.assignedTo ?? '',
+      priority: servicePriority(item),
+      dueDate: item.dueDate ?? '',
       departureDate: item.departureDate ?? '',
       serviceFee: serviceFee ? String(serviceFee) : '',
       description: item.description ?? '',
@@ -511,6 +542,8 @@ export function ServiceFileCard({
       serviceCountry: country || undefined,
       destination: formatDestination(draft.destination, country),
       assignedTo: draft.assignedTo,
+      priority: draft.priority,
+      dueDate: draft.dueDate || undefined,
       departureDate: draft.departureDate || undefined,
       serviceFee: nextFee,
       balance: Math.max(0, nextFee - paidTotal),
@@ -615,6 +648,33 @@ export function ServiceFileCard({
                   {displayCountry || 'Country'}
                 </span>
               </span>
+              <Badge
+                variant={priorityBadgeVariant(displayPriority)}
+                className="h-5 gap-1 px-1.5 text-[0.625rem]"
+              >
+                <Flag size={10} strokeWidth={2.25} aria-hidden />
+                {displayPriority}
+              </Badge>
+              {displayDueDate ? (
+                <span
+                  className={cn(
+                    'inline-flex h-5 max-w-full items-center gap-1 rounded-full px-1.5 text-[0.625rem] font-medium leading-none',
+                    workDueOverdue
+                      ? 'bg-destructive/10 text-destructive'
+                      : 'bg-muted text-foreground',
+                  )}
+                >
+                  <CalendarClock
+                    size={10}
+                    strokeWidth={2.25}
+                    className="shrink-0"
+                    aria-hidden
+                  />
+                  <span className="min-w-0 truncate">
+                    {formatDisplayDate(displayDueDate)}
+                  </span>
+                </span>
+              ) : null}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -818,6 +878,34 @@ export function ServiceFileCard({
               options={employeeAssignmentOptions(employees, draft.assignedTo)}
             />
           </Fact>
+          <Fact>
+            <Select
+              label="Priority"
+              value={draft.priority}
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  priority: event.target.value as ServicePriority,
+                }))
+              }
+              options={SERVICE_PRIORITY_OPTIONS}
+            />
+          </Fact>
+          {showDueDate ? (
+            <Fact>
+              <Input
+                label="Due date"
+                type="date"
+                value={draft.dueDate}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    dueDate: event.target.value,
+                  }))
+                }
+              />
+            </Fact>
+          ) : null}
           {showDeparture ? (
             <Fact>
               <Input

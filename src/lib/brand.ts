@@ -8,9 +8,14 @@ export const DEFAULT_THEME_COLOR = '#0c2d79'
 export const DEFAULT_APPEARANCE: AppearanceMode = 'light'
 export const DEFAULT_THEME_MODE: ThemeMode = 'default'
 
+/** Must match authApi AUTH_SESSION_KEY — used only in the pre-paint bootstrap. */
+const AUTH_SESSION_STORAGE_KEY = 'pd-auth-session'
+
 /** Single source of truth for the pre-paint theme bootstrap in index.html. */
 export function getThemeBootstrapScript(): string {
-  return `(function(){try{var d=document.documentElement;var m=localStorage.getItem(${JSON.stringify(THEME_MODE_KEY)});var t=localStorage.getItem(${JSON.stringify(THEME_COLOR_KEY)});if(m==="custom"&&t&&/^#[0-9A-Fa-f]{6}$/.test(t))d.style.setProperty("--color-theme",t.toLowerCase());else if(m!=="custom")d.style.removeProperty("--color-theme");var a=localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)})||${JSON.stringify(DEFAULT_APPEARANCE)};var dark=a==="dark"||(a!=="light"&&matchMedia("(prefers-color-scheme:dark)").matches);d.classList.toggle("dark",dark);d.style.colorScheme=dark?"dark":"light"}catch(e){}})();`
+  // Custom theme only while a session exists. Public auth shells always use
+  // CSS default (#0c2d79) so logo + chrome never diverge after logout.
+  return `(function(){try{var d=document.documentElement;var signedIn=false;try{signedIn=!!sessionStorage.getItem(${JSON.stringify(AUTH_SESSION_STORAGE_KEY)})}catch(e){}var m=localStorage.getItem(${JSON.stringify(THEME_MODE_KEY)});var t=localStorage.getItem(${JSON.stringify(THEME_COLOR_KEY)});if(signedIn&&m==="custom"&&t&&/^#[0-9A-Fa-f]{6}$/.test(t))d.style.setProperty("--color-theme",t.toLowerCase());else d.style.removeProperty("--color-theme");var a=localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)})||${JSON.stringify(DEFAULT_APPEARANCE)};var dark=a==="dark"||(a!=="light"&&matchMedia("(prefers-color-scheme:dark)").matches);d.classList.toggle("dark",dark);d.style.colorScheme=dark?"dark":"light"}catch(e){}})();`
 }
 
 export function normalizeThemeColor(value: string): string | null {
@@ -89,6 +94,14 @@ export function applyThemeMode(mode: ThemeMode): ThemeMode {
     /* ignore */
   }
   return mode
+}
+
+/**
+ * Public / signed-out surfaces: drop inline custom theme so CSS default blue
+ * paints login and marketing chrome. Keeps stored custom hex for Settings.
+ */
+export function resetBrandThemeToDefault(): ThemeMode {
+  return applyThemeMode('default')
 }
 
 function isAppearanceMode(value: string | null): value is AppearanceMode {

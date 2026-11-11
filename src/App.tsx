@@ -19,8 +19,6 @@ const PublicInvoicePayPage = lazy(() => import('@/pages/PublicInvoicePayPage'))
 const CaseDetailPage = lazy(() => import('@/pages/CaseDetailPage'))
 const CasesPage = lazy(() => import('@/pages/CasesPage'))
 const LegacyCasesRedirect = lazy(() => import('@/pages/LegacyCasesRedirect'))
-const ClientDetailPage = lazy(() => import('@/pages/ClientDetailPage'))
-const ClientsPage = lazy(() => import('@/pages/ClientsPage'))
 const ClientsV3Page = lazy(() => import('@/pages/ClientsV3Page'))
 const ClientsV3DetailPage = lazy(() => import('@/pages/ClientsV3DetailPage'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
@@ -84,6 +82,14 @@ function MarketingToAppRedirect() {
 function LegacyAgentsRedirect() {
   const { id } = useParams()
   return <Navigate to={id ? `/sub-agents/${id}` : '/sub-agents'} replace />
+}
+
+function LegacyClientsV3Redirect() {
+  const { id, '*': rest } = useParams()
+  const { search } = useLocation()
+  if (!id) return <Navigate to="/clients" replace />
+  const suffix = rest ? `/${rest}` : ''
+  return <Navigate to={`/clients/${id}${suffix}${search}`} replace />
 }
 
 function LegacyTenantAdminRedirect() {
@@ -174,14 +180,18 @@ function ProductApp() {
               path="readiness"
               element={<Navigate to="/services?view=board" replace />}
             />
-            <Route path="clients" element={<ClientsPage />} />
-            <Route path="clients/:id" element={<ClientDetailPage />}>
+            <Route path="clients" element={<ClientsV3Page />} />
+            <Route path="clients/:id" element={<ClientsV3DetailPage />}>
               <Route path="services/:caseId" element={<CaseDetailPage />} />
             </Route>
-            <Route path="clients-v3" element={<ClientsV3Page />} />
-            <Route path="clients-v3/:id" element={<ClientsV3DetailPage />}>
-              <Route path="services/:caseId" element={<CaseDetailPage />} />
-            </Route>
+            <Route
+              path="clients-v3"
+              element={<Navigate to="/clients" replace />}
+            />
+            <Route
+              path="clients-v3/:id/*"
+              element={<LegacyClientsV3Redirect />}
+            />
             <Route
               path="clients/:id/services/:caseId/invoice"
               element={<CaseInvoicePage />}

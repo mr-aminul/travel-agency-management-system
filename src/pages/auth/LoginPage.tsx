@@ -28,6 +28,7 @@ import {
   authShellClass,
   authTextLinkClass,
   authTitleClass,
+  usePublicBrandTheme,
 } from './authShell'
 
 const LOGIN_INTENTS: {
@@ -40,6 +41,7 @@ const LOGIN_INTENTS: {
 ]
 
 export default function LoginPage() {
+  usePublicBrandTheme()
   const navigate = useNavigate()
   const { status, session, signInWithPassword } = useAuth()
   const [loginAs, setLoginAs] = useState<LoginIntent>('agency')

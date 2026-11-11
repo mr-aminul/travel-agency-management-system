@@ -29,7 +29,7 @@ function toneClasses(workspace: AuthWorkspace) {
   if (workspace.kind === 'sub_agent') {
     return 'text-[#b45309] bg-[#ffedd5]'
   }
-  return 'text-[#0f766e] bg-[#d1fae5]'
+  return 'text-[var(--color-theme)] bg-[color-mix(in_srgb,var(--color-theme)_12%,white)]'
 }
 
 export default function ChooseWorkspacePage() {
@@ -91,7 +91,7 @@ export default function ChooseWorkspacePage() {
                 key={workspace.id}
                 type="button"
                 role="listitem"
-                className="flex w-full cursor-pointer items-start gap-[0.9rem] rounded-[0.9rem] border border-[#e5e7eb] bg-[color-mix(in_srgb,white_88%,#f8fafc)] px-4 py-[0.95rem] text-left transition-[border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-px hover:border-[color-mix(in_srgb,#0f766e_45%,#e5e7eb)] hover:shadow-[0_6px_18px_rgb(15_23_42/6%)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f766e] max-md:px-[0.875rem] max-md:py-[0.85rem] max-md:hover:translate-y-0"
+                className="flex w-full cursor-pointer items-start gap-[0.9rem] rounded-[0.9rem] border border-[#e5e7eb] bg-[color-mix(in_srgb,white_88%,#f8fafc)] px-4 py-[0.95rem] text-left transition-[border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-px hover:border-[color-mix(in_srgb,var(--color-theme)_45%,#e5e7eb)] hover:shadow-[0_6px_18px_rgb(15_23_42/6%)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-theme)] max-md:px-[0.875rem] max-md:py-[0.85rem] max-md:hover:translate-y-0"
                 onClick={() => void choose(workspace.id)}
               >
                 <span

@@ -1,4 +1,5 @@
 import { getActiveTenantId } from '@/lib/authApi'
+import { isSignedIn } from '@/lib/authApi'
 import {
   applyAppearance,
   applyThemeColor,
@@ -10,6 +11,7 @@ import {
   readAppearance,
   readCustomThemeColor,
   readThemeMode,
+  resetBrandThemeToDefault,
   type AppearanceMode,
   type ThemeMode,
 } from '@/lib/brand'
@@ -22,6 +24,9 @@ import {
   type SidebarExpandMode,
 } from '@/lib/sidebarPrefs'
 import { DEFAULT_TENANT_ID } from '@/types/tenant'
+
+/** One-time: clear accidental custom brand colors so the product stays on default blue. */
+const FORCE_DEFAULT_THEME_MIGRATION_KEY = 'pd-force-default-theme-v1'
 
 export interface AgencyAppearance {
   appearance: AppearanceMode
@@ -177,11 +182,50 @@ export function saveAgencyAppearance(
 export function syncActiveAgencyAppearance(
   tenantId: string = getActiveTenantId(),
 ): AgencyAppearance {
+  if (!isSignedIn()) {
+    resetBrandThemeToDefault()
+    return { ...DEFAULT_AGENCY_APPEARANCE }
+  }
   const settings =
     migrateFromLocalBrowser(tenantId) ?? readAgencyAppearance(tenantId)
   applyAgencyAppearance(settings)
   emitAgencyAppearanceChange(settings, tenantId)
   return settings
+}
+
+/**
+ * Force every saved agency theme back to the product default blue.
+ * Custom colors can still be set again from Settings afterward.
+ */
+export function resetAllAgencyThemesToDefault(): void {
+  const map = readAllAppearances()
+  let changed = false
+  const next: Record<string, AgencyAppearance> = {}
+  for (const [id, row] of Object.entries(map)) {
+    if (row.themeMode === 'custom' || row.themeColor !== DEFAULT_THEME_COLOR) {
+      changed = true
+      next[id] = {
+        ...row,
+        themeMode: 'default',
+        themeColor: DEFAULT_THEME_COLOR,
+      }
+    } else {
+      next[id] = row
+    }
+  }
+  if (changed) writeAllAppearances(next)
+  resetBrandThemeToDefault()
+}
+
+function migrateForceDefaultBrandTheme(): void {
+  if (typeof window === 'undefined') return
+  try {
+    if (localStorage.getItem(FORCE_DEFAULT_THEME_MIGRATION_KEY) === '1') return
+    resetAllAgencyThemesToDefault()
+    localStorage.setItem(FORCE_DEFAULT_THEME_MIGRATION_KEY, '1')
+  } catch {
+    /* ignore quota / private mode */
+  }
 }
 
 let syncInitialized = false
@@ -190,7 +234,12 @@ let syncInitialized = false
 export function initAgencyAppearanceSync(): void {
   if (typeof window === 'undefined' || syncInitialized) return
   syncInitialized = true
+  migrateForceDefaultBrandTheme()
   window.addEventListener('pd-data-rehydrated', () => {
+    if (!isSignedIn()) {
+      resetBrandThemeToDefault()
+      return
+    }
     syncActiveAgencyAppearance()
   })
 }

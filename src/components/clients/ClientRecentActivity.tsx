@@ -1,77 +1,106 @@
-import { Activity, Mail, MessageSquare, Wallet } from 'lucide-react'
-import { formatBalance } from '@/lib/clientsStore'
-import { formatDisplayDateTime } from '@/lib/formatDate'
+import {
+  Activity,
+  Folder,
+  GitPullRequest,
+  Inbox,
+  Mail,
+  MessageSquare,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react'
+import {
+  buildClientActivity,
+  type ClientActivityItem,
+  type ClientActivityType,
+} from '@/lib/clientActivity'
+import { formatDisplayDateTime, formatRelativeTime } from '@/lib/formatDate'
 import { cn } from '@/lib/utils'
+import type { Case } from '@/types/case'
 import type { ClientMessageChannel, ClientThreadMessage } from '@/types/clientMessage'
 import type { Payment } from '@/types/payment'
+import type { StatusUpdateRequest } from '@/types/request'
 
 export type ClientRecentActivityProps = {
+  cases: Case[]
   messages: ClientThreadMessage[]
   payments: Payment[]
+  requests: StatusUpdateRequest[]
   onOpenMessages: (channel: ClientMessageChannel) => void
   onOpenPayments: () => void
+  onOpenService?: (caseId: string) => void
 }
 
-type ActivityRow = {
-  id: string
-  kind: 'sms' | 'email' | 'payment'
-  title: string
-  detail: string
-  at: string
-  onClick: () => void
+function typeIcon(type: ClientActivityType): LucideIcon {
+  if (type === 'Payments') return Wallet
+  if (type === 'SMS') return MessageSquare
+  if (type === 'Email') return Mail
+  if (type === 'Requests') return GitPullRequest
+  return Folder
 }
 
-function kindMeta(kind: ActivityRow['kind']) {
-  if (kind === 'payment') {
-    return {
-      className: 'bg-emerald-500/12 text-emerald-800',
-      icon: Wallet,
-    }
+function typeTone(type: ClientActivityType): string {
+  if (type === 'Payments') {
+    return 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-400'
   }
-  if (kind === 'email') {
-    return {
-      className: 'bg-sky-500/12 text-sky-900',
-      icon: Mail,
-    }
+  if (type === 'Requests') {
+    return 'bg-amber-500/12 text-amber-700 dark:text-amber-400'
   }
-  return {
-    className: 'bg-primary/12 text-primary',
-    icon: MessageSquare,
+  if (type === 'SMS' || type === 'Email') {
+    return 'bg-sky-500/12 text-sky-700 dark:text-sky-400'
   }
+  return 'bg-[var(--color-theme-subtle)] text-[var(--color-theme-ink)]'
+}
+
+function isClickable(
+  row: ClientActivityItem,
+  onOpenService?: (caseId: string) => void,
+): boolean {
+  return (
+    Boolean(row.channel) ||
+    row.type === 'Payments' ||
+    Boolean(row.caseId && onOpenService)
+  )
+}
+
+function metaParts(row: ClientActivityItem): string[] {
+  const parts: string[] = [formatRelativeTime(row.at)]
+  if (row.staff.trim() && row.staff !== '—') parts.push(row.staff)
+  if (row.reference.trim() && row.reference !== row.type) {
+    parts.push(row.reference)
+  }
+  return parts
 }
 
 export function ClientRecentActivity({
+  cases,
   messages,
   payments,
+  requests,
   onOpenMessages,
   onOpenPayments,
+  onOpenService,
 }: ClientRecentActivityProps) {
-  const rows: ActivityRow[] = [
-    ...messages.slice(0, 4).map((item) => ({
-      id: `msg-${item.id}`,
-      kind: item.channel,
-      title: item.channel === 'email' ? 'Email sent' : 'SMS sent',
-      detail:
-        item.body
-          .replace(/<[^>]+>/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim()
-          .slice(0, 90) ||
-        (item.attachment ? item.attachment.name : 'Message'),
-      at: item.createdAt,
-      onClick: () => onOpenMessages(item.channel),
-    })),
-    ...payments.slice(0, 4).map((item) => ({
-      id: `pay-${item.id}`,
-      kind: 'payment' as const,
-      title: `Paid via ${item.method}`,
-      detail: formatBalance(item.amount),
-      at: item.createdAt,
-      onClick: onOpenPayments,
-    })),
-  ]
-    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
-    .slice(0, 6)
+  const rows = buildClientActivity({
+    cases,
+    payments,
+    messages,
+    requests,
+    limit: 40,
+  })
+
+  const openRow = (row: ClientActivityItem) => {
+    if (row.channel) {
+      onOpenMessages(row.channel)
+      return
+    }
+    if (row.type === 'Payments') {
+      onOpenPayments()
+      return
+    }
+    if (row.caseId && onOpenService) {
+      onOpenService(row.caseId)
+    }
+  }
 
   return (
     <section
@@ -85,46 +114,76 @@ export function ClientRecentActivity({
         >
           <Activity size={15} strokeWidth={2.25} />
         </span>
-        <h2 className="m-0 text-sm font-semibold">Recent activity</h2>
+        <h2 className="m-0 text-sm font-semibold">Recent Activity</h2>
       </div>
 
       {rows.length === 0 ? (
-        <p className="m-0 px-3.5 py-8 text-center text-sm text-muted-foreground">
-          No recent activity
-        </p>
+        <div className="flex flex-col items-center gap-2.5 px-3.5 py-8 text-center">
+          <span
+            className="inline-flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground"
+            aria-hidden
+          >
+            <Inbox size={16} strokeWidth={2} />
+          </span>
+          <p className="m-0 text-sm text-muted-foreground">No Recent Activity</p>
+        </div>
       ) : (
-        <ul className="m-0 flex list-none flex-col divide-y divide-border p-0">
+        <ul className="m-0 max-h-[28rem] list-none divide-y divide-border overflow-auto p-0">
           {rows.map((row) => {
-            const meta = kindMeta(row.kind)
-            const Icon = meta.icon
+            const Icon = typeIcon(row.type)
+            const clickable = isClickable(row, onOpenService)
+            const meta = metaParts(row)
+            const body = (
+              <>
+                <span
+                  className={cn(
+                    'mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg',
+                    typeTone(row.type),
+                  )}
+                  aria-hidden
+                >
+                  <Icon size={15} strokeWidth={2.25} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-foreground">
+                    {row.summary}
+                  </span>
+                  <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                    <span
+                      className="shrink-0 tabular-nums"
+                      title={formatDisplayDateTime(row.at)}
+                    >
+                      {meta[0]}
+                    </span>
+                    {meta.slice(1).map((part) => (
+                      <span key={part} className="inline-flex min-w-0 items-center gap-x-1.5">
+                        <span aria-hidden>·</span>
+                        <span className="truncate">{part}</span>
+                      </span>
+                    ))}
+                  </span>
+                </span>
+                <span className="shrink-0 text-[0.6875rem] font-medium text-muted-foreground">
+                  {row.type}
+                </span>
+              </>
+            )
+
             return (
               <li key={row.id} className="m-0 p-0">
-                <button
-                  type="button"
-                  className="flex w-full items-start gap-3 px-3.5 py-3 text-left transition-colors hover:bg-muted/50"
-                  onClick={row.onClick}
-                >
-                  <span
-                    className={cn(
-                      'mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg',
-                      meta.className,
-                    )}
-                    aria-hidden
+                {clickable ? (
+                  <button
+                    type="button"
+                    className="flex w-full items-start gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-muted/40"
+                    onClick={() => openRow(row)}
                   >
-                    <Icon size={14} strokeWidth={2.25} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium text-foreground">
-                      {row.title}
-                    </span>
-                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                      {row.detail}
-                    </span>
-                    <span className="mt-1 block text-[0.6875rem] text-muted-foreground">
-                      {formatDisplayDateTime(row.at)}
-                    </span>
-                  </span>
-                </button>
+                    {body}
+                  </button>
+                ) : (
+                  <div className="flex items-start gap-3 px-3.5 py-2.5">
+                    {body}
+                  </div>
+                )}
               </li>
             )
           })}

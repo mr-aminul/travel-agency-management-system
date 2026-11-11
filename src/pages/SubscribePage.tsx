@@ -32,6 +32,7 @@ import {
   authShellClass,
   authTextLinkClass,
   authTitleClass,
+  usePublicBrandTheme,
 } from '@/pages/auth/authShell'
 
 function sessionFromSubscribe(result: {
@@ -64,6 +65,7 @@ function sessionFromSubscribe(result: {
 }
 
 export default function SubscribePage() {
+  usePublicBrandTheme()
   const [searchParams] = useSearchParams()
   const { status, session } = useAuth()
   const preselectedPlan = String(searchParams.get('plan') || 'growth').trim()

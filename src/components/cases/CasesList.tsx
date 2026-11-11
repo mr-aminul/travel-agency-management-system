@@ -53,6 +53,7 @@ import {
   ListFilter,
   PauseCircle,
   PlayCircle,
+  Download,
   Plus,
   Search,
   SlidersHorizontal,
@@ -64,7 +65,11 @@ import { getCurrentStepLabel } from '@/lib/caseChecklist'
 import { createCase, deleteCase, getEnabledServiceOptions } from '@/lib/casesStore'
 import { useEnabledServiceOptions } from '@/lib/serviceCatalog'
 import { formatBalance } from '@/lib/clientsStore'
-import { getEmployeeDisplayName } from '@/lib/employeesStore'
+import { downloadCsv } from '@/lib/downloadCsv'
+import {
+  getEmployeeDisplayName,
+  useEmployees,
+} from '@/lib/employeesStore'
 import { isOverdueReceivable } from '@/lib/dashboardInsights'
 import { formatBdt } from '@/lib/dashboardMetrics'
 import { formatDisplayDate } from '@/lib/formatDate'
@@ -76,10 +81,15 @@ import {
 } from '@/lib/serviceCatalog'
 import { useServiceIconOverrides } from '@/lib/serviceIconOverridesStore'
 import { iconForService } from '@/lib/serviceIcons'
+import {
+  isWorkDueOverdue,
+  servicePriority,
+} from '@/lib/servicePriority'
 import { notifyIfPendingApproval } from '@/lib/notifyPendingApproval'
 import { getPaymentsByCaseId } from '@/lib/paymentsStore'
 import { workDetailPath } from '@/lib/workPaths'
 import {
+  SERVICE_PRIORITY_OPTIONS,
   serviceToSlug,
   type Case,
   type CaseStatus,
@@ -96,6 +106,20 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: 'Completed', label: 'Completed' },
   { value: 'Cancelled', label: 'Cancelled' },
 ]
+
+const PRIORITY_FILTERS = SERVICE_PRIORITY_OPTIONS.map((option) => ({
+  value: option.value,
+  label: option.label,
+}))
+
+function priorityBadgeVariant(
+  priority: string,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (priority === 'Urgent') return 'destructive'
+  if (priority === 'High') return 'default'
+  if (priority === 'Low') return 'secondary'
+  return 'outline'
+}
 
 const CASE_STATUSES: CaseStatus[] = [
   'Pending',
@@ -124,11 +148,15 @@ function formatCaseDate(value?: string): string {
   return formatDisplayDate(value)
 }
 
+const UNASSIGNED_FILTER = '__unassigned__'
+
 function matchesFilters(
   item: Case,
   search: string,
   statusFilters: string[],
   serviceFilters: string[],
+  priorityFilters: string[],
+  assigneeFilters: string[],
 ): boolean {
   const q = search.trim().toLowerCase()
   const matchSearch =
@@ -143,7 +171,19 @@ function matchesFilters(
     statusFilters.length === 0 || statusFilters.includes(item.status)
   const matchService =
     serviceFilters.length === 0 || serviceFilters.includes(item.service)
-  return matchSearch && matchStatus && matchService
+  const matchPriority =
+    priorityFilters.length === 0 ||
+    priorityFilters.includes(servicePriority(item))
+  const assigneeKey = item.assignedTo?.trim() || UNASSIGNED_FILTER
+  const matchAssignee =
+    assigneeFilters.length === 0 || assigneeFilters.includes(assigneeKey)
+  return (
+    matchSearch &&
+    matchStatus &&
+    matchService &&
+    matchPriority &&
+    matchAssignee
+  )
 }
 
 function FilterChoices({
@@ -338,13 +378,35 @@ export function CasesList({
   const [search, setSearch] = useState('')
   const [statusFilters, setStatusFilters] = useState<string[]>([])
   const [serviceFilters, setServiceFilters] = useState<string[]>([])
+  const [priorityFilters, setPriorityFilters] = useState<string[]>([])
+  const [assigneeFilters, setAssigneeFilters] = useState<string[]>([])
   const [newCaseOpen, setNewCaseOpen] = useState(false)
   const [dueOnly, setDueOnly] = useState(false)
   const [overdueOnly, setOverdueOnly] = useState(false)
+  const [workOverdueOnly, setWorkOverdueOnly] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Case | null>(null)
   const catalog = useCatalogServiceRefs()
+  const employees = useEmployees()
   const serviceFilterOptions = useEnabledServiceOptions()
   useServiceIconOverrides()
+
+  const assigneeFilterOptions = useMemo(() => {
+    const ids = new Set<string>()
+    for (const item of cases) {
+      const id = item.assignedTo?.trim()
+      if (id) ids.add(id)
+    }
+    for (const employee of employees) {
+      if (employee.status === 'Active') ids.add(employee.id)
+    }
+    const options = [...ids]
+      .map((id) => ({
+        value: id,
+        label: getEmployeeDisplayName(id) || id,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+    return [{ value: UNASSIGNED_FILTER, label: 'Unassigned' }, ...options]
+  }, [cases, employees])
   const showServiceChips = showServiceColumn && showToolbar && !embedded
   const urlService = syncNewWithSearchParams
     ? resolveServiceFromSlug(searchParams.get('service') ?? '')
@@ -409,18 +471,24 @@ export function CasesList({
   const filtered = serviceScoped.filter((item) => {
     if (dueOnly && (!isOpenService(item) || item.balance <= 0)) return false
     if (overdueOnly && !isOverdueReceivable(item)) return false
+    if (workOverdueOnly && !isWorkDueOverdue(item)) return false
     return matchesFilters(
       item,
       search,
       statusFilters,
       showServiceChips ? [] : showServiceColumn ? serviceFilters : [],
+      priorityFilters,
+      assigneeFilters,
     )
   })
 
   const hasActiveFilters =
     statusFilters.length > 0 ||
+    priorityFilters.length > 0 ||
+    assigneeFilters.length > 0 ||
     dueOnly ||
     overdueOnly ||
+    workOverdueOnly ||
     (!showServiceChips && showServiceColumn && serviceFilters.length > 0)
 
   const selectedStat: ServiceStatId | undefined = dueOnly
@@ -448,6 +516,7 @@ export function CasesList({
       setStatusFilters([])
       setDueOnly(false)
       setOverdueOnly(false)
+      setWorkOverdueOnly(false)
       writeBalanceQuery(false)
       return
     }
@@ -455,11 +524,13 @@ export function CasesList({
       setStatusFilters([])
       setDueOnly(true)
       setOverdueOnly(false)
+      setWorkOverdueOnly(false)
       writeBalanceQuery(true)
       return
     }
     setDueOnly(false)
     setOverdueOnly(false)
+    setWorkOverdueOnly(false)
     setStatusFilters([next])
     writeBalanceQuery(false)
   }
@@ -524,10 +595,44 @@ export function CasesList({
     setSearch('')
     setStatusFilters([])
     setServiceFilters([])
+    setPriorityFilters([])
+    setAssigneeFilters([])
     setDueOnly(false)
     setOverdueOnly(false)
+    setWorkOverdueOnly(false)
     writeServiceQuery()
     writeBalanceQuery(false)
+  }
+
+  const exportFiltered = () => {
+    downloadCsv('services.csv', [
+      [
+        'Service ID',
+        'Service',
+        'Created',
+        'Client',
+        'Assignee',
+        'Priority',
+        'Due',
+        'Current Step',
+        'Destination',
+        'Balance Due',
+        'Status',
+      ],
+      ...filtered.map((item) => [
+        item.caseId,
+        item.service,
+        formatCaseDate(item.createdAt),
+        item.clientName,
+        getEmployeeDisplayName(item.assignedTo) || '',
+        servicePriority(item),
+        formatCaseDate(item.dueDate),
+        getCurrentStepLabel(item),
+        item.destination || '',
+        String(item.balance),
+        item.status,
+      ]),
+    ])
   }
 
   const newCaseButton = (
@@ -539,8 +644,11 @@ export function CasesList({
 
   const clearToolbarFilters = () => {
     setStatusFilters([])
+    setPriorityFilters([])
+    setAssigneeFilters([])
     setDueOnly(false)
     setOverdueOnly(false)
+    setWorkOverdueOnly(false)
     writeBalanceQuery(false)
     if (!showServiceChips) {
       setServiceFilters([])
@@ -601,8 +709,11 @@ export function CasesList({
   const hasQuery =
     search.trim().length > 0 ||
     statusFilters.length > 0 ||
+    priorityFilters.length > 0 ||
+    assigneeFilters.length > 0 ||
     dueOnly ||
     overdueOnly ||
+    workOverdueOnly ||
     (showServiceColumn && serviceFilters.length > 0)
 
   const body =
@@ -641,6 +752,8 @@ export function CasesList({
             <TableHead className={chromeHeadClass}>Created At</TableHead>
             {showClientColumn && <TableHead className={chromeHeadClass}>Client</TableHead>}
             <TableHead className={chromeHeadClass}>Assignee</TableHead>
+            <TableHead className={chromeHeadClass}>Priority</TableHead>
+            <TableHead className={chromeHeadClass}>Due</TableHead>
             <TableHead className={chromeHeadClass}>Current Step</TableHead>
             <TableHead className={chromeHeadClass}>Destination</TableHead>
             <TableHead className={chromeHeadClass}>Balance Due</TableHead>
@@ -679,6 +792,18 @@ export function CasesList({
                 <TableCell>{formatCaseDate(item.createdAt)}</TableCell>
                 {showClientColumn && <TableCell>{item.clientName}</TableCell>}
                 <TableCell>{getEmployeeDisplayName(item.assignedTo) || '-'}</TableCell>
+                <TableCell>
+                  <Badge variant={priorityBadgeVariant(servicePriority(item))}>
+                    {servicePriority(item)}
+                  </Badge>
+                </TableCell>
+                <TableCell
+                  className={cn(
+                    isWorkDueOverdue(item) && 'font-medium text-destructive',
+                  )}
+                >
+                  {formatCaseDate(item.dueDate)}
+                </TableCell>
                 <TableCell>
                   <span className="text-sm">{getCurrentStepLabel(item)}</span>
                 </TableCell>
@@ -790,6 +915,31 @@ export function CasesList({
                   writeBalanceQuery(false)
                 }}
               />
+              <ToolbarMultiFilter
+                label="Priority"
+                options={PRIORITY_FILTERS}
+                selected={priorityFilters}
+                onChange={setPriorityFilters}
+              />
+              <ToolbarMultiFilter
+                label="Assignee"
+                options={assigneeFilterOptions}
+                selected={assigneeFilters}
+                onChange={setAssigneeFilters}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                aria-pressed={workOverdueOnly}
+                className={cn(
+                  outlineControl,
+                  workOverdueOnly &&
+                    'border-[var(--color-theme)] !font-semibold ring-1 ring-[var(--color-theme)]',
+                )}
+                onClick={() => setWorkOverdueOnly((current) => !current)}
+              >
+                Work Overdue
+              </Button>
             </div>
             <Popover>
               <PopoverTrigger asChild>
@@ -834,6 +984,37 @@ export function CasesList({
                     writeBalanceQuery(false)
                   }}
                 />
+                <div className="h-px bg-border" />
+                <FilterChoices
+                  label="Priority"
+                  options={PRIORITY_FILTERS}
+                  selected={priorityFilters}
+                  onChange={setPriorityFilters}
+                />
+                <div className="h-px bg-border" />
+                <FilterChoices
+                  label="Assignee"
+                  options={assigneeFilterOptions}
+                  selected={assigneeFilters}
+                  onChange={setAssigneeFilters}
+                />
+                <div className="h-px bg-border" />
+                <div className="p-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    aria-pressed={workOverdueOnly}
+                    className={cn(
+                      'h-8 w-full',
+                      outlineControl,
+                      workOverdueOnly &&
+                        'border-[var(--color-theme)] !font-semibold ring-1 ring-[var(--color-theme)]',
+                    )}
+                    onClick={() => setWorkOverdueOnly((current) => !current)}
+                  >
+                    Work Overdue
+                  </Button>
+                </div>
                 {hasActiveFilters ? (
                   <>
                     <div className="h-px bg-border" />
@@ -861,6 +1042,16 @@ export function CasesList({
                 Clear
               </Button>
             ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              className={outlineControl}
+              onClick={exportFiltered}
+              disabled={filtered.length === 0}
+            >
+              <Download data-icon="inline-start" aria-hidden />
+              Export
+            </Button>
             {newCaseButton}
           </div>
         </div>

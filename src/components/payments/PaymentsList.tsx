@@ -4,6 +4,7 @@ import { Eye, FileText, Plus, Wallet } from 'lucide-react'
 import { getCaseById } from '@/lib/casesStore'
 import { workInvoicePath } from '@/lib/workPaths'
 import { formatDisplayDate } from '@/lib/formatDate'
+import { Badge } from '@/components/shadcn/badge'
 import { Button } from '@/components/shadcn/button'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/shadcn/empty'
 import { Input, Select } from '@/components/clients/clientShadcnFields'
@@ -44,6 +45,9 @@ import type { Case } from '@/types/case'
 function formatDate(value: string): string {
   return formatDisplayDate(value)
 }
+
+const sectionHeaderActionClass =
+  'h-9 gap-1.5 rounded-lg border-transparent bg-primary px-3 text-sm text-primary-foreground shadow-xs hover:bg-primary/80'
 
 function highestDueCaseId(items: Case[]): string {
   let bestId = ''
@@ -222,29 +226,46 @@ export function PaymentsList({
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <h2 className="m-0 text-[0.9375rem] font-semibold leading-snug text-foreground">
-            Payment History ({payments.length})
-          </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-theme-subtle)] text-[var(--color-theme-ink)]"
+              aria-hidden
+            >
+              <Wallet size={15} strokeWidth={2.25} />
+            </span>
+            <h2 className="m-0 text-sm font-semibold">Payment History</h2>
+            <Badge
+              variant="secondary"
+              className="h-5 min-w-5 justify-center rounded-full px-1.5 tabular-nums"
+            >
+              {payments.length}
+            </Badge>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             {caseId ? (
               <Link
                 to={workInvoicePath({ id: caseId, clientId })}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-sm no-underline"
+                className={cn(
+                  'inline-flex items-center no-underline',
+                  sectionHeaderActionClass,
+                )}
               >
                 <FileText size={14} strokeWidth={2.25} aria-hidden />
-                View Invoice
+                Invoice
               </Link>
             ) : null}
             {dueTotal > 0 ? null : (
               <Button
-                variant="outline"
-                className="h-9 rounded-lg"
+                type="button"
+                size="sm"
+                className={sectionHeaderActionClass}
                 onClick={beginRecording}
                 disabled={!canRecord}
+                aria-label="Record Payment"
               >
-                <Plus size={14} strokeWidth={2.25} aria-hidden />
-                Record Payment
+                <Plus data-icon="inline-start" aria-hidden />
+                Record
               </Button>
             )}
           </div>
@@ -265,7 +286,7 @@ export function PaymentsList({
         <div className={cn(tableShellClass, 'rounded-none border-0 shadow-none')}>
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="border-0 hover:bg-transparent">
               <TableHead className={chromeHeadClass}>Date</TableHead>
               {!caseId ? <TableHead className={chromeHeadClass}>Service</TableHead> : null}
               <TableHead className={chromeHeadClass}>Method</TableHead>
@@ -279,24 +300,31 @@ export function PaymentsList({
               const linked = getCaseById(payment.caseId)
               return (
                 <TableRow key={payment.id}>
-                  <TableCell>{formatDate(payment.createdAt)}</TableCell>
+                  <TableCell className="px-[0.85rem] py-2.5 whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+                    {formatDate(payment.createdAt)}
+                  </TableCell>
                   {!caseId ? (
-                    <TableCell>
+                    <TableCell className="px-[0.85rem] py-2.5 font-medium">
                       {linked ? linked.service : 'Service'}
                     </TableCell>
                   ) : null}
-                  <TableCell>{payment.method}</TableCell>
-                  <TableCell>{payment.note || '-'}</TableCell>
-                  <TableCell className="tabular-nums font-medium">
+                  <TableCell className="px-[0.85rem] py-2.5 text-sm">
+                    {payment.method}
+                  </TableCell>
+                  <TableCell className="max-w-[16rem] truncate px-[0.85rem] py-2.5 text-sm text-muted-foreground">
+                    {payment.note || '—'}
+                  </TableCell>
+                  <TableCell className="px-[0.85rem] py-2.5 tabular-nums font-medium">
                     {formatPaymentAmount(payment.amount)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-[0.85rem] py-2.5">
                     <Link
                       to={workInvoicePath({
                         id: payment.caseId,
                         clientId: payment.clientId,
                       })}
-                      className="inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-[var(--color-surface)] px-2.5 text-xs font-medium text-foreground no-underline shadow-xs transition-colors hover:bg-muted/40"
+                      aria-label="View invoice"
                     >
                       <Eye size={14} strokeWidth={2.25} aria-hidden />
                       View
