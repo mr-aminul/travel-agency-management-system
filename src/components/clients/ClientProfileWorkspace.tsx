@@ -3,7 +3,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ComponentType,
   type ReactNode,
 } from 'react'
 import {
@@ -81,7 +80,7 @@ type ProfileGroupId = ClientProfileSectionId
 type ProfileGroup = {
   id: ProfileGroupId
   label: string
-  icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
+  icon: LucideIcon
   fields: WorkspaceField[]
   gapIds?: Array<ClientInfoGap['id']>
 }
@@ -501,7 +500,7 @@ function SectionPanel({
       value: draft.customFields[field.id] ?? '',
       customId: field.id,
       required: field.required,
-      icon: Hash as LucideIcon,
+      icon: Hash,
     })),
   ]
 
