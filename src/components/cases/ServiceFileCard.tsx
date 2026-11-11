@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Check,
@@ -214,15 +214,120 @@ function PaymentMeter({
   )
 }
 
+export type ServiceFileActionsApi = {
+  startEditing: () => void
+  copyTrackingLink: () => void
+  openRequestUpdate: () => void
+  openDelete: () => void
+  canCopyTracking: boolean
+  invoicePath: string
+}
+
+export function ServiceFileActionsMenu({
+  canCopyTracking,
+  onEdit,
+  onCopyTracking,
+  onRequestUpdate,
+  invoicePath,
+  onDelete,
+  className,
+}: {
+  canCopyTracking: boolean
+  onEdit?: () => void
+  onCopyTracking: () => void
+  onRequestUpdate: () => void
+  invoicePath: string
+  onDelete: () => void
+  className?: string
+}) {
+  const [trackingCopied, setTrackingCopied] = useState(false)
+
+  return (
+    <DropdownMenu
+      onOpenChange={(open) => {
+        if (!open) setTrackingCopied(false)
+      }}
+    >
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon-sm"
+          className={cn('size-8 shrink-0 rounded-lg', className)}
+          aria-label="More service actions"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <Ellipsis size={14} strokeWidth={2.25} aria-hidden />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="w-auto min-w-max"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {onEdit ? (
+          <DropdownMenuItem
+            className="whitespace-nowrap"
+            onSelect={onEdit}
+          >
+            <SquarePen size={14} strokeWidth={2.25} aria-hidden />
+            Edit
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuItem
+          disabled={!canCopyTracking}
+          className="whitespace-nowrap"
+          onSelect={() => {
+            onCopyTracking()
+            setTrackingCopied(true)
+          }}
+        >
+          {trackingCopied ? (
+            <Check size={14} strokeWidth={2.25} aria-hidden />
+          ) : (
+            <Link2 size={14} strokeWidth={2.25} aria-hidden />
+          )}
+          {trackingCopied ? 'Tracking Link Copied' : 'Copy Tracking Link'}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="whitespace-nowrap"
+          onSelect={onRequestUpdate}
+        >
+          <ClipboardList size={14} strokeWidth={2.25} aria-hidden />
+          Request Update
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to={invoicePath}>
+            <FileText size={14} strokeWidth={2.25} aria-hidden />
+            Invoice
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+          <Trash2 size={14} strokeWidth={2.25} aria-hidden />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 export type ServiceFileCardProps = {
   caseId: string
   /** Open paper id for this file only. */
   selectedDocId?: string | null
+  /** Flush into a parent accordion / card — no outer chrome. */
+  embedded?: boolean
+  /** Accordion header hosts the menu; card still owns edit/dialogs. */
+  onProvideActions?: (api: ServiceFileActionsApi | null) => void
 }
 
 export function ServiceFileCard({
   caseId,
   selectedDocId = null,
+  embedded = false,
+  onProvideActions,
 }: ServiceFileCardProps) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -248,7 +353,6 @@ export function ServiceFileCard({
   const [requestTo, setRequestTo] = useState<CaseStatus>('In-Progress')
   const [requestRemarks, setRequestRemarks] = useState('')
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [trackingCopied, setTrackingCopied] = useState(false)
   const [flashTarget, setFlashTarget] = useState<
     'status' | 'pipeline' | 'documents' | null
   >(null)
@@ -273,7 +377,6 @@ export function ServiceFileCard({
     setEditing(false)
     setRequestOpen(false)
     setDeleteOpen(false)
-    setTrackingCopied(false)
     setFlashTarget(null)
   }, [caseId])
 
@@ -293,11 +396,27 @@ export function ServiceFileCard({
     }
   }, [flashTarget, editing])
 
+  const actionsApiRef = useRef<ServiceFileActionsApi | null>(null)
+  const onProvideActionsRef = useRef(onProvideActions)
+  onProvideActionsRef.current = onProvideActions
+
   useEffect(() => {
-    if (!trackingCopied) return
-    const timer = window.setTimeout(() => setTrackingCopied(false), 1500)
-    return () => window.clearTimeout(timer)
-  }, [trackingCopied])
+    const provide = onProvideActionsRef.current
+    if (!provide) return
+    provide({
+      startEditing: () => actionsApiRef.current?.startEditing(),
+      copyTrackingLink: () => actionsApiRef.current?.copyTrackingLink(),
+      openRequestUpdate: () => actionsApiRef.current?.openRequestUpdate(),
+      openDelete: () => actionsApiRef.current?.openDelete(),
+      get canCopyTracking() {
+        return actionsApiRef.current?.canCopyTracking ?? false
+      },
+      get invoicePath() {
+        return actionsApiRef.current?.invoicePath ?? ''
+      },
+    })
+    return () => onProvideActionsRef.current?.(null)
+  }, [caseId])
 
   if (!item) return null
 
@@ -361,6 +480,27 @@ export function ServiceFileCard({
       description: item.description ?? '',
     })
     setEditing(true)
+  }
+
+  const copyTrackingLink = () => {
+    const passport = client?.passport?.trim()
+    if (!passport) return
+    void copyText(clientTrackingUrl(passport))
+  }
+
+  const openRequestUpdate = () => {
+    setRequestTo(item.status === 'Pending' ? 'In-Progress' : 'Completed')
+    setRequestRemarks('')
+    setRequestOpen(true)
+  }
+
+  actionsApiRef.current = {
+    startEditing,
+    copyTrackingLink,
+    openRequestUpdate,
+    openDelete: () => setDeleteOpen(true),
+    canCopyTracking: Boolean(client?.passport?.trim()),
+    invoicePath: workInvoicePath(item),
   }
 
   const finishEditing = () => {
@@ -434,129 +574,141 @@ export function ServiceFileCard({
         }
       : null
 
-  const serviceHeader = (
+  const showEmbeddedToolbar = editing || Boolean(pipelineAttention)
+
+  const serviceHeader =
+    embedded && !showEmbeddedToolbar ? null : (
     <header className="flex flex-col">
       <div className="flex flex-wrap items-center gap-2.5 px-4 py-2.5">
-        <span
-          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-foreground"
-          aria-hidden
-        >
-          <ServiceIcon size={14} strokeWidth={2.25} />
-        </span>
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
-          <h2 className="m-0 text-sm font-semibold tracking-tight text-foreground">
-            {item.service}
-          </h2>
-          <Badge
-            variant={caseStatusShadcnVariant(displayStatus)}
-            className="h-5 px-1.5 text-[0.625rem]"
-          >
-            {displayStatus}
-          </Badge>
-          <span
-            className={cn(
-              'inline-flex h-5 max-w-full items-center gap-1 rounded-full px-1.5 text-[0.625rem] font-medium leading-none',
-              missingCountry
-                ? 'bg-destructive/10 text-destructive'
-                : 'bg-muted text-foreground',
-            )}
-          >
-            {displayCountry && countryFlagEmoji(displayCountry) ? (
-              <span className="text-xs leading-none" aria-hidden>
-                {countryFlagEmoji(displayCountry)}
-              </span>
-            ) : null}
-            <span className="min-w-0 truncate">
-              {displayCountry || 'Country'}
+        {embedded ? null : (
+          <>
+            <span
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-foreground"
+              aria-hidden
+            >
+              <ServiceIcon size={14} strokeWidth={2.25} />
             </span>
-          </span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  'inline-flex h-5 max-w-full items-center gap-1 rounded-full border px-1.5 text-[0.625rem] font-medium leading-none transition-colors',
-                  'hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35',
-                  missingAssignee
-                    ? 'border-dashed border-destructive/45 bg-destructive/5 text-destructive'
-                    : 'border-border bg-card text-foreground shadow-xs',
-                )}
-                aria-label={
-                  assignedName
-                    ? `Change assignee, ${assignedName}`
-                    : 'Assign someone'
-                }
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
+              <h2 className="m-0 text-sm font-semibold tracking-tight text-foreground">
+                {item.service}
+              </h2>
+              <Badge
+                variant={caseStatusShadcnVariant(displayStatus)}
+                className="h-5 px-1.5 text-[0.625rem]"
               >
-                <UserRound
-                  size={10}
-                  strokeWidth={2.25}
-                  className="shrink-0"
-                  aria-hidden
-                />
+                {displayStatus}
+              </Badge>
+              <span
+                className={cn(
+                  'inline-flex h-5 max-w-full items-center gap-1 rounded-full px-1.5 text-[0.625rem] font-medium leading-none',
+                  missingCountry
+                    ? 'bg-destructive/10 text-destructive'
+                    : 'bg-muted text-foreground',
+                )}
+              >
+                {displayCountry && countryFlagEmoji(displayCountry) ? (
+                  <span className="text-xs leading-none" aria-hidden>
+                    {countryFlagEmoji(displayCountry)}
+                  </span>
+                ) : null}
                 <span className="min-w-0 truncate">
-                  {assignedName || 'Assign'}
+                  {displayCountry || 'Country'}
                 </span>
-                <ChevronDown
-                  size={10}
-                  strokeWidth={2.25}
-                  className="shrink-0 opacity-60"
-                  aria-hidden
-                />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-48 p-1">
-              <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                Assign to
-              </p>
-              {employeeAssignmentOptions(employees, item.assignedTo).map(
-                (option) => {
-                  const selected = item.assignedTo === option.value
-                  return (
-                    <DropdownMenuItem
-                      key={option.value}
-                      className="gap-2"
-                      onSelect={() => {
-                        updateCase(item.id, { assignedTo: option.value })
-                      }}
-                    >
-                      <UserRound
-                        size={14}
-                        strokeWidth={2.25}
-                        className="shrink-0 text-muted-foreground"
-                        aria-hidden
-                      />
-                      <span className="min-w-0 flex-1 truncate">
-                        {option.label}
-                      </span>
-                      {selected ? (
-                        <Check
-                          size={14}
-                          strokeWidth={2.5}
-                          className="shrink-0 text-primary"
-                          aria-hidden
-                        />
-                      ) : null}
-                    </DropdownMenuItem>
-                  )
-                },
-              )}
-              {item.assignedTo ? (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      updateCase(item.id, { assignedTo: '' })
-                    }}
+              </span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      'inline-flex h-5 max-w-full items-center gap-1 rounded-full border px-1.5 text-[0.625rem] font-medium leading-none transition-colors',
+                      'hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35',
+                      missingAssignee
+                        ? 'border-dashed border-destructive/45 bg-destructive/5 text-destructive'
+                        : 'border-border bg-card text-foreground shadow-xs',
+                    )}
+                    aria-label={
+                      assignedName
+                        ? `Change assignee, ${assignedName}`
+                        : 'Assign someone'
+                    }
                   >
-                    Clear
-                  </DropdownMenuItem>
-                </>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <div className="ms-auto flex flex-wrap items-center gap-2.5 max-md:ms-0">
-          {editing ? null : (
+                    <UserRound
+                      size={10}
+                      strokeWidth={2.25}
+                      className="shrink-0"
+                      aria-hidden
+                    />
+                    <span className="min-w-0 truncate">
+                      {assignedName || 'Assign'}
+                    </span>
+                    <ChevronDown
+                      size={10}
+                      strokeWidth={2.25}
+                      className="shrink-0 opacity-60"
+                      aria-hidden
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-48 p-1">
+                  <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                    Assign to
+                  </p>
+                  {employeeAssignmentOptions(employees, item.assignedTo).map(
+                    (option) => {
+                      const selected = item.assignedTo === option.value
+                      return (
+                        <DropdownMenuItem
+                          key={option.value}
+                          className="gap-2"
+                          onSelect={() => {
+                            updateCase(item.id, { assignedTo: option.value })
+                          }}
+                        >
+                          <UserRound
+                            size={14}
+                            strokeWidth={2.25}
+                            className="shrink-0 text-muted-foreground"
+                            aria-hidden
+                          />
+                          <span className="min-w-0 flex-1 truncate">
+                            {option.label}
+                          </span>
+                          {selected ? (
+                            <Check
+                              size={14}
+                              strokeWidth={2.5}
+                              className="shrink-0 text-primary"
+                              aria-hidden
+                            />
+                          ) : null}
+                        </DropdownMenuItem>
+                      )
+                    },
+                  )}
+                  {item.assignedTo ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          updateCase(item.id, { assignedTo: '' })
+                        }}
+                      >
+                        Clear
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </>
+        )}
+        <div
+          className={cn(
+            'flex flex-wrap items-center gap-2.5',
+            embedded ? 'ms-auto w-full justify-end' : 'ms-auto max-md:ms-0',
+          )}
+        >
+          {editing || embedded ? null : (
             <PaymentMeter
               fee={serviceFee}
               paid={paidTotal}
@@ -601,76 +753,16 @@ export function ServiceFileCard({
                   </span>
                 </Button>
               ) : null}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 rounded-lg"
-                onClick={startEditing}
-              >
-                <SquarePen data-icon="inline-start" />
-                Edit
-              </Button>
-              <DropdownMenu
-                onOpenChange={(open) => {
-                  if (!open) setTrackingCopied(false)
-                }}
-              >
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon-sm"
-                    className="size-8 rounded-lg"
-                    aria-label="More service actions"
-                  >
-                    <Ellipsis size={14} strokeWidth={2.25} aria-hidden />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    disabled={!client?.passport?.trim()}
-                    onSelect={() => {
-                      const passport = client?.passport?.trim()
-                      if (!passport) return
-                      void copyText(clientTrackingUrl(passport)).then(() => {
-                        setTrackingCopied(true)
-                      })
-                    }}
-                  >
-                    {trackingCopied ? (
-                      <Check size={14} strokeWidth={2.25} aria-hidden />
-                    ) : (
-                      <Link2 size={14} strokeWidth={2.25} aria-hidden />
-                    )}
-                    {trackingCopied ? 'Tracking Link Copied' : 'Copy Tracking Link'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      setRequestTo(
-                        item.status === 'Pending' ? 'In-Progress' : 'Completed',
-                      )
-                      setRequestRemarks('')
-                      setRequestOpen(true)
-                    }}
-                  >
-                    <ClipboardList size={14} strokeWidth={2.25} aria-hidden />
-                    Request Update
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to={workInvoicePath(item)}>
-                      <FileText size={14} strokeWidth={2.25} aria-hidden />
-                      Invoice
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onSelect={() => setDeleteOpen(true)}
-                  >
-                  <Trash2 size={14} strokeWidth={2.25} aria-hidden />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              {embedded ? null : (
+                <ServiceFileActionsMenu
+                  canCopyTracking={Boolean(client?.passport?.trim())}
+                  onEdit={startEditing}
+                  onCopyTracking={copyTrackingLink}
+                  onRequestUpdate={openRequestUpdate}
+                  invoicePath={workInvoicePath(item)}
+                  onDelete={() => setDeleteOpen(true)}
+                />
+              )}
             </div>
           )}
         </div>
@@ -794,7 +886,12 @@ export function ServiceFileCard({
     <>
       <article
         id={`service-file-${item.id}`}
-        className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+        className={cn(
+          'overflow-hidden bg-[var(--color-surface-raised,var(--card))]',
+          embedded
+            ? 'border-t border-border/70'
+            : 'rounded-xl border border-border shadow-[var(--shadow-card)]',
+        )}
         aria-label={serviceDetailAriaLabel(item)}
       >
         {serviceHeader}

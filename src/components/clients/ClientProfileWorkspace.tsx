@@ -1,5 +1,4 @@
 import {
-  Fragment,
   useEffect,
   useMemo,
   useRef,
@@ -9,13 +8,26 @@ import {
 } from 'react'
 import {
   Briefcase,
+  Building2,
+  Calendar,
   Check,
+  Droplets,
+  Globe2,
+  GraduationCap,
+  Hash,
+  Heart,
+  IdCard,
+  Languages,
+  Mail,
   MapPinned,
   Pencil,
   Phone,
   Sparkles,
   UserRound,
   Users,
+  VenusAndMars,
+  Wallet,
+  type LucideIcon,
 } from 'lucide-react'
 import {
   BLOOD_GROUP_OPTIONS,
@@ -25,14 +37,13 @@ import {
   type ClientProfileDraft,
   type ClientProfileSectionId,
 } from '@/components/clients/clientProfileDraft'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/shadcn/accordion'
 import { Button } from '@/components/shadcn/button'
-import { Card, CardContent } from '@/components/shadcn/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/shadcn/card'
 import {
   Select,
   SelectContent,
@@ -62,6 +73,7 @@ type WorkspaceField = {
   kind?: FieldKind
   required?: boolean
   wide?: boolean
+  icon?: LucideIcon
 }
 
 type ProfileGroupId = ClientProfileSectionId
@@ -80,13 +92,13 @@ const PROFILE_GROUPS: ProfileGroup[] = [
     label: 'Personal',
     icon: UserRound,
     fields: [
-      { key: 'name', label: 'Full Name', required: true },
-      { key: 'banglaName', label: 'Bangla Name' },
-      { key: 'dateOfBirth', label: 'Date of Birth', kind: 'date' },
-      { key: 'gender', label: 'Gender', kind: 'gender' },
-      { key: 'nationality', label: 'Nationality' },
-      { key: 'placeOfBirth', label: 'Place of Birth' },
-      { key: 'bloodGroup', label: 'Blood Group', kind: 'blood' },
+      { key: 'name', label: 'Full Name', required: true, icon: IdCard },
+      { key: 'banglaName', label: 'Bangla Name', icon: Languages },
+      { key: 'dateOfBirth', label: 'Date of Birth', kind: 'date', icon: Calendar },
+      { key: 'gender', label: 'Gender', kind: 'gender', icon: VenusAndMars },
+      { key: 'nationality', label: 'Nationality', icon: Globe2 },
+      { key: 'placeOfBirth', label: 'Place of Birth', icon: MapPinned },
+      { key: 'bloodGroup', label: 'Blood Group', kind: 'blood', icon: Droplets },
     ],
   },
   {
@@ -95,14 +107,14 @@ const PROFILE_GROUPS: ProfileGroup[] = [
     icon: Phone,
     gapIds: ['email', 'address'],
     fields: [
-      { key: 'phone', label: 'Mobile Number', kind: 'tel', required: true },
-      { key: 'whatsapp', label: 'WhatsApp', kind: 'tel' },
-      { key: 'email', label: 'Email', kind: 'email' },
-      { key: 'subAgentId', label: 'Sub Agent', kind: 'subAgent' },
-      { key: 'presentAddress', label: 'Present Address' },
-      { key: 'permanentAddress', label: 'Permanent Address' },
-      { key: 'district', label: 'District' },
-      { key: 'upazila', label: 'Upazila' },
+      { key: 'phone', label: 'Mobile Number', kind: 'tel', required: true, icon: Phone },
+      { key: 'whatsapp', label: 'WhatsApp', kind: 'tel', icon: Phone },
+      { key: 'email', label: 'Email', kind: 'email', icon: Mail },
+      { key: 'subAgentId', label: 'Sub Agent', kind: 'subAgent', icon: Users },
+      { key: 'presentAddress', label: 'Present Address', icon: MapPinned },
+      { key: 'permanentAddress', label: 'Permanent Address', icon: MapPinned },
+      { key: 'district', label: 'District', icon: Building2 },
+      { key: 'upazila', label: 'Upazila', icon: Building2 },
     ],
   },
   {
@@ -110,10 +122,10 @@ const PROFILE_GROUPS: ProfileGroup[] = [
     label: 'Family',
     icon: Users,
     fields: [
-      { key: 'fatherName', label: 'Father Name' },
-      { key: 'motherName', label: 'Mother Name' },
-      { key: 'maritalStatus', label: 'Marital Status', kind: 'marital' },
-      { key: 'spouseName', label: 'Spouse Name' },
+      { key: 'fatherName', label: 'Father Name', icon: UserRound },
+      { key: 'motherName', label: 'Mother Name', icon: UserRound },
+      { key: 'maritalStatus', label: 'Marital Status', kind: 'marital', icon: Heart },
+      { key: 'spouseName', label: 'Spouse Name', icon: Heart },
     ],
   },
   {
@@ -121,15 +133,15 @@ const PROFILE_GROUPS: ProfileGroup[] = [
     label: 'Work',
     icon: Briefcase,
     fields: [
-      { key: 'profession', label: 'Profession' },
-      { key: 'education', label: 'Education' },
-      { key: 'skillTrade', label: 'Skill / Trade' },
-      { key: 'experience', label: 'Experience' },
-      { key: 'previousOverseasExp', label: 'Overseas Experience' },
-      { key: 'preferredCountry', label: 'Preferred Country' },
-      { key: 'preferredJob', label: 'Preferred Job' },
-      { key: 'expectedSalary', label: 'Expected Salary' },
-      { key: 'branch', label: 'Branch' },
+      { key: 'profession', label: 'Profession', icon: Briefcase },
+      { key: 'education', label: 'Education', icon: GraduationCap },
+      { key: 'skillTrade', label: 'Skill / Trade', icon: Sparkles },
+      { key: 'experience', label: 'Experience', icon: Hash },
+      { key: 'previousOverseasExp', label: 'Overseas Experience', icon: Globe2 },
+      { key: 'preferredCountry', label: 'Preferred Country', icon: Globe2 },
+      { key: 'preferredJob', label: 'Preferred Job', icon: Briefcase },
+      { key: 'expectedSalary', label: 'Expected Salary', icon: Wallet },
+      { key: 'branch', label: 'Branch', icon: Building2 },
     ],
   },
 ]
@@ -170,29 +182,8 @@ function formatValue(
   return trimmed
 }
 
-/** Sections staff need most often — stay open by default. */
-const PRIMARY_OPEN_IDS: ProfileGroupId[] = ['identity', 'contact']
-
 const cellControlClass =
-  'h-auto w-full min-w-0 cursor-text border-0 bg-transparent p-0 text-[0.8125rem] font-medium leading-tight text-foreground shadow-none outline-none ring-0 focus-visible:ring-0 disabled:cursor-default'
-
-function defaultOpenSections(
-  groups: ProfileGroup[],
-  gaps: ClientInfoGap[],
-  initialSection?: ClientProfileSectionId,
-  editing = false,
-): string[] {
-  if (editing) return groups.map((group) => group.id)
-  const open = new Set<string>(PRIMARY_OPEN_IDS)
-  if (initialSection) open.add(groupFromSection(initialSection))
-  for (const group of groups) {
-    if (!group.gapIds?.length) continue
-    if (gaps.some((gap) => group.gapIds!.includes(gap.id))) {
-      open.add(group.id)
-    }
-  }
-  return groups.map((group) => group.id).filter((id) => open.has(id))
-}
+  'h-auto w-full min-w-0 cursor-text border-0 bg-transparent p-0 text-[0.8125rem] font-normal leading-snug text-foreground shadow-none outline-none ring-0 focus-visible:ring-0 disabled:cursor-default'
 
 function selectOptionsForField(
   field: WorkspaceField,
@@ -234,7 +225,7 @@ function CellControl({
           aria-label={field.label}
           size="sm"
           className={cn(
-            'h-auto min-h-0 w-full min-w-0 justify-between gap-1.5 rounded-sm border-0 bg-transparent px-0 py-0 text-[0.8125rem] font-medium leading-tight shadow-none outline-none focus-visible:border-0 focus-visible:ring-0 data-[size=sm]:h-auto data-[size=sm]:rounded-sm dark:bg-transparent dark:hover:bg-transparent [&_svg]:size-3.5',
+            'h-auto min-h-0 w-full min-w-0 justify-between gap-1.5 rounded-sm border-0 bg-transparent px-0 py-0 text-[0.8125rem] font-normal leading-snug shadow-none outline-none focus-visible:border-0 focus-visible:ring-0 data-[size=sm]:h-auto data-[size=sm]:rounded-sm dark:bg-transparent dark:hover:bg-transparent [&_svg]:size-3.5',
             error ? 'text-destructive' : 'text-foreground',
             !value && 'text-muted-foreground',
           )}
@@ -296,63 +287,173 @@ function ReadValue({
   return (
     <span
       className={cn(
-        'inline-block min-w-0 text-[0.8125rem] leading-tight',
-        empty && 'font-normal text-muted-foreground/70',
-        !empty && !gap && 'font-medium text-foreground',
+        'min-w-0 text-[0.8125rem] leading-snug',
+        empty && 'text-muted-foreground/70',
+        !empty && !gap && 'text-foreground',
         gap && 'font-medium text-destructive',
         !empty && 'break-words',
       )}
     >
-      {empty ? null : display}
+      {empty ? '—' : display}
     </span>
   )
 }
 
-type ReadEntry = {
+type FieldEntry = {
   key: string
   label: string
   value: string
   kind?: FieldKind
-  wide?: boolean
   gap?: ClientInfoGap
   required?: boolean
   workspaceField?: WorkspaceField
   customId?: string
+  icon?: LucideIcon
 }
 
-const READ_COLUMNS = 3
+function ProfileSectionCard({
+  title,
+  icon: Icon,
+  sectionId,
+  children,
+}: {
+  title: string
+  icon: LucideIcon
+  sectionId: string
+  children: ReactNode
+}) {
+  return (
+    <Card
+      size="sm"
+      className="pd-client-elevated-panel gap-0 overflow-hidden border-border py-0 shadow-[var(--shadow-card)] ring-0"
+      id={`client-profile-section-${sectionId}`}
+      aria-label={title}
+    >
+      <CardHeader className="flex h-9 flex-row items-center gap-1.5 border-b border-border/80 px-3.5 py-0 pt-0 [.border-b]:pb-0">
+        <Icon
+          className="size-3.5 shrink-0 text-muted-foreground"
+          strokeWidth={1.75}
+          aria-hidden
+        />
+        <CardTitle className="text-[0.9375rem] font-semibold tracking-tight">
+          <h2 className="text-inherit font-inherit tracking-inherit">{title}</h2>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-3.5 py-2.5">
+        <dl className="m-0">{children}</dl>
+      </CardContent>
+    </Card>
+  )
+}
 
-function chunkReadEntries(
-  entries: ReadEntry[],
-  columns = READ_COLUMNS,
-): ReadEntry[][] {
-  const rows: ReadEntry[][] = []
-  let index = 0
-  while (index < entries.length) {
-    const entry = entries[index]!
-    if (entry.wide) {
-      rows.push([entry])
-      index += 1
-      continue
-    }
-    const row: ReadEntry[] = [entry]
-    index += 1
-    while (row.length < columns && index < entries.length) {
-      const next = entries[index]!
-      if (next.wide) break
-      row.push(next)
-      index += 1
-    }
-    rows.push(row)
-  }
-  return rows
+function DetailRow({
+  entry,
+  editing,
+  subAgentOptions,
+  showError,
+  fieldError,
+  customFieldError,
+  blur,
+  onChange,
+  onCustomChange,
+}: {
+  entry: FieldEntry
+  editing: boolean
+  subAgentOptions: { value: string; label: string }[]
+  showError: (key: string) => boolean
+  fieldError: (key: keyof ClientProfileDraft) => string | undefined
+  customFieldError: (fieldId: string) => string | undefined
+  blur: (key: string) => () => void
+  onChange: <K extends keyof ClientProfileDraft>(
+    key: K,
+    value: ClientProfileDraft[K],
+  ) => void
+  onCustomChange: (fieldId: string, value: string) => void
+}) {
+  const Icon = entry.icon ?? Hash
+  const isCustom = Boolean(entry.customId)
+  const rawError = isCustom
+    ? customFieldError(entry.customId!)
+    : fieldError(entry.key as keyof ClientProfileDraft)
+  const error =
+    rawError && (showError(entry.key) || Boolean(entry.value.trim()))
+      ? rawError
+      : undefined
+  const missingRequired = Boolean(entry.required) && !entry.value.trim()
+  const showMissing = missingRequired || Boolean(error)
+  const workspaceField =
+    entry.workspaceField ??
+    ({
+      key: 'name',
+      label: entry.label,
+      kind: 'text' as const,
+    } satisfies WorkspaceField)
+
+  return (
+    <div
+      data-profile-field={entry.key}
+      data-invalid={showMissing ? 'true' : undefined}
+      title={error || undefined}
+      className={cn(
+        'grid grid-cols-[1rem_7.5rem_minmax(0,1fr)] items-center gap-x-2 gap-y-0.5 py-1',
+        showMissing && 'rounded-md bg-destructive/10 px-1.5',
+      )}
+    >
+      <Icon
+        className="size-3.5 shrink-0 text-muted-foreground"
+        strokeWidth={1.75}
+        aria-hidden
+      />
+      <dt className="min-w-0 text-[0.75rem] font-medium leading-tight text-muted-foreground">
+        {entry.label}
+      </dt>
+      <dd className="min-w-0">
+        {editing ? (
+          isCustom ? (
+            <input
+              aria-label={entry.label}
+              className={cn(cellControlClass, showMissing && 'text-destructive')}
+              value={entry.value}
+              onBlur={blur(entry.key)}
+              onChange={(event) =>
+                onCustomChange(entry.customId!, event.target.value)
+              }
+            />
+          ) : (
+            <CellControl
+              field={workspaceField}
+              value={entry.value}
+              error={error ?? (missingRequired ? 'Required' : undefined)}
+              subAgentOptions={subAgentOptions}
+              onBlur={blur(entry.key)}
+              onChange={(value) => {
+                if (workspaceField.kind === 'gender') {
+                  onChange('gender', value as ClientGender | '')
+                  return
+                }
+                onChange(
+                  workspaceField.key,
+                  value as ClientProfileDraft[typeof workspaceField.key],
+                )
+              }}
+            />
+          )
+        ) : (
+          <ReadValue
+            value={entry.value}
+            kind={entry.kind}
+            gap={entry.gap}
+            subAgentOptions={subAgentOptions}
+          />
+        )}
+      </dd>
+    </div>
+  )
 }
 
 function SectionPanel({
-  groupId,
-  fields,
+  group,
   draft,
-  savedDraft,
   gaps,
   editing,
   subAgentOptions,
@@ -364,10 +465,8 @@ function SectionPanel({
   onChange,
   onCustomChange,
 }: {
-  groupId: ProfileGroupId
-  fields: WorkspaceField[]
+  group: ProfileGroup
   draft: ClientProfileDraft
-  savedDraft: ClientProfileDraft
   gaps: ClientInfoGap[]
   editing: boolean
   subAgentOptions: { value: string; label: string }[]
@@ -383,18 +482,18 @@ function SectionPanel({
   onCustomChange: (fieldId: string, value: string) => void
 }): ReactNode {
   const customForGroup = customFieldDefs.filter(
-    (field) => field.section === groupId,
+    (field) => field.section === group.id,
   )
-  const entries: ReadEntry[] = [
-    ...fields.map((field) => ({
+  const entries: FieldEntry[] = [
+    ...group.fields.map((field) => ({
       key: field.key,
       label: field.label,
       value: String(draft[field.key] ?? ''),
       kind: field.kind,
-      wide: field.wide,
       gap: gapForField(gaps, field.key),
       required: field.required,
       workspaceField: field,
+      icon: field.icon,
     })),
     ...customForGroup.map((field) => ({
       key: `custom:${field.id}`,
@@ -402,164 +501,31 @@ function SectionPanel({
       value: draft.customFields[field.id] ?? '',
       customId: field.id,
       required: field.required,
+      icon: Hash as LucideIcon,
     })),
   ]
-  const rows = chunkReadEntries(entries)
 
   return (
-    <div
-      className="overflow-x-auto border-t border-border bg-[color-mix(in_srgb,var(--color-theme)_5%,white)]"
-      id={`client-profile-section-${groupId}`}
+    <ProfileSectionCard
+      title={group.label}
+      icon={group.icon}
+      sectionId={group.id}
     >
-      <table className="w-full border-collapse text-left">
-        <tbody>
-          {rows.map((row) => {
-            const full = row.length === 1 && row[0]?.wide
-            const emptySlots = full ? 0 : READ_COLUMNS - row.length
-            return (
-              <tr
-                key={row.map((entry) => entry.key).join('-')}
-                className="border-b border-border last:border-b-0"
-              >
-                {row.map((entry, columnIndex) => {
-                  const workspaceField =
-                    entry.workspaceField ??
-                    ({
-                      key: 'name',
-                      label: entry.label,
-                      kind: 'text' as const,
-                    } satisfies WorkspaceField)
-                  const isCustom = Boolean(entry.customId)
-                  const rawError = isCustom
-                    ? customFieldError(entry.customId!)
-                    : fieldError(entry.key as keyof ClientProfileDraft)
-                  // Show format errors once the cell has a value; required-empty
-                  // uses missingRequired (and showError after a failed save).
-                  const error =
-                    rawError &&
-                    (showError(entry.key) || Boolean(entry.value.trim()))
-                      ? rawError
-                      : undefined
-                  const dirty = isCustom
-                    ? entry.value !==
-                      (savedDraft.customFields[entry.customId!] ?? '')
-                    : entry.value !==
-                      String(
-                        savedDraft[entry.key as keyof ClientProfileDraft] ??
-                          '',
-                      )
-                  const missingRequired =
-                    Boolean(entry.required) && !entry.value.trim()
-                  const showMissing = missingRequired || Boolean(error)
-
-                  return (
-                    <Fragment key={entry.key}>
-                      <th
-                        scope="row"
-                        className={cn(
-                          'w-0 whitespace-nowrap bg-transparent px-3 py-1.5 text-left align-middle text-xs font-medium text-muted-foreground',
-                          columnIndex > 0 && 'border-l border-border/40',
-                        )}
-                      >
-                        {entry.label}
-                      </th>
-                      <td
-                        className={cn(
-                          'min-w-[8rem] border-l p-0 align-middle',
-                          showMissing
-                            ? 'border-l-destructive/50 bg-destructive/15'
-                            : 'border-l-border/30 bg-white dark:bg-card',
-                          editing &&
-                            dirty &&
-                            !showMissing &&
-                            'bg-[color-mix(in_srgb,var(--color-theme)_6%,white)] dark:bg-[color-mix(in_srgb,var(--color-theme)_10%,var(--color-card))]',
-                        )}
-                        colSpan={full ? READ_COLUMNS * 2 - 1 : undefined}
-                        data-profile-field={entry.key}
-                        data-invalid={showMissing ? 'true' : undefined}
-                        title={error || undefined}
-                      >
-                        <div
-                          className={cn(
-                            'flex min-h-8 items-center px-3 py-1.5',
-                            showMissing && 'h-full w-full',
-                          )}
-                        >
-                          {editing ? (
-                            isCustom ? (
-                              <input
-                                aria-label={entry.label}
-                                className={cn(
-                                  cellControlClass,
-                                  showMissing && 'text-destructive',
-                                )}
-                                value={entry.value}
-                                onBlur={blur(entry.key)}
-                                onChange={(event) =>
-                                  onCustomChange(
-                                    entry.customId!,
-                                    event.target.value,
-                                  )
-                                }
-                              />
-                            ) : (
-                              <CellControl
-                                field={workspaceField}
-                                value={entry.value}
-                                error={
-                                  error ??
-                                  (missingRequired ? 'Required' : undefined)
-                                }
-                                subAgentOptions={subAgentOptions}
-                                onBlur={blur(entry.key)}
-                                onChange={(value) => {
-                                  if (workspaceField.kind === 'gender') {
-                                    onChange(
-                                      'gender',
-                                      value as ClientGender | '',
-                                    )
-                                    return
-                                  }
-                                  onChange(
-                                    workspaceField.key,
-                                    value as ClientProfileDraft[typeof workspaceField.key],
-                                  )
-                                }}
-                              />
-                            )
-                          ) : (
-                            <ReadValue
-                              value={entry.value}
-                              kind={entry.kind}
-                              gap={entry.gap}
-                              subAgentOptions={subAgentOptions}
-                            />
-                          )}
-                        </div>
-                      </td>
-                    </Fragment>
-                  )
-                })}
-                {Array.from({ length: emptySlots }, (_, index) => (
-                  <Fragment key={`pad-${index}`}>
-                    <th
-                      className="w-0 border-l border-border/40 bg-transparent px-3 py-1.5"
-                      aria-hidden
-                    />
-                    <td
-                      className="min-w-[8rem] border-l border-border/30 bg-white p-0 dark:bg-card"
-                      aria-hidden
-                    >
-                      <div className="min-h-8 px-3 py-1.5" />
-                    </td>
-                  </Fragment>
-                ))}
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+      {entries.map((entry) => (
+        <DetailRow
+          key={entry.key}
+          entry={entry}
+          editing={editing}
+          subAgentOptions={subAgentOptions}
+          showError={showError}
+          fieldError={fieldError}
+          customFieldError={customFieldError}
+          blur={blur}
+          onChange={onChange}
+          onCustomChange={onCustomChange}
+        />
+      ))}
+    </ProfileSectionCard>
   )
 }
 
@@ -624,27 +590,9 @@ export function ClientProfileWorkspace({
     return next
   }, [customFieldDefs])
 
-  const [openSections, setOpenSections] = useState<string[]>(() =>
-    defaultOpenSections(
-      PROFILE_GROUPS,
-      gaps,
-      initialSection,
-      Boolean(focusField) || isDirty,
-    ),
-  )
-
   useEffect(() => {
     if (focusField || isDirty) setEditing(true)
   }, [focusField, isDirty])
-
-  const editingRef = useRef(editing)
-  useEffect(() => {
-    if (editingRef.current === editing) return
-    editingRef.current = editing
-    setOpenSections(
-      defaultOpenSections(groups, gaps, initialSection, editing),
-    )
-  }, [editing, groups, gaps, initialSection])
 
   useEffect(() => {
     const target =
@@ -654,18 +602,6 @@ export function ClientProfileWorkspace({
           ? `#client-profile-section-${groupFromSection(initialSection)}`
           : null
     if (!target) return
-    const focusGroup = focusField
-      ? groups.find((group) =>
-          group.fields.some((field) => field.key === focusField),
-        )?.id
-      : initialSection
-        ? groupFromSection(initialSection)
-        : null
-    if (focusGroup) {
-      setOpenSections((current) =>
-        current.includes(focusGroup) ? current : [...current, focusGroup],
-      )
-    }
     const frame = window.requestAnimationFrame(() => {
       const node = rootRef.current?.querySelector(target)
       if (!(node instanceof HTMLElement)) return
@@ -695,82 +631,56 @@ export function ClientProfileWorkspace({
         '[data-invalid="true"]',
       )
       if (!invalid) return
-      const sectionId = invalid.closest('[id^="client-profile-section-"]')?.id
-      const groupId = sectionId?.replace('client-profile-section-', '')
-      if (groupId) {
-        setOpenSections((current) =>
-          current.includes(groupId) ? current : [...current, groupId],
-        )
-      }
       invalid.scrollIntoView({ block: 'center', behavior: 'smooth' })
       const input = invalid.querySelector('input, select, textarea')
       if (input instanceof HTMLElement) input.focus()
     })
   }
 
+  const leftIds: ProfileGroupId[] = ['identity', 'contact']
+  const rightIds: ProfileGroupId[] = ['family', 'work', 'placement', 'extra']
+  const leftGroups = groups.filter((group) => leftIds.includes(group.id))
+  const rightGroups = groups.filter((group) => rightIds.includes(group.id))
+
+  const panelProps = {
+    draft,
+    gaps,
+    editing,
+    subAgentOptions,
+    customFieldDefs,
+    showError,
+    fieldError,
+    customFieldError,
+    blur,
+    onChange,
+    onCustomChange,
+  }
+
   return (
     <div
       ref={rootRef}
-      className="flex min-w-0 flex-col gap-2"
-      aria-label="Client profile"
+      className="pd-client-profile-overview flex min-w-0 flex-col gap-2.5"
+      aria-label="Client profile editor"
     >
-      <Card size="sm" className="gap-0 overflow-hidden py-0 shadow-sm ring-border/60">
-        <CardContent className="p-0">
-          <Accordion
-            type="multiple"
-            value={openSections}
-            onValueChange={setOpenSections}
-          >
-            {groups.map((group) => {
-              const Icon = group.icon
-              return (
-                <AccordionItem
-                  key={group.id}
-                  value={group.id}
-                  className="border-border"
-                >
-                  <AccordionTrigger className="rounded-none bg-card px-3.5 py-2.5 text-sm font-semibold tracking-tight transition-colors hover:bg-muted/40 hover:no-underline">
-                    <span className="flex min-w-0 flex-1 items-center gap-2.5 pr-2">
-                      <span
-                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover/accordion-trigger:text-foreground"
-                        aria-hidden
-                      >
-                        <Icon size={14} strokeWidth={2.25} />
-                      </span>
-                      <span className="truncate">{group.label}</span>
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-0">
-                    <SectionPanel
-                      groupId={group.id}
-                      fields={group.fields}
-                      draft={draft}
-                      savedDraft={savedDraft}
-                      gaps={gaps}
-                      editing={editing}
-                      subAgentOptions={subAgentOptions}
-                      customFieldDefs={customFieldDefs}
-                      showError={showError}
-                      fieldError={fieldError}
-                      customFieldError={customFieldError}
-                      blur={blur}
-                      onChange={onChange}
-                      onCustomChange={onCustomChange}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-              )
-            })}
-          </Accordion>
-        </CardContent>
-      </Card>
+      <div className="pd-client-profile-overview__grid">
+        <div className="pd-client-profile-overview__col">
+          {leftGroups.map((group) => (
+            <SectionPanel key={group.id} group={group} {...panelProps} />
+          ))}
+        </div>
+        <div className="pd-client-profile-overview__col">
+          {rightGroups.map((group) => (
+            <SectionPanel key={group.id} group={group} {...panelProps} />
+          ))}
+        </div>
+      </div>
 
-      <div className="flex items-center justify-start gap-2 pt-1">
+      <div className="flex items-center justify-start gap-2 pt-0.5">
         {editing ? (
           <>
             <Button
               variant="outline"
-              className="h-8 rounded-md bg-white text-xs hover:bg-white dark:bg-card dark:hover:bg-card"
+              className="h-8 rounded-md bg-card text-xs hover:bg-card"
               onClick={handleDiscard}
             >
               {isDirty ? 'Discard' : 'Cancel'}

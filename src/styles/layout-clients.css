@@ -12,6 +12,107 @@
   background: color-mix(in srgb, var(--color-text) 4.5%, var(--color-surface));
 }
 
+.dark .pd-app-scroll:has(.pd-page--elevated),
+.dark .pd-app-scroll:has([data-elevated-canvas]) {
+  /* Cooler slate canvas so raised cards read like FN My Profile. */
+  background: color-mix(in srgb, black 18%, var(--color-surface));
+}
+
+/*
+ * Client identity card — FN People My Profile elevation:
+ * raised surface + rim shadow; theme cover with soft glows + dots.
+ */
+.pd-client-profile-aside-card {
+  overflow: hidden;
+  border: 0.0625rem solid var(--color-border);
+  border-radius: 1rem;
+  background: var(--color-surface-raised, var(--card));
+  box-shadow: var(--shadow-card);
+}
+
+.pd-client-profile-aside-card__cover {
+  position: relative;
+  isolation: isolate;
+  color: #fff;
+}
+
+.pd-client-profile-aside-card__cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(
+      120% 140% at 100% 0%,
+      color-mix(in srgb, var(--color-theme-bright) 55%, transparent) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      90% 160% at 0% 100%,
+      color-mix(in srgb, var(--color-theme) 70%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      165deg,
+      var(--color-theme-darkest) 0%,
+      var(--color-theme-darker) 42%,
+      color-mix(in srgb, var(--color-theme) 55%, var(--color-surface-raised, var(--card))) 78%,
+      var(--color-surface-raised, var(--card)) 100%
+    );
+}
+
+.pd-client-profile-aside-card__cover::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5.5rem;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(
+    color-mix(in srgb, white 28%, transparent) 0.06rem,
+    transparent 0.07rem
+  );
+  background-size: 0.75rem 0.75rem;
+  mask-image: linear-gradient(to left, black 0%, transparent 72%);
+}
+
+.pd-client-elevated-panel {
+  border: 0.0625rem solid var(--color-border);
+  background: var(--color-surface-raised, var(--card));
+  box-shadow: var(--shadow-card);
+}
+
+/* FN People My Profile overview: two compact columns of section cards. */
+.pd-client-profile-overview {
+  container-type: inline-size;
+  container-name: client-profile-overview;
+}
+
+.pd-client-profile-overview__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(min(16rem, 100%), 0.85fr);
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.pd-client-profile-overview__col {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+@container client-profile-overview (max-width: 42rem) {
+  .pd-client-profile-overview__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .pd-client-profile-overview__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Same right window as FN People: 180ms slide, floating rounded panel. */
 @keyframes pd-sub-agent-sheet-in {
   from {

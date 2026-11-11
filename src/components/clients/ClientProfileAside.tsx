@@ -72,13 +72,8 @@ function whatsappHref(phone: string): string {
   return `https://wa.me/${withCountry}`
 }
 
-const coverStyle = {
-  background:
-    'linear-gradient(180deg, #002d62 0%, oklch(from var(--color-theme) 0.52 calc(c * 1.4) h) 26%, color-mix(in srgb, oklch(from var(--color-theme) 0.52 calc(c * 1.4) h) 35%, white) 44%, #ffffff 60%)',
-} as const
-
 const actionClass =
-  'inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg border border-white bg-white text-[var(--color-theme)] shadow-sm transition-colors hover:bg-white/90'
+  'inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg border border-white/80 bg-white text-[var(--color-theme)] shadow-[var(--shadow-card)] transition-colors hover:bg-white/90'
 
 export function ClientProfileAside({
   client,
@@ -110,11 +105,8 @@ export function ClientProfileAside({
     >
       {/* Padding keeps the card shadow inside the sticky scroller so it isn’t clipped. */}
       <div className="flex min-h-0 flex-col gap-3 lg:overflow-y-auto lg:p-2 lg:-m-2">
-        <section
-          className="overflow-hidden rounded-2xl border border-border shadow-md"
-          style={coverStyle}
-        >
-        <div className="relative text-white">
+        <section className="pd-client-profile-aside-card">
+        <div className="pd-client-profile-aside-card__cover">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -261,7 +253,7 @@ export function ClientProfileAside({
 
         {quiet ? (
           <div
-            className="flex flex-wrap gap-1.5 border-t border-black/5 px-3.5 py-2.5"
+            className="flex flex-wrap gap-1.5 border-t border-border/70 bg-[var(--color-surface-raised,var(--card))] px-3.5 py-2.5"
             aria-label="Identity"
           >
             {papers.map((doc) => {
@@ -283,7 +275,8 @@ export function ClientProfileAside({
                   <span
                     className={cn(
                       'inline-flex size-3.5 shrink-0 items-center justify-center rounded-full',
-                      tone === 'done' && 'bg-emerald-500/15 text-emerald-700',
+                      tone === 'done' &&
+                        'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
                       tone === 'need' && 'bg-destructive/15 text-destructive',
                     )}
                     aria-hidden
@@ -300,8 +293,11 @@ export function ClientProfileAside({
             })}
           </div>
         ) : (
-          <section aria-label="Identity" className="border-t border-black/5">
-            <h2 className="m-0 border-b border-black/5 px-3.5 py-2.5 text-sm font-semibold text-foreground">
+          <section
+            aria-label="Identity"
+            className="border-t border-border/70 bg-[var(--color-surface-raised,var(--card))]"
+          >
+            <h2 className="m-0 border-b border-border/70 px-3.5 py-2.5 text-sm font-semibold text-foreground">
               Identity
             </h2>
             <ul className="m-0 flex list-none flex-col p-0">
@@ -312,12 +308,12 @@ export function ClientProfileAside({
                 return (
                   <li
                     key={doc.kind}
-                    className="border-b border-black/5 last:border-b-0"
+                    className="border-b border-border last:border-b-0"
                   >
                     <button
                       type="button"
                       className={cn(
-                        'flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm hover:bg-muted/70',
+                        'flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm text-foreground hover:bg-muted/70',
                         active && 'bg-primary/10 font-medium',
                       )}
                       aria-current={active ? 'page' : undefined}
@@ -327,7 +323,7 @@ export function ClientProfileAside({
                         className={cn(
                           'inline-flex size-4 shrink-0 items-center justify-center rounded-full',
                           tone === 'done' &&
-                            'bg-emerald-500/15 text-emerald-700',
+                            'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
                           tone === 'need' &&
                             'bg-destructive/15 text-destructive',
                         )}

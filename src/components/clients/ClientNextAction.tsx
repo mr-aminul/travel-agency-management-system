@@ -102,7 +102,7 @@ export function ClientNextAction({
   return (
     <section
       aria-label="Next"
-      className="overflow-hidden rounded-2xl border border-border bg-card shadow-md"
+      className="pd-client-elevated-panel overflow-hidden rounded-2xl"
     >
       <h2 className="m-0 border-b border-border px-3.5 py-2.5 text-sm font-semibold">
         Next

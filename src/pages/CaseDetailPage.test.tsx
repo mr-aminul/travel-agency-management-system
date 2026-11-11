@@ -208,11 +208,16 @@ describe('service detail', () => {
     ).toBeInTheDocument()
   })
 
-  it('edits service details while the stage tree stays visible', () => {
+  it('edits service details while the stage tree stays visible', async () => {
     renderClient('/clients/c-284/services/case-101')
 
     const service = screen.getByLabelText('Work Permit Visa (SR-00101)')
-    fireEvent.click(within(service).getByRole('button', { name: 'Edit' }))
+    const more = within(service).getByRole('button', {
+      name: 'More service actions',
+    })
+    more.focus()
+    fireEvent.keyDown(more, { key: 'Enter' })
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }))
 
     const details = within(service).getByLabelText('Service details')
     expect(within(details).getByLabelText('Status')).toBeInTheDocument()
@@ -463,10 +468,10 @@ describe('client profile editor', () => {
     expect(within(profile).queryByText('Address')).not.toBeInTheDocument()
     expect(within(profile).getByText('Profession')).toBeInTheDocument()
     expect(within(profile).getByText('Education')).toBeInTheDocument()
-    expect(within(profile).queryByText('Preferred Country')).not.toBeInTheDocument()
-    expect(within(profile).queryByText('Skill / Trade')).not.toBeInTheDocument()
-    expect(within(profile).queryByText('Branch')).not.toBeInTheDocument()
-    expect(within(profile).queryByText('Sub Agent')).not.toBeInTheDocument()
+    expect(within(profile).getByText('Preferred Country')).toBeInTheDocument()
+    expect(within(profile).getByText('Skill / Trade')).toBeInTheDocument()
+    expect(within(profile).getByText('Branch')).toBeInTheDocument()
+    expect(within(profile).getByText('Sub Agent')).toBeInTheDocument()
     expect(within(profile).queryByText('Passport')).not.toBeInTheDocument()
     expect(within(profile).queryByText('National ID')).not.toBeInTheDocument()
 

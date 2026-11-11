@@ -178,8 +178,8 @@ export function FileLands() {
   return (
     <Stage<S>
       width={960}
-      height={300}
-      compact={{ below: 640, width: 358, height: 300 }}
+      height={520}
+      compact={{ below: 640, width: 358, height: 480 }}
       initial={INITIAL}
       poster={POSTER}
       script={script}

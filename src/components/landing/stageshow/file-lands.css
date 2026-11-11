@@ -16,8 +16,9 @@
   top: 0;
   left: 0;
   width: 960px;
-  height: 420px;
-  border-radius: 16px;
+  height: 100%;
+  /* Bottom stays open so the shell continues under the ticker. */
+  border-radius: 16px 16px 0 0;
   box-shadow: var(--ss-shadow-hero);
   background: linear-gradient(165deg, #1b43a7 0%, #081941 40%, #040c1f 100%);
 }
@@ -325,7 +326,7 @@
   top: 12px;
   left: 12px;
   width: 334px;
-  height: 460px;
+  height: calc(100% - 24px);
 }
 
 .fl .ss-stage[data-layout='compact'] .fl-board {

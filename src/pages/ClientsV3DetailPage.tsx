@@ -78,6 +78,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/shadcn/sheet'
+import '@/styles/layout-clients.css'
 
 const MAIN_TABS = ['services', 'profile', 'payments'] as const
 
@@ -627,11 +628,15 @@ export default function ClientsV3DetailPage() {
   const selectedDocId = searchParams.get('doc')
   return (
     <div
-      className={cn(elevatedPageClass, 'mx-auto w-full max-w-[90%] gap-5')}
+      className={cn(
+        'pd-page pd-page--elevated',
+        elevatedPageClass,
+        'mx-auto w-full max-w-[80rem] gap-3',
+      )}
       data-elevated-canvas
       aria-label={client.name}
     >
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(min(19rem,100%),23rem)_minmax(0,1fr)] lg:gap-3">
         <ClientProfileAside
           client={client}
           cases={clientCases}
@@ -890,7 +895,7 @@ function DetailTabs({
         ref={rootRef}
         role="tablist"
         aria-label="Client sections"
-        className="relative inline-flex h-10 max-w-full items-stretch self-start overflow-x-auto rounded-lg border border-border bg-card p-0.5 shadow-sm"
+        className="pd-client-elevated-panel relative inline-flex h-10 max-w-full items-stretch self-start overflow-x-auto rounded-lg p-0.5"
       >
         {indicator ? (
           <span
