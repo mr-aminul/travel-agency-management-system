@@ -207,7 +207,7 @@ export default function SubscribePage() {
               disabled={isSubmitting || plans.length === 0}
               options={plans.map((plan) => ({
                 value: plan.id,
-                label: `${plan.name} · ${formatBdt(plan.priceBdt)}/mo`,
+                label: `${plan.name} · ${formatBdt(plan.priceBdt)}/${plan.interval === 'year' ? 'yr' : 'mo'}`,
               }))}
               onChange={(e) => setPlanId(e.target.value)}
             />

@@ -29,51 +29,91 @@ export type PricingPlan = {
   name: string
   priceBdt: number
   seatCode: string
+  /** Billing period shown on the ticket stub fare. */
+  interval: 'month' | 'year'
   perks: readonly PricingPerk[]
   isFeatured?: boolean
 }
 
-/** Mirrors the public plans in `server/src/billing/plans.js`. */
+const STARTER_PERKS: readonly PricingPerk[] = [
+  { label: '5 team seats', icon: 'seats' },
+  { label: 'All 8 services', icon: 'services' },
+  { label: 'Payments & invoices', icon: 'payments' },
+  { label: '10 GB storage', icon: 'storage' },
+  { label: '300 SMS / mo', icon: 'sms' },
+]
+
+const GROWTH_PERKS: readonly PricingPerk[] = [
+  { label: '20 team seats', icon: 'seats' },
+  { label: '30 sub agents', icon: 'subAgents' },
+  { label: 'Links & approvals', icon: 'links' },
+  { label: '40 GB storage', icon: 'storage' },
+  { label: '2,000 SMS / mo', icon: 'sms' },
+]
+
+const BUSINESS_PERKS: readonly PricingPerk[] = [
+  { label: '60 team seats', icon: 'seats' },
+  { label: '100 sub agents', icon: 'subAgents' },
+  { label: 'HR & payroll', icon: 'hr' },
+  { label: '100 GB storage', icon: 'storage' },
+  { label: '8,000 SMS / mo', icon: 'sms' },
+]
+
+/** Mirrors the public monthly plans in `server/src/billing/plans.js`. */
 export const PRICING_PLANS: readonly PricingPlan[] = [
   {
     id: 'starter',
     name: 'Starter',
     priceBdt: 3000,
     seatCode: '05A',
-    perks: [
-      { label: '5 team seats', icon: 'seats' },
-      { label: 'All 8 services', icon: 'services' },
-      { label: 'Payments & invoices', icon: 'payments' },
-      { label: '10 GB storage', icon: 'storage' },
-      { label: '300 SMS / month', icon: 'sms' },
-    ],
+    interval: 'month',
+    perks: STARTER_PERKS,
   },
   {
     id: 'growth',
     name: 'Growth',
     priceBdt: 6500,
-    seatCode: '20K',
+    seatCode: '20G',
+    interval: 'month',
     isFeatured: true,
-    perks: [
-      { label: '20 team seats', icon: 'seats' },
-      { label: '30 sub agents', icon: 'subAgents' },
-      { label: 'Links & approvals', icon: 'links' },
-      { label: '40 GB storage', icon: 'storage' },
-      { label: '2,000 SMS / month', icon: 'sms' },
-    ],
+    perks: GROWTH_PERKS,
   },
   {
     id: 'business',
     name: 'Business',
     priceBdt: 14000,
     seatCode: '60F',
-    perks: [
-      { label: '60 team seats', icon: 'seats' },
-      { label: '100 sub agents', icon: 'subAgents' },
-      { label: 'HR & payroll', icon: 'hr' },
-      { label: '100 GB storage', icon: 'storage' },
-      { label: '8,000 SMS / month', icon: 'sms' },
-    ],
+    interval: 'month',
+    perks: BUSINESS_PERKS,
+  },
+]
+
+/** Annual = 10× monthly (two months free). Same limits as the monthly twin. */
+export const ANNUAL_PRICING_PLANS: readonly PricingPlan[] = [
+  {
+    id: 'starter-year',
+    name: 'Starter',
+    priceBdt: 30000,
+    seatCode: '12C',
+    interval: 'year',
+    perks: STARTER_PERKS,
+  },
+  {
+    id: 'growth-year',
+    name: 'Growth',
+    priceBdt: 65000,
+    seatCode: '24D',
+    interval: 'year',
+    isFeatured: true,
+    perks: GROWTH_PERKS,
+  },
+  {
+    id: 'business-year',
+    name: 'Business',
+    priceBdt: 140000,
+    seatCode: '48J',
+    interval: 'year',
+    perks: BUSINESS_PERKS,
   },
 ]
 
@@ -84,57 +124,57 @@ export const SALES_MAILTO = `mailto:${SALES_EMAIL}?subject=${encodeURIComponent(
 export const LANDING_AUDIENCES = [
   {
     id: 'tourist',
-    label: 'Tourist visa',
-    title: 'Every tourist file on one board',
+    label: 'Tourist Visa',
+    title: 'All Tourist Visa Files in One Place',
     detail:
-      'From passport intake to sticker ready — stage, documents, and next action stay on the same file.',
+      'From first passport to visa ready. Status, documents, and next step stay on one file.',
     vignette: 'board' as const,
   },
   {
     id: 'student',
-    label: 'Student visa',
-    title: 'See which document is still missing',
+    label: 'Student Visa',
+    title: 'See Missing Documents Fast',
     detail:
-      'Bank statement, offer letter, photo — know what is in and what the client still owes you.',
+      'Bank statement, offer letter, photo — know what you have and what the client still needs to give.',
     vignette: 'documents' as const,
   },
   {
     id: 'work',
-    label: 'Work permit',
-    title: 'Give clients a tracking link',
+    label: 'Work Permit',
+    title: 'Send Clients a Tracking Link',
     detail:
-      'Send one SMS with the link. They check progress themselves instead of calling the desk again.',
+      'One SMS with a link. Clients check status themselves. Fewer calls to your desk.',
     vignette: 'tracking' as const,
   },
   {
     id: 'hajj',
     label: 'Hajj & Umrah',
-    title: 'Advance, balance, and due in one place',
+    title: 'Track Payments in One Place',
     detail:
-      'Package money often stays open for weeks. Keep paid and remaining due on the same file.',
+      'See advance paid, balance left, and due amount on the same file.',
     vignette: 'invoice' as const,
   },
   {
     id: 'tickets',
-    label: 'Tickets & hotels',
-    title: 'Tickets beside the visa file',
+    label: 'Tickets & Hotels',
+    title: 'Tickets and Visas Together',
     detail:
-      'Air tickets and hotels live on the same desk as the visa, with SMS when status changes.',
+      'Keep air tickets and hotels with the visa file. Get SMS when status changes.',
     vignette: 'sms' as const,
   },
   {
     id: 'network',
-    label: 'Sub agents',
-    title: 'Files from your network',
+    label: 'Sub Agents',
+    title: 'Work With Your Sub Agents',
     detail:
-      'Sub agents in Chattogram or Sylhet send clients. You approve, and they follow progress.',
+      'Sub agents send clients. You approve. They can follow progress.',
     vignette: 'subAgents' as const,
   },
 ] as const
 
 /** Single continuous product film on the Features section. */
 export const LANDING_FEATURE_SHOW = {
-  title: 'Every file from start to finish',
+  title: 'Every Client File, Start to Finish',
 } as const
 
 export const LANDING_FAQS = [
@@ -171,7 +211,7 @@ export const LANDING_FAQS = [
   {
     question: 'How does pricing work?',
     answer:
-      'You pay monthly in Taka. Plans differ by team seats, storage, SMS, and sub agents. No setup fee.',
+      'You pay monthly or annually in Taka. Annual is two months free vs monthly. Plans differ by team seats, storage, SMS, and sub agents. No setup fee.',
   },
   {
     question: 'Can clients track their own file?',

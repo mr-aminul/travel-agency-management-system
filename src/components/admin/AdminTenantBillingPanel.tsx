@@ -232,7 +232,10 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
         </div>
         <div className="pd-client-detail__card-field">
           <dt>Price</dt>
-          <dd>{formatBdt(livePlan?.priceBdt ?? 0)}/mo</dd>
+          <dd>
+            {formatBdt(livePlan?.priceBdt ?? 0)}/
+            {livePlan?.interval === 'year' ? 'yr' : 'mo'}
+          </dd>
         </div>
         <div className="pd-client-detail__card-field">
           <dt>{periodLabel}</dt>

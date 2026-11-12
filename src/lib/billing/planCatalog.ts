@@ -96,6 +96,69 @@ export const PLAN_CATALOG: PlanTemplate[] = [
     isPublic: true,
     isActive: true,
   },
+  {
+    id: 'starter-year',
+    name: 'Starter',
+    description: 'Annual Starter — two months free vs monthly.',
+    sortOrder: 40,
+    priceBdt: 30000,
+    currency: 'BDT',
+    interval: 'year',
+    userLimit: 5,
+    subAgentLimit: 0,
+    storageLimitBytes: 10 * 1024 ** 3,
+    smsLimit: 300,
+    smsOverageBdt: 0.5,
+    modules: ['finance', 'documents', ...ALL_SERVICES],
+    features: { label: 'Starter' },
+    isPublic: true,
+    isActive: true,
+  },
+  {
+    id: 'growth-year',
+    name: 'Growth',
+    description: 'Annual Growth — two months free vs monthly.',
+    sortOrder: 50,
+    priceBdt: 65000,
+    currency: 'BDT',
+    interval: 'year',
+    userLimit: 20,
+    subAgentLimit: 30,
+    storageLimitBytes: 40 * 1024 ** 3,
+    smsLimit: 2000,
+    smsOverageBdt: 0.4,
+    modules: ['finance', 'documents', 'subAgents', ...ALL_SERVICES],
+    features: {
+      label: 'Growth',
+      includesSubAgents: true,
+      isHighlighted: true,
+      badge: 'Popular',
+    },
+    isPublic: true,
+    isActive: true,
+  },
+  {
+    id: 'business-year',
+    name: 'Business',
+    description: 'Annual Business — two months free vs monthly.',
+    sortOrder: 60,
+    priceBdt: 140000,
+    currency: 'BDT',
+    interval: 'year',
+    userLimit: 60,
+    subAgentLimit: 100,
+    storageLimitBytes: 100 * 1024 ** 3,
+    smsLimit: 8000,
+    smsOverageBdt: 0.3,
+    modules: ['finance', 'documents', 'subAgents', 'hr', ...ALL_SERVICES],
+    features: {
+      label: 'Business',
+      includesSubAgents: true,
+      includesHr: true,
+    },
+    isPublic: true,
+    isActive: true,
+  },
 ]
 
 export const TRIAL_PLAN_ID = 'growth'
@@ -105,7 +168,7 @@ export function planIsHighlighted(plan: PlanTemplate): boolean {
   if (typeof plan.features?.isHighlighted === 'boolean') {
     return plan.features.isHighlighted
   }
-  return plan.id === 'growth'
+  return plan.id === 'growth' || plan.id === 'growth-year'
 }
 
 export function planBadge(plan: PlanTemplate): string | null {

@@ -918,21 +918,24 @@ html:has(.lp2) body {
 
 .lp2-hero {
   --lp2-ticker-h: 52px;
+  /* Room for kicker + title + CTA under the nav before the shell. */
+  --lp2-hero-copy-budget: clamp(11rem, 28vh, 16rem);
   position: relative;
   z-index: 1;
   isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
+  /* Copy stays under the nav; shell fills what is left. Never clip the title. */
+  justify-content: flex-start;
   gap: 0;
   height: 100svh;
   height: 100dvh;
   min-height: 100svh;
   min-height: 100dvh;
   padding:
-    max(clamp(88px, 10vh, 120px), calc(env(safe-area-inset-top) + 72px))
-    clamp(16px, 4vw, 48px)
+    max(clamp(108px, 14vh, 168px), calc(env(safe-area-inset-top) + 108px))
+    clamp(12px, 1.5vw, 28px)
     0;
   overflow: hidden;
   background: #000;
@@ -964,13 +967,13 @@ html:has(.lp2) body {
 
 .lp2-hero__inner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: none;
-  width: min(920px, 100%);
-  margin: clamp(1.5rem, 4vh, 3rem) 0 clamp(0.75rem, 2vh, 1.25rem);
+  flex: 0 0 auto;
+  width: min(56rem, 100%);
+  margin: clamp(0.75rem, 2.4vh, 1.75rem) 0 clamp(1rem, 2.8vh, 2.25rem);
 }
 
 .lp2-hero__brand {
@@ -989,11 +992,24 @@ html:has(.lp2) body {
   border-radius: 0.375rem;
 }
 
+.lp2-hero__kicker {
+  max-width: min(42rem, 100%);
+  margin: 0 0 clamp(4px, 0.45vh, 8px);
+  font-size: clamp(13px, min(1.05vw, 1.6vh), 20px);
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: var(--lp-amber);
+  text-wrap: balance;
+}
+
 .lp2-hero__title {
   margin: 0;
-  width: min(100%, 920px);
+  width: 100%;
+  max-width: 18em;
   font-family: 'Intro Rust', 'Arial Black', Impact, sans-serif;
-  font-size: clamp(32px, 5vw, 64px);
+  /* Grows with screen, but capped by viewport height so it never clips. */
+  font-size: clamp(28px, min(4.2vw, 6.2vh), 72px);
   font-weight: 400;
   line-height: 1.02;
   letter-spacing: 0.01em;
@@ -1022,29 +1038,42 @@ html:has(.lp2) body {
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--lp2-s-100);
-  margin-top: var(--lp2-s-400);
+  margin-top: clamp(12px, 1.8vh, 28px);
+}
+
+.lp2-hero__ctas .lp2-btn {
+  min-height: clamp(42px, min(3.2vw, 5vh), 54px);
+  padding-inline: clamp(18px, 1.6vw, 28px);
+  font-size: clamp(14px, min(1vw, 1.5vh), 17px);
 }
 
 .lp2-hero__product {
   position: relative;
   z-index: 1;
-  flex: 0 0 auto;
+  /* Take leftover viewport under the copy; width is height-aware so fill cannot blow the stack. */
+  flex: 1 1 auto;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  width: min(960px, 100%);
+  align-self: center;
+  width: min(
+    94vw,
+    1480px,
+    calc((100dvh - var(--lp2-hero-copy-budget) - var(--lp2-ticker-h, 52px)) * 960 / 520)
+  );
+  max-width: 100%;
   min-width: 0;
-  /* Slide the shell under the ticker with the copy stack above it. */
-  margin: 0 0 calc(-1 * (var(--lp2-ticker-h, 52px) + 36px));
-  transform: translateY(28px);
+  min-height: 0;
+  margin: 0 0 calc(-1 * (var(--lp2-ticker-h, 52px) + 28px));
+  transform: translateY(clamp(36px, 6vh, 96px));
+  overflow: hidden;
   pointer-events: none;
 }
 
-/* Desktop only: drop the shell so ~brand + 3 sidebar rows peek above the ticker. */
 @media (min-width: 768px) {
   .lp2-hero__product {
-    margin-bottom: calc(-1 * (var(--lp2-ticker-h, 52px) + 88px));
-    transform: translateY(168px);
+    /* Extra air between the CTA and the shell on desktop. */
+    margin-top: clamp(12px, 2vh, 28px);
   }
 }
 
@@ -1106,21 +1135,27 @@ html:has(.lp2) body {
   }
 
   .lp2-hero__inner {
-    /* Fill space above the shell; center headline + CTA in that band. */
+    /* Fill the band above the shell and center kicker + title + CTA in it. */
     flex: 1 1 auto;
     justify-content: center;
     width: 100%;
     min-height: 0;
     margin: 0;
-    padding-block: 8px;
+    padding-block: 2px;
   }
 
   .lp2-hero__title {
-    font-size: clamp(28px, 7.5vw, 40px);
+    font-size: clamp(26px, 7vw, 36px);
   }
 
   .lp2-hero__title-line {
     white-space: normal;
+  }
+
+  .lp2-hero__kicker {
+    max-width: 34rem;
+    margin-bottom: 4px;
+    padding-inline: 4px;
   }
 
   .lp2-hero__sub {
@@ -1130,7 +1165,7 @@ html:has(.lp2) body {
   }
 
   .lp2-hero__ctas {
-    margin-top: 18px;
+    margin-top: 12px;
   }
 
   .lp2-hero__ctas .lp2-btn {
@@ -1138,26 +1173,25 @@ html:has(.lp2) body {
   }
 
   .lp2-hero__product {
+    /* Natural shell height, pinned above the ticker. */
     flex: 0 0 auto;
     align-self: stretch;
-    /* Pin to bottom; light tuck under ticker — enough peek, not a hard crop. */
     align-items: flex-end;
     justify-content: center;
     width: 100%;
-    max-width: none;
+    max-width: 100%;
     min-height: 0;
-    max-height: min(42vh, 320px);
-    margin: 0 0 calc(-1 * (var(--lp2-ticker-h, 46px) + 10px));
-    transform: translateY(10px);
+    margin: 0 0 var(--lp2-ticker-h, 46px);
+    transform: none;
     overflow: hidden;
     -webkit-mask-image: none;
     mask-image: none;
   }
 
   .lp2-hero__product > .fl.ss-fit {
-    /* Modest zoom so the shell is taller without eating the lower cards. */
-    width: min(122vw, 560px);
-    max-width: none;
+    /* Exact screen width — stageshow scales the full board down, no side crop. */
+    width: 100%;
+    max-width: 100%;
     flex: none;
   }
 
@@ -1172,7 +1206,7 @@ html:has(.lp2) body {
   }
 
   .lp2-hero__title {
-    font-size: clamp(26px, 8.4vw, 34px);
+    font-size: clamp(24px, 7.5vw, 32px);
     line-height: 1.05;
   }
 
@@ -1182,21 +1216,7 @@ html:has(.lp2) body {
   }
 
   .lp2-hero__ctas {
-    margin-top: 12px;
-  }
-
-  .lp2-hero__inner {
-    padding-block: 4px;
-  }
-
-  .lp2-hero__product {
-    max-height: min(40vh, 300px);
-    margin-bottom: calc(-1 * (var(--lp2-ticker-h, 46px) + 8px));
-    transform: translateY(8px);
-  }
-
-  .lp2-hero__product > .fl.ss-fit {
-    width: min(128vw, 580px);
+    margin-top: 10px;
   }
 }
 
@@ -4097,6 +4117,49 @@ html:has(.lp2) body {
     linear-gradient(180deg, #ffffff 0%, #f7f8fc 100%);
 }
 
+.lp2-pricing__seg {
+  display: inline-flex;
+  margin-top: var(--lp2-s-300);
+  margin-inline: auto;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(18, 26, 46, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(18, 26, 46, 0.06);
+}
+
+.lp2-pricing .lp2-section-head--center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lp2-pricing__seg button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--lp-paper-muted);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.lp2-pricing__seg button.is-active {
+  color: #fff;
+  background: var(--lp-navy);
+  box-shadow: 0 8px 20px rgba(18, 26, 46, 0.18);
+}
+
 .lp2-pricing__row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4105,7 +4168,7 @@ html:has(.lp2) body {
 }
 
 .lp2-ticket {
-  --stub: 156px;
+  --stub: 132px;
   --cut: calc(100% - var(--stub));
   --ticket-lift: 0px;
   --ticket-tilt: 0deg;
@@ -4115,6 +4178,7 @@ html:has(.lp2) body {
   position: relative;
   z-index: 0;
   display: block;
+  min-width: 0;
   color: inherit;
   text-decoration: none;
   cursor: pointer;
@@ -4133,8 +4197,10 @@ html:has(.lp2) body {
 }
 
 .lp2-ticket__skin {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--stub);
+  overflow: hidden;
   border-radius: 22px;
   background: var(--lp-card);
   box-shadow: inset 0 0 0 1px var(--lp-rule);
@@ -4191,7 +4257,7 @@ html:has(.lp2) body {
   }
 
   .lp2-ticket:hover .lp2-ticket__badge {
-    transform: translateY(-2px) scale(1.06);
+    filter: brightness(1.06);
   }
 
   .lp2-ticket:hover .lp2-ticket__price {
@@ -4264,50 +4330,54 @@ html:has(.lp2) body {
 }
 
 .lp2-ticket__main {
-  padding: 28px 26px 30px;
+  min-width: 0;
+  padding: 26px 20px 28px;
   border-right: 2px dashed var(--lp-rule);
 }
 
 .is-featured .lp2-ticket__main {
   border-right-color: rgba(232, 236, 246, 0.22);
-}
-
-.lp2-ticket__top {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  min-height: 24px;
-  margin-bottom: 8px;
+  padding-top: 34px;
 }
 
 .lp2-ticket__badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
   display: inline-flex;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
+  align-items: center;
+  padding: 5px 11px 4px;
+  border-radius: 0 0 10px 0;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1.15;
   text-transform: uppercase;
   color: var(--lp-ink);
   background: var(--lp-amber);
-  transform: translateY(0) scale(1);
-  transition: transform 280ms var(--lp2-ease);
+  pointer-events: none;
 }
 
 .lp2-ticket__name {
   margin: 0 0 10px;
-  font-size: 44px;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(30px, 2.8vw, 40px);
   font-weight: 600;
   letter-spacing: -0.03em;
-  line-height: 1;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lp2-ticket__fare {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
-  margin: 0 0 22px;
-  padding-bottom: 22px;
+  gap: 4px 8px;
+  margin: 0 0 20px;
+  padding-bottom: 18px;
   border-bottom: 1px solid var(--lp-rule);
 }
 
@@ -4316,16 +4386,21 @@ html:has(.lp2) body {
 }
 
 .lp2-ticket__fare .lp2-mono {
+  flex-shrink: 0;
   white-space: nowrap;
 }
 
 .lp2-ticket__price {
   display: inline-block;
-  font-size: clamp(36px, 3.2vw, 46px);
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(26px, 2.6vw, 38px);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
-  line-height: 1;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transform: translateY(0);
   transition: transform 280ms var(--lp2-ease);
 }
@@ -4342,7 +4417,13 @@ html:has(.lp2) body {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  font-size: 14.5px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.lp2-ticket__perks li span {
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .lp2-ticket__perk-icon {
@@ -4363,8 +4444,14 @@ html:has(.lp2) body {
 .lp2-ticket__stub {
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  padding: 28px 14px 22px;
+  gap: 16px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 26px 12px 20px;
+}
+
+.lp2-ticket__stub > div:first-child {
+  min-width: 0;
 }
 
 .lp2-ticket__stub .lp2-mono {
@@ -4378,10 +4465,15 @@ html:has(.lp2) body {
 }
 
 .lp2-ticket__stub strong {
-  display: inline-block;
-  font-size: 22px;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 18px;
   font-weight: 500;
   letter-spacing: 0.06em;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transform: scale(1);
   transform-origin: left center;
   transition: transform 280ms var(--lp2-ease);
@@ -4412,12 +4504,12 @@ html:has(.lp2) body {
   gap: var(--lp2-s-75);
   box-sizing: border-box;
   width: 100%;
-  min-height: 44px;
-  height: 44px;
-  padding: 0 20px;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 10px;
   border-radius: 999px;
   font-family: var(--lp2-font);
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 600;
   line-height: 1;
   letter-spacing: 0.01em;
@@ -4490,6 +4582,7 @@ html:has(.lp2) body {
   .is-featured .lp2-ticket__main {
     border-right-color: transparent;
     border-bottom-color: rgba(232, 236, 246, 0.22);
+    padding-top: 30px;
   }
 
   .lp2-ticket__name {

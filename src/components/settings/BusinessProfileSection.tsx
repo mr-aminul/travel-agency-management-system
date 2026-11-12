@@ -256,9 +256,9 @@ export function BusinessProfileSection({
                     ? `Trial ends ${formatDate(billing.trialEndsAt)} · ${trialDays}d left`
                     : `Trial ended ${formatDate(billing.trialEndsAt)}`
                   : billing?.currentPeriodEnd
-                    ? `Renews ${formatDate(billing.currentPeriodEnd)} · ${formatBdt(snapshot.plan?.priceBdt ?? 0)}/mo`
+                    ? `Renews ${formatDate(billing.currentPeriodEnd)} · ${formatBdt(snapshot.plan?.priceBdt ?? 0)}/${snapshot.plan?.interval === 'year' ? 'yr' : 'mo'}`
                     : snapshot.plan
-                      ? `${formatBdt(snapshot.plan.priceBdt)} / month`
+                      ? `${formatBdt(snapshot.plan.priceBdt)} / ${snapshot.plan.interval === 'year' ? 'year' : 'month'}`
                       : 'Choose a plan under Billing.'}
               </p>
               <Link

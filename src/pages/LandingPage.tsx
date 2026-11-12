@@ -36,6 +36,7 @@ import {
   TrackingVignette,
 } from '@/components/landing/FeatureVignettes'
 import {
+  ANNUAL_PRICING_PLANS,
   PRICING_PLANS,
   SALES_EMAIL,
   SERVICE_TYPES,
@@ -312,18 +313,14 @@ function Hero() {
         fetchPriority="high"
       />
       <div className="lp2-hero__inner">
-        <p className="lp2-hero__brand lp2-rise" style={revealDelay(40)}>
-          <img src={publicUrl('images/logo.svg')} alt="" width={28} height={28} />
-          OneTrack
+        <p className="lp2-hero__kicker lp2-rise" style={revealDelay(40)}>
+          Bangladesh's #1 Travel Agency Management Software
         </p>
         <h1 className="lp2-hero__title lp2-rise" id="lp2-hero-title" style={revealDelay(80)}>
           <span>Fly everything</span>
           <span className="lp2-hero__title-line">from one terminal</span>
         </h1>
-        <p className="lp2-hero__sub body-3 lp2-rise" style={revealDelay(180)}>
-          One board for every visa, ticket, and payment file on your desk.
-        </p>
-        <div className="lp2-hero__ctas lp2-rise" style={revealDelay(280)}>
+        <div className="lp2-hero__ctas lp2-rise" style={revealDelay(180)}>
           <a className="lp2-btn lp2-btn--navy button-md" href={subscribeUrl('growth')}>
             Start free trial
             <ArrowRight size={18} weight="bold" />
@@ -335,6 +332,7 @@ function Hero() {
         style={revealDelay(360)}
         aria-hidden
         data-ss-wide
+        data-ss-fill
       >
         <FileLands />
       </div>
@@ -375,7 +373,7 @@ function AudienceTabs() {
       <div className="lp2-wrap">
         <header className="lp2-section-head lp2-section-head--center" data-reveal>
           <h2 id="lp2-audiences-title" className="lp2-section-head__title">
-            Built for the files you already run
+            Made for Your Daily Agency Work
           </h2>
         </header>
         <div
@@ -467,56 +465,57 @@ const PERK_ICONS: Record<PricingPerkIcon, Icon> = {
   hr: IdentificationCard,
 }
 
-function PricingTicket({ plan, index }: { plan: PricingPlan; index: number }) {
+function PricingTicket({ plan }: { plan: PricingPlan }) {
   return (
-    <div data-reveal style={revealDelay(index * 110)}>
-      <a
-        className={plan.isFeatured ? 'lp2-ticket is-featured' : 'lp2-ticket'}
-        href={subscribeUrl(plan.id)}
-        aria-label={`Start trial — ${plan.name}`}
-      >
-        <div className="lp2-ticket__skin">
-          <div className="lp2-ticket__main">
-            {plan.isFeatured ? (
-              <div className="lp2-ticket__top">
-                <span className="lp2-ticket__badge">Popular</span>
-              </div>
-            ) : null}
-            <h3 className="lp2-ticket__name">{plan.name}</h3>
-            <p className="lp2-ticket__fare">
-              <span className="lp2-ticket__price">{formatTaka(plan.priceBdt)}</span>
-              <span className="lp2-mono">/ mo</span>
-            </p>
-            <ul className="lp2-ticket__perks">
-              {plan.perks.map((perk) => {
-                const PerkIcon = PERK_ICONS[perk.icon]
-                return (
-                  <li key={perk.label}>
-                    <PerkIcon className="lp2-ticket__perk-icon" size={16} weight="bold" aria-hidden />
-                    <span>{perk.label}</span>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-          <div className="lp2-ticket__stub">
-            <div>
-              <span className="lp2-mono">Seat</span>
-              <strong>{plan.seatCode}</strong>
-            </div>
-            <Barcode />
-            <span className="lp2-ticket__board">
-              Start trial
-              <ArrowUpRight size={15} weight="bold" aria-hidden="true" />
+    <a
+      className={plan.isFeatured ? 'lp2-ticket is-featured' : 'lp2-ticket'}
+      href={subscribeUrl(plan.id)}
+      aria-label={`Start trial — ${plan.name}`}
+    >
+      <div className="lp2-ticket__skin">
+        {plan.isFeatured ? (
+          <span className="lp2-ticket__badge">Popular</span>
+        ) : null}
+        <div className="lp2-ticket__main">
+          <h3 className="lp2-ticket__name">{plan.name}</h3>
+          <p className="lp2-ticket__fare">
+            <span className="lp2-ticket__price">{formatTaka(plan.priceBdt)}</span>
+            <span className="lp2-mono">
+              / {plan.interval === 'year' ? 'yr' : 'mo'}
             </span>
-          </div>
+          </p>
+          <ul className="lp2-ticket__perks">
+            {plan.perks.map((perk) => {
+              const PerkIcon = PERK_ICONS[perk.icon]
+              return (
+                <li key={perk.label}>
+                  <PerkIcon className="lp2-ticket__perk-icon" size={16} weight="bold" aria-hidden />
+                  <span>{perk.label}</span>
+                </li>
+              )
+            })}
+          </ul>
         </div>
-      </a>
-    </div>
+        <div className="lp2-ticket__stub">
+          <div>
+            <span className="lp2-mono">Seat</span>
+            <strong>{plan.seatCode}</strong>
+          </div>
+          <Barcode />
+          <span className="lp2-ticket__board">
+            Start trial
+            <ArrowUpRight size={15} weight="bold" aria-hidden="true" />
+          </span>
+        </div>
+      </div>
+    </a>
   )
 }
 
 function Pricing({ onAsk }: { onAsk: () => void }) {
+  const [billing, setBilling] = useState<'month' | 'year'>('month')
+  const plans = billing === 'year' ? ANNUAL_PRICING_PLANS : PRICING_PLANS
+
   return (
     <section
       className="lp2-pricing lp2-paper"
@@ -524,17 +523,39 @@ function Pricing({ onAsk }: { onAsk: () => void }) {
       aria-labelledby="lp2-pricing-title"
     >
       <div className="lp2-wrap">
-        <header className="lp2-section-head" data-reveal>
+        <header className="lp2-section-head lp2-section-head--center" data-reveal>
           <h2 id="lp2-pricing-title" className="lp2-section-head__title">
-            Monthly plans
+            Pricing Plans
           </h2>
           <p className="lp2-section-head__note body-3">
             Paid in Taka. 14 day trial, no card, no setup fee.
           </p>
+          <div
+            className="lp2-pricing__seg"
+            role="group"
+            aria-label="Billing period"
+          >
+            <button
+              type="button"
+              className={billing === 'month' ? 'is-active' : undefined}
+              aria-pressed={billing === 'month'}
+              onClick={() => setBilling('month')}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              className={billing === 'year' ? 'is-active' : undefined}
+              aria-pressed={billing === 'year'}
+              onClick={() => setBilling('year')}
+            >
+              Annual
+            </button>
+          </div>
         </header>
-        <div className="lp2-pricing__row">
-          {PRICING_PLANS.map((plan, index) => (
-            <PricingTicket key={plan.id} plan={plan} index={index} />
+        <div className="lp2-pricing__row" data-reveal>
+          {plans.map((plan) => (
+            <PricingTicket key={plan.id} plan={plan} />
           ))}
         </div>
         <p className="lp2-pricing__foot body-6" data-reveal>
@@ -554,15 +575,15 @@ function FinalCall({ onAsk }: { onAsk: () => void }) {
     <section className="lp2-final lp2-paper" aria-labelledby="lp2-final-title">
       <div className="lp2-wrap lp2-final__inner" data-reveal>
         <h2 id="lp2-final-title" className="lp2-final__title">
-          <span>Run your next file</span>
+          <span>Start Your Next File</span>
           <span>on OneTrack</span>
         </h2>
         <p className="lp2-final__risk body-3">
-          14 day trial, no card. Or ask Inventive Lab for a short walkthrough.
+          Free for 14 days. No card needed. Or ask Inventive Lab for a short demo.
         </p>
         <div className="lp2-final__actions">
           <a className="lp2-btn lp2-btn--navy button-md" href={subscribeUrl('growth')}>
-            Start 14 day trial
+            Start Free Trial
             <ArrowRight size={18} weight="bold" />
           </a>
           <button type="button" className="lp2-btn lp2-btn--ghost button-md" onClick={onAsk}>

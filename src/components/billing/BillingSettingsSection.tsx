@@ -221,7 +221,8 @@ export function BillingSettingsSection({ title, info }: Props) {
               <div className="pd-billing__plan-head">
                 <h3 className="pd-billing__plan-title">{plan.name}</h3>
                 <p className="pd-billing__plan-price">
-                  {formatBdt(plan.priceBdt)} <span>/ month</span>
+                  {formatBdt(plan.priceBdt)}{' '}
+                  <span>/ {plan.interval === 'year' ? 'year' : 'month'}</span>
                 </p>
               </div>
               <p className="pd-billing__plan-desc">{plan.description}</p>
@@ -280,9 +281,9 @@ export function BillingSettingsSection({ title, info }: Props) {
                   ? `Trial ends ${formatDate(billing.trialEndsAt)} · ${trialDays} day${trialDays === 1 ? '' : 's'} left`
                   : `Trial ended ${formatDate(billing.trialEndsAt)}`
                 : billing?.currentPeriodEnd
-                  ? `Renews ${formatDate(billing.currentPeriodEnd)} · ${formatBdt(snapshot.plan?.priceBdt ?? 0)}/mo`
+                  ? `Renews ${formatDate(billing.currentPeriodEnd)} · ${formatBdt(snapshot.plan?.priceBdt ?? 0)}/${snapshot.plan?.interval === 'year' ? 'yr' : 'mo'}`
                   : snapshot.plan
-                    ? `${formatBdt(snapshot.plan.priceBdt)} / month`
+                    ? `${formatBdt(snapshot.plan.priceBdt)} / ${snapshot.plan.interval === 'year' ? 'year' : 'month'}`
                     : 'Choose a plan to continue after trial.'}
             </p>
             {snapshot.access?.grace ? (
