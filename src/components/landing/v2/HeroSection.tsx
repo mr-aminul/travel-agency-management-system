@@ -55,7 +55,7 @@ function HeroTitle() {
               <img src={publicUrl('images/logo.svg')} alt="" />
             </span>
             <span className="hero-word">
-              <span style={{ '--w': 0, '--l': 1 } as CSSProperties}>One Track</span>
+              <span style={{ '--w': 0, '--l': 1 } as CSSProperties}>OneTrack</span>
             </span>
           </span>
         </span>
