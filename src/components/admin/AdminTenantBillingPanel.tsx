@@ -24,7 +24,7 @@ import {
   formatStorageUsage,
 } from '@/lib/billing/format'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
-import { useTenantById } from '@/lib/tenantsStore'
+import { setTenantStatus, useTenantById } from '@/lib/tenantsStore'
 import { Button } from '@/components/shadcn/button'
 import { Input } from '@/components/shadcn/input'
 import {
@@ -52,6 +52,8 @@ type StorageUnit = 'MB' | 'GB'
 
 type Props = {
   tenantId: string
+  /** `workspace` = full Billing tab; `compact` kept for reuse. */
+  variant?: 'compact' | 'workspace'
 }
 
 function storageDraftFromBytes(bytes: number): {
@@ -73,8 +75,12 @@ function bytesFromStorageDraft(value: string, unit: StorageUnit): number {
   return Math.round(n * (unit === 'MB' ? MB : GB))
 }
 
-/** Compact subscription block for the agency admin profile card. */
-export function AdminTenantBillingPanel({ tenantId }: Props) {
+/** Tenant billing controls — sidebar-compact or full Billing workspace. */
+export function AdminTenantBillingPanel({
+  tenantId,
+  variant = 'compact',
+}: Props) {
+  const isWorkspace = variant === 'workspace'
   const tenant = useTenantById(tenantId)
   const [snapshot, setSnapshot] = useState<BillingSnapshot | null>(null)
   const [plans, setPlans] = useState<PlanTemplate[]>([])
@@ -199,118 +205,180 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
   }
 
   return (
-    <div className={adminPlanClass} aria-label="Subscription">
+    <div
+      className={
+        isWorkspace
+          ? 'flex flex-col gap-4'
+          : adminPlanClass
+      }
+      aria-label="Subscription"
+    >
       {billingNotes ? (
-        <p className={`${adminQuietClass} mb-3`}>{billingNotes}</p>
+        <p className={`${adminQuietClass} mb-0`}>{billingNotes}</p>
       ) : null}
-      <dl className="pd-client-detail__card-fields">
-        <div className="pd-client-detail__card-field">
-          <dt>Plan</dt>
-          <dd>
-            <Select
-              value={planId}
+
+      <div
+        className={
+          isWorkspace
+            ? 'grid grid-cols-1 gap-4 lg:grid-cols-2'
+            : undefined
+        }
+      >
+        <section
+          className={
+            isWorkspace
+              ? 'overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm'
+              : undefined
+          }
+        >
+          {isWorkspace ? (
+            <h2 className="m-0 mb-3 text-sm font-semibold">Plan</h2>
+          ) : null}
+          <dl
+            className={
+              isWorkspace
+                ? 'm-0 grid grid-cols-1 gap-3 sm:grid-cols-2'
+                : 'pd-client-detail__card-fields'
+            }
+          >
+            <div className={isWorkspace ? 'flex flex-col gap-1.5' : 'pd-client-detail__card-field'}>
+              <dt className={isWorkspace ? 'text-xs text-muted-foreground' : undefined}>
+                Plan
+              </dt>
+              <dd className={isWorkspace ? 'm-0' : undefined}>
+                <Select
+                  value={planId}
+                  disabled={busy}
+                  onValueChange={(next) => {
+                    setPlanId(next)
+                    const matched = plans.find((p) => p.id === next)
+                    if (matched) setInvoiceAmount(String(matched.priceBdt))
+                    setBillingOpen(false)
+                  }}
+                >
+                  <SelectTrigger
+                    aria-label="Plan"
+                    className="h-8 w-full min-w-[12rem]"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {plans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {`${plan.name} · ${formatBdt(plan.priceBdt)}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </dd>
+            </div>
+            <div className={isWorkspace ? 'flex flex-col gap-1.5' : 'pd-client-detail__card-field'}>
+              <dt className={isWorkspace ? 'text-xs text-muted-foreground' : undefined}>
+                Price
+              </dt>
+              <dd className={isWorkspace ? 'm-0 text-sm font-medium tabular-nums' : undefined}>
+                {formatBdt(livePlan?.priceBdt ?? 0)}/
+                {livePlan?.interval === 'year' ? 'yr' : 'mo'}
+              </dd>
+            </div>
+            <div className={isWorkspace ? 'flex flex-col gap-1.5' : 'pd-client-detail__card-field'}>
+              <dt className={isWorkspace ? 'text-xs text-muted-foreground' : undefined}>
+                {periodLabel}
+              </dt>
+              <dd className={isWorkspace ? 'm-0 text-sm font-medium' : undefined}>
+                {periodValue}
+              </dd>
+            </div>
+            <div className={isWorkspace ? 'flex flex-col gap-1.5' : 'pd-client-detail__card-field'}>
+              <dt className={isWorkspace ? 'text-xs text-muted-foreground' : undefined}>
+                Users
+              </dt>
+              <dd className={isWorkspace ? 'm-0 text-sm font-medium tabular-nums' : undefined}>
+                {snapshot.usage.seatCommit} / {snapshot.limits.userLimit}
+              </dd>
+            </div>
+            <div className={isWorkspace ? 'flex flex-col gap-1.5' : 'pd-client-detail__card-field'}>
+              <dt className={isWorkspace ? 'text-xs text-muted-foreground' : undefined}>
+                SMS
+              </dt>
+              <dd className={isWorkspace ? 'm-0 text-sm font-medium tabular-nums' : undefined}>
+                {snapshot.usage.smsSent} / {snapshot.limits.smsLimit}
+              </dd>
+            </div>
+            <div className={isWorkspace ? 'flex flex-col gap-1.5' : 'pd-client-detail__card-field'}>
+              <dt className={isWorkspace ? 'text-xs text-muted-foreground' : undefined}>
+                Storage
+              </dt>
+              <dd className={isWorkspace ? 'm-0 text-sm font-medium tabular-nums' : undefined}>
+                {formatStorageUsage(
+                  snapshot.usage.storageBytes,
+                  snapshot.limits.storageLimitBytes,
+                )}
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section
+          className={
+            isWorkspace
+              ? 'overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm'
+              : adminPlanStorageClass
+          }
+          aria-label="Update storage limit"
+        >
+          {isWorkspace ? (
+            <h2 className="m-0 mb-3 text-sm font-semibold">Storage</h2>
+          ) : null}
+          <p className={adminQuietClass}>
+            Used {formatStorageBytes(snapshot.usage.storageBytes)}.
+          </p>
+          <div
+            className={
+              isWorkspace
+                ? 'mt-3 grid max-w-md grid-cols-[minmax(0,1fr)_5.5rem_auto] items-center gap-2'
+                : adminPlanStorageRowClass
+            }
+          >
+            <Input
+              aria-label="Storage limit amount"
+              type="number"
+              min={0}
+              step="any"
+              value={storageDraft}
               disabled={busy}
-              onValueChange={(next) => {
-                setPlanId(next)
-                const matched = plans.find((p) => p.id === next)
-                if (matched) setInvoiceAmount(String(matched.priceBdt))
-                setBillingOpen(false)
+              onChange={(event) => setStorageDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  saveStorageLimit()
+                }
               }}
+            />
+            <Select
+              value={storageUnit}
+              disabled={busy}
+              onValueChange={(next) =>
+                setStorageUnit(next === 'MB' ? 'MB' : 'GB')
+              }
             >
-              <SelectTrigger aria-label="Plan" className="h-8 w-full min-w-[12rem]">
+              <SelectTrigger aria-label="Storage unit" className="h-8 w-[5.5rem]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {plans.map((plan) => (
-                  <SelectItem key={plan.id} value={plan.id}>
-                    {`${plan.name} · ${formatBdt(plan.priceBdt)}`}
-                  </SelectItem>
-                ))}
+                <SelectItem value="GB">GB</SelectItem>
+                <SelectItem value="MB">MB</SelectItem>
               </SelectContent>
             </Select>
-          </dd>
-        </div>
-        <div className="pd-client-detail__card-field">
-          <dt>Price</dt>
-          <dd>
-            {formatBdt(livePlan?.priceBdt ?? 0)}/
-            {livePlan?.interval === 'year' ? 'yr' : 'mo'}
-          </dd>
-        </div>
-        <div className="pd-client-detail__card-field">
-          <dt>{periodLabel}</dt>
-          <dd>{periodValue}</dd>
-        </div>
-        <div className="pd-client-detail__card-field">
-          <dt>Users</dt>
-          <dd>
-            {snapshot.usage.seatCommit} / {snapshot.limits.userLimit}
-          </dd>
-        </div>
-        <div className="pd-client-detail__card-field">
-          <dt>SMS</dt>
-          <dd>
-            {snapshot.usage.smsSent} / {snapshot.limits.smsLimit}
-          </dd>
-        </div>
-        <div className="pd-client-detail__card-field">
-          <dt>Storage</dt>
-          <dd>
-            {formatStorageUsage(
-              snapshot.usage.storageBytes,
-              snapshot.limits.storageLimitBytes,
-            )}
-          </dd>
-        </div>
-      </dl>
-
-      <div
-        className={adminPlanStorageClass}
-        aria-label="Update storage limit"
-      >
-        <p className={adminQuietClass}>
-          Used {formatStorageBytes(snapshot.usage.storageBytes)}. Set a custom
-          limit for this agency (does not change the plan template).
-        </p>
-        <div className={adminPlanStorageRowClass}>
-          <Input
-            aria-label="Storage limit amount"
-            type="number"
-            min={0}
-            step="any"
-            value={storageDraft}
-            disabled={busy}
-            onChange={(event) => setStorageDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                saveStorageLimit()
-              }
-            }}
-          />
-          <Select
-            value={storageUnit}
-            disabled={busy}
-            onValueChange={(next) =>
-              setStorageUnit(next === 'MB' ? 'MB' : 'GB')
-            }
-          >
-            <SelectTrigger aria-label="Storage unit" className="h-8 w-[5.5rem]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="GB">GB</SelectItem>
-              <SelectItem value="MB">MB</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            size="sm"
-            disabled={busy || !storageDirty}
-            onClick={saveStorageLimit}
-          >
-            Save storage
-          </Button>
-        </div>
+            <Button
+              size="sm"
+              disabled={busy || !storageDirty}
+              onClick={saveStorageLimit}
+            >
+              Save
+            </Button>
+          </div>
+        </section>
       </div>
 
       {error ? (
@@ -376,10 +444,22 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           </Button>
         </div>
       ) : (
-        <div className={adminPlanOpsClass} role="group" aria-label="Billing ops">
+        <div
+          className={
+            isWorkspace
+              ? 'flex flex-wrap gap-2'
+              : adminPlanOpsClass
+          }
+          role="group"
+          aria-label="Billing ops"
+        >
           <Button
             size="sm"
-            className="w-full justify-center bg-primary border-primary text-primary-foreground hover:bg-primary/90 hover:border-primary/90 hover:text-primary-foreground"
+            className={
+              isWorkspace
+                ? 'h-9 rounded-lg'
+                : 'w-full justify-center bg-primary border-primary text-primary-foreground hover:bg-primary/90 hover:border-primary/90 hover:text-primary-foreground'
+            }
             disabled={busy}
             onClick={() => setBillingOpen(true)}
           >
@@ -388,7 +468,12 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           </Button>
           <Button
             size="sm"
-            className="w-full justify-center bg-[#185fa5] border-[#185fa5] text-white hover:bg-[#0f4d8a] hover:border-[#0f4d8a] hover:text-white"
+            variant={isWorkspace ? 'outline' : 'default'}
+            className={
+              isWorkspace
+                ? 'h-9 rounded-lg'
+                : 'w-full justify-center bg-[#185fa5] border-[#185fa5] text-white hover:bg-[#0f4d8a] hover:border-[#0f4d8a] hover:text-white'
+            }
             disabled={busy}
             onClick={() => void run(() => adminExtendTrial(tenantId, 14))}
           >
@@ -398,12 +483,15 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           <Button
             size="sm"
             variant="destructive"
-            className="w-full justify-center"
+            className={isWorkspace ? 'h-9 rounded-lg' : 'w-full justify-center'}
             disabled={busy || billingStatus === 'suspended'}
             onClick={() =>
-              void run(() =>
-                adminPatchBilling(tenantId, { billingStatus: 'suspended' }),
-              )
+              void run(async () => {
+                await adminPatchBilling(tenantId, {
+                  billingStatus: 'suspended',
+                })
+                setTenantStatus(tenantId, 'suspended')
+              })
             }
           >
             <PauseCircle size={13} strokeWidth={2.25} aria-hidden />
@@ -411,12 +499,17 @@ export function AdminTenantBillingPanel({ tenantId }: Props) {
           </Button>
           <Button
             size="sm"
-            className="w-full justify-center bg-[var(--color-theme)] border-[var(--color-theme)] text-[var(--color-on-theme,#fff)] hover:bg-[color-mix(in_srgb,var(--color-theme)_88%,black)] hover:border-[color-mix(in_srgb,var(--color-theme)_88%,black)]"
+            className={
+              isWorkspace
+                ? 'h-9 rounded-lg'
+                : 'w-full justify-center bg-[var(--color-theme)] border-[var(--color-theme)] text-[var(--color-on-theme,#fff)] hover:bg-[color-mix(in_srgb,var(--color-theme)_88%,black)] hover:border-[color-mix(in_srgb,var(--color-theme)_88%,black)]'
+            }
             disabled={busy || billingStatus !== 'suspended'}
             onClick={() =>
-              void run(() =>
-                adminPatchBilling(tenantId, { billingStatus: 'active' }),
-              )
+              void run(async () => {
+                await adminPatchBilling(tenantId, { billingStatus: 'active' })
+                setTenantStatus(tenantId, 'active')
+              })
             }
           >
             <CheckCircle2 size={13} strokeWidth={2.25} aria-hidden />

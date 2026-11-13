@@ -8,30 +8,19 @@ import {
 import { TENANT_BILLING_CHANGED_EVENT } from '@/lib/billing/billingEvents'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
 import { useTenantById } from '@/lib/tenantsStore'
+import { cn } from '@/lib/utils'
 import { LabeledSwitch } from '@/components/clients/LabeledSwitch'
-import { Badge } from '@/components/shadcn/badge'
 import { Button } from '@/components/shadcn/button'
 import { Input } from '@/components/shadcn/input'
 import type { BillingSnapshot } from '@/types/billing'
-import {
-  adminMessagingQuantityClass,
-  adminMessagingQuantityHeadClass,
-  adminMessagingQuantityRowClass,
-  adminModuleGroupClass,
-  adminModuleGroupTitleClass,
-  adminModuleIconClass,
-  adminModuleLabelClass,
-  adminModuleListGridClass,
-  adminModuleMetaClass,
-  adminModuleRowClass,
-  adminModuleSwitchClass,
-  adminModulesClass,
-  adminQuietClass,
-} from '@/components/admin/adminChrome'
+import { adminQuietClass } from '@/components/admin/adminChrome'
 
 type Props = {
   tenantId: string
 }
+
+const bodyIconClass =
+  'inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground'
 
 /** Platform controls: SMS/email allow + per-agency SMS quantity hard cap. */
 export function AdminTenantMessagingEditor({ tenantId }: Props) {
@@ -91,8 +80,10 @@ export function AdminTenantMessagingEditor({ tenantId }: Props) {
   const liveLimit = snapshot.limits.smsLimit
   const limitDirty = smsLimitDraft.trim() !== String(liveLimit)
   const remaining = Math.max(0, liveLimit - smsSent)
-  // 0 quantity (or none left) → not available; any leftover quantity → available
-  const isSmsAvailable = remaining > 0
+  const smsOn = snapshot.billing?.smsEnabled !== false
+  const emailOn = snapshot.billing?.emailEnabled !== false
+  const usagePct =
+    liveLimit > 0 ? Math.min(100, Math.round((smsSent / liveLimit) * 100)) : 0
 
   const saveSmsLimit = () => {
     const raw = smsLimitDraft.trim()
@@ -116,114 +107,48 @@ export function AdminTenantMessagingEditor({ tenantId }: Props) {
   }
 
   return (
-    <div className={adminModulesClass} aria-label="SMS and email permission">
+    <div className="flex flex-col gap-4" aria-label="SMS / Email">
       {error ? (
         <p className="m-0 text-sm text-destructive" role="alert">
           {error}
         </p>
       ) : null}
 
-      <section
-        className={adminModuleGroupClass}
-        aria-labelledby="pd-admin-messaging-permission"
-      >
-        <h3
-          id="pd-admin-messaging-permission"
-          className={adminModuleGroupTitleClass}
-        >
-          Permission
-        </h3>
-        <ul className={adminModuleListGridClass}>
-          <li className={adminModuleRowClass}>
-            <div className={adminModuleMetaClass}>
-              <span className={adminModuleIconClass} aria-hidden>
-                <MessageSquareText size={16} strokeWidth={2.1} />
-              </span>
-              <span className={adminModuleLabelClass}>SMS allowed</span>
-            </div>
-            <LabeledSwitch
-              label={
-                snapshot.billing?.smsEnabled === false
-                  ? 'Blocked by platform'
-                  : 'Agency may send'
-              }
-              className={adminModuleSwitchClass}
-              checked={snapshot.billing?.smsEnabled !== false}
-              disabled={busy}
-              onChange={(event) => {
-                const next = event.target.checked
-                void run(() =>
-                  adminPatchBilling(tenantId, { smsEnabled: next }),
-                )
-              }}
-            />
-          </li>
-          <li className={adminModuleRowClass}>
-            <div className={adminModuleMetaClass}>
-              <span className={adminModuleIconClass} aria-hidden>
-                <Mail size={16} strokeWidth={2.1} />
-              </span>
-              <span className={adminModuleLabelClass}>Email allowed</span>
-            </div>
-            <LabeledSwitch
-              label={
-                snapshot.billing?.emailEnabled === false
-                  ? 'Blocked by platform'
-                  : 'Agency may send'
-              }
-              className={adminModuleSwitchClass}
-              checked={snapshot.billing?.emailEnabled !== false}
-              disabled={busy}
-              onChange={(event) => {
-                const next = event.target.checked
-                void run(() =>
-                  adminPatchBilling(tenantId, { emailEnabled: next }),
-                )
-              }}
-            />
-          </li>
-        </ul>
-        <p className={adminQuietClass}>
-          Agency SMS:{' '}
-          {snapshot.billing?.smsEnabled === false
-            ? 'Off (platform)'
-            : snapshot.billing?.agencySmsEnabled === false
-              ? 'Off (their choice)'
-              : 'On'}
-          {' · '}
-          Agency email:{' '}
-          {snapshot.billing?.emailEnabled === false
-            ? 'Off (platform)'
-            : snapshot.billing?.agencyEmailEnabled === false
-              ? 'Off (their choice)'
-              : 'On'}
-        </p>
-      </section>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <ChannelCard
+          icon={MessageSquareText}
+          title="SMS"
+          checked={smsOn}
+          disabled={busy}
+          onChange={(next) => {
+            void run(() => adminPatchBilling(tenantId, { smsEnabled: next }))
+          }}
+        />
+        <ChannelCard
+          icon={Mail}
+          title="Email"
+          checked={emailOn}
+          disabled={busy}
+          onChange={(next) => {
+            void run(() => adminPatchBilling(tenantId, { emailEnabled: next }))
+          }}
+        />
+      </div>
 
       <section
-        className={adminModuleGroupClass}
-        aria-labelledby="pd-admin-messaging-quantity"
+        className="rounded-xl border border-border bg-card p-4 shadow-sm"
+        aria-label="SMS quantity"
       >
-        <div className={adminMessagingQuantityHeadClass}>
-          <h3
-            id="pd-admin-messaging-quantity"
-            className={adminModuleGroupTitleClass}
-          >
-            SMS quantity
-          </h3>
-          <Badge variant={isSmsAvailable ? 'default' : 'destructive'}>
-            {isSmsAvailable ? 'Available' : 'Not available'}
-          </Badge>
-        </div>
-        <div className={adminMessagingQuantityClass}>
-          <p className={adminQuietClass}>
-            {liveLimit === 0
-              ? 'Quantity is 0 — SMS is not available. Add a quantity to make it available.'
-              : remaining === 0
-                ? `Used all ${liveLimit.toLocaleString('en-BD')} — SMS is not available until you add more.`
-                : `Used ${smsSent.toLocaleString('en-BD')} of ${liveLimit.toLocaleString('en-BD')} · ${remaining.toLocaleString('en-BD')} left. Sending stops when this quantity is finished.`}
-          </p>
-          <div className={adminMessagingQuantityRowClass}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="m-0 text-sm font-semibold">SMS quantity</h3>
+            <p className={cn(adminQuietClass, 'mt-1')}>
+              {liveLimit === 0
+                ? 'Quantity 0 — SMS not available'
+                : `${smsSent.toLocaleString('en-BD')} used · ${remaining.toLocaleString('en-BD')} left`}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <Input
               aria-label="SMS quantity limit"
               type="number"
@@ -231,6 +156,7 @@ export function AdminTenantMessagingEditor({ tenantId }: Props) {
               step={1}
               value={smsLimitDraft}
               disabled={busy}
+              className="h-9 w-[9.5rem] rounded-lg"
               onChange={(event) => setSmsLimitDraft(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
@@ -241,14 +167,66 @@ export function AdminTenantMessagingEditor({ tenantId }: Props) {
             />
             <Button
               size="sm"
+              className="h-9 rounded-lg"
               disabled={busy || !limitDirty}
               onClick={saveSmsLimit}
             >
-              Save quantity
+              Save
             </Button>
           </div>
         </div>
+        {liveLimit > 0 ? (
+          <div
+            className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-label="SMS used"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={usagePct}
+          >
+            <div
+              className={cn(
+                'h-full rounded-full bg-[#2abf94] transition-[width]',
+                usagePct >= 90 && 'bg-destructive',
+              )}
+              style={{ width: `${usagePct}%` }}
+            />
+          </div>
+        ) : null}
       </section>
+    </div>
+  )
+}
+
+function ChannelCard({
+  icon: Icon,
+  title,
+  checked,
+  disabled,
+  onChange,
+}: {
+  icon: typeof MessageSquareText
+  title: string
+  checked: boolean
+  disabled: boolean
+  onChange: (next: boolean) => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-sm">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className={bodyIconClass} aria-hidden>
+          <Icon size={14} strokeWidth={2} />
+        </span>
+        <p className="m-0 text-sm font-semibold">{title}</p>
+      </div>
+      <LabeledSwitch
+        label={title}
+        className="shrink-0 [&>span:last-child]:sr-only"
+        offDanger
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+      />
     </div>
   )
 }

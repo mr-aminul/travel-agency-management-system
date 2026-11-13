@@ -17,15 +17,20 @@ export const ADMIN_ADMINS = '/admin/admins'
 
 export const ADMIN_ANNOUNCEMENTS = '/admin/announcements'
 
+export type AdminAgencySection =
+  | 'all'
+  | 'overview'
+  | 'access'
+  | 'people'
+  | 'product'
+  | 'billing'
+  /** @deprecated Legacy URL; redirects to access. */
+  | 'messaging'
+  | 'activity'
+
 export function adminAgencyPath(
   tenantId: string,
-  section:
-    | 'all'
-    | 'overview'
-    | 'people'
-    | 'product'
-    | 'messaging'
-    | 'activity' = 'all',
+  section: AdminAgencySection = 'overview',
 ): string {
   return `${ADMIN_AGENCIES}/${tenantId}/${section}`
 }
@@ -75,5 +80,5 @@ export function adminViewAsAgencyPath(
   if (safeNext && safeNext !== '/') {
     params.set('next', safeNext)
   }
-  return `${adminAgencyPath(tenantId, 'all')}?${params.toString()}`
+  return `${adminAgencyPath(tenantId, 'overview')}?${params.toString()}`
 }

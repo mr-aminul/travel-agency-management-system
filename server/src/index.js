@@ -1397,45 +1397,6 @@ app.post('/api/platform/audit', requireAuth, async (req, res) => {
   }
 })
 
-app.post(
-  '/api/platform/admin/repair/tenant-isolation',
-  requirePlatformAdmin,
-  async (req, res) => {
-    try {
-      const { ensureSubAgentIdsGloballyUnique } = await import(
-        './subAgentIds.js'
-      )
-      const { repairTenantIsolation } = await import(
-        './tenantIsolationRepair.js'
-      )
-      const ids = await ensureSubAgentIdsGloballyUnique()
-      const repair = await repairTenantIsolation()
-      await appendAudit({
-        tenantId: req.auth.tenantId || 'platform',
-        actorUserId: req.auth.user.id,
-        actorEmail: req.auth.user.email,
-        action: 'admin.repair_tenant_isolation',
-        entityType: 'platform',
-        entityId: 'tenant-isolation',
-        summary: 'Repaired cross-agency client / sub-agent isolation',
-        meta: { ...repair, remappedSubAgentIds: ids.remaps?.length ?? 0 },
-      }).catch(() => {})
-      res.json({
-        ok: true,
-        remappedSubAgentIds: ids.remaps?.length ?? 0,
-        ...repair,
-      })
-    } catch (error) {
-      res.status(500).json({
-        error:
-          error instanceof Error
-            ? error.message
-            : 'tenant isolation repair failed',
-      })
-    }
-  },
-)
-
 app.get(
   '/api/platform/admin/admins',
   requirePlatformAdmin,

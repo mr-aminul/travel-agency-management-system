@@ -183,6 +183,9 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   padding-top: var(--pd-topbar-gap);
   padding-right: 0.5rem;
   padding-bottom: 0.5rem;
+  /* Keep the white page body from painting over the sidebar if a focus
+     scroll briefly mis-positions the content column. */
+  overflow: hidden;
 }
 
 .pd-app-shell--mobile {
@@ -202,6 +205,9 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  z-index: 0;
 }
 
 /*
@@ -341,6 +347,8 @@ html.pd-motion-paused .pd-app-sidebar--mobile.is-open::before {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+  z-index: 2;
   transition: width var(--sidebar-duration) var(--sidebar-ease);
   --color-active-nav: color-mix(in srgb, var(--color-theme) 40%, #4c82ff);
   --color-active-nav-soft: color-mix(in srgb, var(--color-theme) 55%, #3a6ae0);

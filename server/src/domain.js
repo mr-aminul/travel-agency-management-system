@@ -43,6 +43,7 @@ export async function migrateDomainFromKv() {
     const tenantId = itemTenantId(item)
     const id = typeof item?.id === 'string' ? item.id.trim() : ''
     if (!tenantId || !id) continue
+    if (await clientIdOwnedByOtherTenant(id, tenantId)) continue
     await upsertClient(tenantId, item)
   }
 
@@ -60,6 +61,7 @@ export async function migrateDomainFromKv() {
     const tenantId = itemTenantId(item)
     const id = typeof item?.id === 'string' ? item.id.trim() : ''
     if (!tenantId || !id) continue
+    if (await caseIdOwnedByOtherTenant(id, tenantId)) continue
     await upsertCase(tenantId, item)
   }
 
@@ -68,12 +70,17 @@ export async function migrateDomainFromKv() {
     const tenantId = itemTenantId(item)
     const id = typeof item?.id === 'string' ? item.id.trim() : ''
     if (!tenantId || !id) continue
+    if (await paymentIdOwnedByOtherTenant(id, tenantId)) continue
     await upsertPayment(tenantId, item)
   }
 }
 
 export async function upsertClient(tenantId, item) {
   const id = String(item.id).trim()
+  if (!id) return
+  if (await clientIdOwnedByOtherTenant(id, tenantId)) {
+    throw new Error('Client id belongs to another agency.')
+  }
   const payload = { ...item, tenantId, id }
   await query(
     `insert into platform.clients
@@ -123,6 +130,10 @@ export async function upsertTrash(tenantId, entry) {
 
 export async function upsertCase(tenantId, item) {
   const id = String(item.id).trim()
+  if (!id) return
+  if (await caseIdOwnedByOtherTenant(id, tenantId)) {
+    throw new Error('Case id belongs to another agency.')
+  }
   const payload = { ...item, tenantId, id }
   await query(
     `insert into platform.cases
@@ -145,6 +156,10 @@ export async function upsertCase(tenantId, item) {
 
 export async function upsertPayment(tenantId, item) {
   const id = String(item.id).trim()
+  if (!id) return
+  if (await paymentIdOwnedByOtherTenant(id, tenantId)) {
+    throw new Error('Payment id belongs to another agency.')
+  }
   const payload = { ...item, tenantId, id }
   await query(
     `insert into platform.payments

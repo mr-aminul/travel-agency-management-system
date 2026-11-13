@@ -1,18 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ScrollText } from 'lucide-react'
-import { Select } from '@/components/clients/clientShadcnFields'
-import { Empty, EmptyHeader, EmptyTitle } from '@/components/shadcn/empty'
-import { PageHeader } from '@/components/shadcn/page-header'
+import { Activity, Search } from 'lucide-react'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/shadcn/table'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/shadcn/select'
+import { Input as SearchInput } from '@/components/shadcn/input'
+import { PlatformAuditFeed } from '@/components/admin/PlatformAuditFeed'
 import { useAuth } from '@/lib/auth'
-import { formatDisplayDateTime } from '@/lib/formatDate'
 import {
   listPlatformAudit,
   type PlatformAuditEntry,
@@ -20,12 +17,11 @@ import {
 import { useTenants } from '@/lib/tenantsStore'
 import { cn } from '@/lib/utils'
 import {
+  adminClientsToolbarClass,
   adminQuietClass,
-  adminToolbarRowClass,
-  chromeHeadClass,
   elevatedPageClass,
-  tableShellClass,
 } from '@/components/admin/adminChrome'
+import { pureWhiteFieldClass } from '@/components/clients/shadcnChrome'
 import '@/styles/layout-admin.css'
 import '@/styles/layout-clients.css'
 
@@ -37,6 +33,7 @@ export default function AdminActivityPage({
   const { user } = useAuth()
   const tenants = useTenants()
   const [tenantFilter, setTenantFilter] = useState(lockedTenantId ?? 'all')
+  const [search, setSearch] = useState('')
   const [audit, setAudit] = useState<PlatformAuditEntry[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -71,80 +68,101 @@ export default function AdminActivityPage({
   const tenantName = (id: string) =>
     tenants.find((t) => t.id === id)?.name ?? id
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return audit
+    return audit.filter((row) => {
+      const agency = tenants.find((t) => t.id === row.tenantId)?.name ?? row.tenantId
+      const haystack = [
+        row.summary,
+        row.action,
+        row.actorEmail,
+        row.actorUserId,
+        row.entityType,
+        row.entityId,
+        agency,
+      ]
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [audit, search, tenants])
+
   if (user?.role !== 'platform_admin') return null
 
+  // When embedded in TenantAdminLayout, do not nest another `.pd-page` /
+  // `data-elevated-canvas` — that fights the shell flex scroll pane.
   return (
     <div
       className={cn(
-        elevatedPageClass,
-        'pd-page pd-page--elevated pd-admin',
-        lockedTenantId && 'pd-admin--embedded',
+        lockedTenantId
+          ? 'flex flex-col gap-4'
+          : cn(elevatedPageClass, 'pd-page pd-page--elevated pd-admin pd-clients'),
       )}
-      data-elevated-canvas
+      data-elevated-canvas={lockedTenantId ? undefined : true}
       aria-label="Activity"
     >
       {lockedTenantId ? null : (
-        <PageHeader title="Activity" />
-      )}
-
-      {lockedTenantId ? null : (
-        <div className={adminToolbarRowClass}>
-          <Select
-            label="Agency"
-            value={tenantFilter}
-            options={tenantOptions}
-            onChange={(event) => setTenantFilter(event.target.value)}
-          />
-        </div>
-      )}
-
-      {loading ? (
-        <p className={adminQuietClass}>Loading audit…</p>
-      ) : audit.length === 0 ? (
-        <Empty className="bg-card shadow-sm">
-          <EmptyHeader>
-            <ScrollText size={20} aria-hidden />
-            <EmptyTitle>
-              {tenantFilter === 'all'
-                ? 'No Audit Entries'
-                : 'No Entries For This Agency'}
-            </EmptyTitle>
-          </EmptyHeader>
-        </Empty>
-      ) : (
-        <div className={tableShellClass}>
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent border-0">
-                <TableHead className={chromeHeadClass}>When</TableHead>
-                {lockedTenantId ? null : (
-                  <TableHead className={chromeHeadClass}>Agency</TableHead>
-                )}
-                <TableHead className={chromeHeadClass}>Actor</TableHead>
-                <TableHead className={chromeHeadClass}>Action</TableHead>
-                <TableHead className={chromeHeadClass}>Summary</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {audit.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>
-                    {row.createdAt
-                      ? formatDisplayDateTime(row.createdAt)
-                      : '-'}
-                  </TableCell>
-                  {lockedTenantId ? null : (
-                    <TableCell>{tenantName(row.tenantId)}</TableCell>
-                  )}
-                  <TableCell>{row.actorEmail || row.actorUserId}</TableCell>
-                  <TableCell className="font-mono text-xs">{row.action}</TableCell>
-                  <TableCell>{row.summary}</TableCell>
-                </TableRow>
+        <div className={adminClientsToolbarClass}>
+          <div className="relative min-w-56 flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <SearchInput
+              className={cn('pl-8', pureWhiteFieldClass)}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search Activity…"
+              aria-label="Search Activity"
+            />
+          </div>
+          <Select value={tenantFilter} onValueChange={setTenantFilter}>
+            <SelectTrigger
+              aria-label="Agency"
+              className={cn(pureWhiteFieldClass, 'w-[14rem]')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {tenantOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
               ))}
-            </TableBody>
-          </Table>
+            </SelectContent>
+          </Select>
         </div>
       )}
+
+      <section
+        className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+        aria-label="Recent activity"
+      >
+        <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
+          <span
+            className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--color-theme-subtle)] text-[var(--color-theme-ink)]"
+            aria-hidden
+          >
+            <Activity size={15} strokeWidth={2.25} />
+          </span>
+          <h2 className="m-0 text-sm font-semibold">Recent Activity</h2>
+        </div>
+
+        {loading ? (
+          <p className={cn(adminQuietClass, 'px-3.5 py-6')}>Loading audit…</p>
+        ) : (
+          <PlatformAuditFeed
+            rows={filtered}
+            agencyNameFor={
+              lockedTenantId ? undefined : (id) => tenantName(id)
+            }
+            emptyLabel={
+              tenantFilter === 'all'
+                ? 'No Recent Activity'
+                : 'No Entries For This Agency'
+            }
+            maxHeightClass="max-h-[min(40rem,calc(100vh-14rem))]"
+          />
+        )}
+      </section>
     </div>
   )
 }

@@ -30,15 +30,16 @@ import {
   chromeHeadClass,
   elevatedPageClass,
   tableShellClass,
-  whiteControlClass,
 } from '@/components/admin/adminChrome'
 import '@/styles/layout-admin.css'
 import '@/styles/layout-clients.css'
-import { floatingSheetClass } from '@/components/clients/shadcnChrome'
+import {
+  floatingSheetClass,
+  pureWhiteFieldClass,
+} from '@/components/clients/shadcnChrome'
 import { cn } from '@/lib/utils'
-import { Input, Select as FormSelect } from '@/components/clients/clientShadcnFields'
+import { Input } from '@/components/clients/clientShadcnFields'
 import { Button } from '@/components/shadcn/button'
-import { PageHeader } from '@/components/shadcn/page-header'
 import {
   Select,
   SelectContent,
@@ -257,40 +258,39 @@ export default function TenantsAdminPage() {
       data-elevated-canvas
       aria-label="Agencies"
     >
-      <PageHeader
-        title="Agencies"
-        actions={
-          <Button className="h-9 rounded-lg" onClick={() => setCreateOpen(true)}>
-            <Plus size={16} strokeWidth={2.25} aria-hidden />
-            Add Agency
-          </Button>
-        }
-      />
-
       <StatCards label="Agency counts" cards={cards} />
 
       <div className={adminClientsToolbarClass}>
         <div className="relative min-w-56 flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <SearchInput
-            className={cn('pl-8', whiteControlClass)}
+            className={cn('pl-8', pureWhiteFieldClass)}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search Agencies…"
             aria-label="Search Agencies"
           />
         </div>
-        <FormSelect
-          label="Status"
-          value={statusFilter}
-          options={STATUS_FILTERS}
-          onChange={(event) => setStatusFilter(event.target.value)}
-        />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger
+            aria-label="Status"
+            className={cn(pureWhiteFieldClass, 'w-[10rem]')}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_FILTERS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {hasFilters ? (
           <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 rounded-lg"
+            type="button"
+            variant="outline"
+            className={cn(pureWhiteFieldClass, 'px-3')}
             onClick={() => {
               setSearch('')
               setStatusFilter('all')
@@ -299,6 +299,10 @@ export default function TenantsAdminPage() {
             Clear
           </Button>
         ) : null}
+        <Button className="h-9 rounded-lg" onClick={() => setCreateOpen(true)}>
+          <Plus size={16} strokeWidth={2.25} aria-hidden />
+          Add Agency
+        </Button>
       </div>
 
       {tenants.length === 0 ? (
@@ -500,7 +504,7 @@ export default function TenantsAdminPage() {
           if (!next) {
             const tenantId = createdCredentials?.tenantId
             setCreatedCredentials(null)
-            if (tenantId) navigate(adminAgencyPath(tenantId, 'product'))
+            if (tenantId) navigate(adminAgencyPath(tenantId, 'access'))
           }
         }}
       >
@@ -534,7 +538,7 @@ export default function TenantsAdminPage() {
               onClick={() => {
                 const tenantId = createdCredentials?.tenantId
                 setCreatedCredentials(null)
-                if (tenantId) navigate(adminAgencyPath(tenantId, 'product'))
+                if (tenantId) navigate(adminAgencyPath(tenantId, 'access'))
                 else navigate(ADMIN_AGENCIES)
               }}
             >

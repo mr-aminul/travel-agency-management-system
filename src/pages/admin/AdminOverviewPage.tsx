@@ -26,7 +26,6 @@ import {
 } from '@/lib/billing/billingApi'
 import { formatBdt, formatDate } from '@/lib/billing/format'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
-import { repairTenantIsolation } from '@/lib/platformAdminApi'
 import { useTenantMembers } from '@/lib/tenantMembersStore'
 import { useTenants } from '@/lib/tenantsStore'
 import {
@@ -83,8 +82,6 @@ export default function AdminOverviewPage() {
   const [pendingInvoices, setPendingInvoices] = useState<BillingInvoice[]>([])
   const [billingBusyId, setBillingBusyId] = useState<string | null>(null)
   const [billingError, setBillingError] = useState<string | null>(null)
-  const [repairBusy, setRepairBusy] = useState(false)
-  const [repairStatus, setRepairStatus] = useState<string | null>(null)
 
   useEffect(() => {
     if (user?.role !== 'platform_admin' || !authApiConfigured()) return
@@ -167,32 +164,6 @@ export default function AdminOverviewPage() {
     }
   }
 
-  const runIsolationRepair = async () => {
-    setRepairBusy(true)
-    setRepairStatus(null)
-    try {
-      const result = await repairTenantIsolation()
-      const removed =
-        (result.removedDuplicateIds ?? 0) +
-        (result.removedDuplicatePhones ?? 0) +
-        (result.removedDuplicateCases ?? 0) +
-        (result.removedDuplicatePayments ?? 0)
-      setRepairStatus(
-        removed > 0
-          ? `Removed ${removed} cross-agency clone(s). Exit View as and open the agency again.`
-          : 'No cross-agency clones found. Isolation checks are clean.',
-      )
-    } catch (err) {
-      setRepairStatus(
-        err instanceof Error
-          ? err.message
-          : 'Could not repair tenant isolation.',
-      )
-    } finally {
-      setRepairBusy(false)
-    }
-  }
-
   return (
     <div
       className={cn(elevatedPageClass, 'pd-page pd-page--elevated pd-admin')}
@@ -203,14 +174,6 @@ export default function AdminOverviewPage() {
         title="Platform"
         actions={
           <>
-            <Button
-              variant="outline"
-              className="h-9 rounded-lg"
-              disabled={repairBusy || !authApiConfigured()}
-              onClick={() => void runIsolationRepair()}
-            >
-              {repairBusy ? 'Repairing…' : 'Repair Data Isolation'}
-            </Button>
             <Button
               variant="outline"
               className="h-9 rounded-lg"
@@ -227,11 +190,6 @@ export default function AdminOverviewPage() {
           </>
         }
       />
-      {repairStatus ? (
-        <p className={adminQuietClass} role="status">
-          {repairStatus}
-        </p>
-      ) : null}
 
       <StatCards label="Platform metrics" cards={cards} />
 

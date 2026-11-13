@@ -60,7 +60,7 @@ export function SegmentedNav({
 
   useEffect(() => {
     const root = rootRef.current
-    if (!root) return
+    if (!root || typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(() => updateIndicator())
     observer.observe(root)
     window.addEventListener('resize', updateIndicator)

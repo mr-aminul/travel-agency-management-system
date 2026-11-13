@@ -16,12 +16,10 @@ import {
 } from '@/lib/tenantMembersStore'
 import { useTenants } from '@/lib/tenantsStore'
 import { findSubAgentById } from '@/lib/subAgentsStore'
-import { Select as FormSelect } from '@/components/clients/clientShadcnFields'
 import { Avatar, AvatarFallback } from '@/components/shadcn/avatar'
 import { Button } from '@/components/shadcn/button'
 import { Checkbox } from '@/components/shadcn/checkbox'
 import { ConfirmDialog } from '@/components/shadcn/confirm-dialog'
-import { PageHeader } from '@/components/shadcn/page-header'
 import { SegmentedNav } from '@/components/shadcn/segmented-nav'
 import { Empty, EmptyHeader, EmptyTitle } from '@/components/shadcn/empty'
 import { Input as SearchInput } from '@/components/shadcn/input'
@@ -57,8 +55,8 @@ import {
   chromeHeadClass,
   elevatedPageClass,
   tableShellClass,
-  whiteControlClass,
 } from '@/components/admin/adminChrome'
+import { pureWhiteFieldClass } from '@/components/clients/shadcnChrome'
 import { cn } from '@/lib/utils'
 import '@/styles/layout-admin.css'
 import '@/styles/layout-clients.css'
@@ -374,8 +372,6 @@ export default function AdminPeoplePage() {
       data-elevated-canvas
       aria-label="Users"
     >
-      <PageHeader title="Users" />
-
       <SegmentedNav
         aria-label="User tabs"
         value={tab}
@@ -390,21 +386,45 @@ export default function AdminPeoplePage() {
         <div className="relative min-w-56 flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <SearchInput
-            className={cn('pl-8', whiteControlClass)}
+            className={cn('pl-8', pureWhiteFieldClass)}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={
               tab === 'agency' ? 'Search Users…' : 'Search Sub-Agent Logins…'
             }
-            aria-label={tab === 'agency' ? 'Search Users' : 'Search Sub-Agent Logins'}
+            aria-label={
+              tab === 'agency' ? 'Search Users' : 'Search Sub-Agent Logins'
+            }
           />
         </div>
-        <FormSelect
-          label="Agency"
-          value={tenantFilter}
-          options={tenantOptions}
-          onChange={(event) => setTenantFilter(event.target.value)}
-        />
+        <Select value={tenantFilter} onValueChange={setTenantFilter}>
+          <SelectTrigger
+            aria-label="Agency"
+            className={cn(pureWhiteFieldClass, 'w-[14rem]')}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {tenantOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {search.trim() !== '' || tenantFilter !== 'all' ? (
+          <Button
+            type="button"
+            variant="outline"
+            className={cn(pureWhiteFieldClass, 'px-3')}
+            onClick={() => {
+              setSearch('')
+              setTenantFilter('all')
+            }}
+          >
+            Clear
+          </Button>
+        ) : null}
       </div>
 
       {bulkBar}

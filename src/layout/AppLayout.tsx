@@ -7,6 +7,7 @@ import { useTenantById } from '@/lib/tenantsStore'
 import { useAuth } from '@/lib/useAuth'
 import type { BreadcrumbItem } from '@/components/shadcn/breadcrumbs'
 import { pageIdentity } from './pageIdentity'
+import { RouteErrorBoundary } from './RouteErrorBoundary'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { GlobalSearchProvider } from './GlobalSearchProvider'
@@ -66,6 +67,22 @@ export function AppLayout({
     node.scrollTop = 0
     node.scrollLeft = 0
   }, [pageKey])
+
+  // Shell uses overflow:clip (not a scrollport). Focus/scrollIntoView on
+  // clipped controls can escalate to the window and shove the white page
+  // body above the sidebar. Pin the document so that cannot stick.
+  useEffect(() => {
+    const pinDocumentScroll = () => {
+      if (window.scrollX || window.scrollY) window.scrollTo(0, 0)
+      if (document.documentElement.scrollTop) {
+        document.documentElement.scrollTop = 0
+      }
+      if (document.body.scrollTop) document.body.scrollTop = 0
+    }
+    pinDocumentScroll()
+    window.addEventListener('scroll', pinDocumentScroll, { passive: true })
+    return () => window.removeEventListener('scroll', pinDocumentScroll)
+  }, [])
 
   const handleStopViewAs = useCallback(async () => {
     setExitBusy(true)
@@ -192,9 +209,11 @@ export function AppLayout({
                     .filter(Boolean)
                     .join(' ')}
                 >
-                  <Fragment key={pageKey}>
-                    <Outlet />
-                  </Fragment>
+                  <RouteErrorBoundary key={pageKey} label="Page">
+                    <Fragment>
+                      <Outlet />
+                    </Fragment>
+                  </RouteErrorBoundary>
                 </main>
               </div>
               {/* Outside the scroller: the version label floats so it costs no page height. */}

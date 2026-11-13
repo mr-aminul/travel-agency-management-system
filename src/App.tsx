@@ -43,11 +43,10 @@ const PublicClientIntakePage = lazy(() => import('@/pages/PublicClientIntakePage
 const AdminOverviewPage = lazy(() => import('@/pages/admin/AdminOverviewPage'))
 const TenantsAdminPage = lazy(() => import('@/pages/admin/TenantsAdminPage'))
 const TenantAdminLayout = lazy(() => import('@/pages/admin/TenantAdminLayout'))
-const TenantAllPage = lazy(() => import('@/pages/admin/TenantAllPage'))
 const TenantOverviewPage = lazy(() => import('@/pages/admin/TenantOverviewPage'))
 const TenantUsersPage = lazy(() => import('@/pages/admin/TenantUsersPage'))
 const TenantModulesPage = lazy(() => import('@/pages/admin/TenantModulesPage'))
-const TenantMessagingPage = lazy(() => import('@/pages/admin/TenantMessagingPage'))
+const TenantBillingPage = lazy(() => import('@/pages/admin/TenantBillingPage'))
 const TenantActivityPage = lazy(() => import('@/pages/admin/TenantActivityPage'))
 const AdminPeoplePage = lazy(() => import('@/pages/admin/AdminPeoplePage'))
 const AdminActivityPage = lazy(() => import('@/pages/admin/AdminActivityPage'))
@@ -99,9 +98,11 @@ function LegacyTenantAdminRedirect() {
   const mapped =
     section === 'users'
       ? 'people'
-      : section === 'modules'
-        ? 'product'
-        : section || 'all'
+      : section === 'modules' || section === 'product'
+        ? 'access'
+        : section === 'all' || !section
+          ? 'overview'
+          : section
   return <Navigate to={`/admin/agencies/${tenantId}/${mapped}`} replace />
 }
 
@@ -233,23 +234,19 @@ function ProductApp() {
               path="admin/agencies/:tenantId"
               element={<TenantAdminLayout />}
             >
-              <Route index element={<Navigate to="all" replace />} />
-              <Route path="all" element={<TenantAllPage />} />
+              <Route index element={<Navigate to="overview" replace />} />
+              <Route path="all" element={<Navigate to="../overview" replace />} />
               <Route path="overview" element={<TenantOverviewPage />} />
+              <Route path="access" element={<TenantModulesPage />} />
               <Route path="people" element={<TenantUsersPage />} />
-              <Route path="product" element={<TenantModulesPage />} />
-              <Route path="messaging" element={<TenantMessagingPage />} />
+              <Route path="billing" element={<TenantBillingPage />} />
               <Route path="activity" element={<TenantActivityPage />} />
               {/* Legacy section aliases */}
               <Route path="users" element={<Navigate to="../people" replace />} />
-              <Route
-                path="modules"
-                element={<Navigate to="../product" replace />}
-              />
-              <Route
-                path="sms-email"
-                element={<Navigate to="../messaging" replace />}
-              />
+              <Route path="product" element={<Navigate to="../access" replace />} />
+              <Route path="modules" element={<Navigate to="../access" replace />} />
+              <Route path="messaging" element={<Navigate to="../access" replace />} />
+              <Route path="sms-email" element={<Navigate to="../access" replace />} />
             </Route>
             <Route path="admin/people" element={<AdminPeoplePage />} />
             <Route path="admin/activity" element={<AdminActivityPage />} />

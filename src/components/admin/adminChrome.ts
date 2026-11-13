@@ -86,10 +86,10 @@ export const adminModuleGroupTitleClass =
 export const adminModuleListClass = 'm-0 list-none p-0'
 
 export const adminModuleListGridClass =
-  'm-0 grid list-none grid-cols-[repeat(auto-fill,minmax(12.5rem,1fr))] gap-2 p-0'
+  'm-0 grid list-none grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-2.5 p-0'
 
 export const adminModuleRowClass =
-  'flex min-h-11 items-center justify-between gap-[0.65rem] rounded-[0.7rem] border border-border bg-[color-mix(in_srgb,var(--color-surface)_96%,transparent)] px-[0.7rem] py-[0.55rem]'
+  'flex min-h-[5.25rem] items-center justify-between gap-2 rounded-xl border border-border bg-[color-mix(in_srgb,var(--color-surface)_96%,transparent)] px-3 py-3'
 
 export const adminModuleMetaClass = 'flex min-w-0 items-center gap-[0.55rem]'
 
