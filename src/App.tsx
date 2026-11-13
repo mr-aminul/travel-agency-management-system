@@ -63,6 +63,7 @@ const ChooseWorkspacePage = lazy(() => import('@/pages/auth/ChooseWorkspacePage'
 const BillingPage = lazy(() => import('@/pages/BillingPage'))
 const SubscribePage = lazy(() => import('@/pages/SubscribePage'))
 const LandingPage = lazy(() => import('@/pages/LandingPage'))
+const LandingPageClassic = lazy(() => import('@/pages/LandingPageClassic'))
 const FaqPage = lazy(() => import('@/pages/FaqPage'))
 
 function RouteFallback() {
@@ -136,6 +137,7 @@ function MarketingApp() {
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/2" element={<LandingPageClassic />} />
           <Route path="/faq" element={<FaqPage />} />
           <Route path="/v1" element={<Navigate to="/" replace />} />
           <Route path="/v2" element={<Navigate to="/" replace />} />
@@ -154,6 +156,7 @@ function ProductApp() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/faq" element={<FaqPage />} />
+          <Route path="/2" element={<LandingPageClassic />} />
           <Route path="/v1" element={<Navigate to="/" replace />} />
           <Route path="/v2" element={<Navigate to="/" replace />} />
           <Route path="/subscribe" element={<SubscribePage />} />

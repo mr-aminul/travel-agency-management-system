@@ -8,6 +8,12 @@ dist
 # Local film / HyperFrames projects (large media, not product code)
 films/
 
+# Local agent skills / scratch (not product code)
+.agents/
+skills-lock.json
+tmp/
+tasteskill.dev/
+
 # Env (keep examples tracked)
 .env
 .env.local
