@@ -4875,7 +4875,37 @@ html:has(.ot) body {
   box-shadow: none;
 }
 
-/* Beat `.film.is-bare` transparent bg so caption sits on blue, not page white */
+/* Beat title sits above the blue frame as a normal section header */
+#product .section-head.film-caption {
+  margin-bottom: 28px;
+}
+
+#product .film-beat-title {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 0.28em;
+  margin: 0;
+  min-height: 1.2em;
+  /* Scale under section-head min so long beats stay one line on phones */
+  font-size: clamp(13px, 4.2vw, 44px);
+  white-space: nowrap;
+  text-wrap: nowrap;
+}
+
+#product .film-beat-word {
+  display: inline-block;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+
+#product .film-beat-word>span {
+  display: inline-block;
+  animation: film-word-up 0.42s var(--ease-out-quart) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
 .film.is-bare.film-frame {
   display: flex;
   flex-direction: column;
@@ -4887,43 +4917,6 @@ html:has(.ot) body {
   box-shadow:
     0 1px 2px rgba(8, 22, 86, 0.2),
     0 24px 48px -28px rgba(12, 45, 121, 0.45);
-}
-
-.film-frame .film-caption {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 22px 20px 4px;
-  color: #fff;
-  text-align: center;
-}
-
-.film-frame .film-beat-title {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.32em;
-  margin: 0;
-  min-height: 1.2em;
-  color: #fff;
-  font-size: clamp(22px, 2.8vw, 32px);
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.035em;
-  text-wrap: balance;
-}
-
-.film-frame .film-beat-word {
-  display: inline-block;
-  overflow: hidden;
-  padding-bottom: 0.06em;
-  margin-bottom: -0.06em;
-}
-
-.film-frame .film-beat-word>span {
-  display: inline-block;
-  animation: film-word-up 0.42s var(--ease-out-quart) both;
-  animation-delay: calc(var(--i, 0) * 70ms);
 }
 
 .film.is-bare .film-stage {
@@ -4955,18 +4948,19 @@ html:has(.ot) body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .film-frame .film-beat-word>span {
+  #product .film-beat-word>span {
     animation: none;
   }
 }
 
 @media (max-width: 760px) {
-  .film-frame .film-caption {
-    padding: 18px 14px 4px;
+  #product .section-head.film-caption {
+    margin-bottom: 20px;
   }
 
-  .film-frame .film-beat-title {
-    font-size: clamp(20px, 5.6vw, 26px);
+  #product .film-beat-title {
+    gap: 0.22em;
+    font-size: clamp(12.5px, 4.05vw, 28px);
   }
 
   /* Phone column uses the compact stage; wrap it, don’t invent empty height. */

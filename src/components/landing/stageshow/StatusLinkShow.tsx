@@ -183,6 +183,7 @@ async function script(a: Act<S>, beat: (n: number) => void = () => {}) {
   await a.set({ scrap: true })
   await a.wait(560)
   await a.set({ cleared: true, scrap: false, launch: true })
+  beat(1)
   await a.wait(200)
   // Short hop onto the launch card (not a corner-to-center flight)
   await a.move({ at: 'ot-icon', x: 0.15, y: 1.35 }, { duration: 300 })
@@ -193,7 +194,7 @@ async function script(a: Act<S>, beat: (n: number) => void = () => {}) {
   await a.wait(480)
 
   // One settle on the file — missing docs are already visible
-  beat(1)
+  beat(2)
   const file = a.rect('sl-file', { layout: true })
   if (file.width > 0) {
     await a.set({
@@ -241,7 +242,7 @@ async function script(a: Act<S>, beat: (n: number) => void = () => {}) {
   await a.wait(320)
 
   // Payments on the same file
-  beat(2)
+  beat(3)
   await a.set({ payments: true })
   await a.wait(60)
   const filePay = a.rect('sl-file', { layout: true })
@@ -266,13 +267,14 @@ async function script(a: Act<S>, beat: (n: number) => void = () => {}) {
   await a.set({ desk: false })
   await a.wait(280)
   await a.set({ sendCta: true })
+  beat(4)
   await a.move({ at: 'sl-send', x: 0.2, y: 1.2 }, { duration: 300 })
   await a.wait(360)
   await a.click({ at: 'sl-send', x: 0.5, y: 0.5 })
   await a.wait(80)
   await a.set({ sent: true })
   await a.wait(380)
-  beat(3)
+  beat(5)
   await a.set({ phone: true })
   await a.wait(480)
   await a.set({ sms: true })

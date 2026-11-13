@@ -174,7 +174,7 @@ export const LANDING_AUDIENCES = [
 
 /** Single continuous product film on the Features section. */
 export const LANDING_FEATURE_SHOW = {
-  title: 'Clients keep calling for updates',
+  title: 'Tired of client messages and calls?',
 } as const
 
 export const LANDING_FAQS = [
