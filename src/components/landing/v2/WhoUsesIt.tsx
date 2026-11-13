@@ -36,7 +36,6 @@ export function WhoUsesIt() {
           Who uses it
         </p>
         <h2 id="who-title">One product for the whole desk.</h2>
-        <p>Your staff, your sub agents, and your clients — each sees what they need.</p>
       </header>
       <ul className="cells who">
         {ROLES.map((role, index) => (

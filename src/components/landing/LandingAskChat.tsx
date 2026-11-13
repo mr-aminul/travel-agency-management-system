@@ -1,12 +1,13 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { ChatCircle, PaperPlaneTilt, X } from '@phosphor-icons/react'
+import { PaperPlaneTilt, X } from '@phosphor-icons/react'
 import { ApiError, apiFetch } from '@/lib/apiClient'
 import { SALES_EMAIL, SALES_MAILTO } from '@/components/landing/landingContent'
 import { authApiConfigured } from '@/lib/billing/platformFlag'
 
 type LandingAskChatProps = {
   open: boolean
-  onOpen: () => void
+  /** Kept for callers; launcher FAB is removed — open via page “Ask us” links. */
+  onOpen?: () => void
   onClose: () => void
 }
 
@@ -28,7 +29,7 @@ function errorMessage(error: unknown): string {
   return 'Could not send your message. Try email instead.'
 }
 
-export function LandingAskChat({ open, onOpen, onClose }: LandingAskChatProps) {
+export function LandingAskChat({ open, onClose }: LandingAskChatProps) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
@@ -57,8 +58,6 @@ export function LandingAskChat({ open, onOpen, onClose }: LandingAskChatProps) {
       const target = event.target as Node | null
       if (!target) return
       if (panelRef.current?.contains(target)) return
-      const askBtn = document.querySelector('.lp2-ask')
-      if (askBtn?.contains(target)) return
       onClose()
     }
     document.addEventListener('mousedown', onPointer)
@@ -91,18 +90,6 @@ export function LandingAskChat({ open, onOpen, onClose }: LandingAskChatProps) {
 
   return (
     <>
-      <button
-        type="button"
-        className="lp2-ask button-sm"
-        aria-expanded={open}
-        aria-controls={open ? titleId : undefined}
-        aria-label={open ? 'Close chat' : 'Ask us'}
-        onClick={() => (open ? onClose() : onOpen())}
-      >
-        {open ? <X size={20} weight="bold" /> : <ChatCircle size={20} weight="fill" />}
-        <span aria-hidden>{open ? 'Close' : 'Ask us'}</span>
-      </button>
-
       {open ? (
         <div
           ref={panelRef}

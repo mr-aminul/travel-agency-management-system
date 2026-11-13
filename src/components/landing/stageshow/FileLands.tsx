@@ -97,6 +97,7 @@ function Column({
   count,
   open,
   slot,
+  parked,
   children,
 }: {
   id: string
@@ -104,6 +105,8 @@ function Column({
   count: number
   open?: boolean
   slot?: boolean
+  /** Resting file card — in-flow so hero tilt cannot mis-measure it. */
+  parked?: ReactNode
   children: ReactNode
 }) {
   return (
@@ -118,7 +121,7 @@ function Column({
         <>
           <div className="fl-land" data-target={`land-${id}`} />
           <div className="fl-slot" data-open={open || undefined}>
-            <div className="fl-slot__box" />
+            <div className="fl-slot__box">{parked}</div>
           </div>
         </>
       )}
@@ -195,10 +198,32 @@ export function FileLands() {
       {(s, rect) => {
         const home = rect(landOf(s.col))
         const width = home.width || rect('land-intake').width
-        const pos = s.lifted && s.at ? s.at : { x: home.x, y: home.y }
         const hole = (col: Col) => (s.col === col && !s.lifted) || (s.lifted && (s.over ?? s.col) === col)
         const mark = s.lifted && s.over && s.over !== s.col ? rect(landOf(s.over)) : null
         const filed = s.col === 'docs'
+        const fileCard = (
+          <div
+            className="fl-card"
+            data-dragging={s.lifted || undefined}
+            data-lifted={s.lifted || undefined}
+            data-parked={s.lifted ? undefined : ''}
+            data-cursor="pointer"
+            style={
+              s.lifted && s.at && width > 0
+                ? { left: s.at.x, top: s.at.y, width, height: CARD_H }
+                : { height: CARD_H }
+            }
+          >
+            <Avatar name="L. Sultana" size={22} tone="accent" />
+            <span className="fl-card__lines">
+              <span className="fl-card__name">L. Sultana</span>
+              <span className="fl-card__meta">Student visa · GB</span>
+              <Badge tone={filed ? 'warning' : 'accent'}>
+                <Roll>{filed ? 'Docs pending' : 'New'}</Roll>
+              </Badge>
+            </span>
+          </div>
+        )
         return (
           <>
             <Window className="fl-window" sidebar={<ShellNav />} sidebarWidth={248}>
@@ -208,48 +233,45 @@ export function FileLands() {
                   Services
                 </div>
                 <div className="fl-canvas">
-              <div className="fl-board">
-                <Column id="intake" title="Intake" count={s.intake} slot open={hole('intake')}>
-                  <Person name="R. Hossain" detail="Tourist visa" />
-                  <Quiet />
-                </Column>
-                <Column id="docs" title="Documents" count={s.docs} slot open={hole('docs')}>
-                  <Person name="N. Akter" detail="Umrah" />
-                  <Quiet />
-                </Column>
-                <Column id="processing" title="Processing" count={42}>
-                  <Quiet />
-                  <Quiet />
-                </Column>
-                <Column id="ready" title="Ready" count={24}>
-                  <Quiet />
-                  <Quiet />
-                </Column>
-              </div>
+                  <div className="fl-board">
+                    <Column
+                      id="intake"
+                      title="Intake"
+                      count={s.intake}
+                      slot
+                      open={hole('intake')}
+                      parked={!s.lifted && s.col === 'intake' ? fileCard : null}
+                    >
+                      <Person name="R. Hossain" detail="Tourist visa" />
+                      <Quiet />
+                    </Column>
+                    <Column
+                      id="docs"
+                      title="Documents"
+                      count={s.docs}
+                      slot
+                      open={hole('docs')}
+                      parked={!s.lifted && s.col === 'docs' ? fileCard : null}
+                    >
+                      <Person name="N. Akter" detail="Umrah" />
+                      <Quiet />
+                    </Column>
+                    <Column id="processing" title="Processing" count={42}>
+                      <Quiet />
+                      <Quiet />
+                    </Column>
+                    <Column id="ready" title="Ready" count={24}>
+                      <Quiet />
+                      <Quiet />
+                    </Column>
+                  </div>
                 </div>
               </div>
             </Window>
             {mark && mark.width > 0 && (
               <div className="fl-target" style={{ left: mark.x, top: mark.y, width: mark.width, height: CARD_H }} />
             )}
-            {width > 0 && (
-              <div
-                className="fl-card"
-                data-dragging={s.lifted || undefined}
-                data-lifted={s.lifted || undefined}
-                data-cursor="pointer"
-                style={{ left: pos.x, top: pos.y, width, height: CARD_H }}
-              >
-                <Avatar name="L. Sultana" size={22} tone="accent" />
-                <span className="fl-card__lines">
-                  <span className="fl-card__name">L. Sultana</span>
-                  <span className="fl-card__meta">Student visa · GB</span>
-                  <Badge tone={filed ? 'warning' : 'accent'}>
-                    <Roll>{filed ? 'Docs pending' : 'New'}</Roll>
-                  </Badge>
-                </span>
-              </div>
-            )}
+            {s.lifted && width > 0 ? fileCard : null}
           </>
         )
       }}

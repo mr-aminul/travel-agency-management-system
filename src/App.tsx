@@ -63,14 +63,12 @@ const ChooseWorkspacePage = lazy(() => import('@/pages/auth/ChooseWorkspacePage'
 const BillingPage = lazy(() => import('@/pages/BillingPage'))
 const SubscribePage = lazy(() => import('@/pages/SubscribePage'))
 const LandingPage = lazy(() => import('@/pages/LandingPage'))
-const LandingPageClassic = lazy(() => import('@/pages/LandingPageClassic'))
-const FaqPage = lazy(() => import('@/pages/FaqPage'))
 
 function RouteFallback() {
   return <div className="pd-route-fallback" aria-busy="true" aria-live="polite" />
 }
 
-/** Marketing host serves landing + FAQ; anything else goes to the app origin. */
+/** Marketing host serves landing pages; anything else goes to the app origin. */
 function MarketingToAppRedirect() {
   useEffect(() => {
     const { pathname, search, hash } = window.location
@@ -137,10 +135,10 @@ function MarketingApp() {
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/2" element={<LandingPageClassic />} />
-          <Route path="/faq" element={<FaqPage />} />
-          <Route path="/v1" element={<Navigate to="/" replace />} />
+          <Route path="/2" element={<Navigate to="/" replace />} />
           <Route path="/v2" element={<Navigate to="/" replace />} />
+          <Route path="/v1" element={<Navigate to="/" replace />} />
+          <Route path="/v3" element={<Navigate to="/" replace />} />
           <Route path="*" element={<MarketingToAppRedirect />} />
         </Routes>
       </Suspense>
@@ -155,10 +153,10 @@ function ProductApp() {
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/faq" element={<FaqPage />} />
-          <Route path="/2" element={<LandingPageClassic />} />
-          <Route path="/v1" element={<Navigate to="/" replace />} />
+          <Route path="/2" element={<Navigate to="/" replace />} />
           <Route path="/v2" element={<Navigate to="/" replace />} />
+          <Route path="/v1" element={<Navigate to="/" replace />} />
+          <Route path="/v3" element={<Navigate to="/" replace />} />
           <Route path="/subscribe" element={<SubscribePage />} />
           <Route path="/choose-workspace" element={<ChooseWorkspacePage />} />
           <Route path="/billing" element={<BillingPage />} />

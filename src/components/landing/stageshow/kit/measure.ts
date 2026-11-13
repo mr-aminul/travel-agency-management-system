@@ -40,11 +40,49 @@ export function stageSpace(root: HTMLElement, fallback: number) {
   return { left: bounds.left, top: bounds.top, scale: (root.offsetWidth && bounds.width / root.offsetWidth) || fallback || 1, borderX: root.clientLeft, borderY: root.clientTop }
 }
 
-export function rectOf(root: HTMLElement, el: HTMLElement, fallback: number, space = stageSpace(root, fallback)): Rect {
+const transformed = (n: Element) => {
+  const c = getComputedStyle(n)
+  return c.transform !== 'none' || (c.translate && c.translate !== 'none') || (c.scale && c.scale !== 'none') || (c.rotate && c.rotate !== 'none')
+}
+
+/** Hero tilt (rotateX) and other ancestors outside the stage break getBoundingClientRect math. */
+function hasOuterTransform(root: Element): boolean {
+  for (let a = root.parentElement; a; a = a.parentElement) {
+    if (transformed(a)) return true
+  }
+  return false
+}
+
+/** Layout box via offsetParents — stable under outer perspective / rotateX. */
+function offsetRectOf(root: HTMLElement, el: HTMLElement): Rect {
+  let x = 0
+  let y = 0
+  let n: HTMLElement | null = el
+  while (n && n !== root) {
+    x += n.offsetLeft
+    y += n.offsetTop
+    const parent: Element | null = n.offsetParent
+    if (!parent || !root.contains(parent)) break
+    n = parent as HTMLElement
+    if (n !== root) {
+      x += n.clientLeft - n.scrollLeft
+      y += n.clientTop - n.scrollTop
+    }
+  }
+  return { x, y, width: el.offsetWidth, height: el.offsetHeight }
+}
+
+function screenRectOf(root: HTMLElement, el: HTMLElement, fallback: number, space = stageSpace(root, fallback)): Rect {
   const b = el.getBoundingClientRect()
   const { scale } = space
   // From the inside of the stage's border, where its absolute children are placed
   return { x: (b.left - space.left) / scale - space.borderX, y: (b.top - space.top) / scale - space.borderY, width: b.width / scale, height: b.height / scale }
+}
+
+export function rectOf(root: HTMLElement, el: HTMLElement, fallback: number, space = stageSpace(root, fallback)): Rect {
+  // Outer 3D tilt foreshortens Y unevenly — screen math puts overlays (cards) too high.
+  if (hasOuterTransform(root)) return offsetRectOf(root, el)
+  return screenRectOf(root, el, fallback, space)
 }
 
 // A target's box as rect() hands it to the scene: where it is drawn, but
@@ -52,7 +90,8 @@ export function rectOf(root: HTMLElement, el: HTMLElement, fallback: number, spa
 // placed from it (a popover under a button) would otherwise shift by a
 // fraction of a pixel for every press and settle back after
 export function targetRectOf(root: HTMLElement, el: HTMLElement, fallback: number, space = stageSpace(root, fallback)): Rect {
-  const r = rectOf(root, el, fallback, space)
+  if (hasOuterTransform(root)) return offsetRectOf(root, el)
+  const r = screenRectOf(root, el, fallback, space)
   const style = getComputedStyle(el)
   const t = style.transform
   const m = t && t !== 'none' ? t.match(/^matrix\(([^)]+)\)$/) : null
@@ -74,29 +113,11 @@ export function targetRectOf(root: HTMLElement, el: HTMLElement, fallback: numbe
 // scroll, so each parent's border is added and its scroll taken off on the way
 // up: without that, an element in a bordered box measured a pixel up and left,
 // and whatever landed on it (a flyer) jumped that pixel on the handoff.
-const transformed = (n: Element) => {
-  const c = getComputedStyle(n)
-  return c.transform !== 'none' || (c.translate && c.translate !== 'none') || (c.scale && c.scale !== 'none') || (c.rotate && c.rotate !== 'none')
-}
 export function layoutRectOf(root: HTMLElement, el: HTMLElement): Rect {
   let still = true
   for (let a: Element | null = el; a && a !== root; a = a.parentElement) if (transformed(a)) { still = false; break }
-  if (still) return rectOf(root, el, 1)
-  let x = 0
-  let y = 0
-  let n: HTMLElement | null = el
-  while (n && n !== root) {
-    x += n.offsetLeft
-    y += n.offsetTop
-    const parent: Element | null = n.offsetParent
-    if (!parent || !root.contains(parent)) break
-    n = parent as HTMLElement
-    if (n !== root) {
-      x += n.clientLeft - n.scrollLeft
-      y += n.clientTop - n.scrollTop
-    }
-  }
-  return { x, y, width: el.offsetWidth, height: el.offsetHeight }
+  if (still && !hasOuterTransform(root)) return screenRectOf(root, el, 1)
+  return offsetRectOf(root, el)
 }
 
 export function sameRects(a: Record<string, Rect>, b: Record<string, Rect>) {

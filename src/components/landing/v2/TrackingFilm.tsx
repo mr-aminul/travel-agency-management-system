@@ -1,39 +1,40 @@
-import { ArrowRight } from '@phosphor-icons/react'
+import { useState } from 'react'
 import { StatusLinkShow } from '@/components/landing/stageshow/StatusLinkShow'
-import { publicUrl } from '@/lib/publicUrl'
-import { appUrl } from '@/lib/siteOrigins'
-import { subscribeUrl } from './landingLinks'
 
-/** Real product film: fewer client calls when status lives on a link. */
+/**
+ * Beat 0 = the pain they know. Beats 1–3 = what OneTrack does on screen,
+ * in plain words anyone at the desk can follow.
+ */
+const BEATS = [
+  'Clients keep calling for status',
+  'You add papers to the file',
+  'You see payments clearly',
+  'Client checks without calling',
+] as const
+
+/** Product film: status chaos → tracking link, right after the hero board. */
 export function TrackingFilm() {
+  const [beat, setBeat] = useState(0)
+  const title = BEATS[beat] ?? BEATS[0]
+
   return (
-    <section className="section wrap-wide" aria-labelledby="film-title">
-      <div className="film" data-enter>
-        <div className="film-top">
-          <div>
-            <div className="film-brand">
-              <span className="film-brand-mark">
-                <img src={publicUrl('images/logo.svg')} alt="" />
+    <section className="section wrap-wide" id="product" aria-labelledby="film-title">
+      <div className="film is-bare film-frame" data-enter>
+        <div className="film-caption">
+          <h2 id="film-title" key={title} className="film-beat-title">
+            {title.split(' ').map((word, index) => (
+              <span
+                key={`${title}-${index}`}
+                className="film-beat-word"
+                style={{ ['--i' as string]: index }}
+              >
+                <span>{word}</span>
               </span>
-              <span>
-                <b>Client tracking</b> on OneTrack
-              </span>
-            </div>
-            <h2 id="film-title">Clients check status. You keep working.</h2>
-            <p>Send one SMS with a link. The file stage updates on their phone — fewer calls to the desk.</p>
-          </div>
-          <div className="film-actions">
-            <a className="btn btn-dark" href={subscribeUrl()}>
-              Start free trial
-              <ArrowRight className="arrow" weight="bold" />
-            </a>
-            <a className="btn btn-light" href={appUrl('/track')}>
-              Try a tracking link
-            </a>
-          </div>
+            ))}
+          </h2>
         </div>
-        <div className="film-stage" data-ss-wide data-ss-fill aria-hidden>
-          <StatusLinkShow />
+        <div className="film-stage" data-ss-fill aria-hidden>
+          <StatusLinkShow onBeat={setBeat} />
         </div>
       </div>
     </section>

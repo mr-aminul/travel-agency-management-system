@@ -16,7 +16,8 @@
 }
 
 .sl .ss-cursor {
-  --ss-cursor-size: 1.15;
+  /* 2× glyph; hotspot stays on tip via transform-origin in cursor.tsx */
+  --ss-cursor-size: 2;
 }
 
 .sl .ss-camera-view {
@@ -26,35 +27,36 @@
 
 /* ---------- TVC turn: clear notifications → soft-dismiss chat → dock ---------- */
 
-.sl-chat[data-scrap] .sl-pile__card {
-  animation: sl-clear-note 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+/* Exit uses the same transition as enter — newest (higher index) leaves first */
+.sl-chat[data-scrap] .sl-pile__card[data-in] {
+  opacity: 0;
+  transform: translateY(-36px) scale(0.94);
 }
 
-/* Newest on top clears first, like dismissing a notification stack */
 .sl-chat[data-scrap] .sl-pile__card:nth-child(1) {
-  animation-delay: 280ms;
+  transition-delay: 280ms;
 }
 .sl-chat[data-scrap] .sl-pile__card:nth-child(2) {
-  animation-delay: 230ms;
+  transition-delay: 230ms;
 }
 .sl-chat[data-scrap] .sl-pile__card:nth-child(3) {
-  animation-delay: 180ms;
+  transition-delay: 180ms;
 }
 .sl-chat[data-scrap] .sl-pile__card:nth-child(4) {
-  animation-delay: 130ms;
+  transition-delay: 130ms;
 }
 .sl-chat[data-scrap] .sl-pile__card:nth-child(5) {
-  animation-delay: 80ms;
+  transition-delay: 80ms;
 }
 .sl-chat[data-scrap] .sl-pile__card:nth-child(6) {
-  animation-delay: 30ms;
+  transition-delay: 30ms;
 }
 
 .sl-chat[data-scrap] .sl-chat__stage {
   animation: sl-clear-chat 720ms cubic-bezier(0.22, 1, 0.36, 1) 320ms both;
 }
 
-/* ---------- Clean launch card → click opens the app ---------- */
+/* ---------- Mac Dock–style app icon → click opens the app ---------- */
 
 .sl-launch {
   position: absolute;
@@ -62,20 +64,17 @@
   left: 50%;
   top: 50%;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin: 0;
-  padding: 14px 18px 14px 14px;
+  padding: 0;
   border: 0;
-  border-radius: 18px;
-  background: #fff;
-  box-shadow:
-    0 1px 2px rgba(8, 22, 86, 0.1),
-    0 22px 44px -20px rgba(5, 16, 48, 0.45);
+  background: transparent;
   cursor: pointer;
   opacity: 0;
   visibility: hidden;
-  transform: translate(-50%, calc(-50% + 12px));
+  transform: translate(-50%, calc(-50% + 14px)) scale(0.92);
   transition:
     opacity 480ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 560ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -85,7 +84,7 @@
 .sl-launch[data-show] {
   opacity: 1;
   visibility: visible;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(1);
   transition:
     opacity 480ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 560ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -93,43 +92,41 @@
 }
 
 .sl-launch[data-pressed] {
-  transform: translate(-50%, -50%) scale(0.97);
+  transform: translate(-50%, -50%) scale(0.94);
   transition-duration: 120ms;
 }
 
-.sl-launch__mark {
-  width: 40px;
-  height: 40px;
-  flex: none;
-  border-radius: 12px;
-  object-fit: contain;
+.sl-launch__icon {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  padding: 2px;
+  border-radius: 22%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow:
+    0 10px 22px -8px rgba(0, 0, 0, 0.45),
+    0 28px 48px -24px rgba(0, 0, 0, 0.4);
 }
 
-.sl-launch__text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  min-width: 0;
-  text-align: left;
+.sl-launch__icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 20%;
+  object-fit: cover;
 }
 
 .sl-launch__name {
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.01em;
-  color: #0c2d79;
-}
-
-.sl-launch__sub {
-  margin-top: 2px;
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 1.2;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(12, 45, 121, 0.55);
-  white-space: nowrap;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 /* ---------- Floating send CTA (same pill as Upload / Docs ready) ---------- */
@@ -195,16 +192,14 @@
   text-align: left;
 }
 
-@keyframes sl-clear-note {
-  0% {
-    opacity: 1;
-    transform:
-      translateY(calc(var(--sl-depth) * 9px))
-      scale(calc(1 - var(--sl-depth) * 0.045));
-  }
-  100% {
+@keyframes sl-badge-pop {
+  from {
     opacity: 0;
-    transform: translateY(-36px) scale(0.94);
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
@@ -982,12 +977,15 @@
 
 .sl-chat__stage {
   position: relative;
+  /* Fixed box so new messages never re-center the whole window */
   width: min(420px, calc(100% - 72px));
+  height: 400px;
   transform: none;
 }
 
 .sl .ss-stage[data-layout='compact'] .sl-chat__stage {
   width: min(320px, calc(100% - 28px));
+  height: 360px;
 }
 
 .sl-chat__card {
@@ -996,7 +994,8 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   width: 100%;
-  min-height: 360px;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   border-radius: 1.35rem;
   background: #efeae2;
@@ -1004,10 +1003,6 @@
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.18),
     0 32px 64px -28px rgba(0, 0, 0, 0.55);
-}
-
-.sl .ss-stage[data-layout='compact'] .sl-chat__card {
-  min-height: 320px;
 }
 
 .sl-chat__head {
@@ -1107,15 +1102,21 @@
   box-shadow:
     0 1px 2px rgba(18, 26, 46, 0.06),
     0 14px 28px -18px rgba(18, 26, 46, 0.45);
+  /* Rest off-screen; data-in eases in with the same curve as scrap exit */
+  opacity: 0;
+  transform: translateY(-28px) scale(0.94);
+  transform-origin: top center;
+  pointer-events: none;
+  transition:
+    transform 560ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sl-pile__card[data-in] {
+  opacity: calc(1 - var(--sl-depth) * 0.18);
   transform:
     translateY(calc(var(--sl-depth) * 9px))
     scale(calc(1 - var(--sl-depth) * 0.045));
-  opacity: calc(1 - var(--sl-depth) * 0.18);
-  transform-origin: top center;
-  transition:
-    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 320ms ease;
-  animation: sl-pile-in 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .sl-pile__card[data-kind='call'] {
@@ -1173,37 +1174,15 @@
   color: #fff;
   background: #ef4444;
   box-shadow: 0 6px 14px -6px rgba(239, 68, 68, 0.8);
-  animation: sl-badge-pop 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes sl-pile-in {
-  from {
-    opacity: 0;
-    transform: translateY(-14px) scale(0.96);
-  }
-  to {
-    opacity: calc(1 - var(--sl-depth) * 0.18);
-    transform:
-      translateY(calc(var(--sl-depth) * 9px))
-      scale(calc(1 - var(--sl-depth) * 0.045));
-  }
-}
-
-@keyframes sl-badge-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.72);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .sl-thread {
   --ss-them: #d9fdd3;
   --ss-them-text: #111b21;
-  min-height: 280px;
+  /* Fill the fixed card; kit Thread already pins messages to the bottom */
+  min-height: 0;
+  height: 100%;
   padding: 12px 10px 16px;
   background-color: #efeae2;
   background-image:
@@ -1211,10 +1190,6 @@
     radial-gradient(rgba(0, 0, 0, 0.03) 0.7px, transparent 0.8px);
   background-size: 18px 18px;
   background-position: 0 0, 9px 9px;
-}
-
-.sl .ss-stage[data-layout='compact'] .sl-thread {
-  min-height: 240px;
 }
 
 .sl-thread [data-from='them'] > .ss-bubble {
@@ -1227,18 +1202,19 @@
   gap: 3px;
   width: fit-content;
   max-width: 92%;
-  margin: 10px auto 4px;
+  margin: 6px auto 2px;
   padding: 6px 10px 5px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
-  animation: sl-missed-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Quiet fade — no big slide that fights Thread’s FLIP glide */
+  animation: sl-missed-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes sl-missed-in {
   from {
     opacity: 0;
-    transform: translateX(28px) scale(0.97);
+    transform: scale(0.98);
   }
   to {
     opacity: 1;
@@ -1336,6 +1312,14 @@
   .sl-success__spark,
   .sl-success__label {
     animation: none !important;
+    transition: none !important;
+  }
+
+  .sl-pile__card[data-in] {
+    opacity: calc(1 - var(--sl-depth) * 0.18) !important;
+    transform:
+      translateY(calc(var(--sl-depth) * 9px))
+      scale(calc(1 - var(--sl-depth) * 0.045)) !important;
   }
 
   .sl-launch[data-show] {

@@ -1,0 +1,187 @@
+/* Landing v3: Classic sky/tickets atmosphere + v2 product story on `.ot`. */
+
+.ot-v3 {
+  --lp2-font: 'Geist Variable', 'Geist', var(--sans);
+  --lp2-s-75: 8px;
+  --lp2-s-100: 12px;
+  --lp2-s-200: 16px;
+  --lp2-s-300: 24px;
+  --lp2-s-400: 32px;
+  --lp2-s-500: 40px;
+  --lp2-s-600: 48px;
+  --lp2-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --lp2-ink: #000;
+  --lp2-dark-elevated: #181818;
+  --lp2-dark-text: #fff;
+  --lp-ink: #050d22;
+  --lp-night: #081638;
+  --lp-navy: #0c2d79;
+  --lp-navy-bright: #3b6fe0;
+  --lp-accent-hover: #0a2463;
+  --lp-amber: #ffb000;
+  --lp-amber-soft: #ffcf6b;
+  --lp-mint: #62e0ad;
+  --lp-sky: #8fb4ff;
+  --lp-paper: #fff;
+  --lp-card: #f5f5f5;
+  --lp-paper-ink: #121a2e;
+  --lp-paper-muted: rgba(18, 26, 46, 0.66);
+  --lp-rule: rgba(18, 26, 46, 0.14);
+  --lp-text: #e8ecf6;
+  --lp-muted: rgba(232, 236, 246, 0.64);
+  --lp-ease: var(--lp2-ease);
+}
+
+/* Classic type scale, scoped for the hybrid root. */
+.ot-v3 .heading-4 {
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.ot-v3 .title-3 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+.ot-v3 .title-4 {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.ot-v3 .body-3 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  text-wrap: pretty;
+}
+
+.ot-v3 .body-6 {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  text-wrap: pretty;
+}
+
+.ot-v3 .button-md {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.ot-v3 .button-sm {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+.ot-v3 .caption-5 {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+}
+
+@media (max-width: 767px) {
+  .ot-v3 .heading-4 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+}
+
+/* Taste hero with Classic sky photo behind the same motion/copy. */
+.hero-sky {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 38%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.hero-top[data-sky] {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(5, 13, 34, 0.55) 0%,
+      rgba(5, 13, 34, 0.22) 32%,
+      rgba(12, 45, 121, 0.28) 58%,
+      rgba(91, 140, 245, 0.35) 78%,
+      var(--paper) 100%
+    );
+}
+
+.hero-top[data-sky] .hero-sun {
+  opacity: 0.42;
+}
+
+.hero-top[data-sky] .hero-sun-core {
+  background: radial-gradient(
+    closest-side,
+    #ffffff55 0%,
+    #8fb4ff40 28%,
+    #5a8cf518 55%,
+    #5a8cf500 74%
+  );
+}
+
+/* Pricing / final / footer use Classic chrome on the Taste root. */
+.ot-v3 .lp2-pricing,
+.ot-v3 .lp2-final,
+.ot-v3 .lp2-footer,
+.ot-v3 .lp2-nav,
+.ot-v3 .lp2-btn,
+.ot-v3 .lp2-ticket {
+  font-family: var(--lp2-font);
+}
+
+.ot-v3 .lp2-final__title {
+  font-family: var(--sans);
+  font-size: clamp(34px, 5.4vw, 64px);
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  text-transform: none;
+}
+
+.ot-v3 .lp2-section-head__title {
+  font-family: var(--sans);
+  letter-spacing: -0.035em;
+}
+
+.ot-v3 .lp2-text-btn {
+  font: inherit;
+  color: var(--lp-navy);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ot-v3 .lp2-text-btn--light {
+  color: rgba(244, 239, 228, 0.88);
+}
+
+.ot-v3 .lp2-text-btn--light:hover {
+  color: #fff;
+}
+
+/* FAQ: no extra slab — cells already carry the surface. */
+.ot-v3 #faq {
+  background: transparent;
+  padding-bottom: clamp(48px, 6vw, 80px);
+}
+
+/* Footer has no newsletter column on v3. */
+@media (min-width: 980px) {
+  .ot-v3 .lp2-footer__grid {
+    grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(0, 1fr));
+  }
+}

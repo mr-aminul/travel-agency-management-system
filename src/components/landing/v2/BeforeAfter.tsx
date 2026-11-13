@@ -1,29 +1,7 @@
-import { useRef, type CSSProperties } from 'react'
-import { ArrowsClockwise, Check, LinkSimple } from '@phosphor-icons/react'
+import { useRef, useState, type ReactNode } from 'react'
+import { Check, LinkSimple } from '@phosphor-icons/react'
 import { publicUrl } from '@/lib/publicUrl'
-import { clamp01, progressBetween, useFitScale, usePrefersReducedMotion, useScrollProgress } from './sceneHooks'
-
-const STEPS = [
-  {
-    title: 'The usual desk',
-    desc: 'Passports in a drawer, payments in Excel, status in a WhatsApp thread nobody can search.',
-  },
-  { title: 'One file per client', desc: 'Name, passport, service and stage sit together on one file.' },
-  { title: 'Papers in place', desc: 'Upload each document once. See what is still missing at a glance.' },
-  { title: 'Money on the file', desc: 'Advance, balance and due date sit beside the visa status.' },
-  { title: 'A link for the client', desc: 'Clients open their own tracking page. Fewer calls to your desk.' },
-] as const
-
-/** Scroll progress at which each step becomes active. */
-const STEP_MARKS = [0, 0.18, 0.4, 0.62, 0.84] as const
-
-function activeStepAt(progress: number): number {
-  let active = 0
-  STEP_MARKS.forEach((mark, index) => {
-    if (progress >= mark) active = index
-  })
-  return active
-}
+import { useFitScale } from './sceneHooks'
 
 function UsualDesk() {
   return (
@@ -45,7 +23,7 @@ function UsualDesk() {
           </thead>
           <tbody>
             <tr>
-              <td>Nusrat</td>
+              <td>Rafiq</td>
               <td>A0...921</td>
               <td>Canada</td>
               <td className="hl">20000 (bkash?)</td>
@@ -87,7 +65,7 @@ function UsualDesk() {
           Visa Team (Office)
           <small>Rafi, Sumi, Boss, +7</small>
         </div>
-        <p className="nf-bubble">Nusrat apa er bank statement ki asche?</p>
+        <p className="nf-bubble">Rafiq bhai er bank statement ki asche?</p>
         <p className="nf-bubble me">check the drawer</p>
         <p className="nf-bubble">client called 4 times today 😓</p>
         <p className="nf-bubble">who has Arif passport???</p>
@@ -104,24 +82,22 @@ function UsualDesk() {
   )
 }
 
-function OneTrackFile({ activeStep }: { activeStep: number }) {
-  const shows = (step: number) => (activeStep >= step ? '' : undefined)
-
+function OneTrackFile() {
   return (
-    <div className="nf-layer nf-calm">
+    <div className="nf-layer nf-calm" data-on="">
       <div className="nf-top">
         <span className="pc-brand">
           <img src={publicUrl('images/logo.svg')} alt="" />
           OneTrack
         </span>
-        <span className="nf-crumbs">Clients / Nusrat Jahan</span>
+        <span className="nf-crumbs">Clients / Rafiq Hasan</span>
         <span className="pc-btn">Move to next stage</span>
       </div>
-      <div className="nf-col nf-part" data-on={shows(1)}>
+      <div className="nf-col nf-part" data-on="">
         <div className="nf-client">
-          <span className="pc-avatar">NJ</span>
+          <span className="pc-avatar">RH</span>
           <div>
-            <h4>Nusrat Jahan</h4>
+            <h4>Rafiq Hasan</h4>
             <p>Canada · Student visa · OT-2468</p>
           </div>
         </div>
@@ -141,7 +117,7 @@ function OneTrackFile({ activeStep }: { activeStep: number }) {
             <dd>Thu, 21 Nov</dd>
           </div>
         </dl>
-        <div className="nf-pay nf-part" data-on={shows(3)}>
+        <div className="nf-pay nf-part" data-on="">
           <div className="nf-pay-row">
             <span>Advance</span>
             <b>৳20,000</b>
@@ -155,7 +131,7 @@ function OneTrackFile({ activeStep }: { activeStep: number }) {
           </div>
         </div>
       </div>
-      <div className="nf-doc nf-part" data-on={shows(2)}>
+      <div className="nf-doc nf-part" data-on="">
         <h4>
           Documents <span>4 of 5</span>
         </h4>
@@ -176,7 +152,7 @@ function OneTrackFile({ activeStep }: { activeStep: number }) {
           </li>
         </ul>
       </div>
-      <div className="nf-link nf-part" data-on={shows(4)}>
+      <div className="nf-link nf-part" data-on="">
         <span className="nf-link-icon">
           <LinkSimple weight="bold" />
         </span>
@@ -190,81 +166,69 @@ function OneTrackFile({ activeStep }: { activeStep: number }) {
   )
 }
 
-export function BeforeAfter() {
-  const sceneRef = useRef<HTMLElement>(null)
+function CompareScreen({
+  label,
+  tone,
+  children,
+}: {
+  label: string
+  tone: 'before' | 'after'
+  children: ReactNode
+}) {
   const screenRef = useRef<HTMLDivElement>(null)
-  const isLive = !usePrefersReducedMotion()
-  const progress = useScrollProgress(sceneRef, isLive)
   useFitScale(screenRef, 880)
 
-  const activeStep = isLive ? activeStepAt(progress) : STEPS.length - 1
-  const reveal = progressBetween(progress, 0.1, 0.24)
-  const screenStyle = {
-    '--ring-r': `${clamp01(reveal * 1.15) * 80}%`,
-    '--calm-r': `${reveal * 80}%`,
-  } as CSSProperties
+  return (
+    <figure className={`compare-panel is-${tone}`}>
+      <figcaption>{label}</figcaption>
+      <div className="compare-screen" ref={screenRef}>
+        <div className="nf">{children}</div>
+      </div>
+    </figure>
+  )
+}
 
-  const railFill = (index: number) => {
-    const start = STEP_MARKS[index]
-    const end = STEP_MARKS[index + 1] ?? 1
-    return progressBetween(progress, start, end)
-  }
-
-  const scrollToStep = (index: number) => {
-    const scene = sceneRef.current
-    if (!scene || !isLive) return
-    const range = scene.offsetHeight - window.innerHeight
-    window.scrollTo({ top: scene.offsetTop + range * (STEP_MARKS[index] + 0.02), behavior: 'smooth' })
-  }
+/**
+ * Side-by-side desk comparison — no scroll lock, no step list.
+ * Mobile swaps with a segmented control.
+ */
+export function BeforeAfter() {
+  const [view, setView] = useState<'before' | 'after'>('before')
 
   return (
-    <section
-      className={isLive ? 'scene showcase is-live' : 'scene showcase'}
-      aria-labelledby="ba-title"
-      ref={sceneRef}
-      style={{ '--hold': 3 } as CSSProperties}
-    >
-      <div className="scene-stage ba-stage">
-        <div className="ba-grid">
-          <div className="ba-side">
-            <header className="section-head">
-              <p className="eyebrow">
-                <ArrowsClockwise weight="bold" />
-                Before and after
-              </p>
-              <h2 id="ba-title">From scattered to settled.</h2>
-              <p>The same client file, before OneTrack and after.</p>
-            </header>
-            <ol className="ba-steps">
-              {STEPS.map((step, index) => (
-                <li key={step.title} className="ba-step" data-on={index === activeStep ? '' : undefined}>
-                  <span className="ba-rail" aria-hidden>
-                    <i style={{ '--fill': railFill(index) } as CSSProperties} />
-                  </span>
-                  <button type="button" onClick={() => scrollToStep(index)}>
-                    <span className="ba-title">{step.title}</span>
-                    <span className="ba-desc">
-                      <span>{step.desc}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <div className="ba-frame">
-            <div className="ba-screen" ref={screenRef} style={screenStyle}>
-              <div className="nf">
-                <UsualDesk />
-                <div className="nf-layer nf-ring" />
-                <OneTrackFile activeStep={activeStep} />
-              </div>
-            </div>
-            <span className="ba-chip" aria-live="polite">
-              <b aria-hidden={activeStep !== 0}>Before</b>
-              <b aria-hidden={activeStep === 0}>OneTrack</b>
-            </span>
-          </div>
-        </div>
+    <section className="section wrap-wide compare" id="compare" aria-labelledby="compare-title" data-enter>
+      <header className="section-head">
+        <h2 id="compare-title">From scattered to settled</h2>
+      </header>
+
+      <div className="tabs compare-tabs" role="tablist" aria-label="Desk view">
+        <button
+          type="button"
+          role="tab"
+          className="tab"
+          aria-selected={view === 'before'}
+          onClick={() => setView('before')}
+        >
+          Usual desk
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className="tab"
+          aria-selected={view === 'after'}
+          onClick={() => setView('after')}
+        >
+          OneTrack
+        </button>
+      </div>
+
+      <div className="compare-panels" data-view={view}>
+        <CompareScreen label="Usual desk" tone="before">
+          <UsualDesk />
+        </CompareScreen>
+        <CompareScreen label="OneTrack" tone="after">
+          <OneTrackFile />
+        </CompareScreen>
       </div>
     </section>
   )

@@ -26,10 +26,10 @@ const SERVICES: readonly { name: string; desc: string; icon: ReactNode }[] = [
 
 export function ServicesStrip() {
   return (
-    <section className="sponsors wrap-wide" aria-labelledby="services-label">
-      <p className="sponsors-label" id="services-label" data-enter>
-        One board for all eight services
-      </p>
+    <section className="section wrap-wide sponsors" id="services" aria-labelledby="services-title">
+      <header className="section-head" data-enter>
+        <h2 id="services-title">One board for all eight services</h2>
+      </header>
       <ul className="cells">
         {SERVICES.map((service, index) => (
           <li key={service.name} data-enter style={{ '--enter-i': index } as CSSProperties}>

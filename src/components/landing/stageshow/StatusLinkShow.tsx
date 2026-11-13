@@ -1,3 +1,4 @@
+import { useCallback, useRef } from 'react'
 import {
   ClipboardCheck,
   FileText,
@@ -8,6 +9,7 @@ import {
   Phone as PhoneIcon,
   PhoneMissed,
   Receipt,
+  Share2,
   Upload,
   Users,
   Video,
@@ -139,7 +141,8 @@ const POSTER: S = {
   success: true,
 }
 
-const REST = { wide: { x: 56, y: 420 }, compact: { x: 32, y: 400 } }
+/** Park near the action — long corner-to-corner flights look broken. */
+const REST = { wide: { x: 520, y: 300 }, compact: { x: 170, y: 260 } }
 const SMS_BODY =
   'Hi Rahim — your Canada student file is ready. Track status & docs anytime:'
 
@@ -162,30 +165,35 @@ function taka(n: number) {
  * - Clear the app shell, then a floating send CTA (like the OneTrack launch)
  * - Phone only after that click — tracking + invoice in one SMS
  */
-async function script(a: Act<S>) {
-  await a.move(a.layout === 'compact' ? REST.compact : REST.wide)
-  await a.wait(800)
+async function script(a: Act<S>, beat: (n: number) => void = () => {}) {
+  beat(0)
+  await a.move(a.layout === 'compact' ? REST.compact : REST.wide, { duration: 280 })
+  await a.wait(420)
   await a.set({ call1: true, alerts: 2 })
-  await a.wait(750)
+  await a.wait(380)
   await a.set({ msg2: true, alerts: 3 })
-  await a.wait(850)
+  await a.wait(420)
   await a.set({ call2: true, alerts: 4 })
-  await a.wait(700)
+  await a.wait(360)
   await a.set({ call3: true, alerts: 5 })
-  await a.wait(750)
+  await a.wait(380)
   await a.set({ msg3: true, alerts: 6 })
-  await a.wait(1100)
+  await a.wait(520)
 
   await a.set({ scrap: true })
-  await a.wait(1050)
+  await a.wait(560)
   await a.set({ cleared: true, scrap: false, launch: true })
-  await a.wait(900)
-  await a.click({ at: 'ot-icon', x: 0.5, y: 0.5 })
+  await a.wait(200)
+  // Short hop onto the launch card (not a corner-to-center flight)
+  await a.move({ at: 'ot-icon', x: 0.15, y: 1.35 }, { duration: 300 })
   await a.wait(160)
+  await a.click({ at: 'ot-icon', x: 0.5, y: 0.5 })
+  await a.wait(100)
   await a.set({ desk: true, launch: false })
-  await a.wait(1000)
+  await a.wait(480)
 
   // One settle on the file — missing docs are already visible
+  beat(1)
   const file = a.rect('sl-file', { layout: true })
   if (file.width > 0) {
     await a.set({
@@ -195,30 +203,31 @@ async function script(a: Act<S>) {
       bank: 'miss',
       gap: true,
     })
-    await a.wait(1600)
+    await a.wait(780)
   } else {
     await a.set({ lit: true, nid: 'miss', bank: 'miss', gap: true })
-    await a.wait(800)
+    await a.wait(420)
   }
 
-  // Open upload over the same file frame — no camera move
+  // Park beside upload, then click — short hop, not a full-stage flight
+  await a.move({ at: 'sl-upload', x: -0.2, y: 0.5 }, { duration: 280 })
   await a.click({ at: 'sl-upload', x: 0.5, y: 0.5 })
   await a.set({ upload: true })
-  await a.wait(700)
+  await a.wait(360)
 
   // NID leaves the tray and drops into the zone
   await a.set({ chip: 'nid', chipLand: false, dropHot: true })
-  await a.wait(820)
+  await a.wait(480)
   await a.set({ chipLand: true })
-  await a.wait(120)
+  await a.wait(80)
   await a.set({ nid: 'done', chip: null, chipLand: false, dropHot: false })
-  await a.wait(420)
+  await a.wait(240)
 
   // Bank statement follows
   await a.set({ chip: 'bank', chipLand: false, dropHot: true })
-  await a.wait(820)
+  await a.wait(480)
   await a.set({ chipLand: true })
-  await a.wait(120)
+  await a.wait(80)
   await a.set({
     bank: 'done',
     chip: null,
@@ -227,49 +236,53 @@ async function script(a: Act<S>) {
     gap: false,
     docsReady: true,
   })
-  await a.wait(520)
+  await a.wait(280)
   await a.set({ upload: false })
-  await a.wait(600)
+  await a.wait(320)
 
   // Payments on the same file
+  beat(2)
   await a.set({ payments: true })
-  await a.wait(80)
+  await a.wait(60)
   const filePay = a.rect('sl-file', { layout: true })
   if (filePay.width > 0) await a.set({ zoom: filePay })
-  await a.wait(900)
+  await a.wait(480)
 
   await a.set({ advance: true, paid: 50000, due: 135000 })
-  await a.wait(700)
+  await a.wait(360)
   await a.set({
     second: true,
     paid: 120000,
     due: 65000,
     payLit: true,
   })
-  await a.wait(650)
+  await a.wait(340)
   await a.set({ balance: true })
-  await a.wait(1400)
+  await a.wait(720)
 
   // App shell clears — floating send CTA, like the OneTrack launch card
   await a.set({ zoom: null })
-  await a.wait(420)
+  await a.wait(240)
   await a.set({ desk: false })
-  await a.wait(520)
+  await a.wait(280)
   await a.set({ sendCta: true })
-  await a.wait(900)
+  await a.move({ at: 'sl-send', x: 0.2, y: 1.2 }, { duration: 300 })
+  await a.wait(360)
   await a.click({ at: 'sl-send', x: 0.5, y: 0.5 })
-  await a.wait(120)
+  await a.wait(80)
   await a.set({ sent: true })
-  await a.wait(720)
+  await a.wait(380)
+  beat(3)
   await a.set({ phone: true })
-  await a.wait(900)
+  await a.wait(480)
   await a.set({ sms: true })
-  await a.wait(520)
+  await a.wait(300)
   await a.set({ invoice: true })
-  await a.wait(700)
+  await a.wait(380)
   await a.set({ success: true })
-  await a.wait(1800)
+  await a.wait(1000)
 
+  beat(0)
   await a.snap({
     call1: false,
     msg2: false,
@@ -305,7 +318,7 @@ async function script(a: Act<S>) {
     sendCta: false,
     sent: false,
   })
-  await a.wait(400)
+  await a.wait(240)
 }
 
 const NAV: { label: string; icon: LucideIcon; active?: boolean; section?: string }[] = [
@@ -388,7 +401,7 @@ function DocRow({
 
 function MissedCall({ time }: { time: string }) {
   return (
-    <div className="sl-missed" data-enter>
+    <div className="sl-missed">
       <span className="sl-missed__main">
         <PhoneMissed size={13} strokeWidth={2.4} />
         <span className="sl-missed__text">
@@ -401,15 +414,19 @@ function MissedCall({ time }: { time: string }) {
   )
 }
 
-export function StatusLinkShow() {
+export function StatusLinkShow({ onBeat }: { onBeat?: (beat: number) => void } = {}) {
+  const beatRef = useRef(onBeat)
+  beatRef.current = onBeat
+  const run = useCallback((a: Act<S>) => script(a, (n) => beatRef.current?.(n)), [])
+
   return (
     <Stage<S>
       width={1100}
-      height={560}
-      compact={{ below: 520, width: 358, height: 480 }}
+      height={600}
+      compact={{ below: 520, width: 358, height: 520 }}
       initial={INITIAL}
       poster={POSTER}
-      script={script}
+      script={run}
       cursor={{ at: REST }}
       accent="#0c2d79"
       tokens={{
@@ -833,14 +850,16 @@ export function StatusLinkShow() {
               </div>
 
               <div className="sl-pile" aria-hidden>
-                {ALERT_PILE.slice(0, s.alerts).map((alert, index, list) => {
-                  const depth = list.length - 1 - index
+                {ALERT_PILE.map((alert, index) => {
+                  const shown = index < s.alerts
+                  const depth = Math.max(0, s.alerts - 1 - index)
                   return (
                     <div
                       key={`${alert.kind}-${index}`}
                       className="sl-pile__card"
                       data-kind={alert.kind}
-                      data-top={depth === 0 || undefined}
+                      data-in={shown || undefined}
+                      data-top={(shown && depth === 0) || undefined}
                       style={{
                         ['--sl-depth' as string]: String(depth),
                         zIndex: index + 1,
@@ -857,10 +876,9 @@ export function StatusLinkShow() {
                         <strong>{alert.title}</strong>
                         <em>{alert.body}</em>
                       </span>
-                      {depth === 0 ? (
+                      {shown && depth === 0 ? (
                         <span
                           className="sl-pile__ball"
-                          key={s.alerts}
                           data-hot={s.alerts >= 4 || undefined}
                         >
                           {s.alerts}
@@ -883,15 +901,10 @@ export function StatusLinkShow() {
             tabIndex={-1}
             aria-hidden={!s.launch}
           >
-            <img
-              className="sl-launch__mark"
-              src={publicUrl('images/logo.svg')}
-              alt=""
-            />
-            <span className="sl-launch__text">
-              <span className="sl-launch__name">OneTrack</span>
-              <span className="sl-launch__sub">Travel Management System</span>
+            <span className="sl-launch__icon">
+              <img src={publicUrl('images/logo.svg')} alt="" />
             </span>
+            <span className="sl-launch__name">OneTrack</span>
           </button>
 
           <button
@@ -901,7 +914,7 @@ export function StatusLinkShow() {
             data-sent={s.sent || undefined}
             data-target="sl-send"
             data-cursor="pointer"
-            aria-label="Send tracking link and invoice"
+            aria-label="Share link and invoice"
             tabIndex={-1}
             aria-hidden={!s.sendCta}
           >
@@ -912,8 +925,8 @@ export function StatusLinkShow() {
               </>
             ) : (
               <>
-                <MessageSquare size={14} strokeWidth={2.25} />
-                Send tracking link and invoice
+                <Share2 size={14} strokeWidth={2.25} />
+                Share link and invoice
               </>
             )}
           </button>

@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
+import '@fontsource-variable/geist/wght.css'
 import { AnnouncementPopupHost } from '@/components/announcements/AnnouncementPopupHost'
 import { LandingAskChat } from '@/components/landing/LandingAskChat'
 import { BeforeAfter } from '@/components/landing/v2/BeforeAfter'
 import { FaqSection } from '@/components/landing/v2/FaqSection'
 import { FeatureCards } from '@/components/landing/v2/FeatureCards'
-import { FileStages } from '@/components/landing/v2/FileStages'
-import { HeroSection } from '@/components/landing/v2/HeroSection'
-import { LightFlood } from '@/components/landing/v2/LightFlood'
-import { PricingSection } from '@/components/landing/v2/PricingSection'
 import { ServicesStrip } from '@/components/landing/v2/ServicesStrip'
-import { SiteFooter } from '@/components/landing/v2/SiteFooter'
-import { SiteNav } from '@/components/landing/v2/SiteNav'
 import { TrackingFilm } from '@/components/landing/v2/TrackingFilm'
 import { WhoUsesIt } from '@/components/landing/v2/WhoUsesIt'
 import { useEnterOnScroll } from '@/components/landing/v2/sceneHooks'
+import { FinalCall } from '@/components/landing/v3/FinalCall'
+import { HeroSection } from '@/components/landing/v3/HeroSection'
+import { PricingTickets } from '@/components/landing/v3/PricingTickets'
+import { SiteFooter } from '@/components/landing/v3/SiteFooter'
+import { SiteNav } from '@/components/landing/v2/SiteNav'
 import '@/styles/layout-landing.css'
 import '@/styles/layout-landing-taste.css'
+import '@/styles/layout-landing-v3.css'
 
 const PAGE_TITLE = 'OneTrack — One board for every travel file'
 const PAGE_DESCRIPTION =
@@ -47,22 +48,21 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="ot" ref={rootRef}>
+    <div className="ot ot-v3" ref={rootRef}>
       <a className="ot-skip" href="#main">
         Skip to content
       </a>
       <SiteNav />
       <main id="main">
         <HeroSection />
-        <ServicesStrip />
-        <FileStages />
-        <FeatureCards />
-        <BeforeAfter />
-        <WhoUsesIt />
         <TrackingFilm />
-        <PricingSection onAsk={openAsk} />
-        <FaqSection onAsk={openAsk} />
-        <LightFlood />
+        <ServicesStrip />
+        <BeforeAfter />
+        <FeatureCards />
+        <WhoUsesIt />
+        <PricingTickets onAsk={openAsk} />
+        <FaqSection />
+        <FinalCall onAsk={openAsk} />
       </main>
       <SiteFooter onAsk={openAsk} />
       <LandingAskChat open={isAskOpen} onOpen={openAsk} onClose={closeAsk} />

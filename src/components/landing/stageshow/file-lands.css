@@ -264,11 +264,11 @@
 }
 
 .fl-card {
-  position: absolute;
   z-index: 5;
   display: flex;
   align-items: center;
   gap: 10px;
+  box-sizing: border-box;
   padding: 10px 12px;
   border-radius: 10px;
   background: #fff;
@@ -276,18 +276,20 @@
   box-shadow:
     0 1px 1px rgba(16, 24, 40, 0.04),
     0 10px 18px -12px rgba(12, 45, 121, 0.45);
-  will-change: left, top;
   transition:
-    left 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-    top 0.32s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.2s ease,
     scale 0.2s ease;
 }
 
+/* Parked in the column slot — normal flow, immune to hero rotateX measure drift. */
+.fl-card[data-parked] {
+  position: relative;
+  width: 100%;
+}
+
 .fl-card[data-dragging] {
-  transition:
-    box-shadow 0.2s ease,
-    scale 0.2s ease;
+  position: absolute;
+  will-change: left, top;
 }
 
 .fl-card[data-lifted] {

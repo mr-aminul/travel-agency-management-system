@@ -529,7 +529,6 @@ html:has(.lp2) body {
   .lp2-nav__panel a,
   .lp2-menu-icon,
   .lp2-menu-icon span,
-  .lp2-faq__item[open] .lp2-faq__chevron,
   .lp2-ticker__track,
   .lp2-route__line,
   .lp2-route__plane {
@@ -561,10 +560,7 @@ html:has(.lp2) body {
   display: flex;
   justify-content: center;
   padding:
-    max(var(--lp2-s-300), env(safe-area-inset-top))
-    max(var(--lp2-s-400), env(safe-area-inset-right))
-    var(--lp2-s-200)
-    max(var(--lp2-s-400), env(safe-area-inset-left));
+    max(var(--lp2-s-300), env(safe-area-inset-top)) max(var(--lp2-s-400), env(safe-area-inset-right)) var(--lp2-s-200) max(var(--lp2-s-400), env(safe-area-inset-left));
   color: #fff;
   pointer-events: none;
   transform: translate3d(0, 0, 0);
@@ -806,10 +802,7 @@ html:has(.lp2) body {
 @media (max-width: 899px) {
   .lp2-nav {
     padding:
-      max(10px, env(safe-area-inset-top))
-      max(14px, env(safe-area-inset-right))
-      10px
-      max(14px, env(safe-area-inset-left));
+      max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 10px max(14px, env(safe-area-inset-left));
   }
 
   .lp2-nav__shell,
@@ -877,7 +870,7 @@ html:has(.lp2) body {
     gap: 4px;
   }
 
-  .lp2-nav__actions > .lp2-btn {
+  .lp2-nav__actions>.lp2-btn {
     display: none;
   }
 
@@ -934,9 +927,7 @@ html:has(.lp2) body {
   min-height: 100svh;
   min-height: 100dvh;
   padding:
-    max(clamp(108px, 14vh, 168px), calc(env(safe-area-inset-top) + 108px))
-    clamp(12px, 1.5vw, 28px)
-    0;
+    max(clamp(108px, 14vh, 168px), calc(env(safe-area-inset-top) + 108px)) clamp(12px, 1.5vw, 28px) 0;
   overflow: hidden;
   background: #000;
   text-align: center;
@@ -1056,11 +1047,9 @@ html:has(.lp2) body {
   align-items: flex-end;
   justify-content: center;
   align-self: center;
-  width: min(
-    94vw,
-    1480px,
-    calc((100dvh - var(--lp2-hero-copy-budget) - var(--lp2-ticker-h, 52px)) * 960 / 520)
-  );
+  width: min(94vw,
+      1480px,
+      calc((100dvh - var(--lp2-hero-copy-budget) - var(--lp2-ticker-h, 52px)) * 960 / 520));
   max-width: 100%;
   min-width: 0;
   min-height: 0;
@@ -1077,7 +1066,7 @@ html:has(.lp2) body {
   }
 }
 
-.lp2-hero__product > .fl.ss-fit {
+.lp2-hero__product>.fl.ss-fit {
   width: 100%;
   max-width: 100%;
 }
@@ -1107,6 +1096,7 @@ html:has(.lp2) body {
 }
 
 @media (max-width: 899px) {
+
   /* Nav already carries the mark — drop the duplicate hero brand. */
   .lp2-hero__brand {
     display: none;
@@ -1128,10 +1118,7 @@ html:has(.lp2) body {
     justify-content: flex-start;
     gap: 0;
     padding:
-      var(--lp2-hero-nav-clearance)
-      max(16px, env(safe-area-inset-right))
-      0
-      max(16px, env(safe-area-inset-left));
+      var(--lp2-hero-nav-clearance) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
   }
 
   .lp2-hero__inner {
@@ -1188,7 +1175,7 @@ html:has(.lp2) body {
     mask-image: none;
   }
 
-  .lp2-hero__product > .fl.ss-fit {
+  .lp2-hero__product>.fl.ss-fit {
     /* Exact screen width — stageshow scales the full board down, no side crop. */
     width: 100%;
     max-width: 100%;
@@ -1921,7 +1908,7 @@ html:has(.lp2) body {
   margin-bottom: var(--lp2-s-100);
 }
 
-.lp2-desk-scene__pay > div:first-child {
+.lp2-desk-scene__pay>div:first-child {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -2129,7 +2116,7 @@ html:has(.lp2) body {
   gap: 14px;
 }
 
-.lp2-moment-pay > header {
+.lp2-moment-pay>header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -4450,7 +4437,7 @@ html:has(.lp2) body {
   padding: 26px 12px 20px;
 }
 
-.lp2-ticket__stub > div:first-child {
+.lp2-ticket__stub>div:first-child {
   min-width: 0;
 }
 
@@ -4569,12 +4556,13 @@ html:has(.lp2) body {
 
   .lp2-ticket__skin {
     grid-template-columns: minmax(0, 1fr);
+    border-radius: 16px;
     -webkit-mask: none;
     mask: none;
   }
 
   .lp2-ticket__main {
-    padding: 22px 18px 20px;
+    padding: 16px 14px 14px;
     border-right: 0;
     border-bottom: 2px dashed var(--lp-rule);
   }
@@ -4582,204 +4570,70 @@ html:has(.lp2) body {
   .is-featured .lp2-ticket__main {
     border-right-color: transparent;
     border-bottom-color: rgba(232, 236, 246, 0.22);
-    padding-top: 30px;
+    padding-top: 26px;
+  }
+
+  .lp2-ticket__badge {
+    padding: 4px 9px 3px;
+    font-size: 8px;
   }
 
   .lp2-ticket__name {
-    font-size: 36px;
+    margin-bottom: 6px;
+    font-size: 24px;
+  }
+
+  .lp2-ticket__fare {
+    gap: 2px 6px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+  }
+
+  .lp2-ticket__price {
+    font-size: 22px;
+  }
+
+  .lp2-ticket__perks {
+    gap: 7px;
+  }
+
+  .lp2-ticket__perks li {
+    gap: 8px;
+    font-size: 12.5px;
+  }
+
+  .lp2-ticket__perk-icon {
+    width: 14px;
+    height: 14px;
   }
 
   .lp2-ticket__stub {
     display: grid;
-    grid-template-columns: 1fr;
-    align-items: stretch;
-    gap: 12px;
-    padding: 16px 18px;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 10px 12px;
+    padding: 12px 14px;
   }
 
   .lp2-barcode {
     display: none;
   }
 
-  .lp2-ticket__board {
-    grid-column: 1 / -1;
-    width: 100%;
+  .lp2-ticket__stub strong {
+    font-size: 15px;
   }
-}
 
-/* ---------- Landing FAQ band ---------- */
-
-.lp2-faq {
-  padding: clamp(80px, 10vw, 130px) 0;
-  background: #fafbfd;
-}
-
-.lp2-faq .lp2-faq__list {
-  max-width: 760px;
-}
-
-.lp2-faq .lp2-faq__item {
-  padding: var(--lp2-s-100) 0;
-}
-
-.lp2-faq .lp2-faq__item summary {
-  min-height: 48px;
-  padding-block: var(--lp2-s-100);
-}
-
-.lp2-faq .lp2-faq__item .body-6 {
-  margin: 0 0 var(--lp2-s-200);
-  max-width: 62ch;
-  color: var(--lp-paper-muted);
-}
-
-.lp2-faq__more {
-  margin: var(--lp2-s-300) 0 0;
-  color: var(--lp-paper-muted);
-}
-
-.lp2-faq__more a {
-  color: var(--lp-navy);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* ---------- FAQ page ---------- */
-
-.lp2-faq-page {
-  min-height: 100vh;
-  background: #fff;
-  color: var(--lp-paper-ink);
-}
-
-.lp2-faq-page__bar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  border-bottom: 1px solid var(--lp-rule);
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.lp2-faq-page__bar-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--lp2-s-200);
-  min-height: 56px;
-  padding-block: var(--lp2-s-75);
-}
-
-.lp2-faq-page__bar .lp2-nav__brand {
-  color: var(--lp-paper-ink);
-}
-
-.lp2-faq-page__bar-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--lp2-s-75);
-}
-
-.lp2-faq-page__bar .lp2-nav__signin {
-  display: inline-flex;
-  color: var(--lp-paper-muted);
-}
-
-.lp2-faq-page__bar .lp2-nav__signin:hover {
-  color: var(--lp-paper-ink);
-}
-
-.lp2-faq-page__main {
-  padding: var(--lp2-s-500) 0 var(--lp2-s-800);
-}
-
-.lp2-faq-page__back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: var(--lp2-s-200);
-  color: var(--lp-paper-muted);
-  transition: color 200ms var(--lp2-ease);
-}
-
-.lp2-faq-page__back:hover {
-  color: var(--lp-paper-ink);
-}
-
-.lp2-faq-page__more {
-  margin: var(--lp2-s-300) 0 0;
-  color: var(--lp-paper-muted);
-}
-
-.lp2-faq-page__more a {
-  color: var(--lp-navy);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.lp2-faq__inner {
-  display: flex;
-  flex-direction: column;
-  gap: var(--lp2-s-100);
-  max-width: 560px;
-}
-
-.lp2-faq__title {
-  margin: 0;
-  color: var(--lp-paper-muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.lp2-faq__list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  width: 100%;
-}
-
-.lp2-faq__item {
-  border: none;
-  border-bottom: 1px solid var(--lp-rule);
-  border-radius: 0;
-  background: transparent;
-  padding: 10px 0;
-}
-
-.lp2-faq__item:first-child {
-  border-top: 1px solid var(--lp-rule);
-}
-
-.lp2-faq__item summary {
-  list-style: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--lp2-s-100);
-  min-height: 32px;
-  color: var(--lp-paper-ink);
-}
-
-.lp2-faq__item summary::-webkit-details-marker {
-  display: none;
-}
-
-.lp2-faq__chevron {
-  flex: 0 0 auto;
-  transition: transform 200ms var(--lp2-ease);
-  color: var(--lp-paper-muted);
-}
-
-.lp2-faq__item[open] .lp2-faq__chevron {
-  transform: rotate(180deg);
-}
-
-.lp2-faq__item .caption-2 {
-  margin: 6px 0 2px;
-  max-width: 52ch;
-  color: var(--lp-paper-muted);
+  .lp2-ticket__board {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    width: auto;
+    min-width: 7.5rem;
+    min-height: 36px;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
 }
 
 /* ---------- Final boarding ---------- */
@@ -4833,23 +4687,31 @@ html:has(.lp2) body {
 }
 
 /* ---------- Footer ---------- */
+/*
+  Content owns height. The travel art is a background layer cropped with
+  object-fit: cover + bottom pin — never width×aspect-ratio (that balloons
+  empty sky on large / ultrawide monitors).
 
+  Cream line-art under light type fails contrast, so a navy scrim tracks the
+  content zone and fades out over the landmark band.
+*/
 .lp2-footer {
-  --lp2-footer-image-h: calc(100vw * (1536 / 2752));
-  --lp2-footer-art: calc(var(--lp2-footer-image-h) * 0.46);
+  /* Landmark strip: scales with viewport, hard-capped so big screens stay calm. */
+  --lp2-footer-art: clamp(200px, 28vh, 340px);
+  --lp2-footer-ink: #050d22;
   position: relative;
   overflow: hidden;
-  min-height: var(--lp2-footer-image-h);
   padding-block: clamp(48px, 6vw, 72px) 0;
-  background: #050d22;
+  background: var(--lp2-footer-ink);
   color: var(--lp-muted);
 }
 
 .lp2-footer__banner {
   position: absolute;
-  inset: auto 0 0;
+  inset: 0;
   z-index: 0;
   width: 100%;
+  height: 100%;
   line-height: 0;
   pointer-events: none;
   user-select: none;
@@ -4858,7 +4720,29 @@ html:has(.lp2) body {
 .lp2-footer__banner img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
+  /* Pin landmarks to the bottom; crop surplus sky / sides on large viewports. */
+  object-position: center bottom;
+}
+
+/* Readable type over cream art — original scrim, ~10% lighter. */
+.lp2-footer__banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--lp2-footer-ink) 90%, transparent) 0,
+    color-mix(in srgb, var(--lp2-footer-ink) 90%, transparent)
+      max(0px, calc(100% - var(--lp2-footer-art) - 96px)),
+    color-mix(in srgb, var(--lp2-footer-ink) 78%, transparent)
+      calc(100% - var(--lp2-footer-art) - 12px),
+    color-mix(in srgb, var(--lp2-footer-ink) 32%, transparent)
+      calc(100% - var(--lp2-footer-art) * 0.45),
+    transparent calc(100% - var(--lp2-footer-art) * 0.08)
+  );
+  pointer-events: none;
 }
 
 .lp2-footer__panel {
@@ -4867,8 +4751,8 @@ html:has(.lp2) body {
   display: flex;
   flex-direction: column;
   gap: clamp(28px, 4vw, 40px);
-  /* Keep columns in the open sky; leave the landmark band clear. */
-  padding-bottom: max(var(--lp2-footer-art), 180px);
+  /* Keep columns in the open sky; leave the capped landmark band clear. */
+  padding-bottom: var(--lp2-footer-art);
 }
 
 .lp2-footer__grid {
@@ -4905,6 +4789,34 @@ html:has(.lp2) body {
 .lp2-footer__tagline {
   margin: 0;
   color: rgba(244, 239, 228, 0.68);
+}
+
+/* Mobile-only quick actions + compact nav; desktop uses the sitemap columns. */
+.lp2-footer__actions,
+.lp2-footer__compact {
+  display: none;
+}
+
+.lp2-footer__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(244, 239, 228, 0.28);
+  border-radius: 999px;
+  color: #f4efe4;
+  background: transparent;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 300ms var(--lp2-ease), background-color 300ms var(--lp2-ease),
+    color 300ms var(--lp2-ease);
+}
+
+.lp2-footer__action:hover {
+  border-color: rgba(244, 239, 228, 0.55);
+  background: rgba(244, 239, 228, 0.08);
+  color: #fff;
 }
 
 .lp2-footer__contact {
@@ -4963,8 +4875,8 @@ html:has(.lp2) body {
   cursor: pointer;
 }
 
-.lp2-footer__col > a,
-.lp2-footer__col > .lp2-text-btn {
+.lp2-footer__col>a,
+.lp2-footer__col>.lp2-text-btn {
   color: rgba(244, 239, 228, 0.68);
   font-size: 14px;
   line-height: 1.35;
@@ -4973,22 +4885,17 @@ html:has(.lp2) body {
   transition: color 300ms var(--lp2-ease);
 }
 
-.lp2-footer__col > .lp2-text-btn {
+.lp2-footer__col>.lp2-text-btn {
   text-underline-offset: unset;
 }
 
-.lp2-footer__col > a:hover,
-.lp2-footer__col > .lp2-text-btn:hover {
+.lp2-footer__col>a:hover,
+.lp2-footer__col>.lp2-text-btn:hover {
   color: #f4efe4;
 }
 
 .lp2-footer__newsletter {
   max-width: 280px;
-}
-
-/* Compact strip is mobile-only; desktop keeps the column sitemap. */
-.lp2-footer__compact {
-  display: none;
 }
 
 .lp2-footer__newsletter-form {
@@ -5065,7 +4972,7 @@ html:has(.lp2) body {
   color: #f4efe4;
 }
 
-.lp2-footer__legal-links a + a::before {
+.lp2-footer__legal-links a+a::before {
   content: '|';
   margin-inline: 10px;
   color: rgba(244, 239, 228, 0.28);
@@ -5963,7 +5870,6 @@ html:has(.lp2) body {
   .lp2-problem,
   .lp2-features,
   .lp2-moments,
-  .lp2-faq,
   .lp2-customize {
     padding-block: 64px;
   }
@@ -6117,96 +6023,120 @@ html:has(.lp2) body {
     padding: 16px;
   }
 
-  /* Pricing tickets */
+  /* Pricing tickets — keep compact; sizes set in the ticket mobile block */
   .lp2-pricing {
-    padding-block: 72px;
+    padding-block: 56px;
   }
 
-  .lp2-ticket__name {
-    font-size: 30px;
+  .lp2-pricing__row {
+    gap: 14px;
   }
 
-  .lp2-ticket__main {
-    padding: 20px 16px 18px;
+  .lp2-pricing__seg {
+    margin-top: 14px;
   }
 
-  .lp2-ticket__stub {
-    padding: 14px 16px;
+  .lp2-pricing__seg button {
+    min-height: 34px;
+    padding: 0 14px;
+    font-size: 13px;
   }
 
-  .lp2-ticket__board {
-    min-height: 48px;
-    height: 48px;
+  .lp2-pricing__foot {
+    margin-top: 20px;
   }
 
-  /* FAQ page */
-  .lp2-faq-page__main {
-    padding: 32px 0 64px;
-  }
-
-  .lp2-faq__item {
-    padding: 8px 0;
-  }
-
-  /* Final CTA */
+  /* Final CTA — compact like hero CTAs */
   .lp2-final {
-    padding-block: 72px;
+    padding-block: 56px;
   }
 
   .lp2-final__title {
-    font-size: clamp(28px, 8vw, 40px);
+    font-size: clamp(26px, 7vw, 36px);
   }
 
   .lp2-final__actions {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    width: auto;
+    max-width: 100%;
   }
 
   .lp2-final__actions .lp2-btn {
-    width: 100%;
-    min-height: 48px;
+    flex: 0 1 auto;
+    width: auto;
+    min-height: 40px;
+    height: 40px;
+    padding: 0 14px;
+    font-size: 14px;
   }
 
-  /* Footer — slim mobile bar; desktop sitemap + banner stay above 767px */
+  .lp2-final__actions .lp2-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Footer — centered mobile stack over the same cover + scrim art */
   .lp2-footer {
-    --lp2-footer-art: 0px;
-    --lp2-footer-image-h: 0px;
-    min-height: 0;
-    padding-block: 28px max(20px, env(safe-area-inset-bottom));
-  }
-
-  .lp2-footer__banner {
-    display: none;
+    --lp2-footer-art: clamp(120px, 22vh, 180px);
+    padding-block: 40px 0;
   }
 
   .lp2-footer__panel {
-    gap: 20px;
-    padding-bottom: 0;
+    gap: 28px;
+    padding-bottom: calc(var(--lp2-footer-art) + env(safe-area-inset-bottom, 0px));
+    align-items: center;
+    text-align: center;
   }
 
   .lp2-footer__grid {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
   }
 
   .lp2-footer__brand {
     max-width: none;
-    gap: 8px;
+    width: 100%;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .lp2-footer .lp2-nav__brand {
+    justify-content: center;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+  }
+
+  .lp2-footer .lp2-nav__brand img {
+    width: 28px;
+    height: 28px;
   }
 
   .lp2-footer__tagline {
-    font-size: 13px;
-    line-height: 1.4;
+    display: none;
+  }
+
+  .lp2-footer__actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
   }
 
   .lp2-footer__contact {
-    gap: 6px;
+    align-items: center;
+    gap: 10px;
   }
 
-  .lp2-footer__contact li:last-child {
-    display: none;
+  .lp2-footer__contact li {
+    justify-content: center;
+    text-align: center;
   }
 
   .lp2-footer__col--desktop {
@@ -6217,31 +6147,24 @@ html:has(.lp2) body {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 4px;
+    justify-content: center;
+    gap: 10px 18px;
     margin: 0;
     padding: 0;
+    max-width: 22rem;
   }
 
-  .lp2-footer__compact > a,
-  .lp2-footer__compact > .lp2-text-btn {
-    color: rgba(244, 239, 228, 0.72);
-    font-size: 13px;
-    line-height: 1.3;
+  .lp2-footer__compact>a,
+  .lp2-footer__compact>.lp2-text-btn {
+    color: rgba(244, 239, 228, 0.78);
+    font-size: 14px;
+    line-height: 1.35;
     text-decoration: none;
-    text-align: left;
+    text-align: center;
   }
 
-  .lp2-footer__compact > a:not(:last-child)::after,
-  .lp2-footer__compact > .lp2-text-btn:not(:last-child)::after {
-    content: '·';
-    margin-left: 8px;
-    margin-right: 4px;
-    color: rgba(244, 239, 228, 0.32);
-    pointer-events: none;
-  }
-
-  .lp2-footer__compact > a:hover,
-  .lp2-footer__compact > .lp2-text-btn:hover {
+  .lp2-footer__compact>a:hover,
+  .lp2-footer__compact>.lp2-text-btn:hover {
     color: #f4efe4;
   }
 
@@ -6256,10 +6179,21 @@ html:has(.lp2) body {
 
   .lp2-footer__legal {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    padding-top: 4px;
-    border-top: 1px solid rgba(244, 239, 228, 0.14);
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding-top: 20px;
+    border-top: 1px solid rgba(244, 239, 228, 0.16);
+  }
+
+  .lp2-footer__legal p,
+  .lp2-footer__legal-links a {
+    color: rgba(244, 239, 228, 0.58);
+  }
+
+  .lp2-footer__legal-links {
+    justify-content: center;
   }
 
   /* Ask + chat clear the home indicator */
@@ -6288,10 +6222,10 @@ html:has(.lp2) body {
   }
 
   .lp2-ticket__name {
-    font-size: 28px;
+    font-size: 22px;
   }
 
   .lp2-ticket__price {
-    font-size: 28px;
+    font-size: 20px;
   }
 }

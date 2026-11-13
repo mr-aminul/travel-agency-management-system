@@ -1,42 +1,21 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { Check, ImageSquare, MagnifyingGlass, Sparkle } from '@phosphor-icons/react'
+import { Check, ImageSquare, MagnifyingGlass } from '@phosphor-icons/react'
 import { publicUrl } from '@/lib/publicUrl'
-import { useInView } from './sceneHooks'
+import { useInView, usePrefersReducedMotion } from './sceneHooks'
 
-function FxArt({ children }: { children: ReactNode }) {
-  return (
-    <div className="feature-art">
-      <div className="fx" aria-hidden>
-        <span className="fx-bg" />
-        <span className="fx-glow" />
-        <span className="fx-rings">
-          <span className="fx-ring" />
-          <span className="fx-ring fx-ring-2" />
-        </span>
-        <span className="fx-line fx-t" />
-        <span className="fx-line fx-b" />
-        <span className="fx-line fx-l" />
-        <span className="fx-line fx-r" />
-        <span className="fx-mark fx-m1" />
-        <span className="fx-mark fx-m2" />
-        <span className="fx-mark fx-m3" />
-        <span className="fx-mark fx-m4" />
-      </div>
-      <div className="feat-float">
-        <span className="fx-sheet fx-s2" aria-hidden />
-        <span className="fx-sheet fx-s1" aria-hidden />
-        {children}
-      </div>
-    </div>
-  )
+const FEATURE_AUTO_MS = 4200
+const FEATURE_RESUME_MS = 5200
+
+function FeatureArt({ children }: { children: ReactNode }) {
+  return <div className="feature-art">{children}</div>
 }
 
-const SEARCH_QUERY = 'Nusrat Jahan'
+const SEARCH_QUERY = 'Rafiq Hasan'
 
 const DOCUMENT_ROWS = [
-  { title: 'Passport, bio page', meta: 'Uploaded 9 Nov · Sylhet desk', image: 'images/landing/doc-passport-bio.png', isReceived: true },
-  { title: 'National ID, front', meta: 'Uploaded 9 Nov · Sylhet desk', image: 'images/landing/doc-nid-front.png', isReceived: true },
-  { title: 'Bank statement', meta: 'Asked by SMS on 10 Nov', image: null, isReceived: false },
+  { title: 'Passport', image: 'images/landing/doc-passport-bio.png', isReceived: true },
+  { title: 'National ID', image: 'images/landing/doc-nid-front.png', isReceived: true },
+  { title: 'Bank statement', image: null, isReceived: false },
 ] as const
 
 function useTypedText(text: string, isActive: boolean): string {
@@ -83,27 +62,19 @@ function DocumentsFrag() {
             )}
             <span className="fs-text">
               <span className="fs-title">{row.title}</span>
-              <span className="fs-meta">{row.meta}</span>
             </span>
             {row.isReceived ? <span className="chip ok">Received</span> : <span className="chip fail">Missing</span>}
           </div>
         ))}
-      </div>
-      <div className="frag-foot">
-        <span>2 of 3 received</span>
-        <span className="frag-ok">
-          <Check weight="bold" />
-          Client reminded
-        </span>
       </div>
     </div>
   )
 }
 
 const STATUS_ROWS = [
-  { code: 'OT-2463', note: 'Japan · submitted to embassy' },
-  { code: 'OT-2459', note: 'UK · biometrics booked' },
-  { code: 'OT-2451', note: 'Umrah · visa approved' },
+  { code: 'OT-2463', note: 'Japan' },
+  { code: 'OT-2459', note: 'UK' },
+  { code: 'OT-2451', note: 'Umrah' },
 ] as const
 
 function StatusFrag() {
@@ -121,7 +92,7 @@ function StatusFrag() {
     <div className="frag" ref={fragRef}>
       <div className="frag-bar">
         <span>Status updates</span>
-        <span className="frag-bar-note">SMS + link</span>
+        <span className="frag-bar-note">SMS</span>
       </div>
       <div className="fi-body">
         {STATUS_ROWS.map((row, index) => (
@@ -141,15 +112,6 @@ function StatusFrag() {
             </span>
           </div>
         ))}
-      </div>
-      <div className="frag-foot">
-        <span>
-          {sentCount} of {STATUS_ROWS.length} clients told
-        </span>
-        <span className="frag-ok">
-          <Check weight="bold" />
-          No calls needed
-        </span>
       </div>
     </div>
   )
@@ -180,22 +142,18 @@ function PaymentsFrag() {
       <div className="fa-kpis">
         <div className="fa-kpi">
           <span>Collected</span>
-          <b>৳3,83,000</b>
-          <em>+12%</em>
+          <b>৳3.83L</b>
         </div>
         <div className="fa-kpi">
           <span>Still due</span>
-          <b>৳1,40,500</b>
-          <em className="is-due">6 files</em>
+          <b>৳1.41L</b>
         </div>
         <div className="fa-kpi">
           <span>Invoices</span>
           <b>19</b>
-          <em>sent</em>
         </div>
       </div>
       <div className="fa-chart">
-        <div className="fa-head">Collected per day, in thousand Taka</div>
         <div className="fa-plot">
           <span className="fa-avg" style={{ bottom: `${(WEEK_AVERAGE / WEEK_MAX) * 100}%` }}>
             <span>avg</span>
@@ -228,55 +186,139 @@ function PaymentsFrag() {
 const FEATURES = [
   {
     id: 'documents',
-    look: '',
     label: 'Documents',
     title: 'See which papers are still missing.',
-    body: 'Every passport, NID and statement sits on the client file. Missing ones stand out before the embassy date.',
-    meta: 'Passport, NID, bank statement',
     frag: <DocumentsFrag />,
   },
   {
     id: 'status',
-    look: 'flip is-dark',
     label: 'Client updates',
-    title: 'Clients see their stage without calling.',
-    body: 'Move a file forward and the client gets an SMS with a tracking link. Your phone rings less.',
-    meta: 'SMS tracking link',
+    title: 'Clients check status themselves.',
     frag: <StatusFrag />,
   },
   {
     id: 'payments',
-    look: 'is-dawn',
     label: 'Payments',
-    title: 'Know who paid and who still owes.',
-    body: 'Advance, balance and due date live next to the visa status. Send an invoice from the same screen.',
-    meta: 'Advance, balance, invoice',
+    title: 'See who paid and what is due.',
     frag: <PaymentsFrag />,
   },
 ] as const
 
+function isCarouselMode(track: HTMLElement) {
+  return track.scrollWidth > track.clientWidth + 8
+}
+
 export function FeatureCards() {
+  const trackRef = useRef<HTMLDivElement>(null)
+  const sectionRef = useRef<HTMLElement>(null)
+  const activeRef = useRef(0)
+  const pausedUntilRef = useRef(0)
+  const [active, setActive] = useState(0)
+  const reducedMotion = usePrefersReducedMotion()
+  const isInView = useInView(sectionRef, '0px 0px -15% 0px')
+
+  const goTo = (index: number, behavior: ScrollBehavior = 'smooth') => {
+    const track = trackRef.current
+    if (!track || !isCarouselMode(track)) return
+    const cards = track.querySelectorAll<HTMLElement>('.feature')
+    const card = cards[index]
+    if (!card) return
+    const left = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2
+    track.scrollTo({ left: Math.max(0, left), behavior })
+  }
+
+  useEffect(() => {
+    const track = trackRef.current
+    if (!track) return
+
+    const syncActive = () => {
+      const cards = [...track.querySelectorAll<HTMLElement>('.feature')]
+      if (!cards.length) return
+      const mid = track.scrollLeft + track.clientWidth / 2
+      let best = 0
+      let bestDist = Infinity
+      cards.forEach((card, index) => {
+        const center = card.offsetLeft + card.offsetWidth / 2
+        const dist = Math.abs(center - mid)
+        if (dist < bestDist) {
+          bestDist = dist
+          best = index
+        }
+      })
+      activeRef.current = best
+      setActive(best)
+    }
+
+    const pauseAuto = () => {
+      pausedUntilRef.current = Date.now() + FEATURE_RESUME_MS
+    }
+
+    syncActive()
+    track.addEventListener('scroll', syncActive, { passive: true })
+    track.addEventListener('pointerdown', pauseAuto, { passive: true })
+    track.addEventListener('touchstart', pauseAuto, { passive: true })
+    track.addEventListener('wheel', pauseAuto, { passive: true })
+    window.addEventListener('resize', syncActive)
+    return () => {
+      track.removeEventListener('scroll', syncActive)
+      track.removeEventListener('pointerdown', pauseAuto)
+      track.removeEventListener('touchstart', pauseAuto)
+      track.removeEventListener('wheel', pauseAuto)
+      window.removeEventListener('resize', syncActive)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (reducedMotion || !isInView) return
+
+    const tick = () => {
+      const track = trackRef.current
+      if (!track || !isCarouselMode(track)) return
+      if (Date.now() < pausedUntilRef.current) return
+      const next = (activeRef.current + 1) % FEATURES.length
+      goTo(next, 'smooth')
+    }
+
+    const timer = window.setInterval(tick, FEATURE_AUTO_MS)
+    return () => window.clearInterval(timer)
+  }, [reducedMotion, isInView])
+
   return (
-    <section className="section wrap-wide" id="features" aria-labelledby="features-title">
+    <section
+      className="section wrap-wide"
+      id="features"
+      aria-labelledby="features-title"
+      ref={sectionRef}
+    >
       <header className="section-head" data-enter>
-        <p className="eyebrow">
-          <Sparkle weight="fill" />
-          Features
-        </p>
-        <h2 id="features-title">Built for the way agencies work.</h2>
-        <p>Three things every desk chases each day, handled on the file itself.</p>
+        <h2 id="features-title">Built for the way agencies work</h2>
       </header>
-      <div className="feats">
+      <div className="feats is-compact" ref={trackRef} aria-roledescription="carousel">
         {FEATURES.map((feature) => (
-          <article key={feature.id} className={`feature ${feature.look}`.trim()} data-enter>
-            <FxArt>{feature.frag}</FxArt>
+          <article key={feature.id} className="feature" data-enter>
+            <FeatureArt>{feature.frag}</FeatureArt>
             <div className="feature-copy">
               <span className="feat-label">{feature.label}</span>
               <h3>{feature.title}</h3>
-              <p>{feature.body}</p>
-              <span className="feat-meta">{feature.meta}</span>
             </div>
           </article>
+        ))}
+      </div>
+      <div className="feats-dots" role="tablist" aria-label="Feature slides">
+        {FEATURES.map((feature, index) => (
+          <button
+            key={feature.id}
+            type="button"
+            role="tab"
+            className="feats-dot"
+            aria-label={feature.label}
+            aria-selected={index === active}
+            data-active={index === active ? '' : undefined}
+            onClick={() => {
+              pausedUntilRef.current = Date.now() + FEATURE_RESUME_MS
+              goTo(index, 'smooth')
+            }}
+          />
         ))}
       </div>
     </section>
