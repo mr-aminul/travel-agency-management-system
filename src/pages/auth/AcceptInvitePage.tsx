@@ -5,7 +5,7 @@ import { acceptUserInvite, fetchInvite } from '@/lib/authApi'
 import { createTenantMember } from '@/lib/tenantMembersStore'
 import { upsertSubAgentLogin } from '@/lib/subAgentLoginsStore'
 import { publicUrl } from '@/lib/publicUrl'
-import { validateRequiredPassword } from '@/lib/fieldValidation'
+import { validateNewPassword } from '@/lib/fieldValidation'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import type { TenantMemberRole, UserRole } from '@/types/tenant'
 import { Button } from '@/components/shadcn/button'
@@ -44,7 +44,7 @@ export default function AcceptInvitePage() {
   const { markAllTouched, showError, blur } = useTouchedFields<
     'password' | 'confirm'
   >()
-  const passwordError = validateRequiredPassword(password)
+  const passwordError = validateNewPassword(password)
   const confirmError =
     confirm !== password ? 'Passwords do not match.' : undefined
 

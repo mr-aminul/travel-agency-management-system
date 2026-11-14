@@ -212,6 +212,7 @@ export default function AuthenticatedLayout() {
     return (
       <BillingAccessWall
         kind="suspended"
+        reason={billingAccess?.reason}
         onSignOut={() => void handleSignOut()}
       />
     )
@@ -221,6 +222,7 @@ export default function AuthenticatedLayout() {
     return (
       <BillingAccessWall
         kind="expired"
+        reason={billingAccess?.reason}
         onBilling={() => navigate('/billing', { replace: true })}
         onSignOut={() => void handleSignOut()}
       />

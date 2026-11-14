@@ -6,11 +6,7 @@ export function HomeGlobalSearch() {
 
   return (
     <div className="pd-home-search" data-tour="home-search">
-      <GlobalSearchPalette
-        ref={searchRef}
-        items={items}
-        animatePlaceholder
-      />
+      <GlobalSearchPalette ref={searchRef} items={items} />
     </div>
   )
 }

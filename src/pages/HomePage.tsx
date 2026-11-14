@@ -16,6 +16,7 @@ import { TodayFollowUps } from '@/components/home/TodayFollowUps'
 import { PlatformTour } from '@/components/onboarding/PlatformTour'
 import { useAgencyProfile } from '@/layout/useAgencyProfile'
 import { agencyProfileIsIncomplete } from '@/lib/agencyProfileGaps'
+import { useClients } from '@/lib/clientsStore'
 import { isPathAllowed } from '@/lib/modules'
 import {
   dismissBusinessProfileNudge,
@@ -45,10 +46,17 @@ const QUICK_LINKS: QuickLink[] = [
 export default function HomePage() {
   const { user } = useAuth()
   const tenant = useActiveTenant()
+  const clients = useClients()
   const agencyProfile = useAgencyProfile()
   const { dismissed: profileNudgeDismissed } = useBusinessProfileNudgeState()
   const showProfileNudge =
     agencyProfileIsIncomplete(agencyProfile) && !profileNudgeDismissed
+  const isFirstRun = clients.length === 0
+  const canAddClient = isPathAllowed(
+    '/clients',
+    tenant.enabledModules,
+    user?.role ?? 'agency_user',
+  )
 
   if (user?.role === 'platform_admin') {
     return <Navigate to="/admin" replace />
@@ -74,7 +82,13 @@ export default function HomePage() {
 
       <HomeGlobalSearch />
 
-      <TodayFollowUps />
+      <TodayFollowUps
+        emptyAction={
+          isFirstRun && canAddClient
+            ? { label: 'Add your first client', to: '/clients?new=1' }
+            : undefined
+        }
+      />
 
       {links.length > 0 ? (
         <nav
@@ -84,11 +98,18 @@ export default function HomePage() {
         >
           {links.map((item) => {
             const Icon = item.icon
+            const isPrimary = isFirstRun && item.path === '/clients'
             return (
               <Link
                 key={item.path}
-                to={item.path}
-                className="pd-home-quick__tile"
+                to={
+                  isPrimary && canAddClient ? '/clients?new=1' : item.path
+                }
+                className={
+                  isPrimary
+                    ? 'pd-home-quick__tile pd-home-quick__tile--primary'
+                    : 'pd-home-quick__tile'
+                }
               >
                 <span className="pd-home-quick__watermark" aria-hidden="true">
                   <Icon size={148} strokeWidth={1.15} />
@@ -96,7 +117,9 @@ export default function HomePage() {
                 <span className="pd-home-quick__icon" aria-hidden="true">
                   <Icon size={26} strokeWidth={1.6} />
                 </span>
-                <span className="pd-home-quick__label">{item.label}</span>
+                <span className="pd-home-quick__label">
+                  {isPrimary ? 'Add client' : item.label}
+                </span>
               </Link>
             )
           })}

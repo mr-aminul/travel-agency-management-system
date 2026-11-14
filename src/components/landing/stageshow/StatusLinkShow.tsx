@@ -77,6 +77,8 @@ type S = {
   sendCta: boolean
   /** Green confirmation on the send CTA before the phone appears. */
   sent: boolean
+  /** End card: nav-style logo + hero tagline on the empty stage. */
+  finale: boolean
 }
 
 const INITIAL: S = {
@@ -113,6 +115,7 @@ const INITIAL: S = {
   payLit: false,
   sendCta: false,
   sent: false,
+  finale: false,
 }
 
 const POSTER: S = {
@@ -284,6 +287,18 @@ async function script(a: Act<S>, beat: (n: number) => void = () => {}) {
   await a.set({ success: true })
   await a.wait(1000)
 
+  await a.set({
+    phone: false,
+    sms: false,
+    invoice: false,
+    success: false,
+    sendCta: false,
+    sent: false,
+  })
+  await a.wait(280)
+  await a.set({ finale: true })
+  await a.wait(2800)
+
   beat(0)
   await a.snap({
     call1: false,
@@ -319,6 +334,7 @@ async function script(a: Act<S>, beat: (n: number) => void = () => {}) {
     payLit: false,
     sendCta: false,
     sent: false,
+    finale: false,
   })
   await a.wait(240)
 }
@@ -932,6 +948,20 @@ export function StatusLinkShow({ onBeat }: { onBeat?: (beat: number) => void } =
               </>
             )}
           </button>
+
+          <div
+            className="sl-finale"
+            data-show={s.finale || undefined}
+            aria-hidden={!s.finale}
+          >
+            <div className="sl-finale__mark">
+              <span className="sl-finale__icon">
+                <img src={publicUrl('images/logo.svg')} alt="" />
+              </span>
+              <span className="sl-finale__name">OneTrack</span>
+            </div>
+            <p>#1 travel agency management software in Bangladesh.</p>
+          </div>
         </>
       )}
     </Stage>

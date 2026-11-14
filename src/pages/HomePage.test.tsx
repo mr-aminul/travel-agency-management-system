@@ -65,6 +65,31 @@ describe('Home Today desk', () => {
     )
   })
 
+  it('guides an empty agency to add the first client', () => {
+    writeSession({
+      user: DEMO_USER,
+      tenantId: 'tenant-home-empty',
+      signedInAt: '2026-01-01T00:00:00.000Z',
+    })
+    dismissBusinessProfileNudge()
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={['/']}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>,
+    )
+
+    expect(
+      screen.getByRole('link', { name: 'Add your first client' }),
+    ).toHaveAttribute('href', '/clients?new=1')
+    expect(
+      screen.getByRole('link', { name: /Add client/i }),
+    ).toHaveAttribute('href', '/clients?new=1')
+  })
+
   it('lists a pending approval that opens Approvals', () => {
     submitPendingChange({
       tenantId: TENANT_IDS.demo,

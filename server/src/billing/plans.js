@@ -4,10 +4,18 @@ export const TRIAL_DAYS = 14
 export const TRIAL_PLAN_ID = 'growth'
 
 /**
- * Temporary UAT default: every agency is on Test/comp with no billing wall.
- * Set false (and re-seed defaults) when leaving UAT / going paid-enforced.
+ * UAT override: when true, new agencies get Test/comp with no trial wall.
+ * Production stays off so signup starts a real Growth trial.
+ * Enable only with env: UAT_FORCE_TEST_PLAN=1
  */
-export const UAT_FORCE_TEST_PLAN = true
+function envFlagTrue(name) {
+  const raw = String(process.env[name] ?? '')
+    .trim()
+    .toLowerCase()
+  return raw === '1' || raw === 'true' || raw === 'yes'
+}
+
+export const UAT_FORCE_TEST_PLAN = envFlagTrue('UAT_FORCE_TEST_PLAN')
 export const UAT_PLAN_ID = 'test'
 
 const ALL_SERVICE_MODULES = [

@@ -88,7 +88,7 @@ export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }
 
   /**
    * Self-serve signup from marketing pricing:
-   * create agency + owner, open invoice, redirect to Paymently.
+   * create agency + owner on a free trial (pay later from Billing).
    */
   app.post('/api/platform/public/subscribe', async (req, res) => {
     try {
@@ -96,9 +96,10 @@ export function registerBillingRoutes(app, { requireAuth, requirePlatformAdmin }
         agencyName: req.body?.agencyName,
         ownerName: req.body?.ownerName,
         ownerEmail: req.body?.ownerEmail,
+        ownerMobile: req.body?.ownerMobile,
         ownerPassword: req.body?.ownerPassword,
         planId: req.body?.planId,
-        returnUrl: req.body?.returnUrl,
+        acceptedTerms: Boolean(req.body?.acceptedTerms),
         clientIp:
           req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ||
           req.socket?.remoteAddress,

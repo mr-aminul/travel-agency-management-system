@@ -30,6 +30,19 @@ export const authCornerLogoClass =
 export const authCardClass =
   'relative z-[1] my-auto flex w-full max-w-96 flex-col items-stretch gap-6 rounded-[1.25rem] border border-[#e5e7eb] bg-white px-6 pb-6 pt-7 text-center text-[#0a0a0a] shadow-[0_18px_48px_color-mix(in_srgb,black_28%,transparent),0_2px_8px_color-mix(in_srgb,black_12%,transparent)] max-md:gap-5 max-md:px-[1.1rem] max-md:pb-5 max-md:pt-[1.35rem]'
 
+/** Wider card for multi-field signup (email + mobile row). */
+export const authCardWideClass =
+  'relative z-[1] flex w-full flex-col items-stretch gap-6 rounded-[1.25rem] border border-[#e5e7eb] bg-white px-7 pb-6 pt-7 text-center text-[#0a0a0a] shadow-[0_18px_48px_color-mix(in_srgb,black_28%,transparent),0_2px_8px_color-mix(in_srgb,black_12%,transparent)] max-md:gap-5 max-md:px-[1.1rem] max-md:pb-5 max-md:pt-[1.35rem]'
+
+export const authFormRowClass =
+  'grid grid-cols-1 gap-[0.9rem] sm:grid-cols-2 sm:gap-3'
+
+/** Taller controls on public auth forms. */
+export const authInputClass = 'h-11 px-3.5 text-base md:text-base'
+
+export const authSubmitClass =
+  'mt-[0.15rem] h-11 w-full rounded-lg text-base font-semibold'
+
 export const authBrandClass = 'flex flex-col items-center gap-[0.65rem]'
 
 export const authBrandLogoClass =
@@ -46,6 +59,18 @@ export const authFormClass =
 
 export const authTextLinkClass =
   'm-[0.15rem_auto_0] inline-block cursor-pointer border-0 bg-transparent p-0 text-center font-inherit text-sm leading-snug text-[#64748b] no-underline transition-colors hover:text-[color-mix(in_srgb,#64748b_72%,#0a0a0a)] focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[color-mix(in_srgb,var(--color-theme)_55%,transparent)]'
+
+/** Link below the white card on the dark auth background. */
+export const authOutsideLinkClass =
+  'inline-block cursor-pointer border-0 bg-transparent p-0 text-center font-inherit text-sm leading-snug text-white/72 no-underline transition-colors hover:text-white focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-white/55'
+
+/** Emphasized inline action inside muted auth copy (Sign in / Start free trial). */
+export const authInlineLinkClass =
+  'font-medium text-[var(--color-theme)] underline underline-offset-2 transition-colors hover:text-[color-mix(in_srgb,var(--color-theme)_82%,#0a0a0a)] focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[color-mix(in_srgb,var(--color-theme)_55%,transparent)]'
+
+/** Centers card + outside link under the auth shell. */
+export const authStackClass =
+  'relative z-[1] my-auto flex w-full max-w-[28rem] flex-col items-center gap-3 max-md:max-w-96'
 
 export const authSuccessClass =
   'flex flex-col items-center gap-[0.85rem] px-0 pb-[0.15rem] pt-[0.35rem]'

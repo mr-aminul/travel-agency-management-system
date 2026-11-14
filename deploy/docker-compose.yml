@@ -72,6 +72,8 @@ services:
       BILLING_SUPPORT_EMAIL: ${BILLING_SUPPORT_EMAIL:-support@inventivelab.bd}
       BILLING_PAY_NOTE: ${BILLING_PAY_NOTE:-}
       BILLING_WEBHOOK_SECRET: ${BILLING_WEBHOOK_SECRET:-}
+      # Leave unset in production so signup starts a real Growth trial.
+      UAT_FORCE_TEST_PLAN: ${UAT_FORCE_TEST_PLAN:-}
       UPLOAD_DIR: /data/uploads
     volumes:
       - onetrack_platform_uploads:/data/uploads

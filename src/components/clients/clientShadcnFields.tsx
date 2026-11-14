@@ -16,6 +16,10 @@ type TextFieldProps = ComponentProps<'input'> & {
   error?: string
   /** Smaller label + control for dense sheets. */
   compact?: boolean
+  /** Extra classes on the field label (after compact defaults). */
+  labelClassName?: string
+  /** Extra classes on the field stack (gap between label and control). */
+  fieldClassName?: string
 }
 
 export function Input({
@@ -24,6 +28,8 @@ export function Input({
   id,
   required,
   compact,
+  labelClassName,
+  fieldClassName,
   className,
   ...props
 }: TextFieldProps) {
@@ -32,17 +38,16 @@ export function Input({
   return (
     <Field
       data-invalid={error ? true : undefined}
-      className={compact ? 'gap-1' : undefined}
+      className={cn(compact ? 'gap-1' : undefined, fieldClassName)}
     >
       <div className="flex items-baseline gap-1">
         {/* Keep required * outside the label so getByLabelText(label) matches exact text. */}
         <FieldLabel
           htmlFor={inputId}
-          className={
-            compact
-              ? 'text-xs font-medium text-muted-foreground'
-              : undefined
-          }
+          className={cn(
+            compact && 'text-xs font-medium text-muted-foreground',
+            labelClassName,
+          )}
         >
           {label}
         </FieldLabel>

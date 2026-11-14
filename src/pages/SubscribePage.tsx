@@ -1,122 +1,71 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { layoutConfig } from '@/config/layout'
-import {
-  fetchPublicBillingPlans,
-  publicSubscribe,
-} from '@/lib/billing/billingApi'
-import { formatBdt } from '@/lib/billing/format'
-import { writeSession, type AuthSession, type AuthUser } from '@/lib/authApi'
+import { publicSubscribe } from '@/lib/billing/billingApi'
+import { TRIAL_PLAN_ID } from '@/lib/billing/planCatalog'
 import { useAuth } from '@/lib/auth'
 import { postLoginPath } from '@/lib/authWorkspaces'
 import { publicUrl } from '@/lib/publicUrl'
 import { marketingHomeUrl } from '@/lib/siteOrigins'
 import { Button } from '@/components/shadcn/button'
-import { Input, Select } from '@/components/clients/clientShadcnFields'
+import { Input } from '@/components/clients/clientShadcnFields'
 import {
+  validateNewPassword,
   validateRequiredEmail,
   validateRequiredName,
-  validateRequiredPassword,
+  validateRequiredPhone,
 } from '@/lib/fieldValidation'
 import { useTouchedFields } from '@/lib/useTouchedFields'
-import type { PlanTemplate } from '@/types/billing'
 import {
   authActionsClass,
   authBrandClass,
   authBrandLogoClass,
-  authCardClass,
+  authCardWideClass,
   authCornerLogoClass,
   authFormClass,
+  authFormRowClass,
+  authInlineLinkClass,
+  authInputClass,
+  authOutsideLinkClass,
   authPageBackgroundStyle,
   authShellClass,
-  authTextLinkClass,
+  authStackClass,
+  authSubmitClass,
   authTitleClass,
   usePublicBrandTheme,
 } from '@/pages/auth/authShell'
 
-function sessionFromSubscribe(result: {
-  accessToken: string | null
-  tenantId: string
-  signedInAt?: string
-  user?: { id: string; email: string; name: string; role: string }
-}): AuthSession | null {
-  if (!result.accessToken || !result.user) return null
-  const role = result.user.role
-  if (
-    role !== 'agency_user' &&
-    role !== 'platform_admin' &&
-    role !== 'sub_agent'
-  ) {
-    return null
-  }
-  const user: AuthUser = {
-    id: result.user.id,
-    email: result.user.email,
-    name: result.user.name,
-    role,
-  }
-  return {
-    accessToken: result.accessToken,
-    tenantId: result.tenantId,
-    signedInAt: result.signedInAt || new Date().toISOString(),
-    user,
-  }
-}
-
 export default function SubscribePage() {
   usePublicBrandTheme()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { status, session } = useAuth()
-  const preselectedPlan = String(searchParams.get('plan') || 'growth').trim()
+  const { status, session, signInWithPassword } = useAuth()
+  const planId =
+    String(searchParams.get('plan') || '').trim() || TRIAL_PLAN_ID
 
-  const [plans, setPlans] = useState<PlanTemplate[]>([])
-  const [planId, setPlanId] = useState(preselectedPlan)
-  const [agencyName, setAgencyName] = useState('')
   const [ownerName, setOwnerName] = useState('')
   const [ownerEmail, setOwnerEmail] = useState('')
+  const [agencyName, setAgencyName] = useState('')
+  const [ownerMobile, setOwnerMobile] = useState('')
   const [ownerPassword, setOwnerPassword] = useState('')
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [plansError, setPlansError] = useState<string | null>(null)
 
   const { markAllTouched, showError, blur } = useTouchedFields<
-    'agencyName' | 'ownerName' | 'ownerEmail' | 'ownerPassword'
+    | 'agencyName'
+    | 'ownerName'
+    | 'ownerEmail'
+    | 'ownerMobile'
+    | 'ownerPassword'
   >()
 
-  const agencyError = validateRequiredName(agencyName, 'Agency name')
   const ownerNameError = validateRequiredName(ownerName, 'Your name')
   const emailError = validateRequiredEmail(ownerEmail)
-  const passwordError = validateRequiredPassword(ownerPassword)
-
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      try {
-        const catalog = await fetchPublicBillingPlans()
-        if (cancelled) return
-        const sorted = [...catalog.plans].sort(
-          (a, b) => a.sortOrder - b.sortOrder,
-        )
-        setPlans(sorted)
-        setPlansError(null)
-        setPlanId((current) =>
-          sorted.some((plan) => plan.id === current)
-            ? current
-            : sorted[0]?.id || current,
-        )
-      } catch (err) {
-        if (!cancelled) {
-          setPlansError(
-            err instanceof Error ? err.message : 'Could not load plans.',
-          )
-        }
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const agencyError = validateRequiredName(agencyName, 'Name of business')
+  const mobileError = validateRequiredPhone(ownerMobile)
+  const passwordError = validateNewPassword(ownerPassword)
 
   if (status === 'authenticated' && session) {
     return <Navigate to={postLoginPath(session)} replace />
@@ -126,40 +75,40 @@ export default function SubscribePage() {
     event.preventDefault()
     setError(null)
     markAllTouched([
-      'agencyName',
       'ownerName',
       'ownerEmail',
+      'agencyName',
+      'ownerMobile',
       'ownerPassword',
     ])
-    if (agencyError || ownerNameError || emailError || passwordError) return
-    if (!planId) {
-      setError('Choose a plan.')
+    if (
+      ownerNameError ||
+      emailError ||
+      agencyError ||
+      mobileError ||
+      passwordError
+    ) {
       return
     }
 
     setIsSubmitting(true)
     try {
-      const result = await publicSubscribe({
+      await publicSubscribe({
         agencyName,
         ownerName,
         ownerEmail,
+        ownerMobile,
         ownerPassword,
         planId,
-        returnUrl: `${window.location.origin}/billing`,
+        acceptedTerms: true,
       })
-      const nextSession = sessionFromSubscribe(result)
-      if (nextSession) writeSession(nextSession)
-
-      if (result.redirectUrl) {
-        window.location.href = result.redirectUrl
-        return
-      }
-      window.location.href = result.activated
-        ? '/billing?payment=success'
-        : '/billing'
+      const next = await signInWithPassword(ownerEmail, ownerPassword, {
+        intent: 'agency',
+      })
+      navigate(postLoginPath(next), { replace: true })
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : 'Could not start checkout.',
+        caught instanceof Error ? caught.message : 'Could not start your trial.',
       )
       setIsSubmitting(false)
     }
@@ -176,109 +125,132 @@ export default function SubscribePage() {
         decoding="async"
       />
 
-      <div className={authCardClass}>
-        <div className={authBrandClass}>
-          {layoutConfig.brand.logoUrl ? (
-            <div className={authBrandLogoClass}>
-              <img
-                src={layoutConfig.brand.logoUrl}
-                alt=""
-                width={48}
-                height={48}
-                decoding="async"
-                className="block size-full object-contain"
+      <div className={authStackClass}>
+        <div className={authCardWideClass}>
+          <div className={authBrandClass}>
+            {layoutConfig.brand.logoUrl ? (
+              <div className={authBrandLogoClass}>
+                <img
+                  src={layoutConfig.brand.logoUrl}
+                  alt=""
+                  width={48}
+                  height={48}
+                  decoding="async"
+                  className="block size-full object-contain"
+                />
+              </div>
+            ) : null}
+            <h1 className={authTitleClass}>Sign Up</h1>
+          </div>
+
+          <div className={authActionsClass}>
+            <form className={authFormClass} onSubmit={handleSubmit}>
+              <Input
+                id="signup-name"
+                label="Your Name"
+                autoComplete="name"
+                value={ownerName}
+                onChange={(event) => setOwnerName(event.target.value)}
+                onBlur={blur('ownerName')}
+                required
+                error={showError('ownerName') ? ownerNameError : undefined}
+                className={authInputClass}
               />
-            </div>
-          ) : null}
-          <h1 className={authTitleClass}>Start OneTrack</h1>
-        </div>
-
-        <div className={authActionsClass}>
-          <form className={authFormClass} onSubmit={handleSubmit}>
-            {plansError ? (
-              <p className="m-0 text-sm text-destructive" role="alert">
-                {plansError}
+              <Input
+                id="signup-agency"
+                label="Name of Business"
+                autoComplete="organization"
+                value={agencyName}
+                onChange={(event) => setAgencyName(event.target.value)}
+                onBlur={blur('agencyName')}
+                required
+                error={showError('agencyName') ? agencyError : undefined}
+                className={authInputClass}
+              />
+              <div className={authFormRowClass}>
+                <Input
+                  id="signup-email"
+                  label="Email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="name@company.com"
+                  value={ownerEmail}
+                  onChange={(event) => setOwnerEmail(event.target.value)}
+                  onBlur={blur('ownerEmail')}
+                  required
+                  error={showError('ownerEmail') ? emailError : undefined}
+                  className={authInputClass}
+                />
+                <Input
+                  id="signup-mobile"
+                  label="Mobile number"
+                  type="tel"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  placeholder="01XXXXXXXXX"
+                  value={ownerMobile}
+                  onChange={(event) => setOwnerMobile(event.target.value)}
+                  onBlur={blur('ownerMobile')}
+                  required
+                  error={showError('ownerMobile') ? mobileError : undefined}
+                  className={authInputClass}
+                />
+              </div>
+              <div className="relative">
+                <Input
+                  id="signup-password"
+                  label="Password"
+                  type={isPasswordVisible ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="8+ characters, letter and number"
+                  value={ownerPassword}
+                  onChange={(event) => setOwnerPassword(event.target.value)}
+                  onBlur={blur('ownerPassword')}
+                  required
+                  error={showError('ownerPassword') ? passwordError : undefined}
+                  className={`${authInputClass} pe-11`}
+                />
+                <button
+                  type="button"
+                  className="absolute end-0 top-[1.75rem] flex size-11 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-[#64748b] hover:text-[#0a0a0a] focus-visible:rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[color-mix(in_srgb,var(--color-theme)_55%,transparent)]"
+                  aria-label={
+                    isPasswordVisible ? 'Hide password' : 'Show password'
+                  }
+                  aria-pressed={isPasswordVisible}
+                  onClick={() => setIsPasswordVisible((visible) => !visible)}
+                >
+                  {isPasswordVisible ? (
+                    <EyeOff size={18} strokeWidth={2} aria-hidden />
+                  ) : (
+                    <Eye size={18} strokeWidth={2} aria-hidden />
+                  )}
+                </button>
+              </div>
+              {error ? (
+                <p className="m-0 text-sm text-destructive" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              <Button
+                type="submit"
+                size="lg"
+                className={authSubmitClass}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Creating…' : 'Start Free Trial'}
+              </Button>
+              <p className="m-[0.15rem_auto_0] text-center text-sm leading-snug text-[#64748b]">
+                Already have an account?{' '}
+                <Link to="/login" className={authInlineLinkClass}>
+                  Sign in
+                </Link>
               </p>
-            ) : null}
-
-            <Select
-              label="Plan"
-              value={planId}
-              disabled={isSubmitting || plans.length === 0}
-              options={plans.map((plan) => ({
-                value: plan.id,
-                label: `${plan.name} · ${formatBdt(plan.priceBdt)}/${plan.interval === 'year' ? 'yr' : 'mo'}`,
-              }))}
-              onChange={(e) => setPlanId(e.target.value)}
-            />
-
-            <Input
-              label="Agency Name"
-              autoComplete="organization"
-              value={agencyName}
-              disabled={isSubmitting}
-              error={showError('agencyName') ? agencyError : undefined}
-              onBlur={blur('agencyName')}
-              onChange={(e) => setAgencyName(e.target.value)}
-              required
-            />
-            <Input
-              label="Your Name"
-              autoComplete="name"
-              value={ownerName}
-              disabled={isSubmitting}
-              error={showError('ownerName') ? ownerNameError : undefined}
-              onBlur={blur('ownerName')}
-              onChange={(e) => setOwnerName(e.target.value)}
-              required
-            />
-            <Input
-              label="Work Email"
-              type="email"
-              autoComplete="email"
-              value={ownerEmail}
-              disabled={isSubmitting}
-              error={showError('ownerEmail') ? emailError : undefined}
-              onBlur={blur('ownerEmail')}
-              onChange={(e) => setOwnerEmail(e.target.value)}
-              required
-            />
-            <Input
-              label="Password"
-              type="password"
-              autoComplete="new-password"
-              value={ownerPassword}
-              disabled={isSubmitting}
-              error={showError('ownerPassword') ? passwordError : undefined}
-              onBlur={blur('ownerPassword')}
-              onChange={(e) => setOwnerPassword(e.target.value)}
-              required
-            />
-
-            {error ? (
-              <p className="m-0 text-sm text-destructive" role="alert">
-                {error}
-              </p>
-            ) : null}
-
-            <Button
-              type="submit"
-              size="lg"
-              className="h-9 rounded-lg"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Starting…' : 'Continue To Payment'}
-              <ArrowRight size={16} strokeWidth={2.25} aria-hidden />
-            </Button>
-
-            <Link to="/login" className={authTextLinkClass}>
-              Already have an account? Sign in
-            </Link>
-            <a href={marketingHomeUrl()} className={authTextLinkClass}>
-              Back to OneTrack
-            </a>
-          </form>
+            </form>
+          </div>
         </div>
+        <a href={marketingHomeUrl()} className={authOutsideLinkClass}>
+          Back to OneTrack
+        </a>
       </div>
     </div>
   )

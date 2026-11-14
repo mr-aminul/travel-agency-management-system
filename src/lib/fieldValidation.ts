@@ -109,6 +109,16 @@ export function validateRequiredPassword(value: string): string | undefined {
   return undefined
 }
 
+/** New passwords (signup / reset): 8+ chars with a letter and a number. */
+export function validateNewPassword(value: string): string | undefined {
+  const required = validateRequiredPassword(value)
+  if (required) return required
+  if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) {
+    return 'Use at least 8 characters with a letter and a number.'
+  }
+  return undefined
+}
+
 export function validateOptionalPassport(value: string): string | undefined {
   const text = trimmed(value)
   if (!text) return undefined

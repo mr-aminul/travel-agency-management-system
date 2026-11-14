@@ -8,6 +8,9 @@ import {
   UAT_FORCE_TEST_PLAN,
   UAT_PLAN_ID,
 } from './plans.js'
+import { isTrialExpired, resolveAccess } from './resolveAccess.js'
+
+export { isTrialExpired, resolveAccess }
 
 function mapBillingRow(row) {
   if (!row) return null
@@ -54,45 +57,6 @@ function mapBillingRow(row) {
   }
 }
 
-export function isTrialExpired(billing) {
-  if (!billing) return false
-  if (billing.billingStatus !== 'trial' && billing.planKind !== 'trial') {
-    return false
-  }
-  if (!billing.trialEndsAt) return false
-  return new Date(billing.trialEndsAt).getTime() <= Date.now()
-}
-
-/** Access rules: active + past_due + live trial allowed; expired trial / suspended / canceled blocked. */
-export function resolveAccess(billing) {
-  if (!billing) {
-    return {
-      allowed: true,
-      reason: 'unprovisioned',
-      wall: null,
-    }
-  }
-  if (billing.billingStatus === 'suspended') {
-    return { allowed: false, reason: 'suspended', wall: 'suspended' }
-  }
-  if (billing.billingStatus === 'canceled') {
-    return { allowed: false, reason: 'canceled', wall: 'expired' }
-  }
-  if (billing.billingStatus === 'past_due') {
-    return { allowed: true, reason: 'past_due', wall: null, grace: true }
-  }
-  if (billing.billingStatus === 'active' || billing.planKind === 'comp') {
-    return { allowed: true, reason: 'active', wall: null }
-  }
-  if (billing.billingStatus === 'trial' || billing.planKind === 'trial') {
-    if (isTrialExpired(billing)) {
-      return { allowed: false, reason: 'trial_expired', wall: 'expired' }
-    }
-    return { allowed: true, reason: 'trial', wall: null }
-  }
-  return { allowed: false, reason: 'unknown', wall: 'expired' }
-}
-
 export async function getTenantBilling(tenantId) {
   const id = String(tenantId ?? '').trim()
   if (!id) return null
@@ -114,7 +78,8 @@ export async function ensureTenantBilling(tenantId, { startTrial = true } = {}) 
   if (existing) return existing
   if (!startTrial) return null
 
-  // UAT: new agencies land on Test/comp (no trial expiry). Flip UAT_FORCE_TEST_PLAN off later.
+  // UAT only (UAT_FORCE_TEST_PLAN=1): Test/comp with no expiry.
+  // Default: 14-day Growth trial, then BillingAccessWall until they pay.
   if (UAT_FORCE_TEST_PLAN) {
     const applied = await applyPlanToTenant({
       tenantId: id,
@@ -512,7 +477,7 @@ export async function bootstrapDemoTenantBilling() {
     const existing = await getTenantBilling(tenantId)
 
     if (UAT_FORCE_TEST_PLAN) {
-      // UAT: every agency on Test/comp — no trial walls for first clients.
+      // UAT only: every agency on Test/comp — no trial walls.
       if (
         existing?.planId === UAT_PLAN_ID &&
         existing.billingStatus === 'active' &&
@@ -531,14 +496,9 @@ export async function bootstrapDemoTenantBilling() {
       continue
     }
 
+    // Production: leave existing rows alone (including legacy Test/comp).
+    // Tenants missing billing get a real Growth trial — not free Business.
     if (existing) continue
-    await applyPlanToTenant({
-      tenantId,
-      planId: 'business',
-      billingStatus: 'active',
-      planKind: 'comp',
-      currentPeriodEnd: periodEndFromNow('year'),
-      syncModules: false,
-    })
+    await ensureTenantBilling(tenantId)
   }
 }

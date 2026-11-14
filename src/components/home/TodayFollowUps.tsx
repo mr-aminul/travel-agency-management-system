@@ -34,7 +34,17 @@ const BUCKET_ICON = {
   approvals: ClipboardCheck,
 } as const
 
-export function TodayFollowUps() {
+type TodayEmptyAction = {
+  label: string
+  to: string
+}
+
+type TodayFollowUpsProps = {
+  /** First-run next step when the desk has nothing due. */
+  emptyAction?: TodayEmptyAction
+}
+
+export function TodayFollowUps({ emptyAction }: TodayFollowUpsProps) {
   const { user } = useAuth()
   const tenant = useActiveTenant()
   const cases = useCases()
@@ -97,7 +107,15 @@ export function TodayFollowUps() {
       </header>
 
       {total === 0 ? (
-        <p className="pd-today__empty">Nothing due today.</p>
+        emptyAction ? (
+          <p className="pd-today__empty">
+            <Link to={emptyAction.to} className="pd-today__empty-link">
+              {emptyAction.label}
+            </Link>
+          </p>
+        ) : (
+          <p className="pd-today__empty">Nothing due today.</p>
+        )
       ) : (
         <div className="pd-today__queues">
           {queues.map((bucket) => (

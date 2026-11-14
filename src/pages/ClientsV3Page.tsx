@@ -64,6 +64,7 @@ import {
   summaryStatPeekClass,
   summaryStatValueClass,
   activeWhiteControlClass,
+  pureWhiteFieldClass,
   whiteControlClass,
 } from '@/components/clients/shadcnChrome'
 import { useCases } from '@/lib/casesStore'
@@ -402,7 +403,7 @@ export default function ClientsV3Page() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search Clients…"
-              className={cn('pl-8', outlineControl)}
+              className={cn('pl-8', pureWhiteFieldClass)}
             />
           </div>
           {hasActiveFilters ? (

@@ -92,9 +92,10 @@ export type PublicSubscribeInput = {
   agencyName: string
   ownerName: string
   ownerEmail: string
+  ownerMobile: string
   ownerPassword: string
   planId: string
-  returnUrl?: string
+  acceptedTerms: boolean
 }
 
 export type PublicSubscribeResult = {
@@ -110,10 +111,10 @@ export type PublicSubscribeResult = {
   }
   tenant: { id: string; name: string; slug: string }
   plan: PlanTemplate
-  invoice: BillingInvoice
+  invoice: BillingInvoice | null
   redirectUrl: string | null
   activated?: boolean
-  mode?: 'manual' | 'external' | 'uddoktapay'
+  mode?: 'manual' | 'external' | 'uddoktapay' | 'trial'
   instructions?: PaymentInstructions
 }
 
@@ -129,18 +130,11 @@ export async function publicSubscribe(
       {
         method: 'POST',
         skipAuth: true,
-        body: {
-          ...input,
-          returnUrl:
-            input.returnUrl ||
-            (typeof window !== 'undefined'
-              ? `${window.location.origin}/billing`
-              : undefined),
-        },
+        body: input,
       },
     )
   } catch (error) {
-    throw new Error(errorMessage(error, 'Could not start signup checkout.'))
+    throw new Error(errorMessage(error, 'Could not start your free trial.'))
   }
 }
 

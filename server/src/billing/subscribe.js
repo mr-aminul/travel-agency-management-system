@@ -1,16 +1,24 @@
 /**
- * Public self-serve subscribe: create agency + owner, start Paymently checkout.
+ * Public self-serve subscribe: create agency + owner on a free trial.
  */
 
 import crypto from 'node:crypto'
 import { createAgencyUser, loginWithPassword } from '../auth.js'
 import { query } from '../db.js'
-import { createCheckout } from './gateway.js'
 import { getPlanTemplate, listPlanTemplates } from './plans.js'
 import {
   ensureTenantBilling,
   updateBillingNotes,
 } from './tenantBilling.js'
+
+function isStrongPassword(value) {
+  return (
+    typeof value === 'string' &&
+    value.length >= 8 &&
+    /[A-Za-z]/.test(value) &&
+    /\d/.test(value)
+  )
+}
 
 const RATE_WINDOW_MS = 15 * 60 * 1000
 const RATE_MAX_PER_IP = 8
@@ -105,14 +113,23 @@ export function isPublicCheckoutPlan(plan) {
   return true
 }
 
+function isValidMobile(value) {
+  const text = trim(value)
+  if (!text) return false
+  if (/[^\d+\s()-]/.test(text)) return false
+  const digits = text.replace(/\D/g, '')
+  return digits.length >= 10 && digits.length <= 15
+}
+
 /**
  * @param {{
  *   agencyName: string,
  *   ownerName: string,
  *   ownerEmail: string,
+ *   ownerMobile: string,
  *   ownerPassword: string,
  *   planId: string,
- *   returnUrl?: string,
+ *   acceptedTerms?: boolean,
  *   clientIp?: string,
  * }} input
  */
@@ -128,6 +145,7 @@ export async function createSelfServeSubscription(input) {
   const agencyName = trim(input.agencyName)
   const ownerName = trim(input.ownerName)
   const ownerEmail = normalizeEmail(input.ownerEmail)
+  const ownerMobile = trim(input.ownerMobile)
   const ownerPassword = String(input.ownerPassword ?? '')
   const planId = trim(input.planId)
 
@@ -140,11 +158,25 @@ export async function createSelfServeSubscription(input) {
   if (!ownerEmail || !ownerEmail.includes('@')) {
     return { ok: false, status: 400, error: 'A valid owner email is required.' }
   }
-  if (!ownerPassword || ownerPassword.length < 8) {
+  if (!isValidMobile(ownerMobile)) {
     return {
       ok: false,
       status: 400,
-      error: 'Password must be at least 8 characters.',
+      error: 'Enter a valid mobile number (10–15 digits).',
+    }
+  }
+  if (!isStrongPassword(ownerPassword)) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Password must be at least 8 characters with a letter and a number.',
+    }
+  }
+  if (!input.acceptedTerms) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'Accept the Terms of Service and Privacy Policy to continue.',
     }
   }
   if (!planId) {
@@ -218,25 +250,15 @@ export async function createSelfServeSubscription(input) {
       ? profiles[tenantId]
       : {}),
     businessName: agencyName,
+    mobile: ownerMobile,
   }
   await writeKv('pd-agency-profiles', profiles)
 
   await ensureTenantBilling(tenantId)
   await updateBillingNotes(
     tenantId,
-    `Self-serve signup · selected ${plan.name} (${plan.id}) · ${ownerEmail}`,
+    `Self-serve trial · preferred ${plan.name} (${plan.id}) · ${ownerEmail}`,
   )
-
-  const checkout = await createCheckout({
-    tenantId,
-    planId: plan.id,
-    returnUrl: trim(input.returnUrl) || undefined,
-    customer: {
-      fullName: ownerName,
-      email: ownerEmail,
-    },
-    description: `Self-serve · ${plan.name} · ${agencyName}`,
-  })
 
   const session = await loginWithPassword(ownerEmail, ownerPassword)
   const sessionBody = session.ok
@@ -248,25 +270,6 @@ export async function createSelfServeSubscription(input) {
         signedInAt: new Date().toISOString(),
       }
 
-  // Agency + owner are already stored for admin. If Paymently is down, still
-  // return a session so the owner can open Billing and retry pay online.
-  if (!checkout.ok) {
-    return {
-      ok: true,
-      status: 201,
-      body: {
-        ...sessionBody,
-        tenant,
-        plan,
-        invoice: null,
-        redirectUrl: null,
-        activated: false,
-        mode: 'manual',
-        checkoutError: checkout.error,
-      },
-    }
-  }
-
   return {
     ok: true,
     status: 201,
@@ -274,11 +277,10 @@ export async function createSelfServeSubscription(input) {
       ...sessionBody,
       tenant,
       plan,
-      invoice: checkout.invoice,
-      redirectUrl: checkout.redirectUrl,
-      activated: Boolean(checkout.activated),
-      mode: checkout.mode,
-      instructions: checkout.instructions,
+      invoice: null,
+      redirectUrl: null,
+      activated: true,
+      mode: 'trial',
     },
   }
 }

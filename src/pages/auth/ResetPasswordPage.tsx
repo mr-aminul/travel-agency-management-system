@@ -6,7 +6,7 @@ import {
   fetchPasswordReset,
 } from '@/lib/authApi'
 import { publicUrl } from '@/lib/publicUrl'
-import { validateRequiredPassword } from '@/lib/fieldValidation'
+import { validateNewPassword } from '@/lib/fieldValidation'
 import { useTouchedFields } from '@/lib/useTouchedFields'
 import { Button } from '@/components/shadcn/button'
 import { Input } from '@/components/clients/clientShadcnFields'
@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
   const { markAllTouched, showError, blur } = useTouchedFields<
     'password' | 'confirm'
   >()
-  const passwordError = validateRequiredPassword(password)
+  const passwordError = validateNewPassword(password)
   const confirmError =
     confirm !== password ? 'Passwords do not match.' : undefined
 

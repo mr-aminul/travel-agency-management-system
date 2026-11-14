@@ -35,7 +35,7 @@ export function BusinessProfileSetupNotice({
       ? `Add your ${missing} before sharing this invoice so clients see complete agency details.`
       : variant === 'documents'
         ? `Add your ${missing} before printing so embassy and manpower sheets show your agency name correctly.`
-        : `Add your ${missing} so invoices and documents show the right agency details.`
+        : `Add your ${missing}.`
 
   return (
     <aside

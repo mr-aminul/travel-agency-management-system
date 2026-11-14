@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  validateNewPassword,
   validateOptionalEmail,
   validateOptionalMoney,
   validateRequiredEmail,
@@ -24,6 +25,12 @@ describe('fieldValidation', () => {
     expect(validateRequiredPassword('')).toMatch(/required/i)
     expect(validateRequiredPassword('ab')).toMatch(/8 characters/i)
     expect(validateRequiredPassword('demo1234')).toBeUndefined()
+  })
+
+  it('validates new passwords', () => {
+    expect(validateNewPassword('abcdefgh')).toMatch(/letter and a number/i)
+    expect(validateNewPassword('12345678')).toMatch(/letter and a number/i)
+    expect(validateNewPassword('demo1234')).toBeUndefined()
   })
 
   it('validates required selects and phones', () => {

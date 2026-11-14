@@ -278,8 +278,8 @@ export function BillingSettingsSection({ title, info }: Props) {
             <p className="pd-billing__meta">
               {billing?.billingStatus === 'trial'
                 ? trialDays != null && trialDays > 0
-                  ? `Trial ends ${formatDate(billing.trialEndsAt)} · ${trialDays} day${trialDays === 1 ? '' : 's'} left`
-                  : `Trial ended ${formatDate(billing.trialEndsAt)}`
+                  ? `Free trial · ends ${formatDate(billing.trialEndsAt)} · ${trialDays} day${trialDays === 1 ? '' : 's'} left`
+                  : `Free trial ended ${formatDate(billing.trialEndsAt)}. Choose a plan below to restore access.`
                 : billing?.currentPeriodEnd
                   ? `Renews ${formatDate(billing.currentPeriodEnd)} · ${formatBdt(snapshot.plan?.priceBdt ?? 0)}/${snapshot.plan?.interval === 'year' ? 'yr' : 'mo'}`
                   : snapshot.plan

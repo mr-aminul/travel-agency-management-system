@@ -14,14 +14,14 @@ import {
 import { subscribeUrl } from './landingLinks'
 
 const SERVICES: readonly { name: string; desc: string; icon: ReactNode }[] = [
-  { name: 'Tourist visa', desc: 'Papers, embassy date and decision on one file.', icon: <Mountains weight="duotone" /> },
-  { name: 'Student visa', desc: 'Offer letter and bank statement in view.', icon: <GraduationCap weight="duotone" /> },
-  { name: 'Work permit', desc: 'Medical, police clearance and job papers.', icon: <Briefcase weight="duotone" /> },
+  { name: 'Tourist Visa', desc: 'Papers, embassy date and decision on one file.', icon: <Mountains weight="duotone" /> },
+  { name: 'Student Visa', desc: 'Offer letter and bank statement in view.', icon: <GraduationCap weight="duotone" /> },
+  { name: 'Work Permit', desc: 'Medical, police clearance and job papers.', icon: <Briefcase weight="duotone" /> },
   { name: 'Hajj & Umrah', desc: 'Groups, advance and balance per pilgrim.', icon: <MoonStars weight="duotone" /> },
-  { name: 'Medical visa', desc: 'Hospital letter and attendant on the same file.', icon: <FirstAidKit weight="duotone" /> },
-  { name: 'Air tickets', desc: 'PNR and fare kept with the visa.', icon: <AirplaneTilt weight="duotone" /> },
-  { name: 'Hotel booking', desc: 'Vouchers attached to the trip.', icon: <Bed weight="duotone" /> },
-  { name: 'Tour packages', desc: 'Every traveller, payment and day plan.', icon: <MapTrifold weight="duotone" /> },
+  { name: 'Medical Visa', desc: 'Hospital letter and attendant on the same file.', icon: <FirstAidKit weight="duotone" /> },
+  { name: 'Air Tickets', desc: 'PNR and fare kept with the visa.', icon: <AirplaneTilt weight="duotone" /> },
+  { name: 'Hotel Booking', desc: 'Vouchers attached to the trip.', icon: <Bed weight="duotone" /> },
+  { name: 'Tour Packages', desc: 'Every traveller, payment and day plan.', icon: <MapTrifold weight="duotone" /> },
 ]
 
 export function ServicesStrip() {

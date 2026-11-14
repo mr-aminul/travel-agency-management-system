@@ -193,6 +193,26 @@
   color: var(--color-text-secondary);
 }
 
+.pd-today__empty-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  color: var(--color-theme-ink);
+  text-decoration: none;
+}
+
+.pd-today__empty-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.pd-today__empty-link:focus-visible {
+  outline: 0.125rem solid var(--color-theme);
+  outline-offset: 0.15rem;
+  border-radius: 0.25rem;
+}
+
 .pd-today__queues {
   display: flex;
   flex-direction: column;
@@ -368,6 +388,13 @@
   z-index: 1;
 }
 
+.pd-home-quick__tile--primary {
+  box-shadow:
+    0 0 0 0.15rem color-mix(in srgb, var(--color-on-theme) 55%, transparent),
+    0 1px 2px color-mix(in srgb, black 28%, transparent),
+    0 14px 32px color-mix(in srgb, var(--color-theme) 45%, transparent);
+}
+
 .pd-home-quick__tile:hover {
   background: linear-gradient(150deg,
       color-mix(in srgb, var(--color-theme) 92%, white) 0%,
@@ -375,6 +402,13 @@
   box-shadow:
     0 1px 2px color-mix(in srgb, black 32%, transparent),
     0 16px 34px color-mix(in srgb, var(--color-theme) 42%, transparent);
+}
+
+.pd-home-quick__tile--primary:hover {
+  box-shadow:
+    0 0 0 0.15rem color-mix(in srgb, var(--color-on-theme) 70%, transparent),
+    0 1px 2px color-mix(in srgb, black 32%, transparent),
+    0 18px 36px color-mix(in srgb, var(--color-theme) 48%, transparent);
 }
 
 .pd-home-quick__tile:active {
